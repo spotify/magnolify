@@ -1,0 +1,31 @@
+language: scala
+matrix:
+  include:
+    - scala: 2.11.12
+      jdk: openjdk8
+    - scala: 2.12.10
+      jdk: openjdk8
+    - scala: 2.12.10
+      jdk: openjdk11
+    - scala: 2.13.0
+      jdk: openjdk8
+    - scala: 2.13.0
+      jdk: openjdk11
+
+cache:
+  directories:
+    - $HOME/.sbt/boot
+    - $HOME/.ivy2/cache
+
+script:
+  - sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport coverageAggregate
+  # Tricks to avoid unnecessary cache updates
+  - find $HOME/.sbt -name "*.lock" -delete
+  - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
+notifications:
+  email:
+    - neville.lyh@gmail.com
