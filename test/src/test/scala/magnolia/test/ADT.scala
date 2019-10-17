@@ -21,7 +21,7 @@ object ADT {
   case object Green extends Color
   case object Blue extends Color
 
-  // Keeping Gen[T] instances of recursive ADTs here to avoid implicit pollution from ArbDerivation
+  // Keeping Gen[T] recursive instances here to avoid implicit pollution from ArbitraryDerivation
   // It seems that Magnolia SealedTrait#subtypes are ordered by name, so Gen.oneOf must match
 
   object Node {

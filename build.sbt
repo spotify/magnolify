@@ -105,7 +105,10 @@ lazy val cats: Project = project.in(file("cats")).settings(
   commonSettings,
   moduleName := "magnolia-data-cats",
   description := "Magnolia add-on for Cats",
-  libraryDependencies += "org.typelevel" %% "cats-core" % catsVersion
+  libraryDependencies ++= Seq(
+    "org.typelevel" %% "cats-core" % catsVersion,
+    "org.typelevel" %% "cats-laws" % catsVersion % Test
+  )
 ).dependsOn(
   core,
   scalacheck % Test,

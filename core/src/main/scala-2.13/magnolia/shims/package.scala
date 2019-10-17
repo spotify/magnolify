@@ -1,7 +1,5 @@
 package magnolia
 
-import scala.language.higherKinds
-
 package object shims {
   trait Monadic[F[_]] extends mercator.Monadic[F] {
     def flatMapS[A, B](from: F[A])(fn: A => F[B]): F[B]

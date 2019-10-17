@@ -3,12 +3,12 @@ package magnolia.scalacheck.test
 import com.google.protobuf.ByteString
 import magnolia.test.Simple._
 import magnolia.test.ADT._
-import magnolia.scalacheck.ArbDerivation._
+import magnolia.scalacheck._
 import org.joda.time.Instant
 import org.scalacheck._
 import org.scalatest._
 
-class ArbDerivationTest extends FlatSpec with Matchers {
+class ArbitraryDerivationTest extends FlatSpec with Matchers {
   private val parameters = Gen.Parameters.default
   private val seed = rng.Seed.random()
 
@@ -30,7 +30,18 @@ class ArbDerivationTest extends FlatSpec with Matchers {
   // Simple types
   ////////////////////////////////////////
 
-  "ArbDerivation" should "work with Required" in {
+  "ArbitraryDerivation" should "work with Numbers" in {
+    test(for {
+      i <- Arbitrary.arbInt.arbitrary
+      l <- Arbitrary.arbLong.arbitrary
+      f <- Arbitrary.arbFloat.arbitrary
+      d <- Arbitrary.arbDouble.arbitrary
+      bi <- Arbitrary.arbBigInt.arbitrary
+      bd <- Arbitrary.arbBigDecimal.arbitrary
+    } yield Numbers(i, l, f, d, bi, bd))
+  }
+
+  it should "work with Required" in {
     test(for {
       b <- Arbitrary.arbBool.arbitrary
       i <- Arbitrary.arbInt.arbitrary

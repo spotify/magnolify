@@ -6,7 +6,7 @@ import org.scalacheck._
 
 import scala.language.experimental.macros
 
-object ArbDerivation {
+object ArbitraryDerivation {
   type Typeclass[T] = Arbitrary[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = Arbitrary {
@@ -19,9 +19,7 @@ object ArbDerivation {
 
   private val monadicGen: Monadic[Gen] = new Monadic[Gen] {
     override def point[A](value: A): Gen[A] = Gen.const(value)
-
     override def flatMapS[A, B](from: Gen[A])(fn: A => Gen[B]): Gen[B] = from.flatMap(fn)
-
     override def mapS[A, B](from: Gen[A])(fn: A => B): Gen[B] = from.map(fn)
   }
 
