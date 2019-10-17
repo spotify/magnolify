@@ -86,6 +86,7 @@ lazy val scalacheck: Project = project.in(file("scalacheck")).settings(
   commonSettings,
   description := "Magnolia add-on for ScalaCheck",
   libraryDependencies += "org.scalacheck" %% "scalacheck" % scalacheckVersion,
+  // For testing derived Gen[T] instances
   libraryDependencies += "org.scalatest" %% "scalatest" % scalatestVersion % Test,
 ).dependsOn(
   test % "test->test"
@@ -97,7 +98,7 @@ lazy val cats: Project = project.in(file("cats")).settings(
   description := "Magnolia add-on for Cats",
   libraryDependencies += "org.typelevel" %% "cats-core" % catsVersion
 ).dependsOn(
-  scalacheck,
+  scalacheck % Test,
   test % "test->test"
 )
 
@@ -106,7 +107,7 @@ lazy val diffy: Project = project.in(file("diffy")).settings(
   commonSettings,
   description := "Magnolia add-on for diffing data"
 ).dependsOn(
-  scalacheck,
+  scalacheck % Test,
   test % "test->test"
 )
 
@@ -119,6 +120,7 @@ lazy val avro: Project = project.in(file("avro")).settings(
     "org.apache.avro" % "avro" % avroVersion % Provided
   )
 ).dependsOn(
+  scalacheck % Test,
   test % "test->test"
 )
 
@@ -133,6 +135,7 @@ lazy val bigquery: Project = project.in(file("bigquery")).settings(
     "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
   )
 ).dependsOn(
+  scalacheck % Test,
   test % "test->test"
 )
 
@@ -145,6 +148,7 @@ lazy val datastore: Project = project.in(file("datastore")).settings(
     "joda-time" % "joda-time" % jodaTimeVersion % Provided
   )
 ).dependsOn(
+  scalacheck % Test,
   test % "test->test"
 )
 
@@ -156,5 +160,6 @@ lazy val tensorflow: Project = project.in(file("tensorflow")).settings(
     "org.tensorflow" % "proto" % tensorflowVersion % Provided
   )
 ).dependsOn(
+  scalacheck % Test,
   test % "test->test"
 )
