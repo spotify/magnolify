@@ -61,6 +61,7 @@ val noPublishSettings = Seq(
 lazy val root: Project = project.in(file(".")).settings(
   commonSettings ++ noPublishSettings
 ).aggregate(
+  core,
   scalacheck,
   cats,
   diffy,
@@ -69,6 +70,12 @@ lazy val root: Project = project.in(file(".")).settings(
   datastore,
   tensorflow,
   test
+)
+
+lazy val core: Project = project.in(file("core")).settings(
+  commonSettings,
+  moduleName := "magnolia-data-core",
+  description := "Magnolia add-on modules for data"
 )
 
 // shared code for unit tests
@@ -83,29 +90,31 @@ lazy val test: Project = project.in(file("test")).settings(
 )
 
 lazy val scalacheck: Project = project.in(file("scalacheck")).settings(
-  moduleName := "magnolia-data-scalacheck",
   commonSettings,
+  moduleName := "magnolia-data-scalacheck",
   description := "Magnolia add-on for ScalaCheck",
   libraryDependencies += "org.scalacheck" %% "scalacheck" % scalacheckVersion,
   // For testing derived Gen[T] instances
   libraryDependencies += "org.scalatest" %% "scalatest" % scalatestVersion % Test,
 ).dependsOn(
+  core,
   test % "test->test"
 )
 
 lazy val cats: Project = project.in(file("cats")).settings(
-  moduleName := "magnolia-data-cats",
   commonSettings,
+  moduleName := "magnolia-data-cats",
   description := "Magnolia add-on for Cats",
   libraryDependencies += "org.typelevel" %% "cats-core" % catsVersion
 ).dependsOn(
+  core,
   scalacheck % Test,
   test % "test->test"
 )
 
 lazy val diffy: Project = project.in(file("diffy")).settings(
-  moduleName := "magnolia-data-diffy",
   commonSettings,
+  moduleName := "magnolia-data-diffy",
   description := "Magnolia add-on for diffing data"
 ).dependsOn(
   scalacheck % Test,
@@ -113,8 +122,8 @@ lazy val diffy: Project = project.in(file("diffy")).settings(
 )
 
 lazy val avro: Project = project.in(file("avro")).settings(
-  moduleName := "magnolia-data-avro",
   commonSettings,
+  moduleName := "magnolia-data-avro",
   description := "Magnolia add-on for Apache Avro",
   libraryDependencies ++= Seq(
     "org.scala-lang" % "scala-reflect" % scalaVersion.value,
@@ -126,8 +135,8 @@ lazy val avro: Project = project.in(file("avro")).settings(
 )
 
 lazy val bigquery: Project = project.in(file("bigquery")).settings(
-  moduleName := "magnolia-data-bigquery",
   commonSettings,
+  moduleName := "magnolia-data-bigquery",
   description := "Magnolia add-on for Google Cloud BigQuery",
   libraryDependencies ++= Seq(
     "org.scala-lang" % "scala-reflect" % scalaVersion.value,
@@ -154,8 +163,8 @@ lazy val datastore: Project = project.in(file("datastore")).settings(
 )
 
 lazy val tensorflow: Project = project.in(file("tensorflow")).settings(
-  moduleName := "magnolia-data-tensorflow",
   commonSettings,
+  moduleName := "magnolia-data-tensorflow",
   description := "Magnolia add-on for TensorFlow",
   libraryDependencies ++= Seq(
     "org.tensorflow" % "proto" % tensorflowVersion % Provided
