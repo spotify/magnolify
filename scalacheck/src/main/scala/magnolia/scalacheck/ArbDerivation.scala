@@ -1,7 +1,7 @@
 package magnolia.scalacheck
 
 import magnolia._
-import mercator.Monadic
+import magnolia.shims.Monadic
 import org.scalacheck._
 
 import scala.language.experimental.macros
@@ -20,9 +20,9 @@ object ArbDerivation {
   private val monadicGen: Monadic[Gen] = new Monadic[Gen] {
     override def point[A](value: A): Gen[A] = Gen.const(value)
 
-    override def flatMap[A, B](from: Gen[A])(fn: A => Gen[B]): Gen[B] = from.flatMap(fn)
+    override def flatMapS[A, B](from: Gen[A])(fn: A => Gen[B]): Gen[B] = from.flatMap(fn)
 
-    override def map[A, B](from: Gen[A])(fn: A => B): Gen[B] = from.map(fn)
+    override def mapS[A, B](from: Gen[A])(fn: A => B): Gen[B] = from.map(fn)
   }
 
   implicit def gen[T]: Arbitrary[T] = macro Magnolia.gen[T]
