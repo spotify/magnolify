@@ -1,8 +1,10 @@
 package magnolia.scalacheck.test
 
+import com.google.protobuf.ByteString
 import magnolia.test.Simple._
 import magnolia.test.ADT._
 import magnolia.scalacheck.ArbDerivation._
+import org.joda.time.Instant
 import org.scalacheck._
 import org.scalatest._
 
@@ -71,6 +73,17 @@ class ArbDerivationTest extends FlatSpec with Matchers {
       i <- Gen.chooseNum(0, 100)
       s <- Gen.alphaNumStr
     } yield Required(b, i, s))
+  }
+
+  it should "work with Custom" in {
+    implicit val arbByteString: Arbitrary[ByteString] =
+      Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
+    implicit val arbInstant: Arbitrary[Instant] =
+      Arbitrary(Gen.posNum[Long].map(Instant.ofEpochMilli))
+    test(for {
+      b <- Gen.alphaNumStr
+      i <- Gen.posNum[Long]
+    } yield Custom(ByteString.copyFromUtf8(b), Instant.ofEpochMilli(i)))
   }
 
   ////////////////////////////////////////

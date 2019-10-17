@@ -76,6 +76,7 @@ lazy val test: Project = project.in(file("test")).settings(
   commonSettings ++ noPublishSettings,
   libraryDependencies ++= Seq(
     "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test,
+    // Custom types
     "com.google.protobuf" % "protobuf-java" % protobufVersion % Test,
     "joda-time" % "joda-time" % jodaTimeVersion % Test
   )
