@@ -79,11 +79,11 @@ class ArbDerivationTest extends FlatSpec with Matchers {
     implicit val arbByteString: Arbitrary[ByteString] =
       Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
     implicit val arbInstant: Arbitrary[Instant] =
-      Arbitrary(Gen.posNum[Long].map(Instant.ofEpochMilli))
+      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(new Instant(_)))
     test(for {
       b <- Gen.alphaNumStr
-      i <- Gen.posNum[Long]
-    } yield Custom(ByteString.copyFromUtf8(b), Instant.ofEpochMilli(i)))
+      i <- Gen.chooseNum(0, Int.MaxValue)
+    } yield Custom(ByteString.copyFromUtf8(b), new Instant(i)))
   }
 
   ////////////////////////////////////////
