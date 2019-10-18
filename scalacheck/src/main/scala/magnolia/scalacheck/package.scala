@@ -12,5 +12,12 @@ package object scalacheck {
     q"""_root_.magnolia.scalacheck.ArbitraryDerivation.gen[$wtt]"""
   }
 
+  def genArbitraryFnMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
+    import c.universe._
+    val wtt = weakTypeTag[T]
+    q"""_root_.magnolia.scalacheck.ArbitraryFnDerivation.gen[$wtt]"""
+  }
+
   implicit def genArbitrary[T]: Arbitrary[T] = macro genArbitraryMacro[T]
+  implicit def genArbitraryFn[T]: Arbitrary[T => T] = macro genArbitraryFnMacro[T]
 }
