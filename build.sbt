@@ -1,7 +1,7 @@
 name := "magnolia-data"
 description := "Magnolia add-on modules for data"
 
-val magnoliaVersion = "0.11.0"
+val magnoliaVersion = "0.12.0"
 
 val avroVersion = "1.9.1"
 val bigqueryVersion = "v2-rev20181104-1.27.0"
