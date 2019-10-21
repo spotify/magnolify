@@ -4,7 +4,7 @@ import com.google.protobuf.ByteString
 import magnolia.test.Simple._
 import magnolia.test.ADT._
 import magnolia.scalacheck._
-import org.joda.time.Instant
+import org.joda.time.Duration
 import org.scalacheck._
 import org.scalatest._
 
@@ -89,12 +89,12 @@ class ArbitraryDerivationTest extends FlatSpec with Matchers {
   it should "work with Custom" in {
     implicit val arbByteString: Arbitrary[ByteString] =
       Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
-    implicit val arbInstant: Arbitrary[Instant] =
-      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(new Instant(_)))
+    implicit val arbInstant: Arbitrary[Duration] =
+      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Duration.millis(_)))
     test(for {
       b <- Gen.alphaNumStr
       i <- Gen.chooseNum(0, Int.MaxValue)
-    } yield Custom(ByteString.copyFromUtf8(b), new Instant(i)))
+    } yield Custom(ByteString.copyFromUtf8(b), Duration.millis(i)))
   }
 
   ////////////////////////////////////////

@@ -7,7 +7,7 @@ import com.google.protobuf.ByteString
 import magnolia.cats._
 import magnolia.scalacheck._
 import magnolia.test.Simple._
-import org.joda.time.Instant
+import org.joda.time.Duration
 import org.scalacheck._
 
 import scala.reflect._
@@ -28,9 +28,8 @@ object SemigroupDerivationTest extends Properties("SemigroupDerivation") {
 
   import Custom._
   implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
-  implicit val eqInstant: Eq[Instant] = Eq.by(_.getMillis)
+  implicit val eqInstant: Eq[Duration] = Eq.by(_.getMillis)
   implicit val sgByteString: Semigroup[ByteString] = Semigroup.instance(_ concat _)
-  implicit val sgInstant: Semigroup[Instant] =
-    Semigroup.instance((x, y) => if (x.isAfter(y)) x else y)
+  implicit val sgInstant: Semigroup[Duration] = Semigroup.instance(_ plus _)
   test[Custom]
 }

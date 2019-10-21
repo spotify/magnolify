@@ -8,7 +8,7 @@ import magnolia.cats._
 import magnolia.scalacheck._
 import magnolia.test.ADT._
 import magnolia.test.Simple._
-import org.joda.time.Instant
+import org.joda.time.Duration
 import org.scalacheck._
 
 import scala.reflect.{ClassTag, classTag}
@@ -27,7 +27,7 @@ object EqDerivationTest extends Properties("EqDerivation") {
 
   import Custom._
   implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
-  implicit val eqInstant: Eq[Instant] = Eq.by(_.getMillis)
+  implicit val eqInstant: Eq[Duration] = Eq.by(_.getMillis)
   test[Custom]
 
   test[Node]
