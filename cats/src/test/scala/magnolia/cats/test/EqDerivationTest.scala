@@ -6,21 +6,20 @@ import cats.kernel.laws.discipline._
 import com.google.protobuf.ByteString
 import magnolia.cats._
 import magnolia.scalacheck._
+import magnolia.test.ADT._
 import magnolia.test.Simple._
 import org.joda.time.Instant
 import org.scalacheck._
 
-import scala.reflect._
+import scala.reflect.{ClassTag, classTag}
 
-object SemigroupDerivationTest extends Properties("SemigroupDerivation") {
-  private def test[T: Arbitrary : ClassTag : Eq : Semigroup]: Unit = {
+object EqDerivationTest extends Properties("EqDerivation") {
+  private def test[T: Arbitrary : ClassTag : Cogen : Eq]: Unit = {
     val name = classTag[T].runtimeClass.getSimpleName
-    include(SemigroupTests[T].semigroup.all, s"[$name]")
+    include(EqTests[T].eqv.all, s"[$name]")
   }
 
-  test[Integers]
-
-  implicit val sgBool: Semigroup[Boolean] = Semigroup.instance(_ ^ _)
+  test[Numbers]
   test[Required]
   test[Nullable]
   test[Repeated]
@@ -29,8 +28,10 @@ object SemigroupDerivationTest extends Properties("SemigroupDerivation") {
   import Custom._
   implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
   implicit val eqInstant: Eq[Instant] = Eq.by(_.getMillis)
-  implicit val sgByteString: Semigroup[ByteString] = Semigroup.instance(_ concat _)
-  implicit val sgInstant: Semigroup[Instant] =
-    Semigroup.instance((x, y) => if (x.isAfter(y)) x else y)
   test[Custom]
+
+  test[Node]
+  test[GNode[Int]]
+  test[Shape]
+  test[Color]
 }
