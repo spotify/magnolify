@@ -16,7 +16,7 @@ import scala.reflect.{ClassTag, classTag}
 object EqDerivationTest extends Properties("EqDerivation") {
   private def test[T: Arbitrary : ClassTag : Cogen : Eq]: Unit = {
     val name = classTag[T].runtimeClass.getSimpleName
-    include(EqTests[T].eqv.all, s"[$name]")
+    include(EqTests[T].eqv.all, s"$name.")
   }
 
   test[Numbers]

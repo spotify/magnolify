@@ -15,7 +15,7 @@ import scala.reflect._
 object SemigroupDerivationTest extends Properties("SemigroupDerivation") {
   private def test[T: Arbitrary : ClassTag : Eq : Semigroup]: Unit = {
     val name = classTag[T].runtimeClass.getSimpleName
-    include(SemigroupTests[T].semigroup.all, s"[$name]")
+    include(SemigroupTests[T].semigroup.all, s"$name.")
   }
 
   test[Integers]
