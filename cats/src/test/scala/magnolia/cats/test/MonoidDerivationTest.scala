@@ -28,7 +28,7 @@ object MonoidDerivationTest extends Properties("MonoidDerivation") {
 
   import Custom._
   implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
-  implicit val eqInstant: Eq[Duration] = Eq.by(_.getMillis)
+  implicit val eqDuration: Eq[Duration] = Eq.by(_.getMillis)
   implicit val mByteString: Monoid[ByteString] = Monoid.instance(ByteString.EMPTY, _ concat _)
   implicit val mDuration: Monoid[Duration] = Monoid.instance(Duration.ZERO, _ plus _)
   test[Custom]

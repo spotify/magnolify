@@ -28,8 +28,8 @@ object SemigroupDerivationTest extends Properties("SemigroupDerivation") {
 
   import Custom._
   implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
-  implicit val eqInstant: Eq[Duration] = Eq.by(_.getMillis)
+  implicit val eqDuration: Eq[Duration] = Eq.by(_.getMillis)
   implicit val sgByteString: Semigroup[ByteString] = Semigroup.instance(_ concat _)
-  implicit val sgInstant: Semigroup[Duration] = Semigroup.instance(_ plus _)
+  implicit val sgDuration: Semigroup[Duration] = Semigroup.instance(_ plus _)
   test[Custom]
 }

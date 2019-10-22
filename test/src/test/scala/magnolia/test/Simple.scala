@@ -16,9 +16,9 @@ object Simple {
   object Custom {
     implicit val arbByteString: Arbitrary[ByteString] =
       Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
-    implicit val arbInstant: Arbitrary[Duration] =
+    implicit val arbDuration: Arbitrary[Duration] =
       Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Duration.millis(_)))
     implicit val coByteString: Cogen[ByteString] = Cogen(_.hashCode())
-    implicit val coInstant: Cogen[Duration] = Cogen(_.getMillis)
+    implicit val coDuration: Cogen[Duration] = Cogen(_.getMillis)
   }
 }

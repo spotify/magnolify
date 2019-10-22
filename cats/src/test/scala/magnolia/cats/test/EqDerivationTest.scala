@@ -27,7 +27,7 @@ object EqDerivationTest extends Properties("EqDerivation") {
 
   import Custom._
   implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
-  implicit val eqInstant: Eq[Duration] = Eq.by(_.getMillis)
+  implicit val eqDuration: Eq[Duration] = Eq.by(_.getMillis)
   test[Custom]
 
   test[Node]

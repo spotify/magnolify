@@ -1,6 +1,6 @@
 package magnolia
 
-import org.scalacheck.{Arbitrary, Cogen}
+import org.scalacheck._
 
 import scala.language.experimental.macros
 import scala.reflect.macros._

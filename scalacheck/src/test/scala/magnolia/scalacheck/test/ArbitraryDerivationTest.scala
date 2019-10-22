@@ -89,7 +89,7 @@ class ArbitraryDerivationTest extends FlatSpec with Matchers {
   it should "work with Custom" in {
     implicit val arbByteString: Arbitrary[ByteString] =
       Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
-    implicit val arbInstant: Arbitrary[Duration] =
+    implicit val arbDuration: Arbitrary[Duration] =
       Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Duration.millis(_)))
     test(for {
       b <- Gen.alphaNumStr

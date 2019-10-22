@@ -2,7 +2,7 @@ package magnolia.scalacheck
 
 import magnolia._
 import magnolia.shims.Monadic
-import org.scalacheck._
+import org.scalacheck.{Arbitrary, Gen}
 
 import scala.language.experimental.macros
 
