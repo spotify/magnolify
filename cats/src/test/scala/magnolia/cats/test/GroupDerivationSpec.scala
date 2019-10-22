@@ -5,6 +5,7 @@ import cats.instances.all._
 import cats.kernel.laws.discipline._
 import magnolia.cats._
 import magnolia.scalacheck._
+import magnolia.test.SerializableUtils
 import magnolia.test.Simple._
 import org.scalacheck._
 
@@ -16,6 +17,7 @@ object GroupDerivationSpec extends Properties("GroupDerivation") {
   implicit def genGroup[T]: Group[T] = macro CatsMacros.genGroupMacro[T]
 
   private def test[T: Arbitrary : ClassTag : Eq : Group]: Unit = {
+    SerializableUtils.ensureSerializable(implicitly[Group[T]])
     val name = classTag[T].runtimeClass.getSimpleName
     include(GroupTests[T].semigroup.all, s"$name.")
   }

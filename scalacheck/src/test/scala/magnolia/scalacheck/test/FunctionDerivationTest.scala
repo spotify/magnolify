@@ -3,11 +3,14 @@ package magnolia.scalacheck.test
 import magnolia.test.Simple._
 import magnolia.test.ADT._
 import magnolia.scalacheck._
+import magnolia.test.SerializableUtils
 import org.scalacheck._
 import org.scalatest._
 
 class FunctionDerivationTest extends FlatSpec with Matchers {
   private def test[A: Arbitrary, B](implicit actual: Arbitrary[A => B]): Unit = {
+    SerializableUtils.ensureSerializable(actual)
+
     val aGen = implicitly[Arbitrary[A]].arbitrary
     val fGen = actual.arbitrary
 

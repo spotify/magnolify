@@ -3,14 +3,15 @@ package magnolia.scalacheck.test
 import magnolia.test.Simple._
 import magnolia.test.ADT._
 import magnolia.scalacheck._
+import magnolia.test.SerializableUtils
 import org.scalacheck._
 import org.scalacheck.rng.Seed
 import org.scalatest._
 
 class CogenDerivationTest extends FlatSpec with Matchers {
   private def test[T: Arbitrary](implicit cogen: Cogen[T]): Unit = {
+    SerializableUtils.ensureSerializable(cogen)
     val gen = implicitly[Arbitrary[T]].arbitrary
-
     val xs = Gen.listOfN(100, gen).sample.get
     xs.map(cogen.perturb(Seed.random(), _)).toSet.size == xs.toSet.size
   }

@@ -4,6 +4,7 @@ import com.google.protobuf.ByteString
 import magnolia.test.Simple._
 import magnolia.test.ADT._
 import magnolia.scalacheck._
+import magnolia.test.SerializableUtils
 import org.joda.time.Duration
 import org.scalacheck._
 import org.scalatest._
@@ -13,6 +14,7 @@ class ArbitraryDerivationTest extends FlatSpec with Matchers {
   private val seed = rng.Seed.random()
 
   private def test[T](expected: Gen[T])(implicit actual: Arbitrary[T]): Unit = {
+    SerializableUtils.ensureSerializable(actual)
     (stream(actual.arbitrary) zip stream(expected)).take(100).foreach { case (x, y) =>
       x shouldEqual y
     }

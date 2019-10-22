@@ -6,6 +6,7 @@ import cats.kernel.laws.discipline._
 import com.google.protobuf.ByteString
 import magnolia.cats._
 import magnolia.scalacheck._
+import magnolia.test.SerializableUtils
 import magnolia.test.Simple._
 import org.joda.time.Duration
 import org.scalacheck._
@@ -14,6 +15,7 @@ import scala.reflect._
 
 object SemigroupDerivationSpec extends Properties("SemigroupDerivation") {
   private def test[T: Arbitrary : ClassTag : Eq : Semigroup]: Unit = {
+    SerializableUtils.ensureSerializable(implicitly[Semigroup[T]])
     val name = classTag[T].runtimeClass.getSimpleName
     include(SemigroupTests[T].semigroup.all, s"$name.")
   }

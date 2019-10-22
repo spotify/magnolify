@@ -7,6 +7,7 @@ import com.google.protobuf.ByteString
 import magnolia.cats._
 import magnolia.scalacheck._
 import magnolia.test.ADT._
+import magnolia.test.SerializableUtils
 import magnolia.test.Simple._
 import org.joda.time.Duration
 import org.scalacheck._
@@ -15,6 +16,7 @@ import scala.reflect.{ClassTag, classTag}
 
 object EqDerivationSpec extends Properties("EqDerivation") {
   private def test[T: Arbitrary : ClassTag : Cogen : Eq]: Unit = {
+    SerializableUtils.ensureSerializable(implicitly[Eq[T]])
     val name = classTag[T].runtimeClass.getSimpleName
     include(EqTests[T].eqv.all, s"$name.")
   }
