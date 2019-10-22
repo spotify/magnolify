@@ -29,6 +29,10 @@ val commonSettings = Seq(
     }
   },
 
+  // https://github.com/typelevel/scalacheck/pull/427#issuecomment-424330310
+  // workaround for Java serialization issues
+  classLoaderLayeringStrategy in Test := ClassLoaderLayeringStrategy.Flat,
+
   // protobuf-lite is an older subset of protobuf-java and causes issues
   excludeDependencies += "com.google.protobuf" % "protobuf-lite",
 
