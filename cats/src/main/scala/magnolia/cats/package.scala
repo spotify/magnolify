@@ -24,7 +24,14 @@ package object cats {
     q"""_root_.magnolia.cats.MonoidDerivation.gen[$wtt]"""
   }
 
+  def genGroupMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
+    import c.universe._
+    val wtt = weakTypeTag[T]
+    q"""_root_.magnolia.cats.GroupDerivation.gen[$wtt]"""
+  }
+
   implicit def genEq[T]: Eq[T] = macro genEqMacro[T]
   implicit def genSemigroup[T]: Semigroup[T] = macro genSemigroupMacro[T]
   implicit def genMonoid[T]: Monoid[T] = macro genMonoidMacro[T]
+  implicit def genGroup[T]: Group[T] = macro genGroupMacro[T]
 }
