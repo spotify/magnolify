@@ -16,5 +16,5 @@ object SemigroupDerivation {
 
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
 
-  implicit def gen[T]: Semigroup[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: Typeclass[T] = macro Magnolia.gen[T]
 }

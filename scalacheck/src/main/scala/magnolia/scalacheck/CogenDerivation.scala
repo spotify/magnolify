@@ -22,5 +22,5 @@ object CogenDerivation {
     }
   }
 
-  implicit def gen[T]: Cogen[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: Typeclass[T] = macro Magnolia.gen[T]
 }

@@ -23,5 +23,5 @@ object ArbitraryDerivation {
     override def mapS[A, B](from: Gen[A])(fn: A => B): Gen[B] = from.map(fn)
   }
 
-  implicit def gen[T]: Arbitrary[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: Typeclass[T] = macro Magnolia.gen[T]
 }

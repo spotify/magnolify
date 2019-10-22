@@ -20,5 +20,5 @@ object EqDerivation {
     }
   }
 
-  implicit def gen[T]: Eq[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: Typeclass[T] = macro Magnolia.gen[T]
 }
