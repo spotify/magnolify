@@ -15,10 +15,10 @@ object CogenDerivation {
   }
 
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = Cogen { (seed, t: T) =>
-    val p = sealedTrait.subtypes.find(_.cast.isDefinedAt(t)).get
+    val sub = sealedTrait.subtypes.find(_.cast.isDefinedAt(t)).get
     // inject index to separate case objects instances
-    val s = Cogen.cogenInt.perturb(seed, p.index)
-    p.typeclass.perturb(s, p.cast(t))
+    val s = Cogen.cogenInt.perturb(seed, sub.index)
+    sub.typeclass.perturb(s, sub.cast(t))
   }
 
   implicit def gen[T]: Cogen[T] = macro Magnolia.gen[T]
