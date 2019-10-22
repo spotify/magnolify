@@ -31,7 +31,7 @@ val commonSettings = Seq(
 
   // https://github.com/typelevel/scalacheck/pull/427#issuecomment-424330310
   // workaround for Java serialization issues
-  classLoaderLayeringStrategy in Test := ClassLoaderLayeringStrategy.Flat,
+  Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
 
   // protobuf-lite is an older subset of protobuf-java and causes issues
   excludeDependencies += "com.google.protobuf" % "protobuf-lite",
@@ -41,7 +41,7 @@ val commonSettings = Seq(
   releaseCrossBuild             := true,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   publishMavenStyle             := true,
-  publishArtifact in Test       := false,
+  Test / publishArtifact        := false,
   sonatypeProfileName           := "me.lyh",
 
   licenses := Seq("Apache 2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
