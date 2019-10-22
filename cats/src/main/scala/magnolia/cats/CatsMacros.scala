@@ -40,7 +40,7 @@ trait LowPriorityGenMonoid extends LowPriorityGenSemigroup {
 }
 
 trait LowPriorityGenGroup extends LowPriorityGenMonoid {
-  implicit def genGroup[T]: Group[T] = macro CatsMacros.genGroupMacro[T]
+//  implicit def genGroup[T]: Group[T] = macro CatsMacros.genGroupMacro[T]
 }
 
 trait LowPriorityImplicits extends LowPriorityGenGroup {
