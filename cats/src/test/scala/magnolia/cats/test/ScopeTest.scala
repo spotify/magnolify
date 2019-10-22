@@ -10,7 +10,7 @@ object ScopeTest {
     implicitly[Eq[Numbers]]
     implicitly[Semigroup[Numbers]]
     implicitly[Monoid[Numbers]]
-//    implicitly[Group[Numbers]]
+    implicitly[Group[Numbers]]
   }
 
   object Semi {

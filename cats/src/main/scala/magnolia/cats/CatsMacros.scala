@@ -1,6 +1,7 @@
 package magnolia.cats
 
 import _root_.cats._
+import cats.kernel.instances.{ListMonoid, OptionMonoid}
 
 import scala.language.experimental.macros
 import scala.reflect.macros._
@@ -40,9 +41,13 @@ trait LowPriorityGenMonoid extends LowPriorityGenSemigroup {
 }
 
 trait LowPriorityGenGroup extends LowPriorityGenMonoid {
-//  implicit def genGroup[T]: Group[T] = macro CatsMacros.genGroupMacro[T]
+  implicit def genGroup[T]: Group[T] = macro CatsMacros.genGroupMacro[T]
 }
 
 trait LowPriorityImplicits extends LowPriorityGenGroup {
   implicit def genEq[T]: Eq[T] = macro CatsMacros.genEqMacro[T]
+
+  // workaround for ambiguous implicit values with cats
+  implicit def genListMonoid[T] = new ListMonoid[T]
+  implicit def genOptionMonoid[T: Semigroup] = new OptionMonoid[T]
 }
