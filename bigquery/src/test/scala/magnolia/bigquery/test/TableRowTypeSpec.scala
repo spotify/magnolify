@@ -7,7 +7,7 @@ import cats._
 import cats.instances.all._
 import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
 import com.google.api.services.bigquery.model.TableRow
-import magnolia.bigquery.auto._
+import magnolia.bigquery._
 import magnolia.cats.auto._
 import magnolia.scalacheck.auto._
 import magnolia.test.SerializableUtils
@@ -24,9 +24,9 @@ object TableRowTypeSpec extends Properties("TableRowType") {
     val name = classTag[T].runtimeClass.getSimpleName
     val eq = implicitly[Eq[T]]
     property(s"$name") = Prop.forAll { t: T =>
-      val tr = tpe(t)
-      val copy1 = tpe(tr)
-      val copy2 = tpe(mapper.readValue(mapper.writeValueAsString(tr), classOf[TableRow]))
+      val r = tpe(t)
+      val copy1 = tpe(r)
+      val copy2 = tpe(mapper.readValue(mapper.writeValueAsString(r), classOf[TableRow]))
       Prop.all(eq.eqv(t, copy1), eq.eqv(t, copy2))
     }
   }
@@ -41,10 +41,9 @@ object TableRowTypeSpec extends Properties("TableRowType") {
     import Custom._
     implicit val eqUri: Eq[URI] = Eq.by(_.toString)
     implicit val eqDuration: Eq[JDuration] = Eq.by(_.toMillis)
-    implicit val trtUri: TableRowMappable[URI] =
-      TableRowMappable[String].imap(URI.create)(_.toString)
-    implicit val trtDuration: TableRowMappable[JDuration] =
-      TableRowMappable[Long].imap(JDuration.ofMillis)(_.toMillis)
+    implicit val trfUri: TableRowField[URI] = TableRowField[String].imap(URI.create)(_.toString)
+    implicit val trfDuration: TableRowField[JDuration] =
+      TableRowField[Long].imap(JDuration.ofMillis)(_.toMillis)
     test[Custom]
   }
 

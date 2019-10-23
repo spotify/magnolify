@@ -134,6 +134,7 @@ lazy val avro: Project = project.in(file("avro")).settings(
     "org.apache.avro" % "avro" % avroVersion % Provided
   )
 ).dependsOn(
+  core,
   scalacheck % Test,
   test % "test->test"
 )
@@ -160,10 +161,11 @@ lazy val datastore: Project = project.in(file("datastore")).settings(
   moduleName := "magnolia-data-datastore",
   description := "Magnolia add-on for Google Cloud Datastore",
   libraryDependencies ++= Seq(
-    "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Provided,
-    "joda-time" % "joda-time" % jodaTimeVersion % Provided
+    "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Provided
   )
 ).dependsOn(
+  core,
+  cats % Test,
   scalacheck % Test,
   test % "test->test"
 )
@@ -176,6 +178,8 @@ lazy val tensorflow: Project = project.in(file("tensorflow")).settings(
     "org.tensorflow" % "proto" % tensorflowVersion % Provided
   )
 ).dependsOn(
+  core,
+  cats % Test,
   scalacheck % Test,
   test % "test->test"
 )
