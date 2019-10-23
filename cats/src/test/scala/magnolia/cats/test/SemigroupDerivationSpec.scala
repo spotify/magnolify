@@ -22,16 +22,27 @@ object SemigroupDerivationSpec extends Properties("SemigroupDerivation") {
 
   test[Integers]
 
-  implicit val sgBool: Semigroup[Boolean] = Semigroup.instance(_ ^ _)
-  test[Required]
-  test[Nullable]
-  test[Repeated]
-  test[Nested]
+  {
+    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
+    implicit val sgArray: Semigroup[Array[Int]] = Semigroup.instance(_ ++ _)
+    test[Collections]
+  }
 
-  import Custom._
-  implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
-  implicit val eqDuration: Eq[Duration] = Eq.by(_.getMillis)
-  implicit val sgByteString: Semigroup[ByteString] = Semigroup.instance(_ concat _)
-  implicit val sgDuration: Semigroup[Duration] = Semigroup.instance(_ plus _)
-  test[Custom]
+  {
+    implicit val sgBool: Semigroup[Boolean] = Semigroup.instance(_ ^ _)
+    test[Required]
+    test[Nullable]
+    test[Repeated]
+    test[Nested]
+  }
+
+  {
+    import Custom._
+    implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
+    implicit val eqDuration: Eq[Duration] = Eq.by(_.getMillis)
+    implicit val sgByteString: Semigroup[ByteString] = Semigroup.instance(_ concat _)
+    implicit val sgDuration: Semigroup[Duration] = Semigroup.instance(_ plus _)
+    test[Custom]
+  }
+
 }

@@ -11,6 +11,7 @@ object Simple {
   case class Nullable(b: Option[Boolean], i: Option[Int], s: Option[String])
   case class Repeated(b: List[Boolean], i: List[Int], s: List[String])
   case class Nested(b: Boolean, i: Int, s: String, r: Required)
+  case class Collections(a: Array[Int], l: List[Int], v: Vector[Int])
   case class Custom(b: ByteString, d: Duration)
   case class Timestamps(i: Instant, d: LocalDate, t: LocalTime, dt: LocalDateTime)
 

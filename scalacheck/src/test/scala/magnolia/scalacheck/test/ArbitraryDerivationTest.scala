@@ -88,6 +88,19 @@ class ArbitraryDerivationTest extends FlatSpec with Matchers {
     } yield Required(b, i, s))
   }
 
+  it should "work with Collections" in {
+    val actual = implicitly[Arbitrary[Collections]].arbitrary
+    val expected = for {
+      a <- Gen.containerOf[Array, Int](Arbitrary.arbInt.arbitrary)
+      l <- Gen.listOf(Arbitrary.arbInt.arbitrary)
+      v <- Gen.containerOf[Vector, Int](Arbitrary.arbInt.arbitrary)
+    } yield Collections(a, l, v)
+    (stream(actual) zip stream(expected)).take(100).foreach { case (x, y) =>
+      x.a shouldEqual y.a
+      x.l shouldEqual y.l
+      x.v shouldEqual y.v
+    }
+  }
   it should "work with Custom" in {
     implicit val arbByteString: Arbitrary[ByteString] =
       Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))

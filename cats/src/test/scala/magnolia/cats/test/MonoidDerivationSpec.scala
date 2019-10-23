@@ -22,16 +22,27 @@ object MonoidDerivationSpec extends Properties("MonoidDerivation") {
 
   test[Integers]
 
-  implicit val mBool: Monoid[Boolean] = Monoid.instance(false, _ || _)
-  test[Required]
-  test[Nullable]
-  test[Repeated]
-  test[Nested]
+  {
+    implicit val mBool: Monoid[Boolean] = Monoid.instance(false, _ || _)
+    test[Required]
+    test[Nullable]
+    test[Repeated]
+    test[Nested]
+  }
 
-  import Custom._
-  implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
-  implicit val eqDuration: Eq[Duration] = Eq.by(_.getMillis)
-  implicit val mByteString: Monoid[ByteString] = Monoid.instance(ByteString.EMPTY, _ concat _)
-  implicit val mDuration: Monoid[Duration] = Monoid.instance(Duration.ZERO, _ plus _)
-  test[Custom]
+  {
+    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
+    implicit val mArray: Monoid[Array[Int]] = Monoid.instance(Array.emptyIntArray, _ ++ _)
+    test[Collections]
+  }
+
+  {
+    import Custom._
+    implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
+    implicit val eqDuration: Eq[Duration] = Eq.by(_.getMillis)
+    implicit val mByteString: Monoid[ByteString] = Monoid.instance(ByteString.EMPTY, _ concat _)
+    implicit val mDuration: Monoid[Duration] = Monoid.instance(Duration.ZERO, _ plus _)
+    test[Custom]
+  }
+
 }

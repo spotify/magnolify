@@ -40,6 +40,10 @@ class CogenDerivationTest extends FlatSpec with Matchers {
     test[Nested]
   }
 
+  it should "work with Collections" in {
+    test[Collections]
+  }
+
   it should "work with Custom" in {
     import Custom._
     test[Custom]

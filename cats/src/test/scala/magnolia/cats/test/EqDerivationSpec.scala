@@ -27,10 +27,17 @@ object EqDerivationSpec extends Properties("EqDerivation") {
   test[Repeated]
   test[Nested]
 
-  import Custom._
-  implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
-  implicit val eqDuration: Eq[Duration] = Eq.by(_.getMillis)
-  test[Custom]
+  {
+    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
+    test[Collections]
+  }
+
+  {
+    import Custom._
+    implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
+    implicit val eqDuration: Eq[Duration] = Eq.by(_.getMillis)
+    test[Custom]
+  }
 
   test[Node]
   test[GNode[Int]]
