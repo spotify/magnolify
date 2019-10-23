@@ -12,7 +12,7 @@ import magnolia.test.Simple._
 import org.joda.time.Duration
 import org.scalacheck._
 
-import scala.reflect.{ClassTag, classTag}
+import scala.reflect._
 
 object EqDerivationSpec extends Properties("EqDerivation") {
   private def test[T: Arbitrary : ClassTag : Cogen : Eq]: Unit = {
