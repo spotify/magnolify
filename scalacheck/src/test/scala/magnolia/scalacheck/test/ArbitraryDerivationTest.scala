@@ -3,7 +3,7 @@ package magnolia.scalacheck.test
 import com.google.protobuf.ByteString
 import magnolia.test.Simple._
 import magnolia.test.ADT._
-import magnolia.scalacheck._
+import magnolia.scalacheck.auto._
 import magnolia.test.SerializableUtils
 import org.joda.time.Duration
 import org.scalacheck._

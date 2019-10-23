@@ -4,8 +4,8 @@ import cats._
 import cats.instances.all._
 import cats.kernel.laws.discipline._
 import com.google.protobuf.ByteString
-import magnolia.cats._
-import magnolia.scalacheck._
+import magnolia.cats.auto._
+import magnolia.scalacheck.auto._
 import magnolia.test.ADT._
 import magnolia.test.SerializableUtils
 import magnolia.test.Simple._

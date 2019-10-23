@@ -1,4 +1,4 @@
-package magnolia.scalacheck
+package magnolia.scalacheck.semiauto
 
 import magnolia._
 import magnolia.shims.Monadic
@@ -23,5 +23,5 @@ object ArbitraryDerivation {
     override def mapS[A, B](from: Gen[A])(fn: A => B): Gen[B] = from.map(fn)
   }
 
-  implicit def gen[T]: Typeclass[T] = macro Magnolia.gen[T]
+  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
 }

@@ -1,4 +1,4 @@
-package magnolia.cats
+package magnolia.cats.semiauto
 
 import cats.Semigroup
 import magnolia._
@@ -16,5 +16,5 @@ object SemigroupDerivation {
 
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
 
-  implicit def gen[T]: Typeclass[T] = macro Magnolia.gen[T]
+  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
 }

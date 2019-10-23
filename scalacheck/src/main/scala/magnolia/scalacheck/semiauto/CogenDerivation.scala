@@ -1,4 +1,4 @@
-package magnolia.scalacheck
+package magnolia.scalacheck.semiauto
 
 import magnolia._
 import org.scalacheck.Cogen
@@ -22,5 +22,5 @@ object CogenDerivation {
     }
   }
 
-  implicit def gen[T]: Typeclass[T] = macro Magnolia.gen[T]
+  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
 }

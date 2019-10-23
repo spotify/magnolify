@@ -1,4 +1,4 @@
-package magnolia.cats
+package magnolia.cats.semiauto
 
 import cats.Eq
 import magnolia._
@@ -20,5 +20,5 @@ object EqDerivation {
     }
   }
 
-  implicit def gen[T]: Typeclass[T] = macro Magnolia.gen[T]
+  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
 }

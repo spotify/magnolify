@@ -1,4 +1,4 @@
-package magnolia.cats
+package magnolia.cats.auto
 
 import _root_.cats._
 import cats.kernel.instances.{ListMonoid, OptionMonoid}
@@ -6,29 +6,29 @@ import cats.kernel.instances.{ListMonoid, OptionMonoid}
 import scala.language.experimental.macros
 import scala.reflect.macros._
 
-object CatsMacros {
+private object CatsMacros {
   def genEqMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
-    q"""_root_.magnolia.cats.EqDerivation.gen[$wtt]"""
+    q"""_root_.magnolia.cats.semiauto.EqDerivation.apply[$wtt]"""
   }
 
   def genSemigroupMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
-    q"""_root_.magnolia.cats.SemigroupDerivation.gen[$wtt]"""
+    q"""_root_.magnolia.cats.semiauto.SemigroupDerivation.apply[$wtt]"""
   }
 
   def genMonoidMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
-    q"""_root_.magnolia.cats.MonoidDerivation.gen[$wtt]"""
+    q"""_root_.magnolia.cats.semiauto.MonoidDerivation.apply[$wtt]"""
   }
 
   def genGroupMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
-    q"""_root_.magnolia.cats.GroupDerivation.gen[$wtt]"""
+    q"""_root_.magnolia.cats.semiauto.GroupDerivation.apply[$wtt]"""
   }
 }
 

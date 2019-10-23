@@ -6,7 +6,7 @@ import magnolia.test.Simple._
 
 object ScopeTest {
   object Auto {
-    import magnolia.cats._
+    import magnolia.cats.auto._
     implicitly[Eq[Numbers]]
     implicitly[Semigroup[Numbers]]
     implicitly[Monoid[Numbers]]
@@ -14,13 +14,10 @@ object ScopeTest {
   }
 
   object Semi {
-    import magnolia.cats.EqDerivation
-    import magnolia.cats.SemigroupDerivation
-    import magnolia.cats.MonoidDerivation
-    import magnolia.cats.GroupDerivation
-    EqDerivation.gen[Numbers]
-    SemigroupDerivation.gen[Numbers]
-    MonoidDerivation.gen[Numbers]
-    GroupDerivation.gen[Numbers]
+    import magnolia.cats.semiauto._
+    EqDerivation[Numbers]
+    SemigroupDerivation[Numbers]
+    MonoidDerivation[Numbers]
+    GroupDerivation[Numbers]
   }
 }
