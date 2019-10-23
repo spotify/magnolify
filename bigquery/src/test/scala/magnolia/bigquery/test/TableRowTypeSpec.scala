@@ -1,10 +1,12 @@
 package magnolia.bigquery.test
 
+import java.net.URI
+import java.time.{Duration => JDuration}
+
 import cats._
 import cats.instances.all._
 import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
 import com.google.api.services.bigquery.model.TableRow
-import com.google.protobuf.ByteString
 import magnolia.bigquery.auto._
 import magnolia.cats.auto._
 import magnolia.scalacheck.auto._
@@ -37,17 +39,24 @@ object TableRowTypeSpec extends Properties("TableRowType") {
 
   {
     import Custom._
-    implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
-    implicit val eqDuration: Eq[Duration] = Eq.by(_.getMillis)
-    implicit val trtByteString: TableRowMappable[ByteString] =
-      TableRowMappable[Array[Byte]].imap(ByteString.copyFrom)(_.toByteArray)
-    implicit val trtDuration: TableRowMappable[Duration] =
-      TableRowMappable[Long].imap(Duration.millis)(_.getMillis)
+    implicit val eqUri: Eq[URI] = Eq.by(_.toString)
+    implicit val eqDuration: Eq[JDuration] = Eq.by(_.toMillis)
+    implicit val trtUri: TableRowMappable[URI] =
+      TableRowMappable[String].imap(URI.create)(_.toString)
+    implicit val trtDuration: TableRowMappable[JDuration] =
+      TableRowMappable[Long].imap(JDuration.ofMillis)(_.toMillis)
     test[Custom]
   }
 
   {
-    import Timestamps._
+    implicit val arbInstant: Arbitrary[Instant] =
+      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Instant.ofEpochMilli(_)))
+    implicit val arbDate: Arbitrary[LocalDate] =
+      Arbitrary(arbInstant.arbitrary.map(i => new LocalDate(i.getMillis)))
+    implicit val arbTime: Arbitrary[LocalTime] =
+      Arbitrary(arbInstant.arbitrary.map(i => new LocalTime(i.getMillis)))
+    implicit val arbDateTime: Arbitrary[LocalDateTime] =
+      Arbitrary(arbInstant.arbitrary.map(i => new LocalDateTime(i.getMillis)))
     implicit val eqInstant: Eq[Instant] = Eq.by(_.getMillis)
     implicit val eqDate: Eq[LocalDate] = Eq.instance((x, y) => (x compareTo y) == 0)
     implicit val eqTime: Eq[LocalTime] = Eq.instance((x, y) => (x compareTo y) == 0)
@@ -55,3 +64,5 @@ object TableRowTypeSpec extends Properties("TableRowType") {
     test[Timestamps]
   }
 }
+
+case class Timestamps(i: Instant, d: LocalDate, t: LocalTime, dt: LocalDateTime)

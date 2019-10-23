@@ -1,7 +1,8 @@
 package magnolia.test
 
-import com.google.protobuf.ByteString
-import org.joda.time._
+import java.net.URI
+import java.time.Duration
+
 import org.scalacheck._
 
 object Simple {
@@ -12,26 +13,14 @@ object Simple {
   case class Repeated(b: List[Boolean], i: List[Int], s: List[String])
   case class Nested(b: Boolean, i: Int, s: String, r: Required)
   case class Collections(a: Array[Int], l: List[Int], v: Vector[Int])
-  case class Custom(b: ByteString, d: Duration)
-  case class Timestamps(i: Instant, d: LocalDate, t: LocalTime, dt: LocalDateTime)
+  case class Custom(u: URI, d: Duration)
 
   object Custom {
-    implicit val arbByteString: Arbitrary[ByteString] =
-      Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
+    implicit val arbUri: Arbitrary[URI] =
+      Arbitrary(Gen.alphaNumStr.map(URI.create))
     implicit val arbDuration: Arbitrary[Duration] =
-      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Duration.millis(_)))
-    implicit val coByteString: Cogen[ByteString] = Cogen(_.hashCode())
-    implicit val coDuration: Cogen[Duration] = Cogen(_.getMillis)
-  }
-
-  object Timestamps {
-    implicit val arbInstant: Arbitrary[Instant] =
-      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Instant.ofEpochMilli(_)))
-    implicit val arbDate: Arbitrary[LocalDate] =
-      Arbitrary(arbInstant.arbitrary.map(i => new LocalDate(i.getMillis)))
-    implicit val arbTime: Arbitrary[LocalTime] =
-      Arbitrary(arbInstant.arbitrary.map(i => new LocalTime(i.getMillis)))
-    implicit val arbDateTime: Arbitrary[LocalDateTime] =
-      Arbitrary(arbInstant.arbitrary.map(i => new LocalDateTime(i.getMillis)))
+      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Duration.ofMillis(_)))
+    implicit val coUri: Cogen[URI] = Cogen(_.toString.hashCode())
+    implicit val coDuration: Cogen[Duration] = Cogen(_.toMillis)
   }
 }

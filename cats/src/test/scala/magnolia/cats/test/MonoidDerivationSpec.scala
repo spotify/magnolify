@@ -1,14 +1,15 @@
 package magnolia.cats.test
 
+import java.net.URI
+import java.time.Duration
+
 import cats._
 import cats.instances.all._
 import cats.kernel.laws.discipline._
-import com.google.protobuf.ByteString
 import magnolia.cats.auto._
 import magnolia.scalacheck.auto._
 import magnolia.test.SerializableUtils
 import magnolia.test.Simple._
-import org.joda.time.Duration
 import org.scalacheck._
 
 import scala.reflect._
@@ -38,9 +39,10 @@ object MonoidDerivationSpec extends Properties("MonoidDerivation") {
 
   {
     import Custom._
-    implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
-    implicit val eqDuration: Eq[Duration] = Eq.by(_.getMillis)
-    implicit val mByteString: Monoid[ByteString] = Monoid.instance(ByteString.EMPTY, _ concat _)
+    implicit val eqUri: Eq[URI] = Eq.by(_.toString)
+    implicit val eqDuration: Eq[Duration] = Eq.by(_.toMillis)
+    implicit val mUri: Monoid[URI] =
+      Monoid.instance(URI.create(""), (x, y) => URI.create(x.toString + y.toString))
     implicit val mDuration: Monoid[Duration] = Monoid.instance(Duration.ZERO, _ plus _)
     test[Custom]
   }

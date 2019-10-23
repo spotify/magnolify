@@ -1,15 +1,16 @@
 package magnolia.cats.test
 
+import java.net.URI
+import java.time.Duration
+
 import cats._
 import cats.instances.all._
 import cats.kernel.laws.discipline._
-import com.google.protobuf.ByteString
 import magnolia.cats.auto._
 import magnolia.scalacheck.auto._
 import magnolia.test.ADT._
 import magnolia.test.SerializableUtils
 import magnolia.test.Simple._
-import org.joda.time.Duration
 import org.scalacheck._
 
 import scala.reflect._
@@ -34,8 +35,8 @@ object EqDerivationSpec extends Properties("EqDerivation") {
 
   {
     import Custom._
-    implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
-    implicit val eqDuration: Eq[Duration] = Eq.by(_.getMillis)
+    implicit val eqUri: Eq[URI] = Eq.by(_.toString)
+    implicit val eqDuration: Eq[Duration] = Eq.by(_.toMillis)
     test[Custom]
   }
 

@@ -1,11 +1,12 @@
 package magnolia.scalacheck.test
 
-import com.google.protobuf.ByteString
+import java.net.URI
+import java.time.Duration
+
 import magnolia.test.Simple._
 import magnolia.test.ADT._
 import magnolia.scalacheck.auto._
 import magnolia.test.SerializableUtils
-import org.joda.time.Duration
 import org.scalacheck._
 import org.scalatest._
 
@@ -102,14 +103,14 @@ class ArbitraryDerivationTest extends FlatSpec with Matchers {
     }
   }
   it should "work with Custom" in {
-    implicit val arbByteString: Arbitrary[ByteString] =
-      Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
+    implicit val arbUri: Arbitrary[URI] =
+      Arbitrary(Gen.alphaNumStr.map(URI.create))
     implicit val arbDuration: Arbitrary[Duration] =
-      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Duration.millis(_)))
+      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Duration.ofMillis(_)))
     test(for {
-      b <- Gen.alphaNumStr
-      i <- Gen.chooseNum(0, Int.MaxValue)
-    } yield Custom(ByteString.copyFromUtf8(b), Duration.millis(i)))
+      u <- Gen.alphaNumStr
+      d <- Gen.chooseNum(0, Int.MaxValue)
+    } yield Custom(URI.create(u), Duration.ofMillis(d)))
   }
 
   ////////////////////////////////////////
