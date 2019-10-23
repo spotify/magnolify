@@ -152,6 +152,8 @@ lazy val bigquery: Project = project.in(file("bigquery")).settings(
     "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
   )
 ).dependsOn(
+  core,
+  cats % Test,
   scalacheck % Test,
   test % "test->test"
 )
