@@ -14,7 +14,7 @@ object EqDerivation {
     }
   }
 
-  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Eq[T] = Eq.instance { (x, y) =>
+  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = Eq.instance { (x, y) =>
     sealedTrait.dispatch(x) { sub =>
       sub.cast.isDefinedAt(y) && sub.typeclass.eqv(sub.cast(x), sub.cast(y))
     }
