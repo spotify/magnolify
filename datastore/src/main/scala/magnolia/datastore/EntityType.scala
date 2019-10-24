@@ -18,7 +18,7 @@ trait EntityType[T] extends Converter.Record[T, EntityOrBuilder] {
   def apply(t: T): R = to(t)
   override protected def empty: R = Entity.newBuilder()
   override protected def from(r: R): T = ???
-  override protected def to(v: T): R = ???
+  override protected def to(t: T): R = ???
 }
 
 object EntityType {
@@ -34,9 +34,9 @@ object EntityType {
         m
       }
 
-    override def fromField(v: ValueOrBuilder): T =
+    override def fromField(v: Value): T =
       this.from(v.getEntityValue)
-    override def toField(v: T): ValueOrBuilder =
+    override def toField(v: T): Value.Builder =
       makeValue(this.to(v).asInstanceOf[Entity.Builder])
   }
 
@@ -45,29 +45,27 @@ object EntityType {
   implicit def apply[T]: EntityType[T] = macro Magnolia.gen[T]
 }
 
-trait EntityField[V]
-  extends EntityType[V]
-  with Converter.Field[V, EntityOrBuilder] { self =>
+trait EntityField[V] extends EntityType[V] with Converter.Field[V, EntityOrBuilder] { self =>
   override def get(r: R, k: String): V = fromField(r.getPropertiesMap.get(k))
   override def put(r: R, k: String, v: V): Unit =
     r.asInstanceOf[Entity.Builder].putProperties(
-      k, toField(v).asInstanceOf[Value.Builder].build())
+      k, toField(v).build())
 
-  def fromField(v: ValueOrBuilder): V
-  def toField(v: V): ValueOrBuilder
+  def fromField(v: Value): V
+  def toField(v: V): Value.Builder
 
   def imap[U](f: V => U)(g: U => V): EntityField[U] = new EntityField[U] {
-    override def fromField(v: ValueOrBuilder): U = f(self.fromField(v))
-    override def toField(v: U): ValueOrBuilder = self.toField(g(v))
+    override def fromField(v: Value): U = f(self.fromField(v))
+    override def toField(v: U): Value.Builder = self.toField(g(v))
   }
 }
 
 object EntityField {
   def apply[V](implicit f: EntityField[V]): EntityField[V] = f
 
-  def at[V](f: ValueOrBuilder => V)(g: V => ValueOrBuilder): EntityField[V] = new EntityField[V] {
-    override def fromField(v: ValueOrBuilder): V = f(v)
-    override def toField(v: V): ValueOrBuilder = g(v)
+  def at[V](f: Value => V)(g: V => Value.Builder): EntityField[V] = new EntityField[V] {
+    override def fromField(v: Value): V = f(v)
+    override def toField(v: V): Value.Builder = g(v)
   }
 
   implicit val efBool = at[Boolean](_.getBooleanValue)(makeValue)
@@ -80,11 +78,11 @@ object EntityField {
   implicit val efTimestamp = at(toInstant)(fromInstant)
 
   private val millisPerSecond = Duration.ofSeconds(1).toMillis
-  private def toInstant(v: ValueOrBuilder): Instant = {
+  private def toInstant(v: Value): Instant = {
     val t = v.getTimestampValue
     Instant.ofEpochMilli(t.getSeconds * millisPerSecond + t.getNanos / 1000000)
   }
-  private def fromInstant(i: Instant): ValueOrBuilder = {
+  private def fromInstant(i: Instant): Value.Builder = {
     val t = Timestamp.newBuilder()
       .setSeconds(i.toEpochMilli / millisPerSecond)
       .setNanos((i.toEpochMilli % 1000).toInt * 1000000)
@@ -93,21 +91,21 @@ object EntityField {
 
   implicit def efOption[V](implicit f: EntityField[V]): EntityField[Option[V]] =
     new EntityField[Option[V]] {
-      override def fromField(v: ValueOrBuilder): Option[V] = ???
-      override def toField(v: Option[V]): ValueOrBuilder = ???
+      override def fromField(v: Value): Option[V] = ???
+      override def toField(v: Option[V]): Value.Builder = ???
       override def get(r: R, k: String): Option[V] =
         Option(r.getPropertiesMap.get(k)).map(f.fromField)
       override def put(r: R, k: String, v: Option[V]): Unit =
         v.foreach(x => r.asInstanceOf[Entity.Builder].putProperties(
-          k, f.toField(x).asInstanceOf[Value.Builder].build()))
+          k, f.toField(x).build()))
     }
 
   implicit def efSeq[V, S[V]](implicit f: EntityField[V],
                               toSeq: S[V] => Seq[V],
                               fc: FactoryCompat[V, S[V]]): EntityField[S[V]] =
     new EntityField[S[V]] {
-      override def fromField(v: ValueOrBuilder): S[V] = ???
-      override def toField(v: S[V]): ValueOrBuilder = ???
+      override def fromField(v: Value): S[V] = ???
+      override def toField(v: S[V]): Value.Builder = ???
       override def get(r: R, k: String): S[V] = r.getPropertiesMap.get(k) match {
         case null => fc.newBuilder.result()
         case xs => fc.build(xs.getArrayValue.getValuesList.asScala.iterator.map(f.fromField))
@@ -115,7 +113,7 @@ object EntityField {
       override def put(r: R, k: String, v: S[V]): Unit =
         r.asInstanceOf[Entity.Builder].putProperties(k, Value.newBuilder().setArrayValue(
           toSeq(v).foldLeft(ArrayValue.newBuilder()) { (b, x) =>
-            b.addValues(f.toField(x).asInstanceOf[Value.Builder])
+            b.addValues(f.toField(x))
           }.build()).build())
     }
 }
