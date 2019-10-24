@@ -10,20 +10,19 @@ import com.google.api.services.bigquery.model.TableRow
 import magnolia.bigquery._
 import magnolia.cats.auto._
 import magnolia.scalacheck.auto._
-import magnolia.test.SerializableUtils
 import magnolia.test.Simple._
+import magnolia.test._
 import org.joda.time._
 import org.scalacheck._
 
 import scala.reflect._
 
-object TableRowTypeSpec extends Properties("TableRowType") {
+object TableRowTypeSpec extends MagnoliaSpec("TableRowType") {
   private val mapper = new ObjectMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
   private def test[T: Arbitrary : Eq : ClassTag](implicit tpe: TableRowType[T]): Unit = {
-    SerializableUtils.ensureSerializable(tpe)
-    val name = classTag[T].runtimeClass.getSimpleName
+    ensureSerializable(tpe)
     val eq = implicitly[Eq[T]]
-    property(s"$name") = Prop.forAll { t: T =>
+    property(className[T]) = Prop.forAll { t: T =>
       val r = tpe(t)
       val copy1 = tpe(r)
       val copy2 = tpe(mapper.readValue(mapper.writeValueAsString(r), classOf[TableRow]))

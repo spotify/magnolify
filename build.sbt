@@ -11,7 +11,6 @@ val jacksonVersion = "2.10.0"
 val jodaTimeVersion = "2.10.4"
 val protobufVersion = "3.10.0"
 val scalacheckVersion = "1.14.2"
-val scalatestVersion = "3.0.8"
 val tensorflowVersion = "1.14.0"
 
 val commonSettings = Seq(
@@ -94,9 +93,7 @@ lazy val scalacheck: Project = project.in(file("scalacheck")).settings(
   commonSettings,
   moduleName := "magnolia-data-scalacheck",
   description := "Magnolia add-on for ScalaCheck",
-  libraryDependencies += "org.scalacheck" %% "scalacheck" % scalacheckVersion,
-  // For testing derived Gen[T] instances
-  libraryDependencies += "org.scalatest" %% "scalatest" % scalatestVersion % Test,
+  libraryDependencies += "org.scalacheck" %% "scalacheck" % scalacheckVersion
 ).dependsOn(
   core,
   test % "test->test"

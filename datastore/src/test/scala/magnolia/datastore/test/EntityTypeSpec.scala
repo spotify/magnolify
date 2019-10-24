@@ -9,18 +9,17 @@ import com.google.datastore.v1.client.DatastoreHelper.makeValue
 import magnolia.datastore._
 import magnolia.cats.auto._
 import magnolia.scalacheck.auto._
-import magnolia.test.SerializableUtils
 import magnolia.test.Simple._
+import magnolia.test._
 import org.scalacheck._
 
 import scala.reflect._
 
-object EntityTypeSpec extends Properties("EntityType") {
+object EntityTypeSpec extends MagnoliaSpec("EntityType") {
   private def test[T: Arbitrary : Eq : ClassTag](implicit tpe: EntityType[T]): Unit = {
-    SerializableUtils.ensureSerializable(tpe)
-    val name = classTag[T].runtimeClass.getSimpleName
+    ensureSerializable(tpe)
     val eq = implicitly[Eq[T]]
-    property(s"$name") = Prop.forAll { t: T =>
+    property(className[T]) = Prop.forAll { t: T =>
       val r = tpe(t)
       val copy = tpe(r)
       eq.eqv(t, copy)

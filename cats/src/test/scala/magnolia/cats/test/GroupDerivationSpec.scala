@@ -5,17 +5,20 @@ import cats.instances.all._
 import cats.kernel.laws.discipline._
 import magnolia.cats.auto._
 import magnolia.scalacheck.auto._
-import magnolia.test.SerializableUtils
 import magnolia.test.Simple._
+import magnolia.test._
 import org.scalacheck._
 
 import scala.reflect._
 
-object GroupDerivationSpec extends Properties("GroupDerivation") {
-  private def test[T: Arbitrary : ClassTag : Eq : Group]: Unit = {
-    SerializableUtils.ensureSerializable(implicitly[Group[T]])
-    val name = classTag[T].runtimeClass.getSimpleName
-    include(GroupTests[T].semigroup.all, s"$name.")
+object GroupDerivationSpec extends MagnoliaSpec("GroupDerivation") {
+  private def test[T: Arbitrary : ClassTag : Eq : Group]: Unit = include(props[T])
+
+  private def props[T: Arbitrary : ClassTag : Eq : Group]: Properties = {
+    ensureSerializable(implicitly[Group[T]])
+    new Properties(className[T]) {
+      include(GroupTests[T].group.all)
+    }
   }
 
   test[Integers]

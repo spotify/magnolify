@@ -8,17 +8,20 @@ import cats.instances.all._
 import cats.kernel.laws.discipline._
 import magnolia.cats.auto._
 import magnolia.scalacheck.auto._
-import magnolia.test.SerializableUtils
 import magnolia.test.Simple._
+import magnolia.test._
 import org.scalacheck._
 
 import scala.reflect._
 
-object MonoidDerivationSpec extends Properties("MonoidDerivation") {
-  private def test[T: Arbitrary : ClassTag : Eq : Monoid]: Unit = {
-    SerializableUtils.ensureSerializable(implicitly[Monoid[T]])
-    val name = classTag[T].runtimeClass.getSimpleName
-    include(MonoidTests[T].semigroup.all, s"$name.")
+object MonoidDerivationSpec extends MagnoliaSpec("MonoidDerivation") {
+  private def test[T: Arbitrary : ClassTag : Eq : Monoid]: Unit = include(props[T])
+
+  private def props[T: Arbitrary : ClassTag : Eq : Monoid]: Properties = {
+    ensureSerializable(implicitly[Monoid[T]])
+    new Properties(className[T]) {
+      include(MonoidTests[T].monoid.all)
+    }
   }
 
   test[Integers]
@@ -46,5 +49,4 @@ object MonoidDerivationSpec extends Properties("MonoidDerivation") {
     implicit val mDuration: Monoid[Duration] = Monoid.instance(Duration.ZERO, _ plus _)
     test[Custom]
   }
-
 }

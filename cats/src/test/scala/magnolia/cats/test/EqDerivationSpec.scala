@@ -9,17 +9,22 @@ import cats.kernel.laws.discipline._
 import magnolia.cats.auto._
 import magnolia.scalacheck.auto._
 import magnolia.test.ADT._
-import magnolia.test.SerializableUtils
 import magnolia.test.Simple._
+import magnolia.test._
 import org.scalacheck._
 
 import scala.reflect._
 
-object EqDerivationSpec extends Properties("EqDerivation") {
-  private def test[T: Arbitrary : ClassTag : Cogen : Eq]: Unit = {
-    SerializableUtils.ensureSerializable(implicitly[Eq[T]])
-    val name = classTag[T].runtimeClass.getSimpleName
-    include(EqTests[T].eqv.all, s"$name.")
+object EqDerivationSpec extends MagnoliaSpec("EqDerivation") {
+  private def test[T: Arbitrary : ClassTag : Cogen : Eq]: Unit = include(props[T])
+  private def test[T: Arbitrary : ClassTag : Cogen : Eq](seed: Long): Unit =
+    includeWithSeed(props[T], 0)
+
+  private def props[T: Arbitrary : ClassTag : Cogen : Eq]: Properties = {
+    ensureSerializable(implicitly[Eq[T]])
+    new Properties(className[T]) {
+      include(EqTests[T].eqv.all)
+    }
   }
 
   test[Numbers]
@@ -40,8 +45,8 @@ object EqDerivationSpec extends Properties("EqDerivation") {
     test[Custom]
   }
 
-  test[Node]
-  test[GNode[Int]]
+  test[Node](0)
+  test[GNode[Int]](0)
   test[Shape]
   test[Color]
 }

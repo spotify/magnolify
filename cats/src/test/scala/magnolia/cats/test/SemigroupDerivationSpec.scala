@@ -8,17 +8,20 @@ import cats.instances.all._
 import cats.kernel.laws.discipline._
 import magnolia.cats.auto._
 import magnolia.scalacheck.auto._
-import magnolia.test.SerializableUtils
 import magnolia.test.Simple._
+import magnolia.test._
 import org.scalacheck._
 
 import scala.reflect._
 
-object SemigroupDerivationSpec extends Properties("SemigroupDerivation") {
-  private def test[T: Arbitrary : ClassTag : Eq : Semigroup]: Unit = {
-    SerializableUtils.ensureSerializable(implicitly[Semigroup[T]])
-    val name = classTag[T].runtimeClass.getSimpleName
-    include(SemigroupTests[T].semigroup.all, s"$name.")
+object SemigroupDerivationSpec extends MagnoliaSpec("SemigroupDerivation") {
+  private def test[T: Arbitrary : ClassTag : Eq : Semigroup]: Unit = include(props[T])
+
+  private def props[T: Arbitrary : ClassTag : Eq : Semigroup]: Properties = {
+    ensureSerializable(implicitly[Semigroup[T]])
+    new Properties(className[T]) {
+      include(SemigroupTests[T].semigroup.all)
+    }
   }
 
   test[Integers]
