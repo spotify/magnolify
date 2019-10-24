@@ -103,7 +103,7 @@ object TableRowField {
       override def toField(v: S[V]): Any = ???
       override def get(r: R, k: String): S[V] = r.get(k) match {
         case null => fc.newBuilder.result()
-        case xs: java.util.List[Any] => fc.build(xs.asScala.iterator.map(f.fromField))
+        case xs: java.util.List[_] => fc.build(xs.asScala.iterator.map(f.fromField))
       }
       override def put(r: R, k: String, v: S[V]): Unit =
         r.put(k, toSeq(v).map(f.toField).asJava)
