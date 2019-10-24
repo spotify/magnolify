@@ -7,7 +7,7 @@ import org.scalacheck.rng.Seed
 
 import scala.reflect._
 
-class MagnoliaSpec(name: String) extends Properties(name) {
+abstract class MagnoliaSpec(name: String) extends Properties(name) {
   def className[T: ClassTag]: String = classTag[T].runtimeClass.getSimpleName
 
   // workaround for stack overflow in recursive ADTs
