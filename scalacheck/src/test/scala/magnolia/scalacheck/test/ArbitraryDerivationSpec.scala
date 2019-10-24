@@ -9,6 +9,7 @@ import magnolia.test.Simple._
 import magnolia.test._
 import org.scalacheck._
 import org.scalacheck.rng.Seed
+import org.scalacheck.util.SerializableCanBuildFroms._
 
 import scala.reflect._
 

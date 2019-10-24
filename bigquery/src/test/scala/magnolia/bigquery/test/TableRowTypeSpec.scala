@@ -14,6 +14,7 @@ import magnolia.test.Simple._
 import magnolia.test._
 import org.joda.time._
 import org.scalacheck._
+import org.scalacheck.util.SerializableCanBuildFroms._
 
 import scala.reflect._
 
