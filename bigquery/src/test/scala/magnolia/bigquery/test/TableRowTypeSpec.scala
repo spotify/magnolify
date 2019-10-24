@@ -20,9 +20,8 @@ import scala.reflect._
 
 object TableRowTypeSpec extends MagnoliaSpec("TableRowType") {
   private val mapper = new ObjectMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-  private def test[T: Arbitrary : Eq : ClassTag](implicit tpe: TableRowType[T]): Unit = {
+  private def test[T: Arbitrary : ClassTag](implicit tpe: TableRowType[T], eq: Eq[T]): Unit = {
     ensureSerializable(tpe)
-    val eq = implicitly[Eq[T]]
     property(className[T]) = Prop.forAll { t: T =>
       val r = tpe(t)
       val copy1 = tpe(r)

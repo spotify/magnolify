@@ -17,9 +17,8 @@ import org.scalacheck.util.SerializableCanBuildFroms._
 import scala.reflect._
 
 object EntityTypeSpec extends MagnoliaSpec("EntityType") {
-  private def test[T: Arbitrary : Eq : ClassTag](implicit tpe: EntityType[T]): Unit = {
+  private def test[T: Arbitrary : ClassTag](implicit tpe: EntityType[T], eq: Eq[T]): Unit = {
     ensureSerializable(tpe)
-    val eq = implicitly[Eq[T]]
     property(className[T]) = Prop.forAll { t: T =>
       val r = tpe(t)
       val copy = tpe(r)
