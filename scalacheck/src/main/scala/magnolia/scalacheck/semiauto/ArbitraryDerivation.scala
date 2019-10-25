@@ -9,12 +9,26 @@ import scala.language.experimental.macros
 object ArbitraryDerivation {
   type Typeclass[T] = Arbitrary[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = Arbitrary {
-    Gen.lzy(caseClass.constructMonadic(_.typeclass.arbitrary)(monadicGen))
+  def combine[T: Fallback](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = Arbitrary {
+    Gen.lzy(Gen.sized { size =>
+      if (size >= 0) {
+        Gen.resize(size - 1,
+          caseClass.constructMonadic(_.typeclass.arbitrary)(monadicGen))
+      } else {
+        implicitly[Fallback[T]].get
+      }
+    })
   }
 
-  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = Arbitrary {
-    Gen.oneOf(sealedTrait.subtypes.map(_.typeclass.arbitrary)).flatMap(identity)
+  def dispatch[T: Fallback](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = Arbitrary {
+    Gen.sized { size =>
+      if (size > 0) {
+        Gen.resize(size - 1,
+          Gen.oneOf(sealedTrait.subtypes.map(_.typeclass.arbitrary)).flatMap(identity))
+      } else {
+        implicitly[Fallback[T]].get
+      }
+    }
   }
 
   private val monadicGen: Monadic[Gen] = new Monadic[Gen] {
@@ -24,4 +38,19 @@ object ArbitraryDerivation {
   }
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
+
+  sealed trait Fallback[+T] extends Serializable {
+    def get: Gen[T]
+  }
+
+  object Fallback {
+    def apply[T](g: Gen[T]): Fallback[T] = new Fallback[T] {
+      override def get: Gen[T] = g
+    }
+
+    def apply[T](v: T): Fallback[T] = Fallback[T](Gen.const(v))
+    def apply[T](implicit arb: Arbitrary[T]): Fallback[T] = Fallback[T](arb.arbitrary)
+
+    implicit def defaultFallback[T]: Fallback[T] = Fallback[T](Gen.fail)
+  }
 }

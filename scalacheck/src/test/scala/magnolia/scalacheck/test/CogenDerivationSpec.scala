@@ -10,35 +10,42 @@ import org.scalacheck.rng.Seed
 import scala.reflect._
 
 object CogenDerivationSpec extends MagnoliaSpec("CogenDerivation") {
-  private def test[T: Arbitrary : ClassTag : Cogen]: Unit = include(props[T])
-  private def test[T: Arbitrary : ClassTag : Cogen](seed: Long): Unit =
-    includeWithSeed(props[T], seed)
-
-  private def props[T: ClassTag](implicit arb: Arbitrary[T], cogen: Cogen[T]): Properties = {
-    ensureSerializable(cogen)
-    new Properties(className[T]) {
-      implicit val arbList = Arbitrary(Gen.listOfN(10, arb.arbitrary))
-      property("uniqueness") = Prop.forAll { (seed: Seed, xs: List[T]) =>
-        xs.map(cogen.perturb(seed, _)).toSet.size == xs.toSet.size
-      }
-      property("consistency") = Prop.forAll { (seed: Seed, x: T) =>
-        cogen.perturb(seed, x) == cogen.perturb(seed, x)
-      }
+  private def test[T: ClassTag](implicit arb: Arbitrary[T], co: Cogen[T]): Unit = {
+    ensureSerializable(co)
+    val name = className[T]
+    implicit val arbList: Arbitrary[List[T]] = Arbitrary(Gen.listOfN(10, arb.arbitrary))
+    property(s"$name.uniqueness") = Prop.forAll { (seed: Seed, xs: List[T]) =>
+      xs.map(co.perturb(seed, _)).toSet.size == xs.toSet.size
+    }
+    property(s"$name.consistency") = Prop.forAll { (seed: Seed, x: T) =>
+      co.perturb(seed, x) == co.perturb(seed, x)
     }
   }
 
   test[Numbers]
   test[Required]
-  // FIXME: not enough unique results due to None/Nil
-  test[Nullable](0)
-  test[Repeated](0)
+
+  {
+    // FIXME: uniqueness workaround for Nones
+    implicit def arbOption[T](implicit arb: Arbitrary[T]): Arbitrary[Option[T]] =
+      Arbitrary(Gen.frequency(1 -> Gen.const(None), 99 -> Gen.some(arb.arbitrary)))
+    test[Nullable]
+  }
+
+  {
+    // FIXME: uniqueness workaround for Nils
+    implicit def arbList[T](implicit arb: Arbitrary[T]): Arbitrary[List[T]] =
+      Arbitrary(Gen.nonEmptyListOf(arb.arbitrary))
+    test[Repeated]
+  }
+
   test[Nested]
 
   import Custom._
   test[Custom]
 
-  test[Node](0)
-  test[GNode[Int]](0)
+  test[Node]
+  test[GNode[Int]]
   test[Shape]
   test[Color]
 }

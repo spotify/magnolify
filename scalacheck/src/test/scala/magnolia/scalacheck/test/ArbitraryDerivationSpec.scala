@@ -14,85 +14,37 @@ import org.scalacheck.util.SerializableCanBuildFroms._
 import scala.reflect._
 
 object ArbitraryDerivationSpec extends MagnoliaSpec("ArbitraryDerivation") {
-  private val parameters = Gen.Parameters.default
-
-  private def test[T: Arbitrary : ClassTag](expected: Gen[T]): Unit =
-    include(props[T](expected))
-  private def test[T: Arbitrary : ClassTag](prefix: String)(expected: Gen[T]): Unit =
-    include(props[T](expected), prefix)
-  private def test[T: Arbitrary : ClassTag](seed: Long)(expected: Gen[T]): Unit =
-    includeWithSeed(props[T](expected), 0)
-
-  private def props[T: ClassTag](expected: Gen[T])(implicit arb: Arbitrary[T]): Properties = {
+  private def test[T: ClassTag](implicit arb: Arbitrary[T]): Unit = {
     ensureSerializable(arb)
-    val actual = arb.arbitrary
-    new Properties(className[T]) {
-      property("eqv") = Prop.forAll { seed: Seed =>
-        actual(parameters, seed) == expected(parameters, seed)
-      }
+    val name = className[T]
+    val g = arb.arbitrary
+    val prms = Gen.Parameters.default
+    property(s"$name.uniqueness") = Prop.forAll(Gen.listOfN(10, g)) { xs =>
+      xs.size > 1
+    }
+    property(s"$name.consistency") = Prop.forAll { seed: Seed =>
+      g(prms, seed).get == g(prms, seed).get
     }
   }
 
-  test(for {
-    i <- Arbitrary.arbInt.arbitrary
-    l <- Arbitrary.arbLong.arbitrary
-    f <- Arbitrary.arbFloat.arbitrary
-    d <- Arbitrary.arbDouble.arbitrary
-    bi <- Arbitrary.arbBigInt.arbitrary
-    bd <- Arbitrary.arbBigDecimal.arbitrary
-  } yield Numbers(i, l, f, d, bi, bd))
+  test[Numbers]
+  test[Required]
+  test[Nullable]
 
-  test(for {
-    b <- Arbitrary.arbBool.arbitrary
-    i <- Arbitrary.arbInt.arbitrary
-    s <- Arbitrary.arbString.arbitrary
-  } yield Required(b, i, s))
+  {
+    // FIXME: uniqueness workaround for Nils
+    implicit def arbList[T](implicit arb: Arbitrary[T]): Arbitrary[List[T]] =
+      Arbitrary(Gen.nonEmptyListOf(arb.arbitrary))
+    test[Repeated]
+  }
 
-  test(for {
-    b <- Gen.option(Arbitrary.arbBool.arbitrary)
-    i <- Gen.option(Arbitrary.arbInt.arbitrary)
-    s <- Gen.option(Arbitrary.arbString.arbitrary)
-  } yield Nullable(b, i, s))
-
-  test(for {
-    b <- Gen.listOf(Arbitrary.arbBool.arbitrary)
-    i <- Gen.listOf(Arbitrary.arbInt.arbitrary)
-    s <- Gen.listOf(Arbitrary.arbString.arbitrary)
-  } yield Repeated(b, i, s))
-
-  test(for {
-    b <- Arbitrary.arbBool.arbitrary
-    i <- Arbitrary.arbInt.arbitrary
-    s <- Arbitrary.arbString.arbitrary
-    nb <- Arbitrary.arbBool.arbitrary
-    ni <- Arbitrary.arbInt.arbitrary
-    ns <- Arbitrary.arbString.arbitrary
-  } yield Nested(b, i, s, Required(nb, ni, ns)))
+  test[Nested]
 
   {
     implicit val arbInt: Arbitrary[Int] = Arbitrary(Gen.chooseNum(0, 100))
-    implicit val arbStr: Arbitrary[String] = Arbitrary(Gen.alphaNumStr)
-    test("implicits.")(for {
-      b <- Arbitrary.arbBool.arbitrary
-      i <- Gen.chooseNum(0, 100)
-      s <- Gen.alphaNumStr
-    } yield Required(b, i, s))
-  }
-
-  {
-    val actual = implicitly[Arbitrary[Collections]].arbitrary
-    val expected = for {
-      a <- Gen.containerOf[Array, Int](Arbitrary.arbInt.arbitrary)
-      l <- Gen.listOf(Arbitrary.arbInt.arbitrary)
-      v <- Gen.containerOf[Vector, Int](Arbitrary.arbInt.arbitrary)
-    } yield Collections(a, l, v)
-    property(className[Collections]) = Prop.forAll { seed: Seed =>
-      val x = actual(parameters, seed).get
-      val y = expected(parameters, seed).get
-      Prop.all(
-        x.a.toList == y.a.toList,
-        x.l == y.l,
-        x.v == y.v)
+    implicit val arbLong: Arbitrary[Long] = Arbitrary(Gen.chooseNum(100, 10000))
+    property("implicits") = Prop.forAll { x: Integers =>
+      x.i >= 0 && x.i <= 100 && x.l >= 100 && x.l <= 10000
     }
   }
 
@@ -101,27 +53,21 @@ object ArbitraryDerivationSpec extends MagnoliaSpec("ArbitraryDerivation") {
       Arbitrary(Gen.alphaNumStr.map(URI.create))
     implicit val arbDuration: Arbitrary[Duration] =
       Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Duration.ofMillis(_)))
-    test(for {
-      u <- Gen.alphaNumStr
-      d <- Gen.chooseNum(0, Int.MaxValue)
-    } yield Custom(URI.create(u), Duration.ofMillis(d)))
+    test[Custom]
   }
-
-  test(0)(Node.gen)
-  test(0)(GNode.gen[Int])
 
   {
-    val genSpace = Gen.const(Space)
-    val genPoint = for {
-      x <- Arbitrary.arbInt.arbitrary
-      y <- Arbitrary.arbInt.arbitrary
-    } yield Point(x, y)
-    val genCircle = for {
-      r <- Arbitrary.arbInt.arbitrary
-    } yield Circle(r)
-    val genShape = Gen.oneOf[Shape](genCircle, genPoint, genSpace)
-    test(genShape)
+    import magnolia.scalacheck.semiauto.ArbitraryDerivation.Fallback
+    implicit val f: Fallback[Node] = Fallback[Leaf]
+    test[Node]
   }
 
-  test(Gen.oneOf[Color](Blue, Green, Red))
+  {
+    import magnolia.scalacheck.semiauto.ArbitraryDerivation.Fallback
+    implicit val f: Fallback[GNode[Int]] = Fallback[GLeaf[Int]]
+    test[GNode[Int]]
+  }
+
+  test[Shape]
+  test[Color]
 }
