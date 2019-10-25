@@ -15,13 +15,9 @@ import org.scalacheck._
 import scala.reflect._
 
 object MonoidDerivationSpec extends MagnoliaSpec("MonoidDerivation") {
-  private def test[T: Arbitrary : ClassTag : Eq : Monoid]: Unit = include(props[T])
-
-  private def props[T: Arbitrary : ClassTag : Eq : Monoid]: Properties = {
+  private def test[T: Arbitrary : ClassTag : Eq : Monoid]: Unit = {
     ensureSerializable(implicitly[Monoid[T]])
-    new Properties(className[T]) {
-      include(MonoidTests[T].monoid.all)
-    }
+    include(MonoidTests[T].monoid.all, className[T] + ".")
   }
 
   test[Integers]

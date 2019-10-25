@@ -15,13 +15,9 @@ import org.scalacheck._
 import scala.reflect._
 
 object SemigroupDerivationSpec extends MagnoliaSpec("SemigroupDerivation") {
-  private def test[T: Arbitrary : ClassTag : Eq : Semigroup]: Unit = include(props[T])
-
-  private def props[T: Arbitrary : ClassTag : Eq : Semigroup]: Properties = {
+  private def test[T: Arbitrary : ClassTag : Eq : Semigroup]: Unit = {
     ensureSerializable(implicitly[Semigroup[T]])
-    new Properties(className[T]) {
-      include(SemigroupTests[T].semigroup.all)
-    }
+    include(SemigroupTests[T].semigroup.all, className[T] + ".")
   }
 
   test[Integers]

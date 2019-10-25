@@ -16,15 +16,9 @@ import org.scalacheck._
 import scala.reflect._
 
 object EqDerivationSpec extends MagnoliaSpec("EqDerivation") {
-  private def test[T: Arbitrary : ClassTag : Cogen : Eq]: Unit = include(props[T])
-  private def test[T: Arbitrary : ClassTag : Cogen : Eq](seed: Long): Unit =
-    includeWithSeed(props[T], 0)
-
-  private def props[T: Arbitrary : ClassTag : Cogen : Eq]: Properties = {
+  private def test[T: Arbitrary : ClassTag : Cogen : Eq]: Unit = {
     ensureSerializable(implicitly[Eq[T]])
-    new Properties(className[T]) {
-      include(EqTests[T].eqv.all)
-    }
+    include(EqTests[T].eqv.all, className[T] + ".")
   }
 
   test[Numbers]
@@ -45,8 +39,8 @@ object EqDerivationSpec extends MagnoliaSpec("EqDerivation") {
     test[Custom]
   }
 
-  test[Node](0)
-  test[GNode[Int]](0)
+  test[Node]
+  test[GNode[Int]]
   test[Shape]
   test[Color]
 }

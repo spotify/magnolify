@@ -12,13 +12,9 @@ import org.scalacheck._
 import scala.reflect._
 
 object GroupDerivationSpec extends MagnoliaSpec("GroupDerivation") {
-  private def test[T: Arbitrary : ClassTag : Eq : Group]: Unit = include(props[T])
-
-  private def props[T: Arbitrary : ClassTag : Eq : Group]: Properties = {
+  private def test[T: Arbitrary : ClassTag : Eq : Group]: Unit = {
     ensureSerializable(implicitly[Group[T]])
-    new Properties(className[T]) {
-      include(GroupTests[T].group.all)
-    }
+    include(GroupTests[T].group.all, className[T] + ".")
   }
 
   test[Integers]
