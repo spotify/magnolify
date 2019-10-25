@@ -29,15 +29,13 @@ object EntityType {
       caseClass.construct(p => p.typeclass.get(r, p.label))
 
     override protected def to(t: T): R =
-      caseClass.parameters.foldLeft(this.empty) { (m, p) =>
-        p.typeclass.put(m, p.label, p.dereference(t))
-        m
+      caseClass.parameters.foldLeft(empty) { (r, p) =>
+        p.typeclass.put(r, p.label, p.dereference(t))
+        r
       }
 
-    override def fromField(v: Value): T =
-      this.from(v.getEntityValue)
-    override def toField(v: T): Value.Builder =
-      makeValue(this.to(v).asInstanceOf[Entity.Builder])
+    override def fromField(v: Value): T = from(v.getEntityValue)
+    override def toField(v: T): Value.Builder = makeValue(to(v).asInstanceOf[Entity.Builder])
   }
 
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
@@ -50,8 +48,7 @@ sealed trait EntityField[V]
   with Converter.Field[V, EntityOrBuilder] { self =>
   override def get(r: R, k: String): V = fromField(r.getPropertiesMap.get(k))
   override def put(r: R, k: String, v: V): Unit =
-    r.asInstanceOf[Entity.Builder].putProperties(
-      k, toField(v).build())
+    r.asInstanceOf[Entity.Builder].putProperties(k, toField(v).build())
 
   def fromField(v: Value): V
   def toField(v: V): Value.Builder
@@ -98,8 +95,7 @@ object EntityField {
       override def get(r: R, k: String): Option[V] =
         Option(r.getPropertiesMap.get(k)).map(f.fromField)
       override def put(r: R, k: String, v: Option[V]): Unit =
-        v.foreach(x => r.asInstanceOf[Entity.Builder].putProperties(
-          k, f.toField(x).build()))
+        v.foreach(x => r.asInstanceOf[Entity.Builder].putProperties(k, f.toField(x).build()))
     }
 
   implicit def efSeq[V, S[V]](implicit f: EntityField[V],
@@ -113,9 +109,8 @@ object EntityField {
         case xs => fc.build(xs.getArrayValue.getValuesList.asScala.iterator.map(f.fromField))
       }
       override def put(r: R, k: String, v: S[V]): Unit =
-        r.asInstanceOf[Entity.Builder].putProperties(k, Value.newBuilder().setArrayValue(
-          toSeq(v).foldLeft(ArrayValue.newBuilder()) { (b, x) =>
-            b.addValues(f.toField(x))
-          }.build()).build())
+        r.asInstanceOf[Entity.Builder].putProperties(k, Value.newBuilder().setArrayValue(toSeq(v)
+          .foldLeft(ArrayValue.newBuilder()) { (b, x) => b.addValues(f.toField(x)) }
+          .build()).build())
     }
 }

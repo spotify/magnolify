@@ -28,9 +28,9 @@ object ExampleType {
       caseClass.construct(p => p.typeclass.get(r, p.label))
 
     override protected def to(t: T): R =
-      caseClass.parameters.foldLeft(this.empty) { (m, p) =>
-        p.typeclass.put(m, p.label, p.dereference(t))
-        m
+      caseClass.parameters.foldLeft(empty) { (r, p) =>
+        p.typeclass.put(r, p.label, p.dereference(t))
+        r
       }
 
     // FIXME: flatten nested fields
@@ -105,14 +105,14 @@ trait LowPriorityExampleFieldAt extends LowPriorityExampleFieldSeq {
   import ExampleField.At
 
   // try to convert to V first
-  implicit def efAtLong[V](implicit c: At[Long, V]): ExampleField[Iterator[V]] =
-    ExampleField.efLongIterator.imap(_.map(c.to))(_.map(c.from))
+  implicit def efAtLong[V](implicit at: At[Long, V]): ExampleField[Iterator[V]] =
+    ExampleField.efLongIterator.imap(_.map(at.to))(_.map(at.from))
 
-  implicit def efAtFloat[V](implicit c: At[Float, V]): ExampleField[Iterator[V]] =
-    ExampleField.efFloatIterator.imap(_.map(c.to))(_.map(c.from))
+  implicit def efAtFloat[V](implicit at: At[Float, V]): ExampleField[Iterator[V]] =
+    ExampleField.efFloatIterator.imap(_.map(at.to))(_.map(at.from))
 
-  implicit def efAtByteString[V](implicit c: At[ByteString, V]): ExampleField[Iterator[V]] =
-    ExampleField.efByteStringIterator.imap(_.map(c.to))(_.map(c.from))
+  implicit def efAtByteString[V](implicit at: At[ByteString, V]): ExampleField[Iterator[V]] =
+    ExampleField.efByteStringIterator.imap(_.map(at.to))(_.map(at.from))
 }
 
 trait LowPriorityExampleFieldSeq extends LowPriorityExampleFieldOption {
@@ -130,7 +130,7 @@ trait LowPriorityExampleFieldOption extends LowPriorityExampleFieldSingle {
   implicit def efOption[V](implicit f: ExampleField[Iterator[V]]): ExampleField[Option[V]] =
     f.imap(v => if (v.hasNext) {
       val r = Some(v.next())
-      require(!v.hasNext)
+      require(!v.hasNext, "More than 1 value for Option field")
       r
     } else {
       None
@@ -140,8 +140,9 @@ trait LowPriorityExampleFieldOption extends LowPriorityExampleFieldSingle {
 trait LowPriorityExampleFieldSingle {
   implicit def efSingle[V](implicit f: ExampleField[Iterator[V]]): ExampleField[V] =
     f.imap(v => {
+      require(v.hasNext, "Missing value for required field")
       val r = v.next()
-      require(!v.hasNext)
+      require(!v.hasNext, "More than 1 value for required field")
       r
     })(Iterator(_))
 }

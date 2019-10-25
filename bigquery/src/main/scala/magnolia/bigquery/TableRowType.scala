@@ -26,18 +26,17 @@ object TableRowType {
       caseClass.construct(p => p.typeclass.get(r, p.label))
 
     override protected def to(t: T): R =
-      caseClass.parameters.foldLeft(this.empty) { (m, p) =>
-        p.typeclass.put(m, p.label, p.dereference(t))
-        m
+      caseClass.parameters.foldLeft(empty) { (r, p) =>
+        p.typeclass.put(r, p.label, p.dereference(t))
+        r
       }
 
     override def fromField(v: Any): T = {
-      // nested records
-      val tr = this.empty
-      tr.putAll(v.asInstanceOf[java.util.Map[String, Any]])
-      this.from(tr)
+      val r = empty
+      r.putAll(v.asInstanceOf[java.util.Map[String, Any]])
+      this.from(r)
     }
-    override def toField(v: T): Any = this.to(v)
+    override def toField(v: T): Any = to(v)
   }
 
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
