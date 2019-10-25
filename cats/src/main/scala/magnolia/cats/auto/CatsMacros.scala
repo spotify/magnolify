@@ -32,22 +32,22 @@ private object CatsMacros {
   }
 }
 
-trait LowPriorityGenSemigroup {
-  implicit def genSemigroup[T]: Semigroup[T] = macro CatsMacros.genSemigroupMacro[T]
-}
-
-trait LowPriorityGenMonoid extends LowPriorityGenSemigroup {
-  implicit def genMonoid[T]: Monoid[T] = macro CatsMacros.genMonoidMacro[T]
-}
-
-trait LowPriorityGenGroup extends LowPriorityGenMonoid {
-  implicit def genGroup[T]: Group[T] = macro CatsMacros.genGroupMacro[T]
-}
-
 trait LowPriorityImplicits extends LowPriorityGenGroup {
   implicit def genEq[T]: Eq[T] = macro CatsMacros.genEqMacro[T]
 
   // workaround for ambiguous implicit values with cats
   implicit def genListMonoid[T] = new ListMonoid[T]
   implicit def genOptionMonoid[T: Semigroup] = new OptionMonoid[T]
+}
+
+trait LowPriorityGenGroup extends LowPriorityGenMonoid {
+  implicit def genGroup[T]: Group[T] = macro CatsMacros.genGroupMacro[T]
+}
+
+trait LowPriorityGenMonoid extends LowPriorityGenSemigroup {
+  implicit def genMonoid[T]: Monoid[T] = macro CatsMacros.genMonoidMacro[T]
+}
+
+trait LowPriorityGenSemigroup {
+  implicit def genSemigroup[T]: Semigroup[T] = macro CatsMacros.genSemigroupMacro[T]
 }

@@ -9,7 +9,7 @@ import magnolia.shims._
 import scala.collection.JavaConverters._
 import scala.language.experimental.macros
 
-trait TableRowType[T] extends Converter.Record[T, TableRow] {
+sealed trait TableRowType[T] extends Converter.Record[T, TableRow] {
   protected type R = TableRow
   def apply(r: R): T = from(r)
   def apply(t: T): R = to(t)
@@ -46,7 +46,7 @@ object TableRowType {
 
 }
 
-trait TableRowField[V]
+sealed trait TableRowField[V]
   extends TableRowType[V]
   with Converter.Field[V, TableRow] { self =>
   override def get(r: R, k: String): V = fromField(r.get(k))

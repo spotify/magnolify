@@ -12,7 +12,7 @@ import magnolia.shims.FactoryCompat
 import scala.collection.JavaConverters._
 import scala.language.experimental.macros
 
-trait EntityType[T] extends Converter.Record[T, EntityOrBuilder] {
+sealed trait EntityType[T] extends Converter.Record[T, EntityOrBuilder] {
   protected type R = EntityOrBuilder
   def apply(r: R): T = from(r)
   def apply(t: T): R = to(t)
@@ -45,7 +45,9 @@ object EntityType {
   implicit def apply[T]: EntityType[T] = macro Magnolia.gen[T]
 }
 
-trait EntityField[V] extends EntityType[V] with Converter.Field[V, EntityOrBuilder] { self =>
+sealed trait EntityField[V]
+  extends EntityType[V]
+  with Converter.Field[V, EntityOrBuilder] { self =>
   override def get(r: R, k: String): V = fromField(r.getPropertiesMap.get(k))
   override def put(r: R, k: String, v: V): Unit =
     r.asInstanceOf[Entity.Builder].putProperties(

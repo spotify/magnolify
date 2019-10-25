@@ -9,7 +9,7 @@ import org.tensorflow.example._
 import scala.collection.JavaConverters._
 import scala.language.experimental.macros
 
-trait ExampleType[T] extends Converter.Record[T, FeaturesOrBuilder] {
+sealed trait ExampleType[T] extends Converter.Record[T, FeaturesOrBuilder] {
   protected type R = FeaturesOrBuilder
   def apply(r: ExampleOrBuilder): T = from(r.getFeatures)
   def apply(t: T): Example = Example.newBuilder()
@@ -43,7 +43,9 @@ object ExampleType {
   implicit def apply[T]: ExampleType[T] = macro Magnolia.gen[T]
 }
 
-trait ExampleField[V] extends ExampleType[V] with Converter.Field[V, FeaturesOrBuilder] { self =>
+sealed trait ExampleField[V]
+  extends ExampleType[V]
+  with Converter.Field[V, FeaturesOrBuilder] { self =>
   override def get(r: FeaturesOrBuilder, k: String): V = fromField(r.getFeatureMap.get(k))
   override def put(r: FeaturesOrBuilder, k: String, v: V): Unit =
     r.asInstanceOf[Features.Builder].putFeature(k, toField(v).build())
@@ -65,14 +67,14 @@ object ExampleField extends LowPriorityExampleFieldAt {
     override def toField(v: V): Feature.Builder = g(v)
   }
 
-  def atLong[V](f: Long => V)(g: V => Long): At[Long, V] = atField(f)(g)
-  def atFloat[V](f: Float => V)(g: V => Float): At[Float, V] = atField(f)(g)
-  def atByteString[V](f: ByteString => V)(g: V => ByteString): At[ByteString, V] = atField(f)(g)
-
-  trait At[A, B] extends Serializable {
+  sealed trait At[A, B] extends Serializable {
     def to(v: A): B
     def from(v: B): A
   }
+
+  def atLong[V](f: Long => V)(g: V => Long): At[Long, V] = atField(f)(g)
+  def atFloat[V](f: Float => V)(g: V => Float): At[Float, V] = atField(f)(g)
+  def atByteString[V](f: ByteString => V)(g: V => ByteString): At[ByteString, V] = atField(f)(g)
 
   private def atField[A, B](f: A => B)(g: B => A): At[A, B] = new At[A, B] {
     override def to(v: A): B = f(v)
