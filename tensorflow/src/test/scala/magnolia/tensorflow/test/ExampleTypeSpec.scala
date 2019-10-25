@@ -27,9 +27,11 @@ object ExampleTypeSpec extends MagnoliaSpec("ExampleType") {
   }
 
   {
-    implicit val efInt = ExampleField.atLong(_.toInt)(_.toLong)
-    implicit val efBoolean = ExampleField.atLong(_ == 1)(x => if (x) 1 else 0 )
-    implicit val efString = ExampleField.atByteString(_.toStringUtf8)(ByteString.copyFromUtf8)
+    implicit val efInt: ExampleField[Int] = ExampleField.atLong(_.toInt)(_.toLong)
+    implicit val efBoolean: ExampleField[Boolean] =
+      ExampleField.atLong(_ == 1)(x => if (x) 1 else 0)
+    implicit val efString: ExampleField[String] =
+      ExampleField.atBytes(_.toStringUtf8)(ByteString.copyFromUtf8)
     test[Integers]
     test[Required]
     test[Nullable]
@@ -40,7 +42,7 @@ object ExampleTypeSpec extends MagnoliaSpec("ExampleType") {
 
   {
     implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
-    implicit val efInt = ExampleField.atLong(_.toInt)(_.toLong)
+    implicit val efInt: ExampleField[Int] = ExampleField.atLong(_.toInt)(_.toLong)
     test[Collections]
   }
 
@@ -48,9 +50,10 @@ object ExampleTypeSpec extends MagnoliaSpec("ExampleType") {
     import Custom._
     implicit val eqUri: Eq[URI] = Eq.by(_.toString)
     implicit val eqDuration: Eq[Duration] = Eq.by(_.toMillis)
-    implicit val efUri = ExampleField.atByteString(
+    implicit val efUri: ExampleField[URI] = ExampleField.atBytes(
       x => URI.create(x.toStringUtf8))(x => ByteString.copyFromUtf8(x.toString))
-    implicit val efDuration = ExampleField.atLong(Duration.ofMillis)(_.toMillis)
+    implicit val efDuration: ExampleField[Duration] =
+      ExampleField.atLong(Duration.ofMillis)(_.toMillis)
 
     test[Custom]
   }

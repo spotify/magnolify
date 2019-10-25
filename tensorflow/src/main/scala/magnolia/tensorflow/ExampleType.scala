@@ -1,5 +1,8 @@
 package magnolia.tensorflow
 
+import java.lang.{Iterable => JIterable}
+import java.util.{List => JList}
+
 import com.google.protobuf.ByteString
 import magnolia._
 import magnolia.data.Converter
@@ -24,6 +27,8 @@ object ExampleType {
   type Typeclass[T] = ExampleField[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
+    override val kind: ExampleField.Kind = null
+
     override protected def from(r: R): T =
       caseClass.construct(p => p.typeclass.get(r, p.label))
 
@@ -34,8 +39,8 @@ object ExampleType {
       }
 
     // FIXME: flatten nested fields
-    override def fromField(v: Feature): T = ???
-    override def toField(v: T): Feature.Builder = ???
+    override def fromField(v: Any): T = ???
+    override def toField(v: T): Any = ???
   }
 
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
@@ -46,103 +51,102 @@ object ExampleType {
 sealed trait ExampleField[V]
   extends ExampleType[V]
   with Converter.Field[V, FeaturesOrBuilder] { self =>
-  override def get(r: FeaturesOrBuilder, k: String): V = fromField(r.getFeatureMap.get(k))
-  override def put(r: FeaturesOrBuilder, k: String, v: V): Unit =
-    r.asInstanceOf[Features.Builder].putFeature(k, toField(v).build())
+  val kind: ExampleField.Kind
 
-  def fromField(v: Feature): V
-  def toField(v: V): Feature.Builder
+  override def get(r: FeaturesOrBuilder, k: String): V = {
+    val xs = kind.getList(r.getFeatureMap.get(k))
+    require(xs.size == 1)
+    fromField(xs.iterator().next())
+  }
+  override def put(r: FeaturesOrBuilder, k: String, v: V): Unit = {
+    r.asInstanceOf[Features.Builder].putFeature(
+      k, kind.putList(Feature.newBuilder())(Seq(toField(v))).build())
+  }
+
+  def fromField(v: Any): V
+  def toField(v: V): Any
 
   def imap[U](f: V => U)(g: U => V): ExampleField[U] = new ExampleField[U] {
-    override def fromField(v: Feature): U = f(self.fromField(v))
-    override def toField(v: U): Feature.Builder = self.toField(g(v))
+    override val kind: ExampleField.Kind = self.kind
+    override def fromField(v: Any): U = f(self.fromField(v))
+    override def toField(v: U): Any = self.toField(g(v))
   }
 }
 
-object ExampleField extends LowPriorityExampleFieldAt {
+object ExampleField {
   def apply[V](implicit f: ExampleField[V]): ExampleField[V] = f
 
-  def at[V](f: Feature => V)(g: V => Feature.Builder): ExampleField[V] = new ExampleField[V] {
-    override def fromField(v: Feature): V = f(v)
-    override def toField(v: V): Feature.Builder = g(v)
+  private def atSingle[V](k: Kind): ExampleField[V] = new ExampleField[V] {
+    override val kind: Kind = k
+    override def fromField(v: Any): V = v.asInstanceOf[V]
+    override def toField(v: V): Any = v.asInstanceOf[Any]
   }
 
-  sealed trait At[A, B] extends Serializable {
-    def to(v: A): B
-    def from(v: B): A
+  def atLong[V](f: Long => V)(g: V => Long): ExampleField[V] = efLong.imap(f)(g)
+  def atFloat[V](f: Float => V)(g: V => Float): ExampleField[V] = efFloat.imap(f)(g)
+  def atBytes[V](f: ByteString => V)(g: V => ByteString): ExampleField[V] = efBytes.imap(f)(g)
+
+  sealed abstract class Kind(val kind: Feature.KindCase,
+                             val getList: Feature => JList[Any],
+                             val putList: Feature.Builder => Iterable[Any] => Feature.Builder)
+      extends Serializable
+  object Kind {
+    case object Long extends Kind(
+      Feature.KindCase.INT64_LIST,
+      _.getInt64List.getValueList.asInstanceOf[JList[Any]],
+      b => xs => b.setInt64List(Int64List.newBuilder().addAllValue(
+        xs.asJava.asInstanceOf[JIterable[java.lang.Long]])))
+
+    case object Float extends Kind(
+      Feature.KindCase.FLOAT_LIST,
+      _.getFloatList.getValueList.asInstanceOf[JList[Any]],
+      b => xs => b.setFloatList(FloatList.newBuilder().addAllValue(
+        xs.asJava.asInstanceOf[JIterable[java.lang.Float]])))
+
+    case object Bytes extends Kind(
+      Feature.KindCase.BYTES_LIST,
+      _.getBytesList.getValueList.asInstanceOf[JList[Any]],
+      b => xs => b.setBytesList(BytesList.newBuilder().addAllValue(
+        xs.asJava.asInstanceOf[JIterable[ByteString]])))
   }
 
-  def atLong[V](f: Long => V)(g: V => Long): At[Long, V] = atField(f)(g)
-  def atFloat[V](f: Float => V)(g: V => Float): At[Float, V] = atField(f)(g)
-  def atByteString[V](f: ByteString => V)(g: V => ByteString): At[ByteString, V] = atField(f)(g)
+  implicit val efLong = atSingle[Long](Kind.Long)
+  implicit val efFloat = atSingle[Float](Kind.Float)
+  implicit val efBytes = atSingle[ByteString](Kind.Bytes)
 
-  private def atField[A, B](f: A => B)(g: B => A): At[A, B] = new At[A, B] {
-    override def to(v: A): B = f(v)
-    override def from(v: B): A = g(v)
-  }
+  implicit def efOption[V](implicit f: ExampleField[V]): ExampleField[Option[V]] =
+    new ExampleField[Option[V]] {
+      override val kind: Kind = f.kind
+      override def fromField(v: Any): Option[V] = ???
+      override def toField(v: Option[V]): Any = ???
 
-  // Iterator is not Seq and avoids diverging implicit issues
-  implicit val efLongIterator: ExampleField[Iterator[Long]] =
-    at[Iterator[Long]](
-      _.getInt64List.getValueList.asScala.iterator.asInstanceOf[Iterator[Long]])(
-      x => Feature.newBuilder().setInt64List(Int64List.newBuilder().addAllValue(
-        x.asInstanceOf[Iterator[java.lang.Long]].toIterable.asJava)))
+      override def get(r: R, k: String): Option[V] = r.getFeatureMap.get(k) match {
+        case null => None
+        case v: Feature =>
+          val xs = kind.getList(v)
+          require(xs.size <= 1)
+          if (xs.isEmpty) None else Some(f.fromField(xs.iterator().next()))
+      }
+      override def put(r: R, k: String, v: Option[V]): Unit = v.foreach { x =>
+        r.asInstanceOf[Features.Builder].putFeature(
+          k, kind.putList(Feature.newBuilder())(Seq(f.toField(x))).build())
+      }
+    }
 
-  implicit val efFloatIterator: ExampleField[Iterator[Float]] =
-    at[Iterator[Float]](
-      _.getFloatList.getValueList.asScala.iterator.asInstanceOf[Iterator[Float]])(
-      x => Feature.newBuilder().setFloatList(FloatList.newBuilder().addAllValue(
-        x.asInstanceOf[Iterator[java.lang.Float]].toIterable.asJava)))
+  implicit def efSeq[V, S[V]](implicit f: ExampleField[V],
+                              toSeq: S[V] => Seq[V],
+                              fc: FactoryCompat[V, S[V]]): ExampleField[S[V]] =
+    new ExampleField[S[V]] {
+      override val kind: Kind = f.kind
+      override def fromField(v: Any): S[V] = ???
+      override def toField(v: S[V]): Any = ???
 
-  implicit val efByteStringIterator: ExampleField[Iterator[ByteString]] =
-    at[Iterator[ByteString]](
-      _.getBytesList.getValueList.asScala.iterator)(
-      x => Feature.newBuilder().setBytesList(BytesList.newBuilder().addAllValue(
-        x.toIterable.asJava)))
-}
-
-trait LowPriorityExampleFieldAt extends LowPriorityExampleFieldSeq {
-  import ExampleField.At
-
-  // try to convert to V first
-  implicit def efAtLong[V](implicit at: At[Long, V]): ExampleField[Iterator[V]] =
-    ExampleField.efLongIterator.imap(_.map(at.to))(_.map(at.from))
-
-  implicit def efAtFloat[V](implicit at: At[Float, V]): ExampleField[Iterator[V]] =
-    ExampleField.efFloatIterator.imap(_.map(at.to))(_.map(at.from))
-
-  implicit def efAtByteString[V](implicit at: At[ByteString, V]): ExampleField[Iterator[V]] =
-    ExampleField.efByteStringIterator.imap(_.map(at.to))(_.map(at.from))
-}
-
-trait LowPriorityExampleFieldSeq extends LowPriorityExampleFieldOption {
-  // upper bound instead of S[V] => Seq[V] to avoid diverging implicit issues with Array[V]
-  implicit def efSeq[V, S[V] <: Seq[V]](implicit f: ExampleField[Iterator[V]],
-                                        fc: FactoryCompat[V, S[V]]): ExampleField[S[V]] =
-    f.imap(i => fc.build(i))(_.iterator)
-
-  implicit def efArray[V](implicit f: ExampleField[Iterator[V]],
-                          fc: FactoryCompat[V, Array[V]]): ExampleField[Array[V]] =
-    f.imap(i => fc.build(i))(_.iterator)
-}
-
-trait LowPriorityExampleFieldOption extends LowPriorityExampleFieldSingle {
-  implicit def efOption[V](implicit f: ExampleField[Iterator[V]]): ExampleField[Option[V]] =
-    f.imap(v => if (v.hasNext) {
-      val r = Some(v.next())
-      require(!v.hasNext, "More than 1 value for Option field")
-      r
-    } else {
-      None
-    })(_.iterator)
-}
-
-trait LowPriorityExampleFieldSingle {
-  implicit def efSingle[V](implicit f: ExampleField[Iterator[V]]): ExampleField[V] =
-    f.imap(v => {
-      require(v.hasNext, "Missing value for required field")
-      val r = v.next()
-      require(!v.hasNext, "More than 1 value for required field")
-      r
-    })(Iterator(_))
+      override def get(r: R, k: String): S[V] = r.getFeatureMap.get(k) match {
+        case null => fc.newBuilder.result()
+        case v: Feature => fc.build(kind.getList(v).asScala.map(f.fromField))
+      }
+      override def put(r: R, k: String, v: S[V]): Unit =
+        r.asInstanceOf[Features.Builder].putFeature(
+          k, kind.putList(Feature.newBuilder())(toSeq(v).map(f.toField)).build())
+    }
 }
