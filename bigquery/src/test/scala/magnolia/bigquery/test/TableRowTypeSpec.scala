@@ -29,6 +29,9 @@ object TableRowTypeSpec extends MagnoliaSpec("TableRowType") {
     }
   }
 
+  implicit def trfInt: TableRowField[Int] =
+    TableRowField.at[Int]("INT64")(_.toString.toInt)(identity)
+
   test[Integers]
   test[Required]
   test[Nullable]
