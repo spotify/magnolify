@@ -23,18 +23,18 @@ object SemigroupDerivationSpec extends MagnoliaSpec("SemigroupDerivation") {
   test[Integers]
 
   {
-    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
-    implicit val sgArray: Semigroup[Array[Int]] = Semigroup.instance(_ ++ _)
-    test[Collections]
-  }
-
-  {
     implicit val sgBool: Semigroup[Boolean] = Semigroup.instance(_ ^ _)
     test[Required]
     test[Nullable]
     test[Repeated]
     // FIXME: breaks 2.11: magnolia.Deferred is used for derivation of recursive typeclasses
     // test[Nested]
+  }
+
+  {
+    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
+    implicit val sgArray: Semigroup[Array[Int]] = Semigroup.instance(_ ++ _)
+    test[Collections]
   }
 
   {

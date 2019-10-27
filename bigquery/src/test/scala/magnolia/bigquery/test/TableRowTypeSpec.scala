@@ -14,7 +14,6 @@ import magnolia.test.Simple._
 import magnolia.test._
 import org.joda.time._
 import org.scalacheck._
-import org.scalacheck.util.SerializableCanBuildFroms._
 
 import scala.reflect._
 
@@ -35,6 +34,11 @@ object TableRowTypeSpec extends MagnoliaSpec("TableRowType") {
   test[Nullable]
   test[Repeated]
   test[Nested]
+
+  {
+    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
+    test[Collections]
+  }
 
   {
     import Custom._

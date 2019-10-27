@@ -12,7 +12,6 @@ import magnolia.tensorflow._
 import magnolia.test.Simple._
 import magnolia.test._
 import org.scalacheck._
-import org.scalacheck.util.SerializableCanBuildFroms._
 
 import scala.reflect._
 
@@ -26,8 +25,9 @@ object ExampleTypeSpec extends MagnoliaSpec("ExampleType") {
     }
   }
 
+  implicit val efInt: ExampleField[Int] = ExampleField.atLong(_.toInt)(_.toLong)
+
   {
-    implicit val efInt: ExampleField[Int] = ExampleField.atLong(_.toInt)(_.toLong)
     implicit val efBoolean: ExampleField[Boolean] =
       ExampleField.atLong(_ == 1)(x => if (x) 1 else 0)
     implicit val efString: ExampleField[String] =
@@ -42,7 +42,6 @@ object ExampleTypeSpec extends MagnoliaSpec("ExampleType") {
 
   {
     implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
-    implicit val efInt: ExampleField[Int] = ExampleField.atLong(_.toInt)(_.toLong)
     test[Collections]
   }
 

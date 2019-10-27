@@ -42,7 +42,6 @@ object TableRowType {
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
 
   implicit def apply[T]: TableRowType[T] = macro Magnolia.gen[T]
-
 }
 
 sealed trait TableRowField[V]

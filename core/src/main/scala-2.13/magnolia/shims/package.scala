@@ -22,4 +22,6 @@ package object shims {
         override def newBuilder: mutable.Builder[A, C] = f.newBuilder
       }
   }
+
+  object SerializableCanBuildFroms
 }

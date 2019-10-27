@@ -4,17 +4,19 @@ import java.net.URI
 import java.time.Duration
 
 import magnolia.scalacheck.auto._
+import magnolia.shims.SerializableCanBuildFroms._
 import magnolia.test.ADT._
 import magnolia.test.Simple._
 import magnolia.test._
 import org.scalacheck._
 import org.scalacheck.rng.Seed
-import org.scalacheck.util.SerializableCanBuildFroms._
 
 import scala.reflect._
 
 object ArbitraryDerivationSpec extends MagnoliaSpec("ArbitraryDerivation") {
-  private def test[T: ClassTag](implicit arb: Arbitrary[T]): Unit = {
+  private def test[T: ClassTag](implicit arb: Arbitrary[T]): Unit = test[T, T](identity)
+
+  private def test[T: ClassTag, U](f: T => U)(implicit arb: Arbitrary[T]): Unit = {
     ensureSerializable(arb)
     val name = className[T]
     val g = arb.arbitrary
@@ -23,7 +25,7 @@ object ArbitraryDerivationSpec extends MagnoliaSpec("ArbitraryDerivation") {
       xs.size > 1
     }
     property(s"$name.consistency") = Prop.forAll { seed: Seed =>
-      g(prms, seed).get == g(prms, seed).get
+      f(g(prms, seed).get) == f(g(prms, seed).get)
     }
   }
 
@@ -36,6 +38,7 @@ object ArbitraryDerivationSpec extends MagnoliaSpec("ArbitraryDerivation") {
     implicit def arbList[T](implicit arb: Arbitrary[T]): Arbitrary[List[T]] =
       Arbitrary(Gen.nonEmptyListOf(arb.arbitrary))
     test[Repeated]
+    test((c: Collections) => (c.a.toList, c.l, c.v))
   }
 
   test[Nested]

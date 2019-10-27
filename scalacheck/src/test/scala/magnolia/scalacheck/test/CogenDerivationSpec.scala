@@ -10,12 +10,16 @@ import org.scalacheck.rng.Seed
 import scala.reflect._
 
 object CogenDerivationSpec extends MagnoliaSpec("CogenDerivation") {
-  private def test[T: ClassTag](implicit arb: Arbitrary[T], co: Cogen[T]): Unit = {
+  private def test[T: ClassTag](implicit arb: Arbitrary[T], co: Cogen[T]): Unit =
+    test[T, T](identity)
+
+  private def test[T: ClassTag, U](f: T => U)
+                                  (implicit arb: Arbitrary[T], co: Cogen[T]): Unit = {
     ensureSerializable(co)
     val name = className[T]
     implicit val arbList: Arbitrary[List[T]] = Arbitrary(Gen.listOfN(10, arb.arbitrary))
     property(s"$name.uniqueness") = Prop.forAll { (seed: Seed, xs: List[T]) =>
-      xs.map(co.perturb(seed, _)).toSet.size == xs.toSet.size
+      xs.map(co.perturb(seed, _)).toSet.size == xs.map(f).toSet.size
     }
     property(s"$name.consistency") = Prop.forAll { (seed: Seed, x: T) =>
       co.perturb(seed, x) == co.perturb(seed, x)
@@ -37,6 +41,7 @@ object CogenDerivationSpec extends MagnoliaSpec("CogenDerivation") {
     implicit def arbList[T](implicit arb: Arbitrary[T]): Arbitrary[List[T]] =
       Arbitrary(Gen.nonEmptyListOf(arb.arbitrary))
     test[Repeated]
+    test((c: Collections) => (c.a.toList, c.l, c.v))
   }
 
   test[Nested]
