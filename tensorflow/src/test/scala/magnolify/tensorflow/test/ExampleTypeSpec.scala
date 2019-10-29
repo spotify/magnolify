@@ -72,7 +72,16 @@ object ExampleTypeSpec extends MagnolifySpec("ExampleType") {
 
     test[Custom]
   }
+
+  {
+    implicit val arbByteString: Arbitrary[ByteString] =
+      Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
+    implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
+    test[ExampleTypes]
+  }
 }
 
 // Option[T] and Seq[T] not supported
 case class ExampleNested(b: Boolean, i: Int, s: String, r: Required)
+
+case class ExampleTypes(bs: ByteString)

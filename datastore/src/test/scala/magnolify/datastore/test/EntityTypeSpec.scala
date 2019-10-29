@@ -17,11 +17,12 @@
 package magnolify.datastore.test
 
 import java.net.URI
-import java.time.Duration
+import java.time.{Duration, Instant}
 
 import cats._
 import cats.instances.all._
 import com.google.datastore.v1.client.DatastoreHelper.makeValue
+import com.google.protobuf.ByteString
 import magnolify.datastore._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
@@ -62,4 +63,16 @@ object EntityTypeSpec extends MagnolifySpec("EntityType") {
       EntityField[Long].imap(Duration.ofMillis)(_.toMillis)
     test[Custom]
   }
+
+  {
+    implicit val arbInstant: Arbitrary[Instant] =
+      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Instant.ofEpochMilli(_)))
+    implicit val arbByteString: Arbitrary[ByteString] =
+      Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
+    implicit val eqInstant: Eq[Instant] = Eq.by(_.toEpochMilli)
+    implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
+    test[DatastoreTypes]
+  }
 }
+
+case class DatastoreTypes(bs: ByteString, ts: Instant)

@@ -79,12 +79,14 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
       Arbitrary(arbInstant.arbitrary.map(i => new LocalTime(i.getMillis)))
     implicit val arbDateTime: Arbitrary[LocalDateTime] =
       Arbitrary(arbInstant.arbitrary.map(i => new LocalDateTime(i.getMillis)))
+    implicit val arbBigDecimal: Arbitrary[BigDecimal] =
+      Arbitrary(Gen.choose(0, Int.MaxValue).map(BigDecimal(_)))
     implicit val eqInstant: Eq[Instant] = Eq.by(_.getMillis)
     implicit val eqDate: Eq[LocalDate] = Eq.instance((x, y) => (x compareTo y) == 0)
     implicit val eqTime: Eq[LocalTime] = Eq.instance((x, y) => (x compareTo y) == 0)
     implicit val eqDateTime: Eq[LocalDateTime] = Eq.instance((x, y) => (x compareTo y) == 0)
-    test[Timestamps]
+    test[BigQueryTypes]
   }
 }
 
-case class Timestamps(i: Instant, d: LocalDate, t: LocalTime, dt: LocalDateTime)
+case class BigQueryTypes(i: Instant, d: LocalDate, t: LocalTime, dt: LocalDateTime, bd: BigDecimal)
