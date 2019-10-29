@@ -1,5 +1,21 @@
-name := "magnolia-data"
-description := "Magnolia add-on modules for data"
+/*
+ * Copyright 2019 Spotify AB.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+name := "magnolify"
+description := "A collection of Magnolia add-on modules"
 
 val magnoliaVersion = "0.12.0"
 
@@ -14,7 +30,7 @@ val scalacheckVersion = "1.14.2"
 val tensorflowVersion = "1.14.0"
 
 val commonSettings = Seq(
-  organization := "me.lyh",
+  organization := "com.spotify",
 
   scalaVersion := "2.13.1",
   crossScalaVersions := Seq("2.11.12", "2.12.10", "2.13.1"),
@@ -50,10 +66,10 @@ val commonSettings = Seq(
   sonatypeProfileName           := "me.lyh",
 
   licenses := Seq("Apache 2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
-  homepage := Some(url("https://github.com/nevillelyh/magnolia-data")),
+  homepage := Some(url("https://github.com/spotify/magnolify")),
   scmInfo := Some(ScmInfo(
-    url("https://github.com/nevillelyh/magnolia-data.git"),
-    "scm:git:git@github.com:nevillelyh/magnolia-data.git")),
+    url("https://github.com/spotify/magnolify.git"),
+    "scm:git:git@github.com:spotify/magnolify.git")),
   developers := List(
     Developer(id="sinisa_lyh", name="Neville Li", email="neville.lyh@gmail.com", url=url("https://twitter.com/sinisa_lyh")),
     Developer(id="andrewsmartin", name="Andrew Martin", email="andrewsmartin.mg@gmail.com", url=url("https://twitter.com/andrew_martin92")),
@@ -70,21 +86,22 @@ val noPublishSettings = Seq(
 lazy val root: Project = project.in(file(".")).settings(
   commonSettings ++ noPublishSettings
 ).aggregate(
-  core,
+  shared,
   scalacheck,
   cats,
-  diffy,
-  avro,
+  // FIXME: implement these
+  // diffy,
+  // avro,
   bigquery,
   datastore,
   tensorflow,
   test
 )
 
-lazy val core: Project = project.in(file("core")).settings(
+lazy val shared: Project = project.in(file("shared")).settings(
   commonSettings,
-  moduleName := "magnolia-data-core",
-  description := "Magnolia add-on modules for data"
+  moduleName := "magnolify-shared",
+  description := "Shared code for Magnolify"
 )
 
 // shared code for unit tests
@@ -97,31 +114,31 @@ lazy val test: Project = project.in(file("test")).settings(
 
 lazy val scalacheck: Project = project.in(file("scalacheck")).settings(
   commonSettings,
-  moduleName := "magnolia-data-scalacheck",
+  moduleName := "magnolify-scalacheck",
   description := "Magnolia add-on for ScalaCheck",
   libraryDependencies += "org.scalacheck" %% "scalacheck" % scalacheckVersion
 ).dependsOn(
-  core,
+  shared,
   test % "test->test"
 )
 
 lazy val cats: Project = project.in(file("cats")).settings(
   commonSettings,
-  moduleName := "magnolia-data-cats",
+  moduleName := "magnolify-cats",
   description := "Magnolia add-on for Cats",
   libraryDependencies ++= Seq(
     "org.typelevel" %% "cats-core" % catsVersion,
     "org.typelevel" %% "cats-laws" % catsVersion % Test
   )
 ).dependsOn(
-  core,
+  shared,
   scalacheck % Test,
   test % "test->test"
 )
 
 lazy val diffy: Project = project.in(file("diffy")).settings(
   commonSettings,
-  moduleName := "magnolia-data-diffy",
+  moduleName := "magnolify-diffy",
   description := "Magnolia add-on for diffing data"
 ).dependsOn(
   scalacheck % Test,
@@ -130,20 +147,20 @@ lazy val diffy: Project = project.in(file("diffy")).settings(
 
 lazy val avro: Project = project.in(file("avro")).settings(
   commonSettings,
-  moduleName := "magnolia-data-avro",
+  moduleName := "magnolify-avro",
   description := "Magnolia add-on for Apache Avro",
   libraryDependencies ++= Seq(
     "org.apache.avro" % "avro" % avroVersion % Provided
   )
 ).dependsOn(
-  core,
+  shared,
   scalacheck % Test,
   test % "test->test"
 )
 
 lazy val bigquery: Project = project.in(file("bigquery")).settings(
   commonSettings,
-  moduleName := "magnolia-data-bigquery",
+  moduleName := "magnolify-bigquery",
   description := "Magnolia add-on for Google Cloud BigQuery",
   libraryDependencies ++= Seq(
     "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Provided,
@@ -151,7 +168,7 @@ lazy val bigquery: Project = project.in(file("bigquery")).settings(
     "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
   )
 ).dependsOn(
-  core,
+  shared,
   cats % Test,
   scalacheck % Test,
   test % "test->test"
@@ -159,13 +176,13 @@ lazy val bigquery: Project = project.in(file("bigquery")).settings(
 
 lazy val datastore: Project = project.in(file("datastore")).settings(
   commonSettings,
-  moduleName := "magnolia-data-datastore",
+  moduleName := "magnolify-datastore",
   description := "Magnolia add-on for Google Cloud Datastore",
   libraryDependencies ++= Seq(
     "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Provided
   )
 ).dependsOn(
-  core,
+  shared,
   cats % Test,
   scalacheck % Test,
   test % "test->test"
@@ -173,13 +190,13 @@ lazy val datastore: Project = project.in(file("datastore")).settings(
 
 lazy val tensorflow: Project = project.in(file("tensorflow")).settings(
   commonSettings,
-  moduleName := "magnolia-data-tensorflow",
+  moduleName := "magnolify-tensorflow",
   description := "Magnolia add-on for TensorFlow",
   libraryDependencies ++= Seq(
     "org.tensorflow" % "proto" % tensorflowVersion % Provided
   )
 ).dependsOn(
-  core,
+  shared,
   cats % Test,
   scalacheck % Test,
   test % "test->test"
