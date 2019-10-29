@@ -16,7 +16,7 @@ object FunctionDerivationSpec extends MagnoliaSpec("FunctionDerivation") {
       f(a) == f(a)
     }
     implicit def arbList[T](implicit arb: Arbitrary[T]): Arbitrary[List[T]] =
-      Arbitrary(Gen.listOfN(10, arb.arbitrary))
+      Arbitrary(Gen.listOfN(100, arb.arbitrary))
     property(s"$name.functions") = Prop.forAll { (fs: List[A => B], a: A) =>
       fs.map(_(a)).toSet.size > 1
     }
