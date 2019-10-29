@@ -36,8 +36,7 @@ object ExampleTypeSpec extends MagnoliaSpec("ExampleType") {
     test[Required]
     test[Nullable]
     test[Repeated]
-    // FIXME: flatten nested types
-    // test[Nested]
+    test[ExampleNested]
   }
 
   {
@@ -57,3 +56,6 @@ object ExampleTypeSpec extends MagnoliaSpec("ExampleType") {
     test[Custom]
   }
 }
+
+// Option[T] and Seq[T] not supported
+case class ExampleNested(b: Boolean, i: Int, s: String, r: Required)
