@@ -25,7 +25,7 @@ import org.scalacheck._
 import scala.reflect._
 
 object FunctionDerivationSpec extends MagnolifySpec("FunctionDerivation") {
-  private def test[A: Arbitrary : ClassTag, B: ClassTag](implicit arb: Arbitrary[A => B]): Unit = {
+  private def test[A: Arbitrary: ClassTag, B: ClassTag](implicit arb: Arbitrary[A => B]): Unit = {
     ensureSerializable(arb)
     val name = s"${className[A]}.${className[B]}"
     property(s"$name.consistency") = Prop.forAll { (f: A => B, a: A) =>

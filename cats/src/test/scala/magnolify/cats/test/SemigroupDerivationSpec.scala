@@ -15,7 +15,7 @@ import org.scalacheck._
 import scala.reflect._
 
 object SemigroupDerivationSpec extends MagnolifySpec("SemigroupDerivation") {
-  private def test[T: Arbitrary : ClassTag : Eq : Semigroup]: Unit = {
+  private def test[T: Arbitrary: ClassTag: Eq: Semigroup]: Unit = {
     ensureSerializable(implicitly[Semigroup[T]])
     include(SemigroupTests[T].semigroup.all, className[T] + ".")
   }

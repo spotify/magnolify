@@ -84,8 +84,8 @@ object EntityField {
   implicit val efDouble = at[Double](_.getDoubleValue)(makeValue)
   implicit val efString = at[String](_.getStringValue)(makeValue)
   implicit val efByteString = at[ByteString](_.getBlobValue)(makeValue)
-  implicit val efByteArray = at[Array[Byte]](_.getBlobValue.toByteArray)(
-    v => makeValue(ByteString.copyFrom(v)))
+  implicit val efByteArray =
+    at[Array[Byte]](_.getBlobValue.toByteArray)(v => makeValue(ByteString.copyFrom(v)))
   implicit val efTimestamp = at(toInstant)(fromInstant)
 
   private val millisPerSecond = Duration.ofSeconds(1).toMillis
@@ -94,7 +94,8 @@ object EntityField {
     Instant.ofEpochMilli(t.getSeconds * millisPerSecond + t.getNanos / 1000000)
   }
   private def fromInstant(i: Instant): Value.Builder = {
-    val t = Timestamp.newBuilder()
+    val t = Timestamp
+      .newBuilder()
       .setSeconds(i.toEpochMilli / millisPerSecond)
       .setNanos((i.toEpochMilli % 1000).toInt * 1000000)
     Value.newBuilder().setTimestampValue(t)
@@ -110,20 +111,31 @@ object EntityField {
         v.foldLeft(r)((r, x) => r.putProperties(k, f.toField(x).build()))
     }
 
-  implicit def efSeq[V, S[V]](implicit f: EntityField[V],
-                              ts: S[V] => Seq[V],
-                              fc: FactoryCompat[V, S[V]]): EntityField[S[V]] =
+  implicit def efSeq[V, S[V]](
+    implicit f: EntityField[V],
+    ts: S[V] => Seq[V],
+    fc: FactoryCompat[V, S[V]]
+  ): EntityField[S[V]] =
     new EntityField[S[V]] {
       override def fromField(v: Value): S[V] = ???
       override def toField(v: S[V]): Value.Builder = ???
       override def get(r: Entity, k: String): S[V] = r.getPropertiesMap.get(k) match {
         case null => fc.newBuilder.result()
-        case xs => fc.build(xs.getArrayValue.getValuesList.asScala.iterator.map(f.fromField))
+        case xs   => fc.build(xs.getArrayValue.getValuesList.asScala.iterator.map(f.fromField))
       }
       override def put(r: Entity.Builder, k: String, v: S[V]): Entity.Builder =
-        r.putProperties(k, Value.newBuilder().setArrayValue(v
-          .foldLeft(ArrayValue.newBuilder()) { (b, x) => b.addValues(f.toField(x)) }
-          .build()).build())
+        r.putProperties(
+          k,
+          Value
+            .newBuilder()
+            .setArrayValue(
+              v.foldLeft(ArrayValue.newBuilder()) { (b, x) =>
+                  b.addValues(f.toField(x))
+                }
+                .build()
+            )
+            .build()
+        )
     }
 
   implicit def efType[V](implicit t: EntityType[V]): EntityField[V] = new EntityField[V] {

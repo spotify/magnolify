@@ -26,13 +26,17 @@ private object TimestampConverter {
   private val timestampPrinter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS ZZZ")
   private val timestampParser = new DateTimeFormatterBuilder()
     .append(DateTimeFormat.forPattern("yyyy-MM-dd"))
-    .appendOptional(new DateTimeFormatterBuilder()
-      .append(DateTimeFormat.forPattern(" HH:mm:ss").getParser)
-      .appendOptional(DateTimeFormat.forPattern(".SSSSSS").getParser)
-      .toParser)
-    .appendOptional(new DateTimeFormatterBuilder()
-      .append(null, Array(" ZZZ", "ZZ").map(p => DateTimeFormat.forPattern(p).getParser))
-      .toParser)
+    .appendOptional(
+      new DateTimeFormatterBuilder()
+        .append(DateTimeFormat.forPattern(" HH:mm:ss").getParser)
+        .appendOptional(DateTimeFormat.forPattern(".SSSSSS").getParser)
+        .toParser
+    )
+    .appendOptional(
+      new DateTimeFormatterBuilder()
+        .append(null, Array(" ZZZ", "ZZ").map(p => DateTimeFormat.forPattern(p).getParser))
+        .toParser
+    )
     .toFormatter
     .withZoneUTC()
 
@@ -55,10 +59,12 @@ private object TimestampConverter {
   private val datetimePrinter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")
   private val datetimeParser = new DateTimeFormatterBuilder()
     .append(DateTimeFormat.forPattern("yyyy-MM-dd"))
-    .appendOptional(new DateTimeFormatterBuilder()
-      .append(DateTimeFormat.forPattern(" HH:mm:ss").getParser)
-      .appendOptional(DateTimeFormat.forPattern(".SSSSSS").getParser)
-      .toParser)
+    .appendOptional(
+      new DateTimeFormatterBuilder()
+        .append(DateTimeFormat.forPattern(" HH:mm:ss").getParser)
+        .appendOptional(DateTimeFormat.forPattern(".SSSSSS").getParser)
+        .toParser
+    )
     .toFormatter
     .withZoneUTC()
 

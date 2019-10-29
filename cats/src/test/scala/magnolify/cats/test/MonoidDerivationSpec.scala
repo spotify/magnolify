@@ -31,7 +31,7 @@ import org.scalacheck._
 import scala.reflect._
 
 object MonoidDerivationSpec extends MagnolifySpec("MonoidDerivation") {
-  private def test[T: Arbitrary : ClassTag : Eq : Monoid]: Unit = {
+  private def test[T: Arbitrary: ClassTag: Eq: Monoid]: Unit = {
     ensureSerializable(implicitly[Monoid[T]])
     include(MonoidTests[T].monoid.all, className[T] + ".")
   }

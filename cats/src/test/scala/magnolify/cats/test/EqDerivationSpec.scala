@@ -32,7 +32,7 @@ import org.scalacheck._
 import scala.reflect._
 
 object EqDerivationSpec extends MagnolifySpec("EqDerivation") {
-  private def test[T: Arbitrary : ClassTag : Cogen : Eq]: Unit = {
+  private def test[T: Arbitrary: ClassTag: Cogen: Eq]: Unit = {
     ensureSerializable(implicitly[Eq[T]])
     include(EqTests[T].eqv.all, className[T] + ".")
   }

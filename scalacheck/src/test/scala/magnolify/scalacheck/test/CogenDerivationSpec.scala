@@ -29,8 +29,7 @@ object CogenDerivationSpec extends MagnolifySpec("CogenDerivation") {
   private def test[T: ClassTag](implicit arb: Arbitrary[T], co: Cogen[T]): Unit =
     test[T, T](identity)
 
-  private def test[T: ClassTag, U](f: T => U)
-                                  (implicit arb: Arbitrary[T], co: Cogen[T]): Unit = {
+  private def test[T: ClassTag, U](f: T => U)(implicit arb: Arbitrary[T], co: Cogen[T]): Unit = {
     ensureSerializable(co)
     val name = className[T]
     implicit val arbList: Arbitrary[List[T]] = Arbitrary(Gen.listOfN(10, arb.arbitrary))

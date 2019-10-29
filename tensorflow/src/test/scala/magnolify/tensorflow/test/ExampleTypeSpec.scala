@@ -32,7 +32,7 @@ import org.scalacheck._
 import scala.reflect._
 
 object ExampleTypeSpec extends MagnolifySpec("ExampleType") {
-  private def test[T: Arbitrary : ClassTag](implicit tpe: ExampleType[T], eq: Eq[T]): Unit = {
+  private def test[T: Arbitrary: ClassTag](implicit tpe: ExampleType[T], eq: Eq[T]): Unit = {
     ensureSerializable(tpe)
     property(className[T]) = Prop.forAll { t: T =>
       val r = tpe(t)
@@ -64,8 +64,9 @@ object ExampleTypeSpec extends MagnolifySpec("ExampleType") {
     import Custom._
     implicit val eqUri: Eq[URI] = Eq.by(_.toString)
     implicit val eqDuration: Eq[Duration] = Eq.by(_.toMillis)
-    implicit val efUri: ExampleField[URI] = ExampleField.atBytes(
-      x => URI.create(x.toStringUtf8))(x => ByteString.copyFromUtf8(x.toString))
+    implicit val efUri: ExampleField[URI] = ExampleField.atBytes(x => URI.create(x.toStringUtf8))(
+      x => ByteString.copyFromUtf8(x.toString)
+    )
     implicit val efDuration: ExampleField[Duration] =
       ExampleField.atLong(Duration.ofMillis)(_.toMillis)
 

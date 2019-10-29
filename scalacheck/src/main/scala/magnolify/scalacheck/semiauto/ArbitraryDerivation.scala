@@ -28,8 +28,7 @@ object ArbitraryDerivation {
   def combine[T: Fallback](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = Arbitrary {
     Gen.lzy(Gen.sized { size =>
       if (size >= 0) {
-        Gen.resize(size - 1,
-          caseClass.constructMonadic(_.typeclass.arbitrary)(monadicGen))
+        Gen.resize(size - 1, caseClass.constructMonadic(_.typeclass.arbitrary)(monadicGen))
       } else {
         implicitly[Fallback[T]].get
       }
@@ -39,8 +38,10 @@ object ArbitraryDerivation {
   def dispatch[T: Fallback](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = Arbitrary {
     Gen.sized { size =>
       if (size > 0) {
-        Gen.resize(size - 1,
-          Gen.oneOf(sealedTrait.subtypes.map(_.typeclass.arbitrary)).flatMap(identity))
+        Gen.resize(
+          size - 1,
+          Gen.oneOf(sealedTrait.subtypes.map(_.typeclass.arbitrary)).flatMap(identity)
+        )
       } else {
         implicitly[Fallback[T]].get
       }

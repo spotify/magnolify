@@ -26,9 +26,10 @@ object MonoidDerivation {
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
     val empty = caseClass.construct(_.typeclass.empty)
-    val combine = (x: T, y: T) => caseClass.construct { p =>
-      p.typeclass.combine(p.dereference(x), p.dereference(y))
-    }
+    val combine = (x: T, y: T) =>
+      caseClass.construct { p =>
+        p.typeclass.combine(p.dereference(x), p.dereference(y))
+      }
     Monoid.instance(empty, combine)
   }
 

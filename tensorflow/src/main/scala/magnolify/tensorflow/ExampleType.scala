@@ -49,10 +49,11 @@ object ExampleType {
           // FIXME: optimize this to avoid copies
           val inner = empty
           val prefix = p.label + '.'
-          r.getFeatureMap.asScala.foreach { case (k, v) =>
-            if (k.startsWith(prefix)) {
-              inner.putFeature(k.substring(prefix.length), v)
-            }
+          r.getFeatureMap.asScala.foreach {
+            case (k, v) =>
+              if (k.startsWith(prefix)) {
+                inner.putFeature(k.substring(prefix.length), v)
+              }
           }
           p.typeclass.fromField(inner.build())
         } else {
@@ -66,8 +67,9 @@ object ExampleType {
           // FIXME: optimize this to avoid copies
           val inner = p.typeclass.toField(p.dereference(t)).asInstanceOf[Features.Builder]
           val prefix = p.label + '.'
-          inner.getFeatureMap.asScala.foreach { case (k, v) =>
-            r.putFeature(prefix + k, v)
+          inner.getFeatureMap.asScala.foreach {
+            case (k, v) =>
+              r.putFeature(prefix + k, v)
           }
           r
         } else {
@@ -123,32 +125,52 @@ object ExampleField {
   def atFloat[V](f: Float => V)(g: V => Float): ExampleField[V] = efFloat.imap(f)(g)
   def atBytes[V](f: ByteString => V)(g: V => ByteString): ExampleField[V] = efBytes.imap(f)(g)
 
-  sealed abstract class Kind(val kind: Feature.KindCase,
-                             val getFn: Feature => JList[Any],
-                             val putFn: Feature.Builder => Iterable[Any] => Feature.Builder)
-      extends Serializable {
+  sealed abstract class Kind(
+    val kind: Feature.KindCase,
+    val getFn: Feature => JList[Any],
+    val putFn: Feature.Builder => Iterable[Any] => Feature.Builder
+  ) extends Serializable {
     def getList(v: Feature): JList[Any] = getFn(v)
     def putList(v: Iterable[Any]): Feature.Builder = putFn(Feature.newBuilder())(v)
   }
 
   object Kind {
-    case object Long extends Kind(
-      Feature.KindCase.INT64_LIST,
-      _.getInt64List.getValueList.asInstanceOf[JList[Any]],
-      b => xs => b.setInt64List(Int64List.newBuilder().addAllValue(
-        xs.asJava.asInstanceOf[JIterable[java.lang.Long]])))
+    case object Long
+        extends Kind(
+          Feature.KindCase.INT64_LIST,
+          _.getInt64List.getValueList.asInstanceOf[JList[Any]],
+          b =>
+            xs =>
+              b.setInt64List(
+                Int64List
+                  .newBuilder()
+                  .addAllValue(xs.asJava.asInstanceOf[JIterable[java.lang.Long]])
+              )
+        )
 
-    case object Float extends Kind(
-      Feature.KindCase.FLOAT_LIST,
-      _.getFloatList.getValueList.asInstanceOf[JList[Any]],
-      b => xs => b.setFloatList(FloatList.newBuilder().addAllValue(
-        xs.asJava.asInstanceOf[JIterable[java.lang.Float]])))
+    case object Float
+        extends Kind(
+          Feature.KindCase.FLOAT_LIST,
+          _.getFloatList.getValueList.asInstanceOf[JList[Any]],
+          b =>
+            xs =>
+              b.setFloatList(
+                FloatList
+                  .newBuilder()
+                  .addAllValue(xs.asJava.asInstanceOf[JIterable[java.lang.Float]])
+              )
+        )
 
-    case object Bytes extends Kind(
-      Feature.KindCase.BYTES_LIST,
-      _.getBytesList.getValueList.asInstanceOf[JList[Any]],
-      b => xs => b.setBytesList(BytesList.newBuilder().addAllValue(
-        xs.asJava.asInstanceOf[JIterable[ByteString]])))
+    case object Bytes
+        extends Kind(
+          Feature.KindCase.BYTES_LIST,
+          _.getBytesList.getValueList.asInstanceOf[JList[Any]],
+          b =>
+            xs =>
+              b.setBytesList(
+                BytesList.newBuilder().addAllValue(xs.asJava.asInstanceOf[JIterable[ByteString]])
+              )
+        )
   }
 
   implicit val efLong = atSingle[Long](Kind.Long)
@@ -172,20 +194,21 @@ object ExampleField {
         r.putFeature(k, kind.putList(v.map(f.toField)).build())
     }
 
-  implicit def efSeq[V, S[V]](implicit f: ExampleField[V],
-                              ts: S[V] => Seq[V],
-                              fc: FactoryCompat[V, S[V]]): ExampleField[S[V]] =
+  implicit def efSeq[V, S[V]](
+    implicit f: ExampleField[V],
+    ts: S[V] => Seq[V],
+    fc: FactoryCompat[V, S[V]]
+  ): ExampleField[S[V]] =
     new ExampleField[S[V]] {
       override val kind: Kind = f.kind
       override def fromField(v: Any): S[V] = ???
       override def toField(v: S[V]): Any = ???
 
       override def get(r: Features, k: String): S[V] = r.getFeatureMap.get(k) match {
-        case null => fc.newBuilder.result()
+        case null       => fc.newBuilder.result()
         case v: Feature => fc.build(kind.getList(v).asScala.map(f.fromField))
       }
       override def put(r: Features.Builder, k: String, v: S[V]): Features.Builder =
-        r.putFeature(
-          k, kind.putList(v.map(f.toField)).build())
+        r.putFeature(k, kind.putList(v.map(f.toField)).build())
     }
 }

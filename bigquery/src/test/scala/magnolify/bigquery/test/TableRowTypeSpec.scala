@@ -35,7 +35,7 @@ import scala.reflect._
 
 object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
   private val mapper = new ObjectMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-  private def test[T: Arbitrary : ClassTag](implicit tpe: TableRowType[T], eq: Eq[T]): Unit = {
+  private def test[T: Arbitrary: ClassTag](implicit tpe: TableRowType[T], eq: Eq[T]): Unit = {
     ensureSerializable(tpe)
     // FIXME: test schema
     property(className[T]) = Prop.forAll { t: T =>

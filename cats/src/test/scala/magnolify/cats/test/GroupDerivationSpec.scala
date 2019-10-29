@@ -28,7 +28,7 @@ import org.scalacheck._
 import scala.reflect._
 
 object GroupDerivationSpec extends MagnolifySpec("GroupDerivation") {
-  private def test[T: Arbitrary : ClassTag : Eq : Group]: Unit = {
+  private def test[T: Arbitrary: ClassTag: Eq: Group]: Unit = {
     ensureSerializable(implicitly[Group[T]])
     include(GroupTests[T].group.all, className[T] + ".")
   }

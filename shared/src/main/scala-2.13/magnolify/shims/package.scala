@@ -16,7 +16,7 @@
  */
 package magnolify
 
-import scala.collection.{Factory, mutable}
+import scala.collection.{mutable, Factory}
 
 package object shims {
   trait Monadic[F[_]] extends mercator.Monadic[F] {

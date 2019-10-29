@@ -27,8 +27,14 @@ object Simple {
   case class Required(b: Boolean, i: Int, s: String)
   case class Nullable(b: Option[Boolean], i: Option[Int], s: Option[String])
   case class Repeated(b: List[Boolean], i: List[Int], s: List[String])
-  case class Nested(b: Boolean, i: Int, s: String,
-                    r: Required, o: Option[Required], l: List[Required])
+  case class Nested(
+    b: Boolean,
+    i: Int,
+    s: String,
+    r: Required,
+    o: Option[Required],
+    l: List[Required]
+  )
   case class Collections(a: Array[Int], l: List[Int], v: Vector[Int])
   case class Custom(u: URI, d: Duration)
 
