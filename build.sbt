@@ -23,7 +23,10 @@ val commonSettings = Seq(
   scalacOptions ++= (scalaBinaryVersion.value match {
     case "2.11" => Seq("-language:higherKinds")
     case "2.12" => Seq("-language:higherKinds")
-    case "2.13" => Nil
+    case "2.13" =>
+      // https://github.com/scala/bug/issues/11753
+      // FIXME: remove once Travis is on 2.13.1
+      if (scalaVersion.value == "2.13.0") Seq("-language:higherKinds") else Nil
   }),
 
   libraryDependencies += {
@@ -35,11 +38,8 @@ val commonSettings = Seq(
   },
 
   // https://github.com/typelevel/scalacheck/pull/427#issuecomment-424330310
-  // workaround for Java serialization issues
+  // FIXME: workaround for Java serialization issues
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
-
-  // protobuf-lite is an older subset of protobuf-java and causes issues
-  excludeDependencies += "com.google.protobuf" % "protobuf-lite",
 
   // Release settings
   publishTo := Some(if (isSnapshot.value) Opts.resolver.sonatypeSnapshots else Opts.resolver.sonatypeStaging),
@@ -133,7 +133,6 @@ lazy val avro: Project = project.in(file("avro")).settings(
   moduleName := "magnolia-data-avro",
   description := "Magnolia add-on for Apache Avro",
   libraryDependencies ++= Seq(
-    "org.scala-lang" % "scala-reflect" % scalaVersion.value,
     "org.apache.avro" % "avro" % avroVersion % Provided
   )
 ).dependsOn(
@@ -147,7 +146,6 @@ lazy val bigquery: Project = project.in(file("bigquery")).settings(
   moduleName := "magnolia-data-bigquery",
   description := "Magnolia add-on for Google Cloud BigQuery",
   libraryDependencies ++= Seq(
-    "org.scala-lang" % "scala-reflect" % scalaVersion.value,
     "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Provided,
     "joda-time" % "joda-time" % jodaTimeVersion % Provided,
     "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test

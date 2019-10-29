@@ -7,6 +7,8 @@ matrix:
       jdk: openjdk8
     - scala: 2.12.10
       jdk: openjdk11
+    # https://github.com/scoverage/sbt-scoverage/issues/295
+    # FIXME: 2.13.1+ breaks scoverage
     - scala: 2.13.0
       jdk: openjdk8
     - scala: 2.13.0
