@@ -27,7 +27,7 @@ import magnolify.shims._
 import scala.collection.JavaConverters._
 import scala.language.experimental.macros
 
-sealed trait TableRowType[T] extends Converter.Record[T, TableRow, TableRow] {
+sealed trait TableRowType[T] extends Converter[T, TableRow, TableRow] {
   def apply(r: TableRow): T = from(r)
   def apply(t: T): TableRow = to(t)
   def schema: TableSchema
@@ -63,15 +63,13 @@ object TableRowType {
   implicit def apply[T]: TableRowType[T] = macro Magnolia.gen[T]
 }
 
-sealed trait TableRowField[V]
-  extends TableRowType[V]
-  with Converter.Field[V, TableRow, TableRow] { self =>
+sealed trait TableRowField[V] extends TableRowType[V] { self =>
   override def schema: TableSchema = fieldSchema.getType match {
     case "STRUCT" => new TableSchema().setFields(fieldSchema.getFields)
     case _ => new TableSchema
   }
-  override def get(r: TableRow, k: String): V = fromField(r.get(k))
-  override def put(r: TableRow, k: String, v: V): TableRow = {
+  def get(r: TableRow, k: String): V = fromField(r.get(k))
+  def put(r: TableRow, k: String, v: V): TableRow = {
     r.put(k, toField(v))
     r
   }

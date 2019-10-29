@@ -28,7 +28,7 @@ import org.tensorflow.example._
 import scala.collection.JavaConverters._
 import scala.language.experimental.macros
 
-sealed trait ExampleType[T] extends Converter.Record[T, Features, Features.Builder] {
+sealed trait ExampleType[T] extends Converter[T, Features, Features.Builder] {
   def apply(r: ExampleOrBuilder): T = from(r.getFeatures)
   def apply(t: T): Example = Example.newBuilder().setFeatures(to(t)).build()
   override protected def empty: Features.Builder = Features.newBuilder()
@@ -46,6 +46,7 @@ object ExampleType {
     override def from(r: Features): T =
       caseClass.construct { p =>
         if (p.typeclass.nested) {
+          // FIXME: optimize this to avoid copies
           val inner = empty
           val prefix = p.label + '.'
           r.getFeatureMap.asScala.foreach { case (k, v) =>
@@ -62,6 +63,7 @@ object ExampleType {
     override def to(t: T): Features.Builder =
       caseClass.parameters.foldLeft(empty) { (r, p) =>
         if (p.typeclass.nested) {
+          // FIXME: optimize this to avoid copies
           val inner = p.typeclass.toField(p.dereference(t)).asInstanceOf[Features.Builder]
           val prefix = p.label + '.'
           inner.getFeatureMap.asScala.foreach { case (k, v) =>
@@ -86,18 +88,16 @@ object ExampleType {
   implicit def apply[T]: ExampleType[T] = macro Magnolia.gen[T]
 }
 
-sealed trait ExampleField[V]
-  extends ExampleType[V]
-  with Converter.Field[V, Features, Features.Builder] { self =>
+sealed trait ExampleField[V] extends ExampleType[V] { self =>
   val kind: ExampleField.Kind
   val nested: Boolean = false
 
-  override def get(r: Features, k: String): V = {
+  def get(r: Features, k: String): V = {
     val xs = kind.getList(r.getFeatureMap.get(k))
     require(xs.size == 1)
     fromField(xs.iterator().next())
   }
-  override def put(r: Features.Builder, k: String, v: V): Features.Builder =
+  def put(r: Features.Builder, k: String, v: V): Features.Builder =
     r.putFeature(k, kind.putList(Seq(toField(v))).build())
 
   def fromField(v: Any): V
