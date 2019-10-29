@@ -7,6 +7,8 @@ magnolify
 
 A collection of [Magnolia](https://github.com/propensive/magnolia) add-on modules
 
+This library includes Magnolia-based type class derivation for some types in [Cats](https://github.com/typelevel/cats), [ScalaCheck](https://github.com/typelevel/scalacheck), as well as data type converters for [Apache Avro](https://github.com/apache/avro), [Google Cloud BigQuery](https://cloud.google.com/bigquery/), [Datastore](https://cloud.google.com/datastore/), [TensorFlow](https://www.tensorflow.org/) `Example`, etc.
+
 # License
 
 Copyright 2019 Spotify AB.
