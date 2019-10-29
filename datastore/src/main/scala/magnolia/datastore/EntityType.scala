@@ -111,4 +111,9 @@ object EntityField {
           .foldLeft(ArrayValue.newBuilder()) { (b, x) => b.addValues(f.toField(x)) }
           .build()).build())
     }
+
+  implicit def efType[V](implicit t: EntityType[V]): EntityField[V] = new EntityField[V] {
+    override def fromField(v: Value): V = t.from(v.getEntityValue)
+    override def toField(v: V): Value.Builder = makeValue(t.to(v))
+  }
 }

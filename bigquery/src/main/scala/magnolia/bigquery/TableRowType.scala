@@ -14,7 +14,7 @@ import scala.language.experimental.macros
 sealed trait TableRowType[T] extends Converter.Record[T, TableRow, TableRow] {
   def apply(r: TableRow): T = from(r)
   def apply(t: T): TableRow = to(t)
-  def schema: TableSchema = ???
+  def schema: TableSchema
   override protected def empty: TableRow = new TableRow
   override def from(r: TableRow): T = ???
   override def to(t: T): TableRow = ???
@@ -24,19 +24,16 @@ object TableRowType {
   type Typeclass[T] = TableRowField[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
-    override def schema: TableSchema = new TableSchema().setFields(
-      caseClass.parameters.map(p => p.typeclass.fieldSchema.setName(p.label)).asJava)
-
     override def from(r: TableRow): T =
       caseClass.construct(p => p.typeclass.get(r, p.label))
-
     override def to(t: T): TableRow =
       caseClass.parameters.foldLeft(empty) { (r, p) =>
         p.typeclass.put(r, p.label, p.dereference(t))
       }
 
     override def fieldSchema: TableFieldSchema =
-      new TableFieldSchema().setType("STRUCT").setMode("REQUIRED")
+      new TableFieldSchema().setType("STRUCT").setMode("REQUIRED").setFields(
+        caseClass.parameters.map(p => p.typeclass.fieldSchema.setName(p.label)).asJava)
     override def fromField(v: Any): T = {
       val r = empty
       r.putAll(v.asInstanceOf[java.util.Map[String, Any]])
@@ -53,6 +50,10 @@ object TableRowType {
 sealed trait TableRowField[V]
   extends TableRowType[V]
   with Converter.Field[V, TableRow, TableRow] { self =>
+  override def schema: TableSchema = fieldSchema.getType match {
+    case "STRUCT" => new TableSchema().setFields(fieldSchema.getFields)
+    case _ => new TableSchema
+  }
   override def get(r: TableRow, k: String): V = fromField(r.get(k))
   override def put(r: TableRow, k: String, v: V): TableRow = {
     r.put(k, toField(v))
@@ -126,4 +127,17 @@ object TableRowField {
         r
       }
     }
+
+  implicit def trfType[V](implicit t: TableRowType[V]): TableRowField[V] = new TableRowField[V] {
+    override def fieldSchema: TableFieldSchema =
+      new TableFieldSchema().setType("STRUCT").setMode("REQUIRED").setFields(t.schema.getFields)
+    override def fromField(v: Any): V = v match {
+      case m: java.util.Map[String, Any] =>
+        val tr = new TableRow()
+        tr.putAll(m)
+        t.from(tr)
+      case tr: TableRow => t.from(tr)
+    }
+    override def toField(v: V): Any = t.to(v)
+  }
 }
