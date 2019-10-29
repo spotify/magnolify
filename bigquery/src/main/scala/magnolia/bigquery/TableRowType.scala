@@ -131,12 +131,11 @@ object TableRowField {
   implicit def trfType[V](implicit t: TableRowType[V]): TableRowField[V] = new TableRowField[V] {
     override def fieldSchema: TableFieldSchema =
       new TableFieldSchema().setType("STRUCT").setMode("REQUIRED").setFields(t.schema.getFields)
-    override def fromField(v: Any): V = v match {
-      case m: java.util.Map[String, Any] =>
-        val tr = new TableRow()
-        tr.putAll(m)
-        t.from(tr)
-      case tr: TableRow => t.from(tr)
+    override def fromField(v: Any): V = {
+      val m = v.asInstanceOf[java.util.Map[String, Any]]
+      val tr = new TableRow()
+      tr.putAll(m)
+      t.from(tr)
     }
     override def toField(v: V): Any = t.to(v)
   }
