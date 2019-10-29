@@ -19,8 +19,8 @@ sealed trait ExampleType[T] extends Converter.Record[T, FeaturesOrBuilder] {
     .setFeatures(to(t).asInstanceOf[Features.Builder])
     .build()
   override protected def empty: R = Features.newBuilder()
-  override protected def from(r: R): T = ???
-  override protected def to(t: T): R = ???
+  override def from(r: R): T = ???
+  override def to(t: T): R = ???
 }
 
 object ExampleType {
@@ -29,10 +29,10 @@ object ExampleType {
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
     override val kind: ExampleField.Kind = null
 
-    override protected def from(r: R): T =
+    override def from(r: R): T =
       caseClass.construct(p => p.typeclass.get(r, p.label))
 
-    override protected def to(t: T): R =
+    override def to(t: T): R =
       caseClass.parameters.foldLeft(empty) { (r, p) =>
         p.typeclass.put(r, p.label, p.dereference(t))
         r
@@ -90,6 +90,7 @@ object ExampleField {
                              val getList: Feature => JList[Any],
                              val putList: Feature.Builder => Iterable[Any] => Feature.Builder)
       extends Serializable
+
   object Kind {
     case object Long extends Kind(
       Feature.KindCase.INT64_LIST,

@@ -14,18 +14,18 @@ sealed trait TableRowType[T] extends Converter.Record[T, TableRow] {
   def apply(r: R): T = from(r)
   def apply(t: T): R = to(t)
   override protected def empty: R = new TableRow
-  override protected def from(r: R): T = ???
-  override protected def to(t: T): R = ???
+  override def from(r: R): T = ???
+  override def to(t: T): R = ???
 }
 
 object TableRowType {
   type Typeclass[T] = TableRowField[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
-    override protected def from(r: R): T =
+    override def from(r: R): T =
       caseClass.construct(p => p.typeclass.get(r, p.label))
 
-    override protected def to(t: T): R =
+    override def to(t: T): R =
       caseClass.parameters.foldLeft(empty) { (r, p) =>
         p.typeclass.put(r, p.label, p.dereference(t))
         r
