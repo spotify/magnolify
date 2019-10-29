@@ -11,14 +11,13 @@ import magnolia.shims._
 import scala.collection.JavaConverters._
 import scala.language.experimental.macros
 
-sealed trait TableRowType[T] extends Converter.Record[T, TableRow] {
-  protected type R = TableRow
-  def apply(r: R): T = from(r)
-  def apply(t: T): R = to(t)
+sealed trait TableRowType[T] extends Converter.Record[T, TableRow, TableRow] {
+  def apply(r: TableRow): T = from(r)
+  def apply(t: T): TableRow = to(t)
   def schema: TableSchema = ???
-  override protected def empty: R = new TableRow
-  override def from(r: R): T = ???
-  override def to(t: T): R = ???
+  override protected def empty: TableRow = new TableRow
+  override def from(r: TableRow): T = ???
+  override def to(t: T): TableRow = ???
 }
 
 object TableRowType {
@@ -28,13 +27,12 @@ object TableRowType {
     override def schema: TableSchema = new TableSchema().setFields(
       caseClass.parameters.map(p => p.typeclass.fieldSchema.setName(p.label)).asJava)
 
-    override def from(r: R): T =
+    override def from(r: TableRow): T =
       caseClass.construct(p => p.typeclass.get(r, p.label))
 
-    override def to(t: T): R =
+    override def to(t: T): TableRow =
       caseClass.parameters.foldLeft(empty) { (r, p) =>
         p.typeclass.put(r, p.label, p.dereference(t))
-        r
       }
 
     override def fieldSchema: TableFieldSchema =
@@ -54,9 +52,12 @@ object TableRowType {
 
 sealed trait TableRowField[V]
   extends TableRowType[V]
-  with Converter.Field[V, TableRow] { self =>
-  override def get(r: R, k: String): V = fromField(r.get(k))
-  override def put(r: R, k: String, v: V): Unit = r.put(k, toField(v))
+  with Converter.Field[V, TableRow, TableRow] { self =>
+  override def get(r: TableRow, k: String): V = fromField(r.get(k))
+  override def put(r: TableRow, k: String, v: V): TableRow = {
+    r.put(k, toField(v))
+    r
+  }
 
   def fieldSchema: TableFieldSchema
   def fromField(v: Any): V
@@ -73,9 +74,8 @@ object TableRowField {
   def apply[V](implicit f: TableRowField[V]): TableRowField[V] = f
 
   def at[V](tpe: String)(f: Any => V)(g: V => Any): TableRowField[V] = new TableRowField[V] {
-    override def fieldSchema: TableFieldSchema = new TableFieldSchema()
-      .setType(tpe)
-      .setMode("REQUIRED")
+    override def fieldSchema: TableFieldSchema =
+      new TableFieldSchema().setType(tpe).setMode("REQUIRED")
     override def fromField(v: Any): V = f(v)
     override def toField(v: V): Any = g(v)
   }
@@ -84,9 +84,8 @@ object TableRowField {
   implicit val trfLong = at[Long]("INT64")(_.toString.toLong)(identity)
   implicit val trfDouble = at[Double]("FLOAT64")(_.toString.toDouble)(identity)
   implicit val trfString = at[String]("STRING")(_.toString)(identity)
-
-  import NumericConverter._
-  implicit val trfNumeric = at[BigDecimal]("NUMERIC")(toBigDecimal)(fromBigDecimal)
+  implicit val trfNumeric =
+    at[BigDecimal]("NUMERIC")(NumericConverter.toBigDecimal)(NumericConverter.fromBigDecimal)
 
   implicit val trfByteArray = at[Array[Byte]]("BYTES")(
     x => BaseEncoding.base64().decode(x.toString))(
@@ -103,24 +102,28 @@ object TableRowField {
       override def fieldSchema: TableFieldSchema = f.fieldSchema.setMode("NULLABLE")
       override def fromField(v: Any): Option[V] = ???
       override def toField(v: Option[V]): Any = ???
-      override def get(r: R, k: String): Option[V] =
+      override def get(r: TableRow, k: String): Option[V] =
         Option(r.get(k)).map(f.fromField)
-      override def put(r: R, k: String, v: Option[V]): Unit =
+      override def put(r: TableRow, k: String, v: Option[V]): TableRow = {
         v.foreach(x => r.put(k, f.toField(x)))
+        r
+      }
     }
 
   implicit def trfSeq[V, S[V]](implicit f: TableRowField[V],
-                               toSeq: S[V] => Seq[V],
+                               ts: S[V] => Seq[V],
                                fc: FactoryCompat[V, S[V]]): TableRowField[S[V]] =
     new TableRowField[S[V]] {
       override def fieldSchema: TableFieldSchema = f.fieldSchema.setMode("REPEATED")
       override def fromField(v: Any): S[V] = ???
       override def toField(v: S[V]): Any = ???
-      override def get(r: R, k: String): S[V] = r.get(k) match {
+      override def get(r: TableRow, k: String): S[V] = r.get(k) match {
         case null => fc.newBuilder.result()
         case xs: java.util.List[_] => fc.build(xs.asScala.iterator.map(f.fromField))
       }
-      override def put(r: R, k: String, v: S[V]): Unit =
-        r.put(k, toSeq(v).map(f.toField).asJava)
+      override def put(r: TableRow, k: String, v: S[V]): TableRow = {
+        r.put(k, v.map(f.toField).asJava)
+        r
+      }
     }
 }

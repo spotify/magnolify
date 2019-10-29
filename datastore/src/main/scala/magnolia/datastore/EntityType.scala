@@ -12,30 +12,28 @@ import magnolia.shims.FactoryCompat
 import scala.collection.JavaConverters._
 import scala.language.experimental.macros
 
-sealed trait EntityType[T] extends Converter.Record[T, EntityOrBuilder] {
-  protected type R = EntityOrBuilder
-  def apply(r: R): T = from(r)
-  def apply(t: T): R = to(t)
-  override protected def empty: R = Entity.newBuilder()
-  override def from(r: R): T = ???
-  override def to(t: T): R = ???
+sealed trait EntityType[T] extends Converter.Record[T, Entity, Entity.Builder] {
+  def apply(r: Entity): T = from(r)
+  def apply(t: T): Entity = to(t).build()
+  override protected def empty: Entity.Builder = Entity.newBuilder()
+  override def from(r: Entity): T = ???
+  override def to(t: T): Entity.Builder = ???
 }
 
 object EntityType {
   type Typeclass[T] = EntityField[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
-    override def from(r: R): T =
+    override def from(r: Entity): T =
       caseClass.construct(p => p.typeclass.get(r, p.label))
 
-    override def to(t: T): R =
+    override def to(t: T): Entity.Builder =
       caseClass.parameters.foldLeft(empty) { (r, p) =>
         p.typeclass.put(r, p.label, p.dereference(t))
-        r
       }
 
     override def fromField(v: Value): T = from(v.getEntityValue)
-    override def toField(v: T): Value.Builder = makeValue(to(v).asInstanceOf[Entity.Builder])
+    override def toField(v: T): Value.Builder = makeValue(to(v))
   }
 
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
@@ -45,10 +43,10 @@ object EntityType {
 
 sealed trait EntityField[V]
   extends EntityType[V]
-  with Converter.Field[V, EntityOrBuilder] { self =>
-  override def get(r: R, k: String): V = fromField(r.getPropertiesMap.get(k))
-  override def put(r: R, k: String, v: V): Unit =
-    r.asInstanceOf[Entity.Builder].putProperties(k, toField(v).build())
+  with Converter.Field[V, Entity, Entity.Builder] { self =>
+  override def get(r: Entity, k: String): V = fromField(r.getPropertiesMap.get(k))
+  override def put(r: Entity.Builder, k: String, v: V): Entity.Builder =
+    r.putProperties(k, toField(v).build())
 
   def fromField(v: Value): V
   def toField(v: V): Value.Builder
@@ -92,24 +90,24 @@ object EntityField {
     new EntityField[Option[V]] {
       override def fromField(v: Value): Option[V] = ???
       override def toField(v: Option[V]): Value.Builder = ???
-      override def get(r: R, k: String): Option[V] =
+      override def get(r: Entity, k: String): Option[V] =
         Option(r.getPropertiesMap.get(k)).map(f.fromField)
-      override def put(r: R, k: String, v: Option[V]): Unit =
-        v.foreach(x => r.asInstanceOf[Entity.Builder].putProperties(k, f.toField(x).build()))
+      override def put(r: Entity.Builder, k: String, v: Option[V]): Entity.Builder =
+        v.foldLeft(r)((r, x) => r.putProperties(k, f.toField(x).build()))
     }
 
   implicit def efSeq[V, S[V]](implicit f: EntityField[V],
-                              toSeq: S[V] => Seq[V],
+                              ts: S[V] => Seq[V],
                               fc: FactoryCompat[V, S[V]]): EntityField[S[V]] =
     new EntityField[S[V]] {
       override def fromField(v: Value): S[V] = ???
       override def toField(v: S[V]): Value.Builder = ???
-      override def get(r: R, k: String): S[V] = r.getPropertiesMap.get(k) match {
+      override def get(r: Entity, k: String): S[V] = r.getPropertiesMap.get(k) match {
         case null => fc.newBuilder.result()
         case xs => fc.build(xs.getArrayValue.getValuesList.asScala.iterator.map(f.fromField))
       }
-      override def put(r: R, k: String, v: S[V]): Unit =
-        r.asInstanceOf[Entity.Builder].putProperties(k, Value.newBuilder().setArrayValue(toSeq(v)
+      override def put(r: Entity.Builder, k: String, v: S[V]): Entity.Builder =
+        r.putProperties(k, Value.newBuilder().setArrayValue(v
           .foldLeft(ArrayValue.newBuilder()) { (b, x) => b.addValues(f.toField(x)) }
           .build()).build())
     }

@@ -12,15 +12,12 @@ import org.tensorflow.example._
 import scala.collection.JavaConverters._
 import scala.language.experimental.macros
 
-sealed trait ExampleType[T] extends Converter.Record[T, FeaturesOrBuilder] {
-  protected type R = FeaturesOrBuilder
+sealed trait ExampleType[T] extends Converter.Record[T, Features, Features.Builder] {
   def apply(r: ExampleOrBuilder): T = from(r.getFeatures)
-  def apply(t: T): Example = Example.newBuilder()
-    .setFeatures(to(t).asInstanceOf[Features.Builder])
-    .build()
-  override protected def empty: R = Features.newBuilder()
-  override def from(r: R): T = ???
-  override def to(t: T): R = ???
+  def apply(t: T): Example = Example.newBuilder().setFeatures(to(t)).build()
+  override protected def empty: Features.Builder = Features.newBuilder()
+  override def from(r: Features): T = ???
+  override def to(t: T): Features.Builder = ???
 }
 
 object ExampleType {
@@ -29,13 +26,12 @@ object ExampleType {
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
     override val kind: ExampleField.Kind = null
 
-    override def from(r: R): T =
+    override def from(r: Features): T =
       caseClass.construct(p => p.typeclass.get(r, p.label))
 
-    override def to(t: T): R =
+    override def to(t: T): Features.Builder =
       caseClass.parameters.foldLeft(empty) { (r, p) =>
         p.typeclass.put(r, p.label, p.dereference(t))
-        r
       }
 
     // FIXME: flatten nested fields
@@ -50,18 +46,16 @@ object ExampleType {
 
 sealed trait ExampleField[V]
   extends ExampleType[V]
-  with Converter.Field[V, FeaturesOrBuilder] { self =>
+  with Converter.Field[V, Features, Features.Builder] { self =>
   val kind: ExampleField.Kind
 
-  override def get(r: FeaturesOrBuilder, k: String): V = {
+  override def get(r: Features, k: String): V = {
     val xs = kind.getList(r.getFeatureMap.get(k))
     require(xs.size == 1)
     fromField(xs.iterator().next())
   }
-  override def put(r: FeaturesOrBuilder, k: String, v: V): Unit = {
-    r.asInstanceOf[Features.Builder].putFeature(
-      k, kind.putList(Feature.newBuilder())(Seq(toField(v))).build())
-  }
+  override def put(r: Features.Builder, k: String, v: V): Features.Builder =
+    r.putFeature(k, kind.putList(Seq(toField(v))).build())
 
   def fromField(v: Any): V
   def toField(v: V): Any
@@ -87,9 +81,12 @@ object ExampleField {
   def atBytes[V](f: ByteString => V)(g: V => ByteString): ExampleField[V] = efBytes.imap(f)(g)
 
   sealed abstract class Kind(val kind: Feature.KindCase,
-                             val getList: Feature => JList[Any],
-                             val putList: Feature.Builder => Iterable[Any] => Feature.Builder)
-      extends Serializable
+                             val getFn: Feature => JList[Any],
+                             val putFn: Feature.Builder => Iterable[Any] => Feature.Builder)
+      extends Serializable {
+    def getList(v: Feature): JList[Any] = getFn(v)
+    def putList(v: Iterable[Any]): Feature.Builder = putFn(Feature.newBuilder())(v)
+  }
 
   object Kind {
     case object Long extends Kind(
@@ -121,33 +118,31 @@ object ExampleField {
       override def fromField(v: Any): Option[V] = ???
       override def toField(v: Option[V]): Any = ???
 
-      override def get(r: R, k: String): Option[V] = r.getFeatureMap.get(k) match {
+      override def get(r: Features, k: String): Option[V] = r.getFeatureMap.get(k) match {
         case null => None
         case v: Feature =>
           val xs = kind.getList(v)
           require(xs.size <= 1)
           if (xs.isEmpty) None else Some(f.fromField(xs.iterator().next()))
       }
-      override def put(r: R, k: String, v: Option[V]): Unit = v.foreach { x =>
-        r.asInstanceOf[Features.Builder].putFeature(
-          k, kind.putList(Feature.newBuilder())(Seq(f.toField(x))).build())
-      }
+      override def put(r: Features.Builder, k: String, v: Option[V]): Features.Builder =
+        r.putFeature(k, kind.putList(v.map(f.toField)).build())
     }
 
   implicit def efSeq[V, S[V]](implicit f: ExampleField[V],
-                              toSeq: S[V] => Seq[V],
+                              ts: S[V] => Seq[V],
                               fc: FactoryCompat[V, S[V]]): ExampleField[S[V]] =
     new ExampleField[S[V]] {
       override val kind: Kind = f.kind
       override def fromField(v: Any): S[V] = ???
       override def toField(v: S[V]): Any = ???
 
-      override def get(r: R, k: String): S[V] = r.getFeatureMap.get(k) match {
+      override def get(r: Features, k: String): S[V] = r.getFeatureMap.get(k) match {
         case null => fc.newBuilder.result()
         case v: Feature => fc.build(kind.getList(v).asScala.map(f.fromField))
       }
-      override def put(r: R, k: String, v: S[V]): Unit =
-        r.asInstanceOf[Features.Builder].putFeature(
-          k, kind.putList(Feature.newBuilder())(toSeq(v).map(f.toField)).build())
+      override def put(r: Features.Builder, k: String, v: S[V]): Features.Builder =
+        r.putFeature(
+          k, kind.putList(v.map(f.toField)).build())
     }
 }
