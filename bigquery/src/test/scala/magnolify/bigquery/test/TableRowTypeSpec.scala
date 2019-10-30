@@ -46,7 +46,7 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
     }
   }
 
-  implicit def trfInt: TableRowField[Int] =
+  implicit val trfInt: TableRowField[Int] =
     TableRowField.at[Int]("INT64")(_.toString.toInt)(identity)
 
   test[Integers]

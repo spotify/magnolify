@@ -42,7 +42,7 @@ object EntityTypeSpec extends MagnolifySpec("EntityType") {
     }
   }
 
-  implicit val efInt = EntityField.at[Int](_.getIntegerValue.toInt)(makeValue(_))
+  implicit val efInt: EntityField[Int] = EntityField.at[Int](_.getIntegerValue.toInt)(makeValue(_))
   test[Integers]
   test[Required]
   test[Nullable]
