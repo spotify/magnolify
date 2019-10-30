@@ -125,52 +125,48 @@ object ExampleField {
   def atFloat[V](f: Float => V)(g: V => Float): ExampleField[V] = efFloat.imap(f)(g)
   def atBytes[V](f: ByteString => V)(g: V => ByteString): ExampleField[V] = efBytes.imap(f)(g)
 
-  sealed abstract class Kind(
-    val kind: Feature.KindCase,
-    val getFn: Feature => JList[Any],
-    val putFn: Feature.Builder => Iterable[Any] => Feature.Builder
-  ) extends Serializable {
-    def getList(v: Feature): JList[Any] = getFn(v)
-    def putList(v: Iterable[Any]): Feature.Builder = putFn(Feature.newBuilder())(v)
+  sealed trait Kind extends Serializable {
+    val kind: Feature.KindCase
+    def getList(v: Feature): JList[Any]
+    def putList(v: Iterable[Any]): Feature.Builder
   }
 
   object Kind {
-    case object Long
-        extends Kind(
-          Feature.KindCase.INT64_LIST,
-          _.getInt64List.getValueList.asInstanceOf[JList[Any]],
-          b =>
-            xs =>
-              b.setInt64List(
-                Int64List
-                  .newBuilder()
-                  .addAllValue(xs.asJava.asInstanceOf[JIterable[java.lang.Long]])
-              )
-        )
+    case object Long extends Kind {
+      override val kind: Feature.KindCase = Feature.KindCase.INT64_LIST
+      override def getList(v: Feature): JList[Any] =
+        v.getInt64List.getValueList.asInstanceOf[JList[Any]]
+      override def putList(v: Iterable[Any]): Feature.Builder =
+        Feature
+          .newBuilder()
+          .setInt64List(
+            Int64List.newBuilder().addAllValue(v.asJava.asInstanceOf[JIterable[java.lang.Long]])
+          )
+    }
 
-    case object Float
-        extends Kind(
-          Feature.KindCase.FLOAT_LIST,
-          _.getFloatList.getValueList.asInstanceOf[JList[Any]],
-          b =>
-            xs =>
-              b.setFloatList(
-                FloatList
-                  .newBuilder()
-                  .addAllValue(xs.asJava.asInstanceOf[JIterable[java.lang.Float]])
-              )
-        )
+    case object Float extends Kind {
+      override val kind: Feature.KindCase = Feature.KindCase.FLOAT_LIST
+      override def getList(v: Feature): JList[Any] =
+        v.getFloatList.getValueList.asInstanceOf[JList[Any]]
+      override def putList(v: Iterable[Any]): Feature.Builder =
+        Feature
+          .newBuilder()
+          .setFloatList(
+            FloatList.newBuilder().addAllValue(v.asJava.asInstanceOf[JIterable[java.lang.Float]])
+          )
+    }
 
-    case object Bytes
-        extends Kind(
-          Feature.KindCase.BYTES_LIST,
-          _.getBytesList.getValueList.asInstanceOf[JList[Any]],
-          b =>
-            xs =>
-              b.setBytesList(
-                BytesList.newBuilder().addAllValue(xs.asJava.asInstanceOf[JIterable[ByteString]])
-              )
-        )
+    case object Bytes extends Kind {
+      override val kind: Feature.KindCase = Feature.KindCase.BYTES_LIST
+      override def getList(v: Feature): JList[Any] =
+        v.getBytesList.getValueList.asInstanceOf[JList[Any]]
+      override def putList(v: Iterable[Any]): Feature.Builder =
+        Feature
+          .newBuilder()
+          .setBytesList(
+            BytesList.newBuilder().addAllValue(v.asJava.asInstanceOf[JIterable[ByteString]])
+          )
+    }
   }
 
   implicit val efLong = atSingle[Long](Kind.Long)
