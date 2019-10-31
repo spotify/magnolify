@@ -108,7 +108,7 @@ lazy val root: Project = project
     cats,
     // FIXME: implement these
     // diffy,
-    // avro,
+    avro,
     bigquery,
     datastore,
     tensorflow,
@@ -182,11 +182,12 @@ lazy val avro: Project = project
     moduleName := "magnolify-avro",
     description := "Magnolia add-on for Apache Avro",
     libraryDependencies ++= Seq(
-      "org.apache.avro" % "avro" % avroVersion % Provided
+      "org.apache.avro" % "avro" % avroVersion % "provided,test"
     )
   )
   .dependsOn(
     shared,
+    cats % Test,
     scalacheck % Test,
     test % "test->test"
   )
