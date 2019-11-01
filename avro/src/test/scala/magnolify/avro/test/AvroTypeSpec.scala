@@ -20,8 +20,8 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 
 import cats._
 import cats.instances.all._
-import magnolify.avro.AvroType
-import magnolify.avro.AvroType._
+import magnolify.avro.{AvroType, GenericRecordType}
+import magnolify.avro.GenericRecordType._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.test.Simple._
@@ -32,7 +32,7 @@ import org.scalacheck._
 
 import scala.reflect._
 
-object AvroRecordTypeSpec extends MagnolifySpec("AvroRecordType") {
+object AvroTypeSpec extends MagnolifySpec("AvroRecordType") {
   private val encoder = EncoderFactory.get
   private val decoder = DecoderFactory.get
 
@@ -41,17 +41,14 @@ object AvroRecordTypeSpec extends MagnolifySpec("AvroRecordType") {
     eq: Eq[T]
   ): Unit = {
     ensureSerializable(tpe)
+    val converter = GenericRecordType[T]
 
     property(className[T]) = Prop.forAll { caseClass: T =>
-      val avroRepr = tpe.to(caseClass)
+      val avroRepr = converter.to(caseClass)
       val avroCopy = roundtripAvro(avroRepr)
-      val copy = tpe.from(avroCopy)
+      val copy = converter.from(avroCopy)
 
-      Prop.all(
-        tpe.schema.equals(avroRepr.getSchema),
-        avroRepr.equals(avroCopy),
-        eq.eqv(caseClass, copy)
-      )
+      Prop.all(eq.eqv(caseClass, copy))
     }
   }
 
@@ -68,19 +65,27 @@ object AvroRecordTypeSpec extends MagnolifySpec("AvroRecordType") {
     )
   }
 
-  test[Integers]
-  test[Required]
-  test[Nullable]
-  test[Repeated]
-  test[Nested]
+  case class Bytes(b: Array[Byte])
+  implicit val eqBytes: Eq[Bytes] = Eq.instance[Bytes] { case (b1, b2) => b1.b.sameElements(b2.b) }
 
-  case class CollectionPrimitive(l: List[Int])
-  case class CollectionNestedRecord(l: List[Nested])
-  case class CollectionNullable(l: List[Nullable])
+  {
+    test[Integers]
+    test[Required]
+    test[Nullable]
+    test[Repeated]
+    test[Nested]
+    test[Bytes]
+  }
+
+  case class CollectionPrimitive(l: List[Int], m: Map[String, Int])
+  case class CollectionNestedRecord(l: List[Nested], m: Map[String, Nested])
+  case class CollectionNestedList(l: List[Nested], m: Map[String, List[Int]])
+  case class CollectionNullable(l: List[Nullable], m: Map[String, Nullable])
 
   {
     test[CollectionPrimitive]
     test[CollectionNestedRecord]
+    test[CollectionNestedList]
     test[CollectionNullable]
   }
 }

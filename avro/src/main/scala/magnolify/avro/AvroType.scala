@@ -16,11 +16,12 @@
  */
 package magnolify.avro
 
+import java.io.Serializable
 import java.nio.ByteBuffer
-import java.util.stream.Collectors
 import java.util.{List => JList, Map => JMap}
 
 import magnolia._
+import magnolify.shared.Converter
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Field
 import org.apache.avro.generic.{GenericArray, GenericData, GenericRecord}
@@ -28,7 +29,7 @@ import org.apache.avro.generic.{GenericArray, GenericData, GenericRecord}
 import scala.collection.JavaConverters._
 import scala.language.experimental.macros
 
-trait AvroType[T] extends java.io.Serializable {
+trait AvroType[T] extends Serializable {
   type FromAvroRepr
   type ToAvroRepr
 
@@ -39,8 +40,15 @@ trait AvroType[T] extends java.io.Serializable {
   def schema: Schema
 }
 
-object AvroType {
+object GenericRecordType {
   type Typeclass[T] = AvroType[T]
+
+  def apply[T](implicit tpe: AvroType.Aux2[T, GenericRecord]): Converter[T, Any, GenericRecord] =
+    new Converter[T, Any, GenericRecord] {
+      override protected def empty: GenericRecord = ??? // Not used
+      override def from(r: Any): T = tpe.from(r)
+      override def to(t: T): GenericRecord = tpe.to(t)
+    }
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): AvroType.Aux2[T, GenericRecord] =
     new AvroType.Aux2[T, GenericRecord] {
@@ -50,6 +58,7 @@ object AvroType {
           new Field(param.label, fieldSchema, "", null)
         }
 
+        // @Todo match namespace to case class?
         Schema.createRecord(caseClass.typeName.short, "", "magnolify.avro", false, fields.asJava)
       }
 
@@ -69,8 +78,9 @@ object AvroType {
   // This could maybe be implemented as a union type?
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
   implicit def gen[T]: AvroType.Aux2[T, GenericRecord] = macro Magnolia.gen[T]
+}
 
-  trait Passthrough[T] extends Aux2[T, T]
+object AvroType {
   trait Aux2[T, AvroRepr] extends Aux3[T, AvroRepr, AvroRepr]
   trait Aux3[T, _FromAvroRepr, _ToAvroReprRepr] extends AvroType[T] {
     override type FromAvroRepr = _FromAvroRepr
@@ -78,12 +88,9 @@ object AvroType {
   }
 
   object Aux {
-    // Primitive/identity fn
-    def apply[T](_schema: Schema): AvroType[T] = new AvroType.Passthrough[T] {
-      override protected def fromAvro(r: T): T = r
-      override def to(t: T): T = t
-      override def schema: Schema = _schema
-    }
+    // Primitive/identity fn that passes values through directly
+    def apply[T](_schema: Schema): AvroType[T] =
+      AvroType.Aux3[T, T, T](_schema, identity, identity)
   }
 
   object Aux2 {
@@ -91,11 +98,7 @@ object AvroType {
       _schema: Schema,
       _from: AvroRepr => T,
       _to: T => AvroRepr
-    ): AvroType[T] = new AvroType.Aux2[T, AvroRepr] {
-      override protected def fromAvro(r: AvroRepr): T = _from(r)
-      override def to(t: T): AvroRepr = _to(t)
-      override def schema: Schema = _schema
-    }
+    ): AvroType[T] = AvroType.Aux3[T, AvroRepr, AvroRepr](_schema, _from, _to)
   }
 
   object Aux3 {
@@ -125,6 +128,7 @@ object AvroType {
   implicit val doubleType: AvroType[Double] =
     AvroType.Aux[Double](Schema.create(Schema.Type.DOUBLE))
   implicit val floatType: AvroType[Float] = AvroType.Aux[Float](Schema.create(Schema.Type.FLOAT))
+
   implicit val bytesType: AvroType[Array[Byte]] = AvroType
     .Aux2[Array[Byte], ByteBuffer](Schema.create(Schema.Type.BYTES), _.array, ByteBuffer.wrap)
 
@@ -157,16 +161,11 @@ object AvroType {
   implicit def mapType[T: AvroType]: AvroType[Map[String, T]] = {
     val tc = implicitly[AvroType[T]]
 
-    AvroType.Aux3[Map[String, T], JMap[String, tc.FromAvroRepr], JMap[String, tc.ToAvroRepr]](
+    AvroType.Aux3[Map[String, T], JMap[CharSequence, tc.FromAvroRepr], JMap[String, tc.ToAvroRepr]](
       Schema.createMap(tc.schema),
-      (f: JMap[String, tc.FromAvroRepr]) => f.asScala.toMap.map { case (k, v) => k -> tc.from(v) },
-      (t: Map[String, T]) =>
-        t.asJava.entrySet.stream.collect(
-          Collectors.toMap(
-            (kv: JMap.Entry[String, T]) => kv.getKey,
-            (kv: JMap.Entry[String, T]) => tc.to(kv.getValue)
-          )
-        )
+      (f: JMap[CharSequence, tc.FromAvroRepr]) =>
+        f.asScala.toMap.map { case (k, v) => k.toString -> tc.from(v) },
+      (t: Map[String, T]) => t.map { case (k, v) => (k, tc.to(v)) }.asJava
     )
   }
 }
