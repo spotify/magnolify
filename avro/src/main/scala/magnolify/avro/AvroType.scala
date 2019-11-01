@@ -1,3 +1,19 @@
+/*
+ * Copyright 2019 Spotify AB.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package magnolify.avro
 
 import java.nio.ByteBuffer
@@ -19,7 +35,6 @@ trait AvroType[T] extends java.io.Serializable {
   // Since GenericRecord.get only returns Any
   final def from(r: Any): T = fromAvro(r.asInstanceOf[FromAvroRepr])
   protected def fromAvro(r: FromAvroRepr): T
-
   def to(t: T): ToAvroRepr
   def schema: Schema
 }
@@ -27,33 +42,29 @@ trait AvroType[T] extends java.io.Serializable {
 object AvroType {
   type Typeclass[T] = AvroType[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): AvroType.Aux2[T, GenericRecord] = new AvroType.Aux2[T, GenericRecord] {
-    def schema: Schema = {
-      val fields = caseClass.parameters.map { param =>
-        val fieldSchema = param.typeclass.schema
-        new Field(param.label, fieldSchema, "", null)
+  def combine[T](caseClass: CaseClass[Typeclass, T]): AvroType.Aux2[T, GenericRecord] =
+    new AvroType.Aux2[T, GenericRecord] {
+      def schema: Schema = {
+        val fields = caseClass.parameters.map { param =>
+          val fieldSchema = param.typeclass.schema
+          new Field(param.label, fieldSchema, "", null)
+        }
+
+        Schema.createRecord(caseClass.typeName.short, "", "magnolify.avro", false, fields.asJava)
       }
 
-      Schema.createRecord(
-        caseClass.typeName.short,
-        "",
-        "magnolify.avro",
-        false,
-        fields.asJava)
-    }
-
-    override def fromAvro(r: GenericRecord): T = caseClass.construct { p =>
-      p.typeclass.from(r.get(p.label))
-    }
-
-    override def to(t: T): GenericRecord = {
-      val gr = new GenericData.Record(schema)
-      caseClass.parameters.foreach { p =>
-        gr.put(p.label, p.typeclass.to(p.dereference(t)))
+      override def fromAvro(r: GenericRecord): T = caseClass.construct { p =>
+        p.typeclass.from(r.get(p.label))
       }
-      gr
+
+      override def to(t: T): GenericRecord = {
+        val gr = new GenericData.Record(schema)
+        caseClass.parameters.foreach { p =>
+          gr.put(p.label, p.typeclass.to(p.dereference(t)))
+        }
+        gr
+      }
     }
-  }
 
   // This could maybe be implemented as a union type?
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
@@ -77,10 +88,10 @@ object AvroType {
 
   object Aux2 {
     def apply[T, AvroRepr](
-                            _schema: Schema,
-                            _from: AvroRepr => T,
-                            _to: T => AvroRepr
-                          ): AvroType[T] = new AvroType.Aux2[T, AvroRepr] {
+      _schema: Schema,
+      _from: AvroRepr => T,
+      _to: T => AvroRepr
+    ): AvroType[T] = new AvroType.Aux2[T, AvroRepr] {
       override protected def fromAvro(r: AvroRepr): T = _from(r)
       override def to(t: T): AvroRepr = _to(t)
       override def schema: Schema = _schema
@@ -89,10 +100,10 @@ object AvroType {
 
   object Aux3 {
     def apply[T, FromAvroRepr, ToAvroRepr](
-                                            _schema: Schema,
-                                            _from: FromAvroRepr => T,
-                                            _to: T => ToAvroRepr
-                                          ): AvroType[T] = new Aux3[T, FromAvroRepr, ToAvroRepr] {
+      _schema: Schema,
+      _from: FromAvroRepr => T,
+      _to: T => ToAvroRepr
+    ): AvroType[T] = new Aux3[T, FromAvroRepr, ToAvroRepr] {
       override protected def fromAvro(r: FromAvroRepr): T = _from(r)
       override def to(t: T): ToAvroRepr = _to(t)
       override def schema: Schema = _schema
@@ -102,16 +113,22 @@ object AvroType {
   // Implicit instances
 
   implicit val stringType: AvroType[String] =
-    AvroType.Aux3[String, CharSequence, String](Schema.create(Schema.Type.STRING), _.toString, identity)
-  implicit val booleanType: AvroType[Boolean] = AvroType.Aux[Boolean](Schema.create(Schema.Type.BOOLEAN))
+    AvroType.Aux3[String, CharSequence, String](
+      Schema.create(Schema.Type.STRING),
+      _.toString,
+      identity
+    )
+  implicit val booleanType: AvroType[Boolean] =
+    AvroType.Aux[Boolean](Schema.create(Schema.Type.BOOLEAN))
   implicit val intType: AvroType[Int] = AvroType.Aux[Int](Schema.create(Schema.Type.INT))
   implicit val longType: AvroType[Long] = AvroType.Aux[Long](Schema.create(Schema.Type.LONG))
-  implicit val doubleType: AvroType[Double] = AvroType.Aux[Double](Schema.create(Schema.Type.DOUBLE))
+  implicit val doubleType: AvroType[Double] =
+    AvroType.Aux[Double](Schema.create(Schema.Type.DOUBLE))
   implicit val floatType: AvroType[Float] = AvroType.Aux[Float](Schema.create(Schema.Type.FLOAT))
-  implicit val bytesType: AvroType[Array[Byte]] = AvroType.Aux2[Array[Byte], ByteBuffer](
-    Schema.create(Schema.Type.BYTES), _.array, ByteBuffer.wrap)
+  implicit val bytesType: AvroType[Array[Byte]] = AvroType
+    .Aux2[Array[Byte], ByteBuffer](Schema.create(Schema.Type.BYTES), _.array, ByteBuffer.wrap)
 
-  implicit def repeatedType[T : AvroType]: AvroType[List[T]] = {
+  implicit def repeatedType[T: AvroType]: AvroType[List[T]] = {
     val tc = implicitly[AvroType[T]]
     val schema = Schema.createArray(tc.schema)
 
@@ -122,12 +139,12 @@ object AvroType {
     )
   }
 
-  implicit def nullableType[T : AvroType]: AvroType[Option[T]] = {
+  implicit def nullableType[T: AvroType]: AvroType[Option[T]] = {
     val tc = implicitly[AvroType[T]]
 
     def mapToNull(t: Option[T]): tc.ToAvroRepr = t.map(tc.to) match {
       case Some(to) => to
-      case None => null.asInstanceOf[tc.ToAvroRepr]
+      case None     => null.asInstanceOf[tc.ToAvroRepr]
     }
 
     AvroType.Aux3[Option[T], tc.FromAvroRepr, tc.ToAvroRepr](
@@ -137,16 +154,19 @@ object AvroType {
     )
   }
 
-  implicit def mapType[T : AvroType]: AvroType[Map[String, T]] = {
+  implicit def mapType[T: AvroType]: AvroType[Map[String, T]] = {
     val tc = implicitly[AvroType[T]]
 
     AvroType.Aux3[Map[String, T], JMap[String, tc.FromAvroRepr], JMap[String, tc.ToAvroRepr]](
       Schema.createMap(tc.schema),
       (f: JMap[String, tc.FromAvroRepr]) => f.asScala.toMap.map { case (k, v) => k -> tc.from(v) },
-      (t: Map[String, T]) => t.asJava.entrySet.stream.collect(
-        Collectors.toMap(
-          (kv: JMap.Entry[String, T]) => kv.getKey,
-          (kv: JMap.Entry[String, T]) => tc.to(kv.getValue)))
+      (t: Map[String, T]) =>
+        t.asJava.entrySet.stream.collect(
+          Collectors.toMap(
+            (kv: JMap.Entry[String, T]) => kv.getKey,
+            (kv: JMap.Entry[String, T]) => tc.to(kv.getValue)
+          )
+        )
     )
   }
 }

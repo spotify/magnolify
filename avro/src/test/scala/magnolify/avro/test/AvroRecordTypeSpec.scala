@@ -16,29 +16,56 @@
  */
 package magnolify.avro.test
 
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 
 import cats._
 import cats.instances.all._
-import magnolify.avro.AvroType._
 import magnolify.avro.AvroType
+import magnolify.avro.AvroType._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.test.Simple._
 import magnolify.test._
-import org.apache.avro.generic.GenericRecord
+import org.apache.avro.generic.{GenericDatumReader, GenericDatumWriter, GenericRecord}
+import org.apache.avro.io.{DecoderFactory, EncoderFactory}
 import org.scalacheck._
 
 import scala.reflect._
 
-object AvroRecordTypeSpec extends MagnolifySpec("AvroRecordTypeSpec") {
-  private def test[T: Arbitrary: ClassTag](implicit tpe: AvroType.Aux2[T, GenericRecord], eq: Eq[T]): Unit = {
-    ensureSerializable(tpe)
-    property(className[T]) = Prop.forAll { t: T =>
-      val r = tpe.to(t)
+object AvroRecordTypeSpec extends MagnolifySpec("AvroRecordType") {
+  private val encoder = EncoderFactory.get
+  private val decoder = DecoderFactory.get
 
-      val copy = tpe.from(r)
-      Prop.all(eq.eqv(t, copy))
+  private def test[T: Arbitrary: ClassTag](
+    implicit tpe: AvroType.Aux2[T, GenericRecord],
+    eq: Eq[T]
+  ): Unit = {
+    ensureSerializable(tpe)
+
+    property(className[T]) = Prop.forAll { caseClass: T =>
+      val avroRepr = tpe.to(caseClass)
+      val avroCopy = roundtripAvro(avroRepr)
+      val copy = tpe.from(avroCopy)
+
+      Prop.all(
+        tpe.schema.equals(avroRepr.getSchema),
+        avroRepr.equals(avroCopy),
+        eq.eqv(caseClass, copy)
+      )
     }
+  }
+
+  // Mimics Beam's ser/de of Avro records
+  private def roundtripAvro(gr: GenericRecord): GenericRecord = {
+    val datumWriter = new GenericDatumWriter[GenericRecord](gr.getSchema)
+    val bytesOut = new ByteArrayOutputStream()
+    datumWriter.write(gr, encoder.directBinaryEncoder(bytesOut, null))
+
+    val datumReader = new GenericDatumReader[GenericRecord](gr.getSchema)
+    datumReader.read(
+      null,
+      decoder.directBinaryDecoder(new ByteArrayInputStream(bytesOut.toByteArray), null)
+    )
   }
 
   test[Integers]
