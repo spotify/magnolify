@@ -58,8 +58,13 @@ object GenericRecordType {
           new Field(param.label, fieldSchema, "", null)
         }
 
-        // @Todo match namespace to case class?
-        Schema.createRecord(caseClass.typeName.short, "", "magnolify.avro", false, fields.asJava)
+        Schema.createRecord(
+          caseClass.typeName.short,
+          "",
+          caseClass.typeName.owner,
+          false,
+          fields.asJava
+        )
       }
 
       override def fromAvro(r: GenericRecord): T = caseClass.construct { p =>
