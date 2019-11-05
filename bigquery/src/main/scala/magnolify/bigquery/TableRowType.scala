@@ -28,73 +28,92 @@ import scala.collection.JavaConverters._
 import scala.language.experimental.macros
 
 sealed trait TableRowType[T] extends Converter[T, TableRow, TableRow] {
-  def apply(r: TableRow): T = from(r)
-  def apply(t: T): TableRow = to(t)
   def schema: TableSchema
-  override protected def empty: TableRow = new TableRow
-  override def from(r: TableRow): T = ???
-  override def to(t: T): TableRow = ???
+  def apply(v: TableRow): T = from(v)
+  def apply(v: T): TableRow = to(v)
 }
 
 object TableRowType {
+  implicit def apply[T](implicit f: TableRowField.Record[T]): TableRowType[T] =
+    new TableRowType[T] {
+      override def schema: TableSchema = new TableSchema().setFields(f.fieldSchema.getFields)
+      override def from(v: TableRow): T = f.from(v)
+      override def to(v: T): TableRow = f.to(v)
+    }
+}
+
+sealed trait TableRowField[T] extends Serializable { self =>
+  type FromT
+  type ToT
+
+  def fieldSchema: TableFieldSchema
+  def from(v: FromT): T
+  def to(v: T): ToT
+
+  def fromAny(v: Any): T = from(v.asInstanceOf[FromT])
+}
+
+object TableRowField {
+  trait Aux[T, From, To] extends TableRowField[T] {
+    override type FromT = From
+    override type ToT = To
+  }
+
+  trait Primitive[T] extends Aux[T, Any, Any]
+  trait Record[T] extends Aux[T, java.util.Map[String, AnyRef], TableRow]
+
+  //////////////////////////////////////////////////
+
   type Typeclass[T] = TableRowField[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
-    override def from(r: TableRow): T =
-      caseClass.construct(p => p.typeclass.get(r, p.label))
-    override def to(t: T): TableRow =
-      caseClass.parameters.foldLeft(empty) { (r, p) =>
-        p.typeclass.put(r, p.label, p.dereference(t))
-      }
-
+  def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
     override def fieldSchema: TableFieldSchema =
       new TableFieldSchema()
         .setType("STRUCT")
         .setMode("REQUIRED")
         .setFields(caseClass.parameters.map(p => p.typeclass.fieldSchema.setName(p.label)).asJava)
-    override def fromField(v: Any): T = {
-      val r = empty
-      r.putAll(v.asInstanceOf[java.util.Map[String, Any]])
-      this.from(r)
-    }
-    override def toField(v: T): Any = to(v)
+
+    override def from(v: java.util.Map[String, AnyRef]): T =
+      caseClass.construct(p => p.typeclass.fromAny(v.get(p.label)))
+
+    override def to(v: T): TableRow =
+      caseClass.parameters.foldLeft(new TableRow) { (tr, p) =>
+        val f = p.typeclass.to(p.dereference(v))
+        if (f != null) {
+          tr.put(p.label, f)
+        }
+        tr
+      }
   }
 
-  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
+  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
 
-  implicit def apply[T]: TableRowType[T] = macro Magnolia.gen[T]
-}
+  implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
 
-sealed trait TableRowField[V] extends TableRowType[V] { self =>
-  override def schema: TableSchema = fieldSchema.getType match {
-    case "STRUCT" => new TableSchema().setFields(fieldSchema.getFields)
-    case _        => new TableSchema
+  //////////////////////////////////////////////////
+
+  def apply[T](implicit f: TableRowField[T]): TableRowField[T] = f
+
+  def from[T]: FromWord[T] = new FromWord[T]
+
+  class FromWord[T] {
+    def apply[U](f: T => U)(g: U => T)(implicit trf: TableRowField[T]): TableRowField[U] =
+      new TableRowField[U] {
+        override type FromT = trf.FromT
+        override type ToT = trf.ToT
+        override def fieldSchema: TableFieldSchema = trf.fieldSchema
+        override def from(v: FromT): U = f(trf.from(v))
+        override def to(v: U): ToT = trf.to(g(v))
+      }
   }
-  def get(r: TableRow, k: String): V = fromField(r.get(k))
-  def put(r: TableRow, k: String, v: V): TableRow = {
-    r.put(k, toField(v))
-    r
-  }
 
-  def fieldSchema: TableFieldSchema
-  def fromField(v: Any): V
-  def toField(v: V): Any
+  //////////////////////////////////////////////////
 
-  def imap[U](f: V => U)(g: U => V): TableRowField[U] = new TableRowField[U] {
-    override def fieldSchema: TableFieldSchema = self.fieldSchema
-    override def fromField(v: Any): U = f(self.fromField(v))
-    override def toField(v: U): Any = self.toField(g(v))
-  }
-}
-
-object TableRowField {
-  def apply[V](implicit f: TableRowField[V]): TableRowField[V] = f
-
-  def at[V](tpe: String)(f: Any => V)(g: V => Any): TableRowField[V] = new TableRowField[V] {
+  private def at[T](tpe: String)(f: Any => T)(g: T => Any): TableRowField[T] = new Primitive[T] {
     override def fieldSchema: TableFieldSchema =
       new TableFieldSchema().setType(tpe).setMode("REQUIRED")
-    override def fromField(v: Any): V = f(v)
-    override def toField(v: V): Any = g(v)
+    override def from(v: Any): T = f(v)
+    override def to(v: T): Any = g(v)
   }
 
   implicit val trfBool = at[Boolean]("BOOL")(_.toString.toBoolean)(identity)
@@ -114,47 +133,30 @@ object TableRowField {
   implicit val trfTime = at("TIME")(toLocalTime)(fromLocalTime)
   implicit val trfDateTime = at("DATETIME")(toLocalDateTime)(fromLocalDateTime)
 
-  implicit def trfOption[V](implicit f: TableRowField[V]): TableRowField[Option[V]] =
-    new TableRowField[Option[V]] {
+  implicit def trfOption[T](implicit f: TableRowField[T]): TableRowField[Option[T]] =
+    new Primitive[Option[T]] {
       override def fieldSchema: TableFieldSchema = f.fieldSchema.setMode("NULLABLE")
-      override def fromField(v: Any): Option[V] = ???
-      override def toField(v: Option[V]): Any = ???
-      override def get(r: TableRow, k: String): Option[V] =
-        Option(r.get(k)).map(f.fromField)
-      override def put(r: TableRow, k: String, v: Option[V]): TableRow = {
-        v.foreach(x => r.put(k, f.toField(x)))
-        r
+      override def from(v: Any): Option[T] =
+        if (v == null) None else Some(f.fromAny(v))
+      override def to(v: Option[T]): Any = v match {
+        case None    => null
+        case Some(x) => f.to(x)
       }
     }
 
-  implicit def trfSeq[V, S[V]](
-    implicit f: TableRowField[V],
-    ts: S[V] => Seq[V],
-    fc: FactoryCompat[V, S[V]]
-  ): TableRowField[S[V]] =
-    new TableRowField[S[V]] {
+  implicit def trfSeq[T, S[T]](
+    implicit f: TableRowField[T],
+    ts: S[T] => Seq[T],
+    fc: FactoryCompat[T, S[T]]
+  ): TableRowField[S[T]] =
+    new Primitive[S[T]] {
       override def fieldSchema: TableFieldSchema = f.fieldSchema.setMode("REPEATED")
-      override def fromField(v: Any): S[V] = ???
-      override def toField(v: S[V]): Any = ???
-      override def get(r: TableRow, k: String): S[V] = r.get(k) match {
-        case null                  => fc.newBuilder.result()
-        case xs: java.util.List[_] => fc.build(xs.asScala.iterator.map(f.fromField))
-      }
-      override def put(r: TableRow, k: String, v: S[V]): TableRow = {
-        r.put(k, v.map(f.toField).asJava)
-        r
-      }
+      override def from(v: Any): S[T] =
+        if (v == null) {
+          fc.newBuilder.result()
+        } else {
+          fc.build(v.asInstanceOf[java.util.List[_]].asScala.iterator.map(f.fromAny))
+        }
+      override def to(v: S[T]): Any = if (v.isEmpty) null else v.map(f.to(_)).asJava
     }
-
-  implicit def trfType[V](implicit t: TableRowType[V]): TableRowField[V] = new TableRowField[V] {
-    override def fieldSchema: TableFieldSchema =
-      new TableFieldSchema().setType("STRUCT").setMode("REQUIRED").setFields(t.schema.getFields)
-    override def fromField(v: Any): V = {
-      val m = v.asInstanceOf[java.util.Map[String, Any]]
-      val tr = new TableRow()
-      tr.putAll(m)
-      t.from(tr)
-    }
-    override def toField(v: V): Any = t.to(v)
-  }
 }

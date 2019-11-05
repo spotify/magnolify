@@ -16,11 +16,9 @@
  */
 package magnolify.datastore
 
-import java.time.{Duration, Instant}
-
 import com.google.datastore.v1._
 import com.google.datastore.v1.client.DatastoreHelper.makeValue
-import com.google.protobuf.{ByteString, Timestamp}
+import com.google.protobuf.ByteString
 import magnolia._
 import magnolify.shared.Converter
 import magnolify.shims.FactoryCompat
@@ -29,55 +27,74 @@ import scala.collection.JavaConverters._
 import scala.language.experimental.macros
 
 sealed trait EntityType[T] extends Converter[T, Entity, Entity.Builder] {
-  def apply(r: Entity): T = from(r)
-  def apply(t: T): Entity = to(t).build()
-  override protected def empty: Entity.Builder = Entity.newBuilder()
-  override def from(r: Entity): T = ???
-  override def to(t: T): Entity.Builder = ???
+  def apply(v: Entity): T = from(v)
+  def apply(v: T): Entity = to(v).build()
 }
 
 object EntityType {
-  type Typeclass[T] = EntityField[T]
-
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
-    override def from(r: Entity): T =
-      caseClass.construct(p => p.typeclass.get(r, p.label))
-
-    override def to(t: T): Entity.Builder =
-      caseClass.parameters.foldLeft(empty) { (r, p) =>
-        p.typeclass.put(r, p.label, p.dereference(t))
-      }
-
-    override def fromField(v: Value): T = from(v.getEntityValue)
-    override def toField(v: T): Value.Builder = makeValue(to(v))
+  implicit def apply[T](implicit f: EntityField.Record[T]): EntityType[T] = new EntityType[T] {
+    override def from(v: Entity): T = f.fromEntity(v)
+    override def to(v: T): Entity.Builder = f.toEntity(v)
   }
-
-  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
-
-  implicit def apply[T]: EntityType[T] = macro Magnolia.gen[T]
 }
 
-sealed trait EntityField[V] extends EntityType[V] { self =>
-  def get(r: Entity, k: String): V = fromField(r.getPropertiesMap.get(k))
-  def put(r: Entity.Builder, k: String, v: V): Entity.Builder =
-    r.putProperties(k, toField(v).build())
-
-  def fromField(v: Value): V
-  def toField(v: V): Value.Builder
-
-  def imap[U](f: V => U)(g: U => V): EntityField[U] = new EntityField[U] {
-    override def fromField(v: Value): U = f(self.fromField(v))
-    override def toField(v: U): Value.Builder = self.toField(g(v))
-  }
+sealed trait EntityField[T] extends Serializable { self =>
+  def from(v: Value): T
+  def to(v: T): Value.Builder
 }
 
 object EntityField {
-  def apply[V](implicit f: EntityField[V]): EntityField[V] = f
+  trait Primitive[T] extends EntityField[T]
+  trait Record[T] extends EntityField[T] {
+    def fromEntity(v: Entity): T
+    def toEntity(v: T): Entity.Builder
 
-  def at[V](f: Value => V)(g: V => Value.Builder): EntityField[V] = new EntityField[V] {
-    override def fromField(v: Value): V = f(v)
-    override def toField(v: V): Value.Builder = g(v)
+    override def from(v: Value): T = fromEntity(v.getEntityValue)
+    override def to(v: T): Value.Builder = Value.newBuilder().setEntityValue(toEntity(v))
   }
+
+  //////////////////////////////////////////////////
+
+  type Typeclass[T] = EntityField[T]
+
+  def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
+    override def fromEntity(v: Entity): T =
+      caseClass.construct(p => p.typeclass.from(v.getPropertiesOrDefault(p.label, null)))
+
+    override def toEntity(v: T): Entity.Builder =
+      caseClass.parameters.foldLeft(Entity.newBuilder()) { (eb, p) =>
+        val vb = p.typeclass.to(p.dereference(v))
+        if (vb != null) {
+          eb.putProperties(p.label, vb.build())
+        }
+        eb
+      }
+  }
+
+  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
+
+  implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
+
+  //////////////////////////////////////////////////
+
+  def apply[T](implicit f: EntityField[T]): EntityField[T] = f
+
+  def at[T](f: Value => T)(g: T => Value.Builder): EntityField[T] = new Primitive[T] {
+    override def from(v: Value): T = f(v)
+    override def to(v: T): Value.Builder = g(v)
+  }
+
+  def from[T]: FromWord[T] = new FromWord[T]
+
+  class FromWord[T] {
+    def apply[U](f: T => U)(g: U => T)(implicit ef: EntityField[T]): EntityField[U] =
+      new EntityField[U] {
+        override def from(v: Value): U = f(ef.from(v))
+        override def to(v: U): Value.Builder = ef.to(g(v))
+      }
+  }
+
+  //////////////////////////////////////////////////
 
   implicit val efBool = at[Boolean](_.getBooleanValue)(makeValue)
   implicit val efLong = at[Long](_.getIntegerValue)(makeValue)
@@ -86,60 +103,41 @@ object EntityField {
   implicit val efByteString = at[ByteString](_.getBlobValue)(makeValue)
   implicit val efByteArray =
     at[Array[Byte]](_.getBlobValue.toByteArray)(v => makeValue(ByteString.copyFrom(v)))
-  implicit val efTimestamp = at(toInstant)(fromInstant)
+  implicit val efTimestamp = at(TimestampConverter.toInstant)(TimestampConverter.fromInstant)
 
-  private val millisPerSecond = Duration.ofSeconds(1).toMillis
-  private def toInstant(v: Value): Instant = {
-    val t = v.getTimestampValue
-    Instant.ofEpochMilli(t.getSeconds * millisPerSecond + t.getNanos / 1000000)
-  }
-  private def fromInstant(i: Instant): Value.Builder = {
-    val t = Timestamp
-      .newBuilder()
-      .setSeconds(i.toEpochMilli / millisPerSecond)
-      .setNanos((i.toEpochMilli % 1000).toInt * 1000000)
-    Value.newBuilder().setTimestampValue(t)
-  }
-
-  implicit def efOption[V](implicit f: EntityField[V]): EntityField[Option[V]] =
-    new EntityField[Option[V]] {
-      override def fromField(v: Value): Option[V] = ???
-      override def toField(v: Option[V]): Value.Builder = ???
-      override def get(r: Entity, k: String): Option[V] =
-        Option(r.getPropertiesMap.get(k)).map(f.fromField)
-      override def put(r: Entity.Builder, k: String, v: Option[V]): Entity.Builder =
-        v.foldLeft(r)((r, x) => r.putProperties(k, f.toField(x).build()))
+  implicit def efOption[T](implicit f: EntityField[T]): EntityField[Option[T]] =
+    new Primitive[Option[T]] {
+      override def from(v: Value): Option[T] = if (v == null) None else Some(f.from(v))
+      override def to(v: Option[T]): Value.Builder = v match {
+        case None    => null
+        case Some(x) => f.to(x)
+      }
     }
 
-  implicit def efSeq[V, S[V]](
-    implicit f: EntityField[V],
-    ts: S[V] => Seq[V],
-    fc: FactoryCompat[V, S[V]]
-  ): EntityField[S[V]] =
-    new EntityField[S[V]] {
-      override def fromField(v: Value): S[V] = ???
-      override def toField(v: S[V]): Value.Builder = ???
-      override def get(r: Entity, k: String): S[V] = r.getPropertiesMap.get(k) match {
-        case null => fc.newBuilder.result()
-        case xs   => fc.build(xs.getArrayValue.getValuesList.asScala.iterator.map(f.fromField))
-      }
-      override def put(r: Entity.Builder, k: String, v: S[V]): Entity.Builder =
-        r.putProperties(
-          k,
+  implicit def efSeq[T, S[T]](
+    implicit f: EntityField[T],
+    ts: S[T] => Seq[T],
+    fc: FactoryCompat[T, S[T]]
+  ): EntityField[S[T]] =
+    new Primitive[S[T]] {
+      override def from(v: Value): S[T] =
+        if (v == null) {
+          fc.newBuilder.result()
+        } else {
+          fc.build(v.getArrayValue.getValuesList.asScala.iterator.map(f.from))
+        }
+      override def to(v: S[T]): Value.Builder =
+        if (v.isEmpty) {
+          null
+        } else {
           Value
             .newBuilder()
             .setArrayValue(
               v.foldLeft(ArrayValue.newBuilder()) { (b, x) =>
-                  b.addValues(f.toField(x))
+                  b.addValues(f.to(x))
                 }
                 .build()
             )
-            .build()
-        )
+        }
     }
-
-  implicit def efType[V](implicit t: EntityType[V]): EntityField[V] = new EntityField[V] {
-    override def fromField(v: Value): V = t.from(v.getEntityValue)
-    override def toField(v: V): Value.Builder = makeValue(t.to(v))
-  }
 }

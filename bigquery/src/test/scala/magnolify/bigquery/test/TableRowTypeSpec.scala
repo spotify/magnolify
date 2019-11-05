@@ -46,8 +46,7 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
     }
   }
 
-  implicit val trfInt: TableRowField[Int] =
-    TableRowField.at[Int]("INT64")(_.toString.toInt)(identity)
+  implicit val trfInt: TableRowField[Int] = TableRowField.from[Long](_.toInt)(_.toLong)
 
   test[Integers]
   test[Required]
@@ -64,9 +63,9 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
     import Custom._
     implicit val eqUri: Eq[URI] = Eq.by(_.toString)
     implicit val eqDuration: Eq[JDuration] = Eq.by(_.toMillis)
-    implicit val trfUri: TableRowField[URI] = TableRowField[String].imap(URI.create)(_.toString)
+    implicit val trfUri: TableRowField[URI] = TableRowField.from[String](URI.create)(_.toString)
     implicit val trfDuration: TableRowField[JDuration] =
-      TableRowField[Long].imap(JDuration.ofMillis)(_.toMillis)
+      TableRowField.from[Long](JDuration.ofMillis)(_.toMillis)
     test[Custom]
   }
 
@@ -86,6 +85,11 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
     implicit val eqTime: Eq[LocalTime] = Eq.instance((x, y) => (x compareTo y) == 0)
     implicit val eqDateTime: Eq[LocalDateTime] = Eq.instance((x, y) => (x compareTo y) == 0)
     test[BigQueryTypes]
+  }
+
+  {
+    implicit val efInt: TableRowField[Int] = TableRowField.from[Long](_.toInt)(_.toLong)
+    implicit val efUri: TableRowField[URI] = TableRowField.from[String](URI.create)(_.toString)
   }
 }
 

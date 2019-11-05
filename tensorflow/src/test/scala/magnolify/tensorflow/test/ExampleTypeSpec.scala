@@ -41,13 +41,13 @@ object ExampleTypeSpec extends MagnolifySpec("ExampleType") {
     }
   }
 
-  implicit val efInt: ExampleField[Int] = ExampleField.atLong(_.toInt)(_.toLong)
+  implicit val efInt: ExampleField.Primitive[Int] = ExampleField.from[Long](_.toInt)(_.toLong)
 
   {
-    implicit val efBoolean: ExampleField[Boolean] =
-      ExampleField.atLong(_ == 1)(x => if (x) 1 else 0)
-    implicit val efString: ExampleField[String] =
-      ExampleField.atBytes(_.toStringUtf8)(ByteString.copyFromUtf8)
+    implicit val efBoolean: ExampleField.Primitive[Boolean] =
+      ExampleField.from[Long](_ == 1)(x => if (x) 1 else 0)
+    implicit val efString: ExampleField.Primitive[String] =
+      ExampleField.from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
     test[Integers]
     test[Required]
     test[Nullable]
@@ -64,11 +64,12 @@ object ExampleTypeSpec extends MagnolifySpec("ExampleType") {
     import Custom._
     implicit val eqUri: Eq[URI] = Eq.by(_.toString)
     implicit val eqDuration: Eq[Duration] = Eq.by(_.toMillis)
-    implicit val efUri: ExampleField[URI] = ExampleField.atBytes(x => URI.create(x.toStringUtf8))(
-      x => ByteString.copyFromUtf8(x.toString)
-    )
-    implicit val efDuration: ExampleField[Duration] =
-      ExampleField.atLong(Duration.ofMillis)(_.toMillis)
+    implicit val efUri: ExampleField.Primitive[URI] =
+      ExampleField.from[ByteString](x => URI.create(x.toStringUtf8))(
+        x => ByteString.copyFromUtf8(x.toString)
+      )
+    implicit val efDuration: ExampleField.Primitive[Duration] =
+      ExampleField.from[Long](Duration.ofMillis)(_.toMillis)
 
     test[Custom]
   }
@@ -82,6 +83,6 @@ object ExampleTypeSpec extends MagnolifySpec("ExampleType") {
 }
 
 // Option[T] and Seq[T] not supported
-case class ExampleNested(b: Boolean, i: Int, s: String, r: Required)
+case class ExampleNested(b: Boolean, i: Int, s: String, r: Required, o: Option[Required])
 
 case class ExampleTypes(bs: ByteString)
