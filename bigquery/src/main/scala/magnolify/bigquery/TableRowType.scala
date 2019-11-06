@@ -16,13 +16,13 @@
  */
 package magnolify.bigquery
 
-import com.google.api.services.bigquery.model.TableFieldSchema
-import com.google.api.services.bigquery.model.TableRow
-import com.google.api.services.bigquery.model.TableSchema
+import java.{util => ju}
+
+import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.common.io.BaseEncoding
 import magnolia._
 import magnolify.shared.Converter
-import magnolify.shims._
+import magnolify.shims.FactoryCompat
 
 import scala.collection.JavaConverters._
 import scala.language.experimental.macros
@@ -59,7 +59,7 @@ object TableRowField {
     override type ToT = To
   }
 
-  trait Primitive[T] extends Aux[T, Any, Any]
+  trait Generic[T] extends Aux[T, Any, Any]
   trait Record[T] extends Aux[T, java.util.Map[String, AnyRef], TableRow]
 
   //////////////////////////////////////////////////
@@ -109,7 +109,7 @@ object TableRowField {
 
   //////////////////////////////////////////////////
 
-  private def at[T](tpe: String)(f: Any => T)(g: T => Any): TableRowField[T] = new Primitive[T] {
+  private def at[T](tpe: String)(f: Any => T)(g: T => Any): TableRowField[T] = new Generic[T] {
     override def fieldSchema: TableFieldSchema =
       new TableFieldSchema().setType(tpe).setMode("REQUIRED")
     override def from(v: Any): T = f(v)
@@ -134,12 +134,12 @@ object TableRowField {
   implicit val trfDateTime = at("DATETIME")(toLocalDateTime)(fromLocalDateTime)
 
   implicit def trfOption[T](implicit f: TableRowField[T]): TableRowField[Option[T]] =
-    new Primitive[Option[T]] {
+    new Aux[Option[T], f.FromT, f.ToT] {
       override def fieldSchema: TableFieldSchema = f.fieldSchema.setMode("NULLABLE")
-      override def from(v: Any): Option[T] =
-        if (v == null) None else Some(f.fromAny(v))
-      override def to(v: Option[T]): Any = v match {
-        case None    => null
+      override def from(v: f.FromT): Option[T] =
+        if (v == null) None else Some(f.from(v))
+      override def to(v: Option[T]): f.ToT = v match {
+        case None    => null.asInstanceOf[f.ToT]
         case Some(x) => f.to(x)
       }
     }
@@ -149,14 +149,14 @@ object TableRowField {
     ts: S[T] => Seq[T],
     fc: FactoryCompat[T, S[T]]
   ): TableRowField[S[T]] =
-    new Primitive[S[T]] {
+    new Aux[S[T], ju.List[f.FromT], ju.List[f.ToT]] {
       override def fieldSchema: TableFieldSchema = f.fieldSchema.setMode("REPEATED")
-      override def from(v: Any): S[T] =
+      override def from(v: ju.List[f.FromT]): S[T] =
         if (v == null) {
           fc.newBuilder.result()
         } else {
-          fc.build(v.asInstanceOf[java.util.List[_]].asScala.iterator.map(f.fromAny))
+          fc.build(v.asScala.iterator.map(f.from))
         }
-      override def to(v: S[T]): Any = if (v.isEmpty) null else v.map(f.to(_)).asJava
+      override def to(v: S[T]): ju.List[f.ToT] = if (v.isEmpty) null else v.map(f.to(_)).asJava
     }
 }

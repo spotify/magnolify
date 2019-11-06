@@ -5,8 +5,8 @@ import java.{lang => jl, util => ju}
 import com.google.protobuf.ByteString
 import magnolia._
 import magnolify.shared.Converter
-import magnolify.shims._
-import org.tensorflow.example.{BytesList, Example, Feature, Features, FloatList, Int64List}
+import magnolify.shims.FactoryCompat
+import org.tensorflow.example._
 
 import scala.collection.JavaConverters._
 import scala.language.experimental.macros

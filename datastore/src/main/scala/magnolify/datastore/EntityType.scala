@@ -44,7 +44,6 @@ sealed trait EntityField[T] extends Serializable { self =>
 }
 
 object EntityField {
-  trait Primitive[T] extends EntityField[T]
   trait Record[T] extends EntityField[T] {
     def fromEntity(v: Entity): T
     def toEntity(v: T): Entity.Builder
@@ -79,7 +78,7 @@ object EntityField {
 
   def apply[T](implicit f: EntityField[T]): EntityField[T] = f
 
-  def at[T](f: Value => T)(g: T => Value.Builder): EntityField[T] = new Primitive[T] {
+  def at[T](f: Value => T)(g: T => Value.Builder): EntityField[T] = new EntityField[T] {
     override def from(v: Value): T = f(v)
     override def to(v: T): Value.Builder = g(v)
   }
@@ -106,7 +105,7 @@ object EntityField {
   implicit val efTimestamp = at(TimestampConverter.toInstant)(TimestampConverter.fromInstant)
 
   implicit def efOption[T](implicit f: EntityField[T]): EntityField[Option[T]] =
-    new Primitive[Option[T]] {
+    new EntityField[Option[T]] {
       override def from(v: Value): Option[T] = if (v == null) None else Some(f.from(v))
       override def to(v: Option[T]): Value.Builder = v match {
         case None    => null
@@ -119,7 +118,7 @@ object EntityField {
     ts: S[T] => Seq[T],
     fc: FactoryCompat[T, S[T]]
   ): EntityField[S[T]] =
-    new Primitive[S[T]] {
+    new EntityField[S[T]] {
       override def from(v: Value): S[T] =
         if (v == null) {
           fc.newBuilder.result()

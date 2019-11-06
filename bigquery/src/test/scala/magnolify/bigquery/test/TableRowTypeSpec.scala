@@ -17,7 +17,7 @@
 package magnolify.bigquery.test
 
 import java.net.URI
-import java.time.{Duration => JDuration}
+import java.{time => jt}
 
 import cats._
 import cats.instances.all._
@@ -62,10 +62,10 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
   {
     import Custom._
     implicit val eqUri: Eq[URI] = Eq.by(_.toString)
-    implicit val eqDuration: Eq[JDuration] = Eq.by(_.toMillis)
+    implicit val eqDuration: Eq[jt.Duration] = Eq.by(_.toMillis)
     implicit val trfUri: TableRowField[URI] = TableRowField.from[String](URI.create)(_.toString)
-    implicit val trfDuration: TableRowField[JDuration] =
-      TableRowField.from[Long](JDuration.ofMillis)(_.toMillis)
+    implicit val trfDuration: TableRowField[jt.Duration] =
+      TableRowField.from[Long](jt.Duration.ofMillis)(_.toMillis)
     test[Custom]
   }
 
