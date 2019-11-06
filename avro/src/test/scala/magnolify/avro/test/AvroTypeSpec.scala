@@ -17,15 +17,17 @@
 package magnolify.avro.test
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
+import java.net.URI
+import java.time.Duration
 
 import cats._
 import cats.instances.all._
-import magnolify.avro.{AvroType, GenericRecordType}
-import magnolify.avro.GenericRecordType._
+import magnolify.avro2._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.test.Simple._
 import magnolify.test._
+import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericDatumReader, GenericDatumWriter, GenericRecord}
 import org.apache.avro.io.{DecoderFactory, EncoderFactory}
 import org.scalacheck._
@@ -33,59 +35,71 @@ import org.scalacheck._
 import scala.reflect._
 
 object AvroTypeSpec extends MagnolifySpec("AvroRecordType") {
-  private val encoder = EncoderFactory.get
-  private val decoder = DecoderFactory.get
-
-  private def test[T: Arbitrary: ClassTag](
-    implicit tpe: AvroType.Aux2[T, GenericRecord],
-    eq: Eq[T]
-  ): Unit = {
+  private def test[T: Arbitrary: ClassTag](implicit tpe: AvroType[T], eq: Eq[T]): Unit = {
     ensureSerializable(tpe)
-    val converter = GenericRecordType[T]
-
-    property(className[T]) = Prop.forAll { caseClass: T =>
-      val avroRepr = converter.to(caseClass)
-      val avroCopy = roundtripAvro(avroRepr)
-      val copy = converter.from(avroCopy)
-
-      Prop.all(eq.eqv(caseClass, copy))
+    // FIXME: test schema
+    val copier = new Copier(tpe.schema)
+    property(className[T]) = Prop.forAll { t: T =>
+      val r = tpe(t)
+      val rCopy = copier(r)
+      val copy = tpe(rCopy)
+      eq.eqv(t, copy)
     }
   }
 
-  // Mimics Beam's ser/de of Avro records
-  private def roundtripAvro(gr: GenericRecord): GenericRecord = {
-    val datumWriter = new GenericDatumWriter[GenericRecord](gr.getSchema)
-    val bytesOut = new ByteArrayOutputStream()
-    datumWriter.write(gr, encoder.directBinaryEncoder(bytesOut, null))
-
-    val datumReader = new GenericDatumReader[GenericRecord](gr.getSchema)
-    datumReader.read(
-      null,
-      decoder.directBinaryDecoder(new ByteArrayInputStream(bytesOut.toByteArray), null)
-    )
-  }
-
-  case class Bytes(b: Array[Byte])
-  implicit val eqBytes: Eq[Bytes] = Eq.instance[Bytes] { case (b1, b2) => b1.b.sameElements(b2.b) }
+  test[Integers]
+  test[Required]
+  test[Nullable]
+  test[Repeated]
+  test[Nested]
 
   {
-    test[Integers]
-    test[Required]
-    test[Nullable]
-    test[Repeated]
-    test[Nested]
-    test[Bytes]
+    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
+    test[Collections]
   }
 
-  case class CollectionPrimitive(l: List[Int], m: Map[String, Int])
-  case class CollectionNestedRecord(l: List[Nested], m: Map[String, Nested])
-  case class CollectionNestedList(l: List[Nested], m: Map[String, List[Int]])
-  case class CollectionNullable(l: List[Nullable], m: Map[String, Nullable])
+  {
+    import Custom._
+    implicit val eqUri: Eq[URI] = Eq.by(_.toString)
+    implicit val eqDuration: Eq[Duration] = Eq.by(_.toMillis)
+    implicit val trfUri: AvroField[URI] = AvroField.from[String](URI.create)(_.toString)
+    implicit val trfDuration: AvroField[Duration] =
+      AvroField.from[Long](Duration.ofMillis)(_.toMillis)
+    test[Custom]
+  }
 
   {
-    test[CollectionPrimitive]
-    test[CollectionNestedRecord]
-    test[CollectionNestedList]
-    test[CollectionNullable]
+    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
+    test[AvroTypes]
+  }
+//  }
+//
+//  case class CollectionPrimitive(l: List[Int], m: Map[String, Int])
+//  case class CollectionNestedRecord(l: List[Nested], m: Map[String, Nested])
+//  case class CollectionNestedList(l: List[Nested], m: Map[String, List[Int]])
+//  case class CollectionNullable(l: List[Nullable], m: Map[String, Nullable])
+//
+//  {
+//    test[CollectionPrimitive]
+//    test[CollectionNestedRecord]
+//    test[CollectionNestedList]
+//    test[CollectionNullable]
+//  }
+}
+
+case class AvroTypes(bs: Array[Byte])
+
+private class Copier(private val schema: Schema) {
+  private val encoder = EncoderFactory.get
+  private val decoder = DecoderFactory.get
+
+  private val datumWriter = new GenericDatumWriter[GenericRecord](schema)
+  private val datumReader = new GenericDatumReader[GenericRecord](schema)
+
+  def apply(r: GenericRecord): GenericRecord = {
+    val baos = new ByteArrayOutputStream()
+    datumWriter.write(r, encoder.directBinaryEncoder(baos, null))
+    datumReader.read(null,
+      decoder.directBinaryDecoder(new ByteArrayInputStream(baos.toByteArray), null))
   }
 }

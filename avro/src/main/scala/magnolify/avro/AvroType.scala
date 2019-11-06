@@ -45,7 +45,7 @@ object GenericRecordType {
 
   def apply[T](implicit tpe: AvroType.Aux2[T, GenericRecord]): Converter[T, Any, GenericRecord] =
     new Converter[T, Any, GenericRecord] {
-      override protected def empty: GenericRecord = ??? // Not used
+      protected def empty: GenericRecord = ??? // Not used
       override def from(r: Any): T = tpe.from(r)
       override def to(t: T): GenericRecord = tpe.to(t)
     }
