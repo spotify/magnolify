@@ -182,7 +182,7 @@ lazy val avro: Project = project
     moduleName := "magnolify-avro",
     description := "Magnolia add-on for Apache Avro",
     libraryDependencies ++= Seq(
-      "org.apache.avro" % "avro" % avroVersion % "provided,test"
+      "org.apache.avro" % "avro" % avroVersion % Provided
     )
   )
   .dependsOn(
