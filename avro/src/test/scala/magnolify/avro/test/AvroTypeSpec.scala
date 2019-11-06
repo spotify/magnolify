@@ -22,7 +22,7 @@ import java.time.Duration
 
 import cats._
 import cats.instances.all._
-import magnolify.avro2._
+import magnolify.avro._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.test.Simple._
@@ -32,10 +32,12 @@ import org.apache.avro.generic.{GenericDatumReader, GenericDatumWriter, GenericR
 import org.apache.avro.io.{DecoderFactory, EncoderFactory}
 import org.scalacheck._
 
+import scala.collection.JavaConverters._
 import scala.reflect._
 
 object AvroTypeSpec extends MagnolifySpec("AvroRecordType") {
-  private def test[T: Arbitrary: ClassTag](implicit tpe: AvroType[T], eq: Eq[T]): Unit = {
+  private def test[T: Arbitrary: ClassTag](implicit tpe: AvroType[T], eqt: Eq[T],
+                                           eqr: Eq[GenericRecord] = Eq.instance(_ == _)): Unit = {
     ensureSerializable(tpe)
     // FIXME: test schema
     val copier = new Copier(tpe.schema)
@@ -43,7 +45,7 @@ object AvroTypeSpec extends MagnolifySpec("AvroRecordType") {
       val r = tpe(t)
       val rCopy = copier(r)
       val copy = tpe(rCopy)
-      eq.eqv(t, copy)
+      Prop.all(eqt.eqv(t, copy), eqr.eqv(r, rCopy))
     }
   }
 
@@ -72,22 +74,22 @@ object AvroTypeSpec extends MagnolifySpec("AvroRecordType") {
     implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
     test[AvroTypes]
   }
-//  }
-//
-//  case class CollectionPrimitive(l: List[Int], m: Map[String, Int])
-//  case class CollectionNestedRecord(l: List[Nested], m: Map[String, Nested])
-//  case class CollectionNestedList(l: List[Nested], m: Map[String, List[Int]])
-//  case class CollectionNullable(l: List[Nullable], m: Map[String, Nullable])
-//
-//  {
-//    test[CollectionPrimitive]
-//    test[CollectionNestedRecord]
-//    test[CollectionNestedList]
-//    test[CollectionNullable]
-//  }
+
+  {
+    def f[T](r: GenericRecord): List[(String, Any)] =
+      r.get("m").asInstanceOf[java.util.Map[CharSequence, Any]].asScala
+        .toList
+        .map(kv => (kv._1.toString, kv._2))
+        .sortBy(_._1)
+    implicit val eqMapPrimitive: Eq[GenericRecord] = Eq.instance((x, y) => f(x) == f(y))
+    test[MapPrimitive]
+    test[MapNested]
+  }
 }
 
 case class AvroTypes(bs: Array[Byte])
+case class MapPrimitive(m: Map[String, Int])
+case class MapNested(m: Map[String, Nested])
 
 private class Copier(private val schema: Schema) {
   private val encoder = EncoderFactory.get
