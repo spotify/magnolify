@@ -38,9 +38,6 @@ object ExampleField {
     def fromValue(v: ValueT): T
     def toValue(v: T): ValueT
 
-    def fromValues(v: ju.List[ValueT]): ju.List[T] = v.asScala.map(fromValue).asJava
-    def toValues(v: Iterable[T]): Iterable[ValueT] = v.map(toValue)
-
     override def get(f: Features, k: String): T = {
       val l = fromFeature(f.getFeatureOrDefault(k, null))
       require(l.size() == 1)
@@ -101,19 +98,17 @@ object ExampleField {
       if (v == null) {
         java.util.Collections.emptyList()
       } else {
-        fromValues(v.getInt64List.getValueList)
+        v.getInt64List.getValueList.asInstanceOf[ju.List[Long]]
       }
 
     override def toFeature(v: Iterable[Long]): Feature =
       Feature
         .newBuilder()
-        .setInt64List(Int64List.newBuilder().addAllValue(toValues(v).asJava))
+        .setInt64List(Int64List.newBuilder().addAllValue(v.asInstanceOf[Iterable[jl.Long]].asJava))
         .build()
 
     override def fromValue(v: jl.Long): Long = v
     override def toValue(v: Long): jl.Long = v
-    override def fromValues(v: ju.List[jl.Long]): ju.List[Long] = v.asInstanceOf[ju.List[Long]]
-    override def toValues(v: Iterable[Long]): Iterable[jl.Long] = v.asInstanceOf[Iterable[jl.Long]]
   }
 
   implicit val efFloat = new Primitive[Float] {
@@ -122,20 +117,17 @@ object ExampleField {
       if (v == null) {
         java.util.Collections.emptyList()
       } else {
-        fromValues(v.getFloatList.getValueList)
+        v.getFloatList.getValueList.asInstanceOf[ju.List[Float]]
       }
 
     override def toFeature(v: Iterable[Float]): Feature =
       Feature
         .newBuilder()
-        .setFloatList(FloatList.newBuilder().addAllValue(toValues(v).asJava))
+        .setFloatList(FloatList.newBuilder().addAllValue(v.asInstanceOf[Iterable[jl.Float]].asJava))
         .build()
 
     override def fromValue(v: jl.Float): Float = v
     override def toValue(v: Float): jl.Float = v
-    override def fromValues(v: ju.List[jl.Float]): ju.List[Float] = v.asInstanceOf[ju.List[Float]]
-    override def toValues(v: Iterable[Float]): Iterable[jl.Float] =
-      v.asInstanceOf[Iterable[jl.Float]]
   }
 
   implicit val efBytes = new Primitive[ByteString] {
@@ -144,19 +136,17 @@ object ExampleField {
       if (v == null) {
         java.util.Collections.emptyList()
       } else {
-        fromValues(v.getBytesList.getValueList)
+        v.getBytesList.getValueList
       }
 
     override def toFeature(v: Iterable[ByteString]): Feature =
       Feature
         .newBuilder()
-        .setBytesList(BytesList.newBuilder().addAllValue(toValues(v).asJava))
+        .setBytesList(BytesList.newBuilder().addAllValue(v.asJava))
         .build()
 
     override def fromValue(v: ByteString): ByteString = v
     override def toValue(v: ByteString): ByteString = v
-    override def fromValues(v: ju.List[ByteString]): ju.List[ByteString] = v
-    override def toValues(v: Iterable[ByteString]): Iterable[ByteString] = v
   }
 
   implicit def efOption[T](implicit ef: ExampleField[T]): ExampleField[Option[T]] =
