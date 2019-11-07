@@ -108,7 +108,7 @@ lazy val root: Project = project
     cats,
     // FIXME: implement these
     // diffy,
-    // avro,
+    avro,
     bigquery,
     datastore,
     tensorflow,
@@ -187,6 +187,7 @@ lazy val avro: Project = project
   )
   .dependsOn(
     shared,
+    cats % Test,
     scalacheck % Test,
     test % "test->test"
   )
