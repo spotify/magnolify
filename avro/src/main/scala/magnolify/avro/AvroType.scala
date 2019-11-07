@@ -137,18 +137,22 @@ object AvroField {
       }
     }
 
-  implicit def afSeq[T, S[T]](
+  implicit def afSeq[T, C[T]](
     implicit f: AvroField[T],
-    ts: S[T] => Seq[T],
-    fc: FactoryCompat[T, S[T]]
-  ): AvroField[S[T]] =
-    new Aux[S[T], ju.List[f.FromT], GenericArray[f.ToT]] {
+    ti: C[T] => Iterable[T],
+    fc: FactoryCompat[T, C[T]]
+  ): AvroField[C[T]] =
+    new Aux[C[T], ju.List[f.FromT], GenericArray[f.ToT]] {
       override def schema: Schema = Schema.createArray(f.schema)
       override def defaultVal: Any = ju.Collections.emptyList()
-      override def from(v: ju.List[f.FromT]): S[T] =
+      override def from(v: ju.List[f.FromT]): C[T] =
         if (v == null) fc.newBuilder.result() else fc.build(v.asScala.iterator.map(f.from))
-      override def to(v: S[T]): GenericArray[f.ToT] =
-        if (v.isEmpty) null else new GenericData.Array[f.ToT](schema, v.map(f.to(_)).asJava)
+      override def to(v: C[T]): GenericArray[f.ToT] =
+        if (v.isEmpty) {
+          null
+        } else {
+          new GenericData.Array[f.ToT](schema, v.iterator.map(f.to(_)).toList.asJava)
+        }
     }
 
   implicit def afMap[T](implicit f: AvroField[T]): AvroField[Map[String, T]] =

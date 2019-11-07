@@ -113,19 +113,19 @@ object EntityField {
       }
     }
 
-  implicit def efSeq[T, S[T]](
+  implicit def efSeq[T, C[T]](
     implicit f: EntityField[T],
-    ts: S[T] => Seq[T],
-    fc: FactoryCompat[T, S[T]]
-  ): EntityField[S[T]] =
-    new EntityField[S[T]] {
-      override def from(v: Value): S[T] =
+    ti: C[T] => Iterable[T],
+    fc: FactoryCompat[T, C[T]]
+  ): EntityField[C[T]] =
+    new EntityField[C[T]] {
+      override def from(v: Value): C[T] =
         if (v == null) {
           fc.newBuilder.result()
         } else {
           fc.build(v.getArrayValue.getValuesList.asScala.iterator.map(f.from))
         }
-      override def to(v: S[T]): Value.Builder =
+      override def to(v: C[T]): Value.Builder =
         if (v.isEmpty) {
           null
         } else {

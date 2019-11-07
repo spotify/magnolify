@@ -164,15 +164,15 @@ object ExampleField {
       }
     }
 
-  implicit def efSeq[T, S[T]](
+  implicit def efSeq[T, C[T]](
     implicit ef: Primitive[T],
-    ts: S[T] => Seq[T],
-    fc: FactoryCompat[T, S[T]]
-  ): ExampleField[S[T]] = new ExampleField[S[T]] {
-    override def get(f: Features, k: String): S[T] =
+    ti: C[T] => Iterable[T],
+    fc: FactoryCompat[T, C[T]]
+  ): ExampleField[C[T]] = new ExampleField[C[T]] {
+    override def get(f: Features, k: String): C[T] =
       fc.build(ef.fromFeature(f.getFeatureOrDefault(k, null)).asScala)
 
-    override def put(f: Features.Builder, k: String, v: S[T]): Features.Builder =
+    override def put(f: Features.Builder, k: String, v: C[T]): Features.Builder =
       if (v.isEmpty) f else f.putFeature(k, ef.toFeature(v))
   }
 }

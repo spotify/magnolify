@@ -59,14 +59,13 @@ object AvroTypeSpec extends MagnolifySpec("AvroRecordType") {
   test[Nested]
 
   {
-    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
+    import Collections._
     test[Collections]
+    test[MoreCollections]
   }
 
   {
     import Custom._
-    implicit val eqUri: Eq[URI] = Eq.by(_.toString)
-    implicit val eqDuration: Eq[Duration] = Eq.by(_.toMillis)
     implicit val trfUri: AvroField[URI] = AvroField.from[String](URI.create)(_.toString)
     implicit val trfDuration: AvroField[Duration] =
       AvroField.from[Long](Duration.ofMillis)(_.toMillis)
@@ -89,6 +88,10 @@ object AvroTypeSpec extends MagnolifySpec("AvroRecordType") {
     implicit val eqMapPrimitive: Eq[GenericRecord] = Eq.instance((x, y) => f(x) == f(y))
     test[MapPrimitive]
     test[MapNested]
+  }
+
+  {
+    implicit val afUri: AvroField[URI] = AvroField.from[String](URI.create)(_.toString)
   }
 }
 

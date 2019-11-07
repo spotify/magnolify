@@ -56,14 +56,13 @@ object ExampleTypeSpec extends MagnolifySpec("ExampleType") {
   }
 
   {
-    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
+    import Collections._
     test[Collections]
+    test[MoreCollections]
   }
 
   {
     import Custom._
-    implicit val eqUri: Eq[URI] = Eq.by(_.toString)
-    implicit val eqDuration: Eq[Duration] = Eq.by(_.toMillis)
     implicit val efUri: ExampleField.Primitive[URI] =
       ExampleField.from[ByteString](x => URI.create(x.toStringUtf8))(
         x => ByteString.copyFromUtf8(x.toString)
@@ -79,6 +78,10 @@ object ExampleTypeSpec extends MagnolifySpec("ExampleType") {
       Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
     implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
     test[ExampleTypes]
+  }
+
+  {
+    implicit val efInt: ExampleField[Int] = ExampleField.from[Long](_.toInt)(_.toLong)
   }
 }
 

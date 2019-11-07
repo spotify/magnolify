@@ -144,19 +144,20 @@ object TableRowField {
       }
     }
 
-  implicit def trfSeq[T, S[T]](
+  implicit def trfSeq[T, C[T]](
     implicit f: TableRowField[T],
-    ts: S[T] => Seq[T],
-    fc: FactoryCompat[T, S[T]]
-  ): TableRowField[S[T]] =
-    new Aux[S[T], ju.List[f.FromT], ju.List[f.ToT]] {
+    ti: C[T] => Iterable[T],
+    fc: FactoryCompat[T, C[T]]
+  ): TableRowField[C[T]] =
+    new Aux[C[T], ju.List[f.FromT], ju.List[f.ToT]] {
       override def fieldSchema: TableFieldSchema = f.fieldSchema.setMode("REPEATED")
-      override def from(v: ju.List[f.FromT]): S[T] =
+      override def from(v: ju.List[f.FromT]): C[T] =
         if (v == null) {
           fc.newBuilder.result()
         } else {
           fc.build(v.asScala.iterator.map(f.from))
         }
-      override def to(v: S[T]): ju.List[f.ToT] = if (v.isEmpty) null else v.map(f.to(_)).asJava
+      override def to(v: C[T]): ju.List[f.ToT] =
+        if (v.isEmpty) null else v.iterator.map(f.to(_)).toList.asJava
     }
 }

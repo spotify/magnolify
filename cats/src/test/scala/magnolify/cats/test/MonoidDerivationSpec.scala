@@ -55,8 +55,6 @@ object MonoidDerivationSpec extends MagnolifySpec("MonoidDerivation") {
 
   {
     import Custom._
-    implicit val eqUri: Eq[URI] = Eq.by(_.toString)
-    implicit val eqDuration: Eq[Duration] = Eq.by(_.toMillis)
     implicit val mUri: Monoid[URI] =
       Monoid.instance(URI.create(""), (x, y) => URI.create(x.toString + y.toString))
     implicit val mDuration: Monoid[Duration] = Monoid.instance(Duration.ZERO, _ plus _)

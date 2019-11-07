@@ -50,8 +50,6 @@ object EqDerivationSpec extends MagnolifySpec("EqDerivation") {
 
   {
     import Custom._
-    implicit val eqUri: Eq[URI] = Eq.by(_.toString)
-    implicit val eqDuration: Eq[Duration] = Eq.by(_.toMillis)
     test[Custom]
   }
 

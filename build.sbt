@@ -129,7 +129,8 @@ lazy val test: Project = project
   .settings(
     commonSettings ++ noPublishSettings,
     libraryDependencies ++= Seq(
-      "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
+      "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test,
+      "org.typelevel" %% "cats-core" % catsVersion % Test
     )
   )
 

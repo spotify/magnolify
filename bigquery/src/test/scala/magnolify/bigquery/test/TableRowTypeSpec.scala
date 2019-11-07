@@ -55,14 +55,13 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
   test[Nested]
 
   {
-    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
+    import Collections._
     test[Collections]
+    test[MoreCollections]
   }
 
   {
     import Custom._
-    implicit val eqUri: Eq[URI] = Eq.by(_.toString)
-    implicit val eqDuration: Eq[jt.Duration] = Eq.by(_.toMillis)
     implicit val trfUri: TableRowField[URI] = TableRowField.from[String](URI.create)(_.toString)
     implicit val trfDuration: TableRowField[jt.Duration] =
       TableRowField.from[Long](jt.Duration.ofMillis)(_.toMillis)

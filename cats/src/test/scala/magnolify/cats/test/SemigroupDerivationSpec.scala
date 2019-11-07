@@ -39,8 +39,6 @@ object SemigroupDerivationSpec extends MagnolifySpec("SemigroupDerivation") {
 
   {
     import Custom._
-    implicit val eqUri: Eq[URI] = Eq.by(_.toString)
-    implicit val eqDuration: Eq[Duration] = Eq.by(_.toMillis)
     implicit val sgUri: Semigroup[URI] =
       Semigroup.instance((x, y) => URI.create(x.toString + y.toString))
     implicit val sgDuration: Semigroup[Duration] = Semigroup.instance(_ plus _)

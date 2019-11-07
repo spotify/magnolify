@@ -50,14 +50,13 @@ object EntityTypeSpec extends MagnolifySpec("EntityType") {
   test[Nested]
 
   {
-    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
+    import Collections._
     test[Collections]
+    test[MoreCollections]
   }
 
   {
     import Custom._
-    implicit val eqUri: Eq[URI] = Eq.by(_.toString)
-    implicit val eqDuration: Eq[Duration] = Eq.by(_.toMillis)
     implicit val efUri: EntityField[URI] = EntityField.from[String](URI.create)(_.toString)
     implicit val efDuration: EntityField[Duration] =
       EntityField.from[Long](Duration.ofMillis)(_.toMillis)
@@ -77,8 +76,7 @@ object EntityTypeSpec extends MagnolifySpec("EntityType") {
   {
     implicit val efInt: EntityField[Int] =
       EntityField.at[Int](_.getIntegerValue.toInt)(makeValue(_))
-    implicit val efUri: EntityField[URI] =
-      EntityField.from[String](URI.create)(_.toString)
+    implicit val efUri: EntityField[URI] = EntityField.from[String](URI.create)(_.toString)
   }
 }
 

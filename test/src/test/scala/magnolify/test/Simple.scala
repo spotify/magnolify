@@ -20,6 +20,8 @@ import java.net.URI
 import java.time.Duration
 
 import org.scalacheck._
+import cats._
+import cats.instances.all._
 
 object Simple {
   case class Integers(i: Int, l: Long)
@@ -36,7 +38,17 @@ object Simple {
     l: List[Required]
   )
   case class Collections(a: Array[Int], l: List[Int], v: Vector[Int])
+  case class MoreCollections(i: Iterable[Int], s: Seq[Int], is: IndexedSeq[Int], st: Stream[Int])
   case class Custom(u: URI, d: Duration)
+
+  object Collections {
+    implicit def eqIterable[T, C[T]](implicit eq: Eq[T], tt: C[T] => Iterable[T]): Eq[C[T]] =
+      Eq.instance { (x, y) =>
+        val xs = x.toList
+        val ys = y.toList
+        xs.size == ys.size && (x.iterator zip y.iterator).forall((eq.eqv _).tupled)
+      }
+  }
 
   object Custom {
     implicit val arbUri: Arbitrary[URI] =
@@ -45,5 +57,7 @@ object Simple {
       Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Duration.ofMillis(_)))
     implicit val coUri: Cogen[URI] = Cogen(_.toString.hashCode())
     implicit val coDuration: Cogen[Duration] = Cogen(_.toMillis)
+    implicit val eqUri: Eq[URI] = Eq.by(_.toString)
+    implicit val eqDuration: Eq[Duration] = Eq.by(_.toMillis)
   }
 }
