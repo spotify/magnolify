@@ -38,6 +38,7 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
   private def test[T: Arbitrary: ClassTag](implicit tpe: TableRowType[T], eq: Eq[T]): Unit = {
     ensureSerializable(tpe)
     // FIXME: test schema
+    tpe.schema
     property(className[T]) = Prop.forAll { t: T =>
       val r = tpe(t)
       val copy1 = tpe(r)

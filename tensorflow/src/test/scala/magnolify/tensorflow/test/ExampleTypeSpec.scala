@@ -88,4 +88,4 @@ object ExampleTypeSpec extends MagnolifySpec("ExampleType") {
 // Option[T] and Seq[T] not supported
 case class ExampleNested(b: Boolean, i: Int, s: String, r: Required, o: Option[Required])
 
-case class ExampleTypes(bs: ByteString)
+case class ExampleTypes(f: Float, bs: ByteString)
