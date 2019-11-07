@@ -6,10 +6,10 @@ import com.google.protobuf.ByteString
 import magnolia._
 import magnolify.shared.Converter
 import magnolify.shims.FactoryCompat
+import magnolify.shims.JavaConverters._
 import org.tensorflow.example._
 
 import scala.annotation.implicitNotFound
-import scala.collection.JavaConverters._
 import scala.language.experimental.macros
 
 sealed trait ExampleType[T] extends Converter[T, Example, Example.Builder] {

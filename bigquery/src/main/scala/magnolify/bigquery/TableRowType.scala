@@ -23,9 +23,9 @@ import com.google.common.io.BaseEncoding
 import magnolia._
 import magnolify.shared.Converter
 import magnolify.shims.FactoryCompat
+import magnolify.shims.JavaConverters._
 
 import scala.annotation.implicitNotFound
-import scala.collection.JavaConverters._
 import scala.language.experimental.macros
 
 sealed trait TableRowType[T] extends Converter[T, TableRow, TableRow] {

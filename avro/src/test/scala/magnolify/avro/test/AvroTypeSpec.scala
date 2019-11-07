@@ -25,6 +25,7 @@ import cats.instances.all._
 import magnolify.avro._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
+import magnolify.shims.JavaConverters._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.apache.avro.Schema
@@ -32,7 +33,6 @@ import org.apache.avro.generic.{GenericDatumReader, GenericDatumWriter, GenericR
 import org.apache.avro.io.{DecoderFactory, EncoderFactory}
 import org.scalacheck._
 
-import scala.collection.JavaConverters._
 import scala.reflect._
 
 object AvroTypeSpec extends MagnolifySpec("AvroRecordType") {

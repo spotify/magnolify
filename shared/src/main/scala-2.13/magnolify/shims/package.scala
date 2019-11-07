@@ -40,4 +40,6 @@ package object shims {
   }
 
   object SerializableCanBuildFroms
+
+  val JavaConverters = scala.jdk.CollectionConverters
 }

@@ -6,11 +6,11 @@ import java.{util => ju}
 import magnolia._
 import magnolify.shared.Converter
 import magnolify.shims.FactoryCompat
+import magnolify.shims.JavaConverters._
 import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericArray, GenericData, GenericRecord, GenericRecordBuilder}
 
 import scala.annotation.implicitNotFound
-import scala.collection.JavaConverters._
 import scala.language.experimental.macros
 
 sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {

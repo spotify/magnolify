@@ -80,4 +80,6 @@ package object shims {
     implicit def vectorCBF[A] = cbf(() => Vector.newBuilder[A])
     implicit def streamCBF[A] = cbf(() => Stream.newBuilder[A])
   }
+
+  val JavaConverters = scala.collection.JavaConverters
 }
