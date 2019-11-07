@@ -120,7 +120,10 @@ lazy val shared: Project = project
   .settings(
     commonSettings,
     moduleName := "magnolify-shared",
-    description := "Shared code for Magnolify"
+    description := "Shared code for Magnolify",
+    libraryDependencies ++= Seq(
+      "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
+    )
   )
 
 // shared code for unit tests

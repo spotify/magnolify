@@ -44,7 +44,7 @@ package object shims {
       }
 
     implicit def arrayFC[A: ClassTag] = FactoryCompat(() => Array.newBuilder[A])
-    // List <: Traversavble
+    // Deprecated in 2.13
     // implicit def traversableFC[A] = FactoryCompat(() => Traversable.newBuilder[A])
     // List <: Iterable
     // implicit def iterableFC[A] = FactoryCompat(() => Iterable.newBuilder[A])
@@ -60,7 +60,8 @@ package object shims {
 
   trait LowPriorityFactoryCompat2 {
     implicit def vectorFC[A] = FactoryCompat(() => Vector.newBuilder[A])
-    implicit def streamFC[A] = FactoryCompat(() => Stream.newBuilder[A])
+    // Deprecated in 2.13
+    // implicit def streamFC[A] = FactoryCompat(() => Stream.newBuilder[A])
   }
 
   object SerializableCanBuildFroms {
