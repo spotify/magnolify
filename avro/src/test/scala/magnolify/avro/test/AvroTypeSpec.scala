@@ -36,8 +36,11 @@ import scala.collection.JavaConverters._
 import scala.reflect._
 
 object AvroTypeSpec extends MagnolifySpec("AvroRecordType") {
-  private def test[T: Arbitrary: ClassTag](implicit tpe: AvroType[T], eqt: Eq[T],
-                                           eqr: Eq[GenericRecord] = Eq.instance(_ == _)): Unit = {
+  private def test[T: Arbitrary: ClassTag](
+    implicit tpe: AvroType[T],
+    eqt: Eq[T],
+    eqr: Eq[GenericRecord] = Eq.instance(_ == _)
+  ): Unit = {
     ensureSerializable(tpe)
     // FIXME: test schema
     val copier = new Copier(tpe.schema)
@@ -77,7 +80,9 @@ object AvroTypeSpec extends MagnolifySpec("AvroRecordType") {
 
   {
     def f[T](r: GenericRecord): List[(String, Any)] =
-      r.get("m").asInstanceOf[java.util.Map[CharSequence, Any]].asScala
+      r.get("m")
+        .asInstanceOf[java.util.Map[CharSequence, Any]]
+        .asScala
         .toList
         .map(kv => (kv._1.toString, kv._2))
         .sortBy(_._1)
@@ -101,7 +106,9 @@ private class Copier(private val schema: Schema) {
   def apply(r: GenericRecord): GenericRecord = {
     val baos = new ByteArrayOutputStream()
     datumWriter.write(r, encoder.directBinaryEncoder(baos, null))
-    datumReader.read(null,
-      decoder.directBinaryDecoder(new ByteArrayInputStream(baos.toByteArray), null))
+    datumReader.read(
+      null,
+      decoder.directBinaryDecoder(new ByteArrayInputStream(baos.toByteArray), null)
+    )
   }
 }

@@ -52,7 +52,10 @@ object AvroField {
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
     override def schema: Schema = Schema.createRecord(
-      caseClass.typeName.short, null, caseClass.typeName.owner, false,
+      caseClass.typeName.short,
+      null,
+      caseClass.typeName.owner,
+      false,
       caseClass.parameters.map { p =>
         new Schema.Field(p.label, p.typeclass.schema, null, p.typeclass.defaultVal)
       }.asJava
@@ -64,10 +67,12 @@ object AvroField {
       caseClass.construct(p => p.typeclass.fromAny(v.get(p.label)))
 
     override def to(v: T): GenericRecord =
-      caseClass.parameters.foldLeft(new GenericRecordBuilder(schema)) { (b, p) =>
-        val f = p.typeclass.to(p.dereference(v))
-        if (f == null) b else b.set(p.label, f)
-      }.build()
+      caseClass.parameters
+        .foldLeft(new GenericRecordBuilder(schema)) { (b, p) =>
+          val f = p.typeclass.to(p.dereference(v))
+          if (f == null) b else b.set(p.label, f)
+        }
+        .build()
   }
 
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
@@ -115,7 +120,8 @@ object AvroField {
   implicit val afFloat = id[Float](Schema.Type.FLOAT)
   implicit val afDouble = id[Double](Schema.Type.DOUBLE)
   implicit val afBytes = aux2[Array[Byte], ByteBuffer](Schema.Type.BYTES)(
-    bb => ju.Arrays.copyOfRange(bb.array(), bb.position(), bb.limit()))(ByteBuffer.wrap)
+    bb => ju.Arrays.copyOfRange(bb.array(), bb.position(), bb.limit())
+  )(ByteBuffer.wrap)
   implicit val afString =
     aux[String, CharSequence, String](Schema.Type.STRING)(_.toString)(identity)
 
@@ -126,7 +132,7 @@ object AvroField {
       override def from(v: f.FromT): Option[T] =
         if (v == null) None else Some(f.from(v))
       override def to(v: Option[T]): f.ToT = v match {
-        case None => null.asInstanceOf[f.ToT]
+        case None    => null.asInstanceOf[f.ToT]
         case Some(x) => f.to(x)
       }
     }
@@ -134,7 +140,8 @@ object AvroField {
   implicit def afSeq[T, S[T]](
     implicit f: AvroField[T],
     ts: S[T] => Seq[T],
-    fc: FactoryCompat[T, S[T]]): AvroField[S[T]] =
+    fc: FactoryCompat[T, S[T]]
+  ): AvroField[S[T]] =
     new Aux[S[T], ju.List[f.FromT], GenericArray[f.ToT]] {
       override def schema: Schema = Schema.createArray(f.schema)
       override def defaultVal: Any = ju.Collections.emptyList()
@@ -144,8 +151,7 @@ object AvroField {
         if (v.isEmpty) null else new GenericData.Array[f.ToT](schema, v.map(f.to(_)).asJava)
     }
 
-  implicit def afMap[T](
-    implicit f: AvroField[T]): AvroField[Map[String, T]] =
+  implicit def afMap[T](implicit f: AvroField[T]): AvroField[Map[String, T]] =
     new Aux[Map[String, T], ju.Map[CharSequence, f.FromT], ju.Map[String, f.ToT]] {
       override def schema: Schema = Schema.createMap(f.schema)
       override def defaultVal: Any = ju.Collections.emptyMap()
@@ -156,6 +162,6 @@ object AvroField {
           v.asScala.iterator.map(kv => (kv._1.toString, f.from(kv._2))).toMap
         }
       override def to(v: Map[String, T]): ju.Map[String, f.ToT] =
-        if (v.isEmpty) null else v.map(kv => (kv._1, f.to(kv._2))).asJava
+        if (v.isEmpty) null else v.iterator.map(kv => (kv._1, f.to(kv._2))).toMap.asJava
     }
 }
