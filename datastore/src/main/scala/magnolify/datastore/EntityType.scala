@@ -23,6 +23,7 @@ import magnolia._
 import magnolify.shared.Converter
 import magnolify.shims.FactoryCompat
 
+import scala.annotation.implicitNotFound
 import scala.collection.JavaConverters._
 import scala.language.experimental.macros
 
@@ -70,7 +71,9 @@ object EntityField {
       }
   }
 
-  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
+  @implicitNotFound("Cannot derive EntityField for sealed trait")
+  private sealed trait Dispatchable[T]
+  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
 
   implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
 

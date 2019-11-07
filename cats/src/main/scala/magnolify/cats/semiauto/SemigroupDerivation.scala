@@ -19,6 +19,7 @@ package magnolify.cats.semiauto
 import cats.Semigroup
 import magnolia._
 
+import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
 
 object SemigroupDerivation {
@@ -30,7 +31,9 @@ object SemigroupDerivation {
     }
   }
 
-  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
+  @implicitNotFound("Cannot derive Semigroup for sealed trait")
+  private sealed trait Dispatchable[T]
+  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
 }

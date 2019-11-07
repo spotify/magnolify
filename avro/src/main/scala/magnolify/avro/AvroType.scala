@@ -9,6 +9,7 @@ import magnolify.shims.FactoryCompat
 import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericArray, GenericData, GenericRecord, GenericRecordBuilder}
 
+import scala.annotation.implicitNotFound
 import scala.collection.JavaConverters._
 import scala.language.experimental.macros
 
@@ -75,7 +76,9 @@ object AvroField {
         .build()
   }
 
-  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
+  @implicitNotFound("Cannot derive AvroField for sealed trait")
+  private sealed trait Dispatchable[T]
+  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
 
   implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
 

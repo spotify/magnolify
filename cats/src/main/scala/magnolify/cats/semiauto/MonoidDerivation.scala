@@ -19,6 +19,7 @@ package magnolify.cats.semiauto
 import cats.Monoid
 import magnolia._
 
+import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
 
 object MonoidDerivation {
@@ -33,7 +34,9 @@ object MonoidDerivation {
     Monoid.instance(empty, combine)
   }
 
-  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
+  @implicitNotFound("Cannot derive Monoid for sealed trait")
+  private sealed trait Dispatchable[T]
+  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
 }
