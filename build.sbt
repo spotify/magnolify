@@ -23,6 +23,7 @@ val avroVersion = "1.9.1"
 val bigqueryVersion = "v2-rev20181104-1.27.0"
 val catsVersion = "2.0.0"
 val datastoreVersion = "1.6.3"
+val guavaVersion = "28.1-jre"
 val jacksonVersion = "2.10.1"
 val jodaTimeVersion = "2.10.5"
 val protobufVersion = "3.10.0"
@@ -114,6 +115,7 @@ lazy val root: Project = project
     cats,
     // FIXME: implement these
     // diffy,
+    guava,
     avro,
     bigquery,
     datastore,
@@ -181,6 +183,22 @@ lazy val diffy: Project = project
     description := "Magnolia add-on for diffing data"
   )
   .dependsOn(
+    scalacheck % Test,
+    test % "test->test"
+  )
+
+lazy val guava: Project = project
+  .in(file("guava"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-guava",
+    description := "Magnolia add-on for Guava",
+    libraryDependencies ++= Seq(
+      "com.google.guava" % "guava" % guavaVersion % Provided
+    )
+  )
+  .dependsOn(
+    shared,
     scalacheck % Test,
     test % "test->test"
   )
