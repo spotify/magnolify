@@ -19,11 +19,22 @@ object HashDerivationSpec extends MagnolifySpec("HashDerivation") {
   }
 
 //  test[Integers]
-  test[Int]
-  test[Long]
-  implicitly[Arbitrary[Integers]]
-  implicitly[Cogen[Integers]]
-  magnolify.cats.semiauto.HashDerivation[Integers]
-//  implicitly[Hash[Integers]]
-//  test[Integers]
+
+  case class Integers(i: Int)
+
+  val E = implicitly[Hash[Integers]]
+  property("aaa") = Prop.forAll { (x: Integers, y: Integers) =>
+    val r = (E.hash(x) == x.hashCode) &&
+      (Hash.fromUniversalHashCode[Integers].hash(x) == x.hashCode()) &&
+      (E.eqv(x, y) == Hash.fromUniversalHashCode[Integers].eqv(x, y))
+    if (!r) {
+      println("=" * 80)
+      println(x)
+      println(y)
+      println(E.hash(x) == x.hashCode, E.hash(x), x.hashCode)
+      println(Hash.fromUniversalHashCode[Integers].hash(x) == x.hashCode())
+      println(E.eqv(x, y) == Hash.fromUniversalHashCode[Integers].eqv(x, y))
+    }
+    r
+  }
 }

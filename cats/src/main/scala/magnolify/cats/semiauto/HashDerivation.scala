@@ -4,14 +4,19 @@ import cats.Hash
 import magnolia._
 
 import scala.language.experimental.macros
+import scala.util.hashing.MurmurHash3
 
 object HashDerivation {
   type Typeclass[T] = Hash[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = new Hash[T] {
 
-    override def hash(x: T): Int = caseClass.parameters.foldLeft(0) { (h, p) =>
-      h ^ p.typeclass.hash(p.dereference(x))
+    override def hash(x: T): Int = {
+      val h = caseClass.parameters.foldLeft(MurmurHash3.productSeed) { (h, p) =>
+        MurmurHash3.mix(h, p.typeclass.hash(p.dereference(x)))
+        //      h ^ p.typeclass.hash(p.dereference(x))
+      }
+      MurmurHash3.finalizeHash(h, caseClass.parameters.size)
     }
 
     override def eqv(x: T, y: T): Boolean = caseClass.parameters.forall { p =>
