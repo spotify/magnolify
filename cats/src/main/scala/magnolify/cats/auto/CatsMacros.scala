@@ -17,7 +17,7 @@
 package magnolify.cats.auto
 
 import _root_.cats._
-import cats.kernel.instances.{ListMonoid, ListOrder, OptionMonoid, OptionOrder}
+import cats.kernel.instances._
 
 import scala.language.experimental.macros
 import scala.reflect.macros._
@@ -55,21 +55,24 @@ private object CatsMacros {
 }
 
 trait LowPriorityImplicits extends LowPriorityGenGroup {
-  implicit def genEq[T]: Eq[T] = macro CatsMacros.genEqMacro[T]
-  implicit def genHash[T]: Hash[T] = macro CatsMacros.genHashMacro[T]
-
-  // workaround for ambiguous implicit values with cats
+  // more specific implicits to workaround ambiguous implicit values with cats
   implicit def genListMonoid[T] = new ListMonoid[T]
   implicit def genOptionMonoid[T: Semigroup] = new OptionMonoid[T]
-  //  implicit def genListOrder[T: Order] = new ListOrder[T]
-  //  implicit def genOptionOrder[T: Order] = new OptionOrder[T]
+  implicit def genListOrder[T: Order] = new ListOrder[T]
+  implicit def genOptionOrder[T: Order] = new OptionOrder[T]
 }
 
 trait LowPriorityGenGroup extends LowPriorityGenMonoid {
+  // more specific implicits to workaround ambiguous implicit values with cats
+  implicit def genListHash[T: Hash] = new ListHash[T]
+  implicit def genOptionHash[T: Hash] = new OptionHash[T]
+
+  implicit def genHash[T]: Hash[T] = macro CatsMacros.genHashMacro[T]
   implicit def genGroup[T]: Group[T] = macro CatsMacros.genGroupMacro[T]
 }
 
 trait LowPriorityGenMonoid extends LowPriorityGenSemigroup {
+  implicit def genEq[T]: Eq[T] = macro CatsMacros.genEqMacro[T]
   implicit def genMonoid[T]: Monoid[T] = macro CatsMacros.genMonoidMacro[T]
 }
 
