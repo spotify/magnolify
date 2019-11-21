@@ -13,28 +13,35 @@ import org.scalacheck._
 import scala.reflect._
 
 object HashDerivationSpec extends MagnolifySpec("HashDerivation") {
-  private def test[T: Arbitrary: ClassTag: Cogen: Hash]: Unit = {
+  private def test[T: Arbitrary : ClassTag : Cogen : Hash]: Unit = test()
+
+  private def test[T: Arbitrary : ClassTag : Cogen : Hash](exclusions: String*): Unit = {
     ensureSerializable(implicitly[Hash[T]])
-    include(HashTests[T].hash.all, className[T] + ".")
-  }
-
-//  test[Integers]
-
-  case class Integers(i: Int)
-
-  val E = implicitly[Hash[Integers]]
-  property("aaa") = Prop.forAll { (x: Integers, y: Integers) =>
-    val r = (E.hash(x) == x.hashCode) &&
-      (Hash.fromUniversalHashCode[Integers].hash(x) == x.hashCode()) &&
-      (E.eqv(x, y) == Hash.fromUniversalHashCode[Integers].eqv(x, y))
-    if (!r) {
-      println("=" * 80)
-      println(x)
-      println(y)
-      println(E.hash(x) == x.hashCode, E.hash(x), x.hashCode)
-      println(Hash.fromUniversalHashCode[Integers].hash(x) == x.hashCode())
-      println(E.eqv(x, y) == Hash.fromUniversalHashCode[Integers].eqv(x, y))
+    val props = HashTests[T].hash.props.filter(kv => !exclusions.contains(kv._1))
+    for ((n, p) <- props) {
+      property(s"${className[T]}.$n") = p
     }
-    r
   }
+
+  // Long.## != Long.hashCode
+  test[Integers]("same as universal hash")
+  test[Required]
+  test[Nullable]
+  test[Repeated]
+  test[Nested]
+
+  {
+    implicit val hash: Hash[Array[Int]] = Hash.by(_.toList)
+    test[Collections]("same as scala hashing", "same as universal hash")
+  }
+
+  {
+    import Custom._
+    test[Custom]
+  }
+
+  test[Node]
+  test[GNode[Int]]
+  test[Shape]
+  test[Color]
 }

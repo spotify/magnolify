@@ -11,10 +11,12 @@ object HashDerivation {
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = new Hash[T] {
 
-    override def hash(x: T): Int = {
-      val h = caseClass.parameters.foldLeft(MurmurHash3.productSeed) { (h, p) =>
+    override def hash(x: T): Int = if (caseClass.parameters.isEmpty) {
+      caseClass.typeName.short.hashCode
+    } else {
+      val seed = MurmurHash3.mix(MurmurHash3.productSeed, caseClass.typeName.short.hashCode)
+      val h = caseClass.parameters.foldLeft(seed) { (h, p) =>
         MurmurHash3.mix(h, p.typeclass.hash(p.dereference(x)))
-        //      h ^ p.typeclass.hash(p.dereference(x))
       }
       MurmurHash3.finalizeHash(h, caseClass.parameters.size)
     }
@@ -26,7 +28,7 @@ object HashDerivation {
 
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = new Hash[T] {
     override def hash(x: T): Int = sealedTrait.dispatch(x) { sub =>
-      sub.index ^ sub.typeclass.hash(sub.cast(x))
+      sub.typeclass.hash(sub.cast(x))
     }
 
     override def eqv(x: T, y: T): Boolean = sealedTrait.dispatch(x) { sub =>
