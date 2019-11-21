@@ -38,7 +38,7 @@ object ArbitraryDerivationSpec extends MagnolifySpec("ArbitraryDerivation") {
     val g = arb.arbitrary
     val prms = Gen.Parameters.default
     property(s"$name.uniqueness") = Prop.forAll(Gen.listOfN(10, g)) { xs =>
-      xs.size > 1
+      xs.toSet.size > 1
     }
     property(s"$name.consistency") = Prop.forAll { seed: Seed =>
       f(g(prms, seed).get) == f(g(prms, seed).get)
