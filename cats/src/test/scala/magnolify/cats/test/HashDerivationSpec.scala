@@ -13,9 +13,9 @@ import org.scalacheck._
 import scala.reflect._
 
 object HashDerivationSpec extends MagnolifySpec("HashDerivation") {
-  private def test[T: Arbitrary : ClassTag : Cogen : Hash]: Unit = test()
+  private def test[T: Arbitrary: ClassTag: Cogen: Hash]: Unit = test()
 
-  private def test[T: Arbitrary : ClassTag : Cogen : Hash](exclusions: String*): Unit = {
+  private def test[T: Arbitrary: ClassTag: Cogen: Hash](exclusions: String*): Unit = {
     ensureSerializable(implicitly[Hash[T]])
     val props = HashTests[T].hash.props.filter(kv => !exclusions.contains(kv._1))
     for ((n, p) <- props) {
