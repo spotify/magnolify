@@ -2,6 +2,7 @@ package magnolify.cats.semiauto
 
 import cats.Hash
 import magnolia._
+import magnolify.shims.MurmurHash3Compat
 
 import scala.language.experimental.macros
 import scala.util.hashing.MurmurHash3
@@ -14,7 +15,7 @@ object HashDerivation {
     override def hash(x: T): Int = if (caseClass.parameters.isEmpty) {
       caseClass.typeName.short.hashCode
     } else {
-      val seed = MurmurHash3.mix(MurmurHash3.productSeed, caseClass.typeName.short.hashCode)
+      val seed = MurmurHash3Compat.seed(caseClass.typeName.short.hashCode)
       val h = caseClass.parameters.foldLeft(seed) { (h, p) =>
         MurmurHash3.mix(h, p.typeclass.hash(p.dereference(x)))
       }

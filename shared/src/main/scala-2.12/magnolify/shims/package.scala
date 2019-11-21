@@ -20,6 +20,7 @@ import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable
 import scala.language.higherKinds
 import scala.reflect.ClassTag
+import scala.util.hashing.MurmurHash3
 
 package object shims {
   trait Monadic[F[_]] extends mercator.Monadic[F] {
@@ -82,4 +83,8 @@ package object shims {
   }
 
   val JavaConverters = scala.collection.JavaConverters
+
+  object MurmurHash3Compat {
+    def seed(data: Int): Int = MurmurHash3.productSeed
+  }
 }

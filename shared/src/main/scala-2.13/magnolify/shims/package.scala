@@ -17,6 +17,7 @@
 package magnolify
 
 import scala.collection.{mutable, Factory}
+import scala.util.hashing.MurmurHash3
 
 package object shims {
   trait Monadic[F[_]] extends mercator.Monadic[F] {
@@ -42,4 +43,8 @@ package object shims {
   object SerializableCanBuildFroms
 
   val JavaConverters = scala.jdk.CollectionConverters
+
+  object MurmurHash3Compat {
+    def seed(data: Int): Int = MurmurHash3.mix(MurmurHash3.productSeed, data)
+  }
 }
