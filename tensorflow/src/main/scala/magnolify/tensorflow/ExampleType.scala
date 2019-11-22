@@ -153,7 +153,7 @@ object ExampleField {
       }
     }
 
-  implicit def efSeq[T, C[T]](
+  implicit def efIterable[T, C[T]](
     implicit ef: Primitive[T],
     ti: C[T] => Iterable[T],
     fc: FactoryCompat[T, C[T]]

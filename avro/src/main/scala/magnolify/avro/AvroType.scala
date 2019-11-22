@@ -140,7 +140,7 @@ object AvroField {
       }
     }
 
-  implicit def afSeq[T, C[T]](
+  implicit def afIterable[T, C[T]](
     implicit f: AvroField[T],
     ti: C[T] => Iterable[T],
     fc: FactoryCompat[T, C[T]]

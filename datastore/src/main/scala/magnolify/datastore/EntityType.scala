@@ -116,7 +116,7 @@ object EntityField {
       }
     }
 
-  implicit def efSeq[T, C[T]](
+  implicit def efIterable[T, C[T]](
     implicit f: EntityField[T],
     ti: C[T] => Iterable[T],
     fc: FactoryCompat[T, C[T]]

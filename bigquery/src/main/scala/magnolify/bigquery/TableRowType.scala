@@ -147,7 +147,7 @@ object TableRowField {
       }
     }
 
-  implicit def trfSeq[T, C[T]](
+  implicit def trfIterable[T, C[T]](
     implicit f: TableRowField[T],
     ti: C[T] => Iterable[T],
     fc: FactoryCompat[T, C[T]]
