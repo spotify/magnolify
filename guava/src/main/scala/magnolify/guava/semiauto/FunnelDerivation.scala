@@ -64,7 +64,7 @@ trait FunnelImplicits {
   implicit val stringFunnel: Funnel[String] = funnel[String](_.putString(_, Charsets.UTF_8))
 
   // There is an implicit Option[T] => Iterable[T]
-  implicit def iterableFunnel[T, C[T]](
+  implicit def iterableFunnel[T, C[_]](
     implicit fnl: Funnel[T],
     ti: C[T] => Iterable[T]
   ): Funnel[C[T]] =

@@ -42,7 +42,11 @@ object Simple {
   case class Custom(u: URI, d: Duration)
 
   object Collections {
-    implicit def eqIterable[T, C[T]](implicit eq: Eq[T], tt: C[T] => Iterable[T]): Eq[C[T]] =
+    // FIXME: uniqueness workaround for Nils
+    implicit def arbList[T](implicit arb: Arbitrary[T]): Arbitrary[List[T]] =
+      Arbitrary(Gen.nonEmptyListOf(arb.arbitrary))
+
+    implicit def eqIterable[T, C[_]](implicit eq: Eq[T], tt: C[T] => Iterable[T]): Eq[C[T]] =
       Eq.instance { (x, y) =>
         val xs = x.toList
         val ys = y.toList
@@ -57,13 +61,7 @@ object Simple {
       Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Duration.ofMillis(_)))
     implicit val coUri: Cogen[URI] = Cogen(_.toString.hashCode())
     implicit val coDuration: Cogen[Duration] = Cogen(_.toMillis)
-    implicit val hashUri: Hash[URI] = new Hash[URI] {
-      override def hash(x: URI): Int = x.hashCode()
-      override def eqv(x: URI, y: URI): Boolean = x == y
-    }
-    implicit val hashDuration: Hash[Duration] = new Hash[Duration] {
-      override def hash(x: Duration): Int = x.hashCode()
-      override def eqv(x: Duration, y: Duration): Boolean = x == y
-    }
+    implicit val hashUri: Hash[URI] = Hash.fromUniversalHashCode[URI]
+    implicit val hashDuration: Hash[Duration] = Hash.fromUniversalHashCode[Duration]
   }
 }

@@ -16,9 +16,6 @@
  */
 package magnolify.scalacheck.test
 
-import java.net.URI
-import java.time.Duration
-
 import magnolify.scalacheck.auto._
 import magnolify.shims.SerializableCanBuildFroms._
 import magnolify.test.ADT._
@@ -38,7 +35,7 @@ object ArbitraryDerivationSpec extends MagnolifySpec("ArbitraryDerivation") {
     val g = arb.arbitrary
     val prms = Gen.Parameters.default
     property(s"$name.uniqueness") = Prop.forAll(Gen.listOfN(10, g)) { xs =>
-      xs.toSet.size > 1
+      xs.iterator.map(f).toSet.size > 1
     }
     property(s"$name.consistency") = Prop.forAll { seed: Seed =>
       f(g(prms, seed).get) == f(g(prms, seed).get)
@@ -50,9 +47,7 @@ object ArbitraryDerivationSpec extends MagnolifySpec("ArbitraryDerivation") {
   test[Nullable]
 
   {
-    // FIXME: uniqueness workaround for Nils
-    implicit def arbList[T](implicit arb: Arbitrary[T]): Arbitrary[List[T]] =
-      Arbitrary(Gen.nonEmptyListOf(arb.arbitrary))
+    import Collections._
     test[Repeated]
     test((c: Collections) => (c.a.toList, c.l, c.v))
   }
@@ -68,10 +63,7 @@ object ArbitraryDerivationSpec extends MagnolifySpec("ArbitraryDerivation") {
   }
 
   {
-    implicit val arbUri: Arbitrary[URI] =
-      Arbitrary(Gen.alphaNumStr.map(URI.create))
-    implicit val arbDuration: Arbitrary[Duration] =
-      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Duration.ofMillis(_)))
+    import Custom._
     test[Custom]
   }
 

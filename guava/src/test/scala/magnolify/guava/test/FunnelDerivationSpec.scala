@@ -65,9 +65,7 @@ object FunnelDerivationSpec extends MagnolifySpec("FunnelDerivation") {
   }
 
   {
-    // FIXME: uniqueness workaround for Nils
-    implicit def arbList[T](implicit arb: Arbitrary[T]): Arbitrary[List[T]] =
-      Arbitrary(Gen.nonEmptyListOf(arb.arbitrary))
+    import Collections._
     test[Repeated]
     test((c: Collections) => (c.a.toList, c.l, c.v))
   }
