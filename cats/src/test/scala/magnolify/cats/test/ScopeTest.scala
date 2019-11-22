@@ -24,6 +24,7 @@ object ScopeTest {
   object Auto {
     import magnolify.cats.auto._
     implicitly[Eq[Numbers]]
+    implicitly[Hash[Numbers]]
     implicitly[Semigroup[Numbers]]
     implicitly[Monoid[Numbers]]
     implicitly[Group[Numbers]]
@@ -32,6 +33,7 @@ object ScopeTest {
   object Semi {
     import magnolify.cats.semiauto._
     EqDerivation[Numbers]
+    HashDerivation[Numbers]
     SemigroupDerivation[Numbers]
     MonoidDerivation[Numbers]
     GroupDerivation[Numbers]

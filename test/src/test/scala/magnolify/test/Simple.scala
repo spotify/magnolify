@@ -57,7 +57,13 @@ object Simple {
       Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Duration.ofMillis(_)))
     implicit val coUri: Cogen[URI] = Cogen(_.toString.hashCode())
     implicit val coDuration: Cogen[Duration] = Cogen(_.toMillis)
-    implicit val eqUri: Eq[URI] = Eq.by(_.toString)
-    implicit val eqDuration: Eq[Duration] = Eq.by(_.toMillis)
+    implicit val hashUri: Hash[URI] = new Hash[URI] {
+      override def hash(x: URI): Int = x.hashCode()
+      override def eqv(x: URI, y: URI): Boolean = x == y
+    }
+    implicit val hashDuration: Hash[Duration] = new Hash[Duration] {
+      override def hash(x: Duration): Int = x.hashCode()
+      override def eqv(x: Duration, y: Duration): Boolean = x == y
+    }
   }
 }
