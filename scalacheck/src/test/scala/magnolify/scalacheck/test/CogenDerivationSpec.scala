@@ -33,10 +33,12 @@ object CogenDerivationSpec extends MagnolifySpec("CogenDerivation") {
     ensureSerializable(co)
     val name = className[T]
     implicit val arbList: Arbitrary[List[T]] = Arbitrary(Gen.listOfN(10, arb.arbitrary))
-    property(s"$name.uniqueness") = Prop.forAll { (seed: Seed, xs: List[T]) =>
+    property(s"$name.uniqueness") = Prop.forAll { (l: Long, xs: List[T]) =>
+      val seed = Seed(l) // preven Magnolia from deriving `Seed`
       xs.map(co.perturb(seed, _)).toSet.size == xs.map(f).toSet.size
     }
-    property(s"$name.consistency") = Prop.forAll { (seed: Seed, x: T) =>
+    property(s"$name.consistency") = Prop.forAll { (l: Long, x: T) =>
+      val seed = Seed(l) // preven Magnolia from deriving `Seed`
       co.perturb(seed, x) == co.perturb(seed, x)
     }
   }
