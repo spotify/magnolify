@@ -13,8 +13,9 @@ A collection of [Magnolia](https://github.com/propensive/magnolia) add-on module
 
 This library includes the following modules.
 
-- `magnolify-cats` - type class derivation for [Cats](https://github.com/typelevel/cats) `Eq[T]`, `Semigroup[T]`, `Monoid[T]`, `Group[T]`, etc.
+- `magnolify-cats` - type class derivation for [Cats](https://github.com/typelevel/cats) `Eq[T]`, `Hash[T]`, `Semigroup[T]`, `Monoid[T]`, `Group[T]`, etc.
 - `magnolify-scalacheck` - type class derivation for [ScalaCheck](https://github.com/typelevel/scalacheck) `Arbitrary[T]`, `Cogen[T]`, etc.
+- `magnolify-guava` - type class derivation for [Guava](https://guava.dev) `Funnel[T]`, etc.
 - `magnolify-avro` - conversion between Scala case classes and [Apache Avro](https://github.com/apache/avro) `GenericRecord`
 - `magnolify-bigquery` - conversion between Scala case classes and [Google Cloud BigQuery](https://cloud.google.com/bigquery/) `TableRow`
 - `magnolify-datastore` - conversion between Scala case classes and [Google Cloud Datastore](https://cloud.google.com/datastore/) `Entity`
@@ -27,15 +28,20 @@ Cats and ScalaCheck type class derivation can be performed both automatically an
 ```scala
 import magnolify.cats.auto._
 implicitly[Eq[MyCaseClass]]
+implicitly[Hash[MyCaseClass]]
 
 import magnolify.scalacheck.auto._
 implicitly[Arbitrary[MyCaseClass]]
 implicitly[Cogen[MyCaseClass]]
+
+import magnolify.guava.auto._
+implicitly[Funnel[MyCaseClass]]
 ```
 
 ```scala
 import magnolify.cats.semiauto._
 EqDerivation[MyCaseClass]
+HashDerivation[MyCaseClass]
 SemigroupDerivation[MyCaseClass]
 MonoidDerivation[MyCaseClass]
 GroupDerivation[MyCaseClass]
@@ -43,6 +49,9 @@ GroupDerivation[MyCaseClass]
 import magnolify.scalacheck.semiauto._
 ArbitraryDerivation[MyCaseClass]
 CogenDerivation[MyCaseClass]
+
+import magnolify.guava.semiauto._
+FunnelDerivation[MyCaseClass]
 ```
 
 Case class type conversion must be done explicitly.
