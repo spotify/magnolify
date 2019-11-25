@@ -34,7 +34,9 @@ object ArbitraryDerivationSpec extends MagnolifySpec("ArbitraryDerivation") {
     val name = className[T]
     val g = arb.arbitrary
     val prms = Gen.Parameters.default
-    property(s"$name.uniqueness") = Prop.forAll(Gen.listOfN(10, g)) { xs =>
+    // `forAll(Gen.listOfN(10, g))` fails for `Repeated` & `Collections` when size parameter <= 1
+    property(s"$name.uniqueness") = Prop.forAll { seed: Seed =>
+      val xs = Gen.listOfN(10, g)(prms, seed).get
       xs.iterator.map(f).toSet.size > 1
     }
     property(s"$name.consistency") = Prop.forAll { seed: Seed =>

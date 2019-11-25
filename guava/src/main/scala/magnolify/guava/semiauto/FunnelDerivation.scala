@@ -31,6 +31,8 @@ object FunnelDerivation {
         into.putString(caseClass.typeName.short, Charsets.UTF_8)
       } else {
         caseClass.parameters.foreach { p =>
+          // inject index to distinguish cases like `(Some(1), None)` and `(None, Some(1))`
+          into.putInt(p.index)
           p.typeclass.funnel(p.dereference(from), into)
         }
       }
@@ -69,6 +71,9 @@ trait FunnelImplicits {
     ti: C[T] => Iterable[T]
   ): Funnel[C[T]] =
     funnel { (sink, from) =>
+      // inject a boolean to distinguish `None` and `Some("")`
+      // it might not work for `List("")` vs `List("", "", ...)` though
+      sink.putBoolean(from.nonEmpty)
       from.foreach(fnl.funnel(_, sink))
     }
 }

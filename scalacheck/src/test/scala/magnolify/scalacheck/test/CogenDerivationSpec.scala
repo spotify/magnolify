@@ -43,13 +43,7 @@ object CogenDerivationSpec extends MagnolifySpec("CogenDerivation") {
 
   test[Numbers]
   test[Required]
-
-  {
-    // FIXME: uniqueness workaround for Nones
-    implicit def arbOption[T](implicit arb: Arbitrary[T]): Arbitrary[Option[T]] =
-      Arbitrary(Gen.frequency(1 -> Gen.const(None), 99 -> Gen.some(arb.arbitrary)))
-    test[Nullable]
-  }
+  test[Nullable]
 
   {
     import Collections._

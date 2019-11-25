@@ -25,14 +25,16 @@ object CogenDerivation {
   type Typeclass[T] = Cogen[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = Cogen { (seed, t) =>
-    caseClass.parameters.foldLeft(seed) { (s, p) =>
+    caseClass.parameters.foldLeft(seed) { (seed, p) =>
+      // inject index to distinguish cases like `(Some(false), None)` and `(None, Some(0))`
+      val s = Cogen.cogenInt.perturb(seed, p.index)
       p.typeclass.perturb(s, p.dereference(t))
     }
   }
 
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = Cogen { (seed, t: T) =>
     sealedTrait.dispatch(t) { sub =>
-      // inject index to separate case objects instances
+      // inject index to distinguish case objects instances
       val s = Cogen.cogenInt.perturb(seed, sub.index)
       sub.typeclass.perturb(s, sub.cast(t))
     }

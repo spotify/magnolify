@@ -42,10 +42,6 @@ object Simple {
   case class Custom(u: URI, d: Duration)
 
   object Collections {
-    // FIXME: uniqueness workaround for Nils
-    implicit def arbList[T](implicit arb: Arbitrary[T]): Arbitrary[List[T]] =
-      Arbitrary(Gen.nonEmptyListOf(arb.arbitrary))
-
     implicit def eqIterable[T, C[_]](implicit eq: Eq[T], tt: C[T] => Iterable[T]): Eq[C[T]] =
       Eq.instance { (x, y) =>
         val xs = x.toList
