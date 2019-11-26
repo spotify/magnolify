@@ -60,7 +60,7 @@ trait FunnelImplicits {
   implicit val intFunnel: Funnel[Int] = Funnels.integerFunnel().asInstanceOf[Funnel[Int]]
   implicit val longFunnel: Funnel[Long] = Funnels.longFunnel().asInstanceOf[Funnel[Long]]
   implicit val bytesFunnel: Funnel[Array[Byte]] = Funnels.byteArrayFunnel()
-  implicit val charSequenceFunnel: Funnel[CharSequence] = Funnels.stringFunnel(Charsets.UTF_8)
+  implicit val charSequenceFunnel: Funnel[CharSequence] = Funnels.unencodedCharsFunnel()
 
   implicit val booleanFunnel: Funnel[Boolean] = funnel[Boolean](_.putBoolean(_))
   implicit val stringFunnel: Funnel[String] = funnel[String](_.putString(_, Charsets.UTF_8))
