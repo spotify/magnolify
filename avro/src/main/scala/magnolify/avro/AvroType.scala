@@ -138,8 +138,8 @@ object AvroField {
   implicit val afLong = id[Long](Schema.Type.LONG)
   implicit val afFloat = id[Float](Schema.Type.FLOAT)
   implicit val afDouble = id[Double](Schema.Type.DOUBLE)
-  implicit val afBytes = aux2[Array[Byte], ByteBuffer](Schema.Type.BYTES)(
-    bb => ju.Arrays.copyOfRange(bb.array(), bb.position(), bb.limit())
+  implicit val afBytes = aux2[Array[Byte], ByteBuffer](Schema.Type.BYTES)(bb =>
+    ju.Arrays.copyOfRange(bb.array(), bb.position(), bb.limit())
   )(ByteBuffer.wrap)
   implicit val afString =
     aux[String, CharSequence, String](Schema.Type.STRING)(_.toString)(identity)

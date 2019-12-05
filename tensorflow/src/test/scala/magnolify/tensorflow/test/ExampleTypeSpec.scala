@@ -64,8 +64,8 @@ object ExampleTypeSpec extends MagnolifySpec("ExampleType") {
   {
     import Custom._
     implicit val efUri: ExampleField.Primitive[URI] =
-      ExampleField.from[ByteString](x => URI.create(x.toStringUtf8))(
-        x => ByteString.copyFromUtf8(x.toString)
+      ExampleField.from[ByteString](x => URI.create(x.toStringUtf8))(x =>
+        ByteString.copyFromUtf8(x.toString)
       )
     implicit val efDuration: ExampleField.Primitive[Duration] =
       ExampleField.from[Long](Duration.ofMillis)(_.toMillis)
