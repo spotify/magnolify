@@ -1,2 +1,7 @@
--Xms2048m
--Xmx2048m
+# https://github.com/typelevel/cats/blob/master/.jvmopts
+-Dfile.encoding=UTF8
+-Xms1G
+-Xmx5G
+-XX:ReservedCodeCacheSize=500M
+-XX:+TieredCompilation
+-XX:+UseParallelGC
