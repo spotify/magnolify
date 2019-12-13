@@ -27,7 +27,7 @@ val guavaVersion = "28.1-jre"
 val jacksonVersion = "2.10.1"
 val jodaTimeVersion = "2.10.5"
 val protobufVersion = "3.10.0"
-val scalacheckVersion = "1.14.2"
+val scalacheckVersion = "1.14.3"
 val tensorflowVersion = "1.15.0"
 
 val commonSettings = Seq(
