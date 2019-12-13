@@ -269,3 +269,34 @@ lazy val tensorflow: Project = project
     scalacheck % Test,
     test % "test->test"
   )
+
+lazy val jmh: Project = project
+  .in(file("jmh"))
+  .settings(
+    commonSettings,
+    sourceDirectory in Jmh := (sourceDirectory in Test).value,
+    classDirectory in Jmh := (classDirectory in Test).value,
+    dependencyClasspath in Jmh := (dependencyClasspath in Test).value,
+    // rewire tasks, so that 'jmh:run' automatically invokes 'jmh:compile'
+    // (otherwise a clean 'jmh:run' would fail)
+    compile in Jmh := (compile in Jmh).dependsOn(compile in Test).value,
+    run in Jmh := (run in Jmh).dependsOn(compile in Jmh).evaluated,
+    libraryDependencies ++= Seq(
+      "org.apache.avro" % "avro" % avroVersion % Test,
+      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
+      "joda-time" % "joda-time" % jodaTimeVersion % Test,
+      "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
+      "org.tensorflow" % "proto" % tensorflowVersion % Test
+    )
+  )
+  .dependsOn(
+    scalacheck % Test,
+    cats % Test,
+    guava % Test,
+    avro % Test,
+    bigquery % Test,
+    datastore % Test,
+    tensorflow % Test,
+    test % "test->test"
+  )
+  .enablePlugins(JmhPlugin)
