@@ -30,10 +30,14 @@ object GroupDerivation {
       p.typeclass.inverse(p.dereference(a))
     }
 
-    override def empty: T = caseClass.construct(_.typeclass.empty)
+    override val empty: T = caseClass.construct(_.typeclass.empty)
 
     override def combine(x: T, y: T): T = caseClass.construct { p =>
       p.typeclass.combine(p.dereference(x), p.dereference(y))
+    }
+
+    override def remove(a: T, b: T): T = caseClass.construct { p =>
+      p.typeclass.remove(p.dereference(a), p.dereference(b))
     }
   }
 
