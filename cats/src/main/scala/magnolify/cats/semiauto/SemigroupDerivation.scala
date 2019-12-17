@@ -25,11 +25,7 @@ import scala.language.experimental.macros
 object SemigroupDerivation {
   type Typeclass[T] = Semigroup[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = Semigroup.instance { (x, y) =>
-    caseClass.construct { p =>
-      p.typeclass.combine(p.dereference(x), p.dereference(y))
-    }
-  }
+  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = ???
 
   @implicitNotFound("Cannot derive Semigroup for sealed trait")
   private sealed trait Dispatchable[T]

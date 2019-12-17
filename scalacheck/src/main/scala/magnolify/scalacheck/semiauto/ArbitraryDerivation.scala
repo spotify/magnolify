@@ -25,28 +25,11 @@ import scala.language.experimental.macros
 object ArbitraryDerivation {
   type Typeclass[T] = Arbitrary[T]
 
-  def combine[T: Fallback](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = Arbitrary {
-    Gen.lzy(Gen.sized { size =>
-      if (size >= 0) {
-        Gen.resize(size - 1, caseClass.constructMonadic(_.typeclass.arbitrary)(monadicGen))
-      } else {
-        implicitly[Fallback[T]].get
-      }
-    })
-  }
+  def combine[T: Fallback](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = ???
 
-  def dispatch[T: Fallback](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = Arbitrary {
-    Gen.sized { size =>
-      if (size > 0) {
-        Gen.resize(
-          size - 1,
-          Gen.oneOf(sealedTrait.subtypes.map(_.typeclass.arbitrary)).flatMap(identity)
-        )
-      } else {
-        implicitly[Fallback[T]].get
-      }
-    }
-  }
+  def dispatch[T: Fallback](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
+
+  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
 
