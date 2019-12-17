@@ -48,13 +48,13 @@ object ArbitraryDerivation {
     }
   }
 
+  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
+
   private val monadicGen: Monadic[Gen] = new Monadic[Gen] {
     override def point[A](value: A): Gen[A] = Gen.const(value)
     override def flatMapS[A, B](from: Gen[A])(fn: A => Gen[B]): Gen[B] = from.flatMap(fn)
     override def mapS[A, B](from: Gen[A])(fn: A => B): Gen[B] = from.map(fn)
   }
-
-  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
 
   sealed trait Fallback[+T] extends Serializable {
     def get: Gen[T]
