@@ -24,17 +24,27 @@ import scala.language.experimental.macros
 object EqDerivation {
   type Typeclass[T] = Eq[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = Eq.instance { (x, y) =>
-    caseClass.parameters.forall { p =>
-      p.typeclass.eqv(p.dereference(x), p.dereference(y))
-    }
-  }
+  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] =
+    Eq.instance(EqMethods.combine(caseClass))
 
-  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = Eq.instance { (x, y) =>
-    sealedTrait.dispatch(x) { sub =>
-      sub.cast.isDefinedAt(y) && sub.typeclass.eqv(sub.cast(x), sub.cast(y))
-    }
-  }
+  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] =
+    Eq.instance(EqMethods.dispatch(sealedTrait))
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
+}
+
+private object EqMethods {
+  def combine[T, Typeclass[T] <: Eq[T]](caseClass: CaseClass[Typeclass, T]): (T, T) => Boolean =
+    (x, y) =>
+      caseClass.parameters.forall { p =>
+        p.typeclass.eqv(p.dereference(x), p.dereference(y))
+      }
+
+  def dispatch[T, Typeclass[T] <: Eq[T]](
+    sealedTrait: SealedTrait[Typeclass, T]
+  ): (T, T) => Boolean =
+    (x, y) =>
+      sealedTrait.dispatch(x) { sub =>
+        sub.cast.isDefinedAt(y) && sub.typeclass.eqv(sub.cast(x), sub.cast(y))
+      }
 }

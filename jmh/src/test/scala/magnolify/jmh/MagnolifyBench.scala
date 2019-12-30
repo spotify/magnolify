@@ -45,18 +45,22 @@ class ScalaCheckBench {
 class CatsBench {
   import cats._
   import cats.instances.all._
-  import magnolify.cats.auto._
+  import magnolify.cats.semiauto._
   import MagnolifyBench._
   private val integers = implicitly[Arbitrary[Integers]].arbitrary.sample.get
-  private val sg = implicitly[Semigroup[Integers]]
-  private val mon = implicitly[Monoid[Integers]]
-  private val grp = implicitly[Group[Integers]]
-  private val h = implicitly[Hash[Nested]]
-  private val e = implicitly[Eq[Nested]]
+  private val xs = Array.fill(100)(integers)
+  private val sg = SemigroupDerivation[Integers]
+  private val mon = MonoidDerivation[Integers]
+  private val grp = GroupDerivation[Integers]
+  private val h = HashDerivation[Nested]
+  private val e = EqDerivation[Nested]
   @Benchmark def semigroupCombine: Integers = sg.combine(integers, integers)
+  @Benchmark def semigroupCombineAllOption: Option[Integers] = sg.combineAllOption(xs)
   @Benchmark def monoidCombine: Integers = mon.combine(integers, integers)
+  @Benchmark def monoidCombineAllOption: Option[Integers] = mon.combineAllOption(xs)
   @Benchmark def monoidEmpty: Integers = mon.empty
   @Benchmark def groupCombine: Integers = grp.combine(integers, integers)
+  @Benchmark def groupCombineAllOption: Option[Integers] = grp.combineAllOption(xs)
   @Benchmark def groupEmpty: Integers = grp.empty
   @Benchmark def groupInverse: Integers = grp.inverse(integers)
   @Benchmark def groupRemove: Integers = grp.remove(integers, integers)

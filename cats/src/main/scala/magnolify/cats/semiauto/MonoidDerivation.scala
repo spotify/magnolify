@@ -26,12 +26,15 @@ object MonoidDerivation {
   type Typeclass[T] = Monoid[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
-    val empty = caseClass.construct(_.typeclass.empty)
-    val combine = (x: T, y: T) =>
-      caseClass.construct { p =>
-        p.typeclass.combine(p.dereference(x), p.dereference(y))
-      }
-    Monoid.instance(empty, combine)
+    val emptyImpl = MonoidMethods.empty(caseClass)
+    val combineImpl = SemigroupMethods.combine(caseClass)
+    val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
+
+    new Monoid[T] {
+      override def empty: T = emptyImpl
+      override def combine(x: T, y: T): T = combineImpl(x, y)
+      override def combineAllOption(as: TraversableOnce[T]): Option[T] = combineAllOptionImpl(as)
+    }
   }
 
   @implicitNotFound("Cannot derive Monoid for sealed trait")
@@ -39,4 +42,9 @@ object MonoidDerivation {
   def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
+}
+
+private object MonoidMethods {
+  def empty[T, Typeclass[T] <: Monoid[T]](caseClass: CaseClass[Typeclass, T]): T =
+    caseClass.construct(_.typeclass.empty)
 }
