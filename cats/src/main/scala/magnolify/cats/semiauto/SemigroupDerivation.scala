@@ -25,9 +25,13 @@ import scala.language.experimental.macros
 object SemigroupDerivation {
   type Typeclass[T] = Semigroup[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = Semigroup.instance { (x, y) =>
-    caseClass.construct { p =>
-      p.typeclass.combine(p.dereference(x), p.dereference(y))
+  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+    val combineImpl = SemigroupMethods.combine(caseClass)
+    val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
+
+    new Semigroup[T] {
+      override def combine(x: T, y: T): T = combineImpl(x, y)
+      override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
     }
   }
 
@@ -36,4 +40,33 @@ object SemigroupDerivation {
   def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
+}
+
+private object SemigroupMethods {
+  def combine[T, Typeclass[T] <: Semigroup[T]](caseClass: CaseClass[Typeclass, T]): (T, T) => T =
+    (x, y) =>
+      caseClass.construct { p =>
+        p.typeclass.combine(p.dereference(x), p.dereference(y))
+      }
+
+  def combineAllOption[T, Typeclass[T] <: Semigroup[T]](
+    caseClass: CaseClass[Typeclass, T]
+  ): IterableOnce[T] => Option[T] = {
+    val combineImpl = combine(caseClass)
+    xs: IterableOnce[T] =>
+      xs match {
+        case it: Iterable[T] if it.nonEmpty =>
+          // input is re-iterable and non-empty, combineAllOption on each field
+          val result = Array.fill[Any](caseClass.parameters.length)(null)
+          var i = 0
+          while (i < caseClass.parameters.length) {
+            val p = caseClass.parameters(i)
+            result(i) = p.typeclass.combineAllOption(it.iterator.map(p.dereference)).get
+            i += 1
+          }
+          Some(caseClass.rawConstruct(result))
+        case xs =>
+          xs.reduceOption(combineImpl)
+      }
+  }
 }

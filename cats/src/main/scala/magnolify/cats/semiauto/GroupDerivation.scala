@@ -25,19 +25,23 @@ import scala.language.experimental.macros
 object GroupDerivation {
   type Typeclass[T] = Group[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = new Group[T] {
-    override def inverse(a: T): T = caseClass.construct { p =>
-      p.typeclass.inverse(p.dereference(a))
-    }
+  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+    val emptyImpl = MonoidMethods.empty(caseClass)
+    val combineImpl = SemigroupMethods.combine(caseClass)
+    val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
 
-    override val empty: T = caseClass.construct(_.typeclass.empty)
+    new Group[T] {
+      override def empty: T = emptyImpl
+      override def combine(x: T, y: T): T = combineImpl(x, y)
+      override def combineAllOption(as: TraversableOnce[T]): Option[T] = combineAllOptionImpl(as)
 
-    override def combine(x: T, y: T): T = caseClass.construct { p =>
-      p.typeclass.combine(p.dereference(x), p.dereference(y))
-    }
+      override def inverse(a: T): T = caseClass.construct { p =>
+        p.typeclass.inverse(p.dereference(a))
+      }
 
-    override def remove(a: T, b: T): T = caseClass.construct { p =>
-      p.typeclass.remove(p.dereference(a), p.dereference(b))
+      override def remove(a: T, b: T): T = caseClass.construct { p =>
+        p.typeclass.remove(p.dereference(a), p.dereference(b))
+      }
     }
   }
 
