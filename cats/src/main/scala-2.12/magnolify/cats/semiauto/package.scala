@@ -18,5 +18,5 @@ package magnolify.cats
 
 package object semiauto {
   // Expose cats.kernel.compat.scalaVersionSpecific
-  type IterableOnce[+A] = TraversableOnce[A]
+  private[cats] type IterableOnce[+A] = TraversableOnce[A]
 }
