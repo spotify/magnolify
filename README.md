@@ -85,12 +85,13 @@ FunnelDerivation[MyCaseClass]
 Conversion between a case class instance and an instance of another type (e.g. GenericRecord) containing the same data must be called explicitly/semi-automatically, specifying the case class to be used for conversion, rather than deriving entirely with implicits.
 
 ```scala
+// case classes used in examples
+case class MyCaseClass(field: NestedCaseClass) 
+case class NestedCaseClass(innerField: String) // works with other non-String elements, this is just an example
 
 // an annotated example with Avro GenericRecord
 import magnolify.avro._
 import org.apache.avro.generic.GenericRecord
-case class MyCaseClass(field: NestedCaseClass) 
-case class NestedCaseClass(innerField: String) // works with other non-String elements, this is just an example
 val typeclass = AvroType[MyCaseClass] // AvroType typeclass instance defines to and from conversions between Case Class and GenericRecord
 val genericRecord: GenericRecord = typeclass.to(MyCaseClass(NestedCaseClass("hi"))) // instantiate a case class, then pass in
 val caseClass: MyCaseClass = typeclass.from(genericRecord) // roundtrip
@@ -103,7 +104,7 @@ implicit val uriField = AvroField.from[String](URI.create)(_.toString) // custom
 // an example with BigQuery TableRow
 import magnolify.bigquery._
 val typeclass = TableRowType[MyCaseClass] 
-val tableRow: TableRow = typeclass.to(MyCaseClass(...)) 
+val tableRow: TableRow = typeclass.to(MyCaseClass(NestedCaseClass("hi"))) 
 val caseClass: MyCaseClass = typeclass.from(tableRow)
 
 typeclass.schema // BigQuery TableSchema
@@ -111,17 +112,17 @@ implicit val uriField = TableRowField.from[String](URI.create)(_.toString) // cu
 
 // an example with Datastore Entity
 import magnolify.datastore._
-val t = EntityType[MyCaseClass]
-val r = t.to(MyCaseClass(...))
-val c = t.from(r)
+val typeclass = EntityType[MyCaseClass]
+val datastoreEntity = typeclass.to(MyCaseClass(NestedCaseClass("hi")))
+val caseClass: MyCaseClass = typeclass.from(datastoreEntity)
 
 implicit val uriField = EntityField.from[String](URI.create)(_.toString) // custom field type
 
 // an example with TensorFlow Example
 import magnolify.tensorflow._
-val t = ExampleType[MyCaseClass]
-val r = t.to(MyCaseClass(...))
-val c = t.from(r)
+val typeclass = ExampleType[MyCaseClass]
+val tensorflowExample = typeclass.to(MyCaseClass(NestedCaseClass("hi")))
+val caseClass = typeclass.from(tensorflowExample)
 
 // custom field type
 implicit val stringField = ExampleField.from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8) 
