@@ -117,7 +117,7 @@ val c = t.from(r)
 
 implicit val uriField = EntityField.from[String](URI.create)(_.toString) // custom field type
 
-// an example with TensorFlow TFExample
+// an example with TensorFlow Example
 import magnolify.tensorflow._
 val t = ExampleType[MyCaseClass]
 val r = t.to(MyCaseClass(...))
