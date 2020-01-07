@@ -82,14 +82,17 @@ import magnolify.guava.semiauto._
 FunnelDerivation[MyCaseClass]
 ```
 
-Case class type conversion must be called explicitly, specifying the case class used for conversion, rather than deriving entirely with implicits.
+Conversion between a case class instance and an instance of another type (e.g. GenericRecord) containing the same data must be called explicitly/semi-automatically, specifying the case class to be used for conversion, rather than deriving entirely with implicits.
 
 ```scala
+
 // an annotated example with Avro GenericRecord
 import magnolify.avro._
 import org.apache.avro.generic.GenericRecord
+case class MyCaseClass(field: NestedCaseClass) 
+case class NestedCaseClass(innerField: String) // works with other non-String elements, this is just an example
 val typeclass = AvroType[MyCaseClass] // AvroType typeclass instance defines to and from conversions between Case Class and GenericRecord
-val genericRecord: GenericRecord = typeclass.to(MyCaseClass(...)) // instantiate a case class, then pass in
+val genericRecord: GenericRecord = typeclass.to(MyCaseClass(NestedCaseClass("hi"))) // instantiate a case class, then pass in
 val caseClass: MyCaseClass = typeclass.from(genericRecord) // roundtrip
 
 typeclass.schema // Avro Schema
