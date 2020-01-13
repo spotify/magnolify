@@ -7,7 +7,7 @@ magnolify
 [![Maven Central](https://img.shields.io/maven-central/v/com.spotify/magnolify-shared_2.13.svg)](https://maven-badges.herokuapp.com/maven-central/com.spotify/magnolify-shared_2.13)
 [![Scala Steward badge](https://img.shields.io/badge/Scala_Steward-helping-brightgreen.svg?style=flat&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAQCAMAAAARSr4IAAAAVFBMVEUAAACHjojlOy5NWlrKzcYRKjGFjIbp293YycuLa3pYY2LSqql4f3pCUFTgSjNodYRmcXUsPD/NTTbjRS+2jomhgnzNc223cGvZS0HaSD0XLjbaSjElhIr+AAAAAXRSTlMAQObYZgAAAHlJREFUCNdNyosOwyAIhWHAQS1Vt7a77/3fcxxdmv0xwmckutAR1nkm4ggbyEcg/wWmlGLDAA3oL50xi6fk5ffZ3E2E3QfZDCcCN2YtbEWZt+Drc6u6rlqv7Uk0LdKqqr5rk2UCRXOk0vmQKGfc94nOJyQjouF9H/wCc9gECEYfONoAAAAASUVORK5CYII=)](https://scala-steward.org)
 
-A collection of typeclass derivations for conversions between case classes and other wrapper types, created with [Magnolia](https://github.com/propensive/magnolia); a simpler and faster successor to [shapeless-datatype](https://github.com/nevillelyh/shapeless-datatype).
+A collection of [Magnolia](https://github.com/propensive/magnolia) add-ons for common typeclass derivation, data type conversion, etc.; a simpler and faster successor to [shapeless-datatype](https://github.com/nevillelyh/shapeless-datatype).
 
 # Modules
 
@@ -19,113 +19,122 @@ This library includes the following modules.
   - [`Semigroup[T]`](https://typelevel.org/cats/api/cats/kernel/Semigroup.html)
   - [`Monoid[T]`](https://typelevel.org/cats/api/cats/kernel/Monoid.html)
   - [`Group[T]`](https://typelevel.org/cats/api/cats/kernel/Group.html)
-- `magnolify-scalacheck` - type class derivation for [ScalaCheck](https://github.com/typelevel/scalacheck) 
+- `magnolify-scalacheck` - type class derivation for [ScalaCheck](https://github.com/typelevel/scalacheck)
   - [`Arbitrary[T]`](https://github.com/typelevel/scalacheck/blob/master/doc/UserGuide.md#universally-quantified-properties)
-  - [`Cogen[T]`](https://github.com/typelevel/scalacheck/blob/master/src/main/scala/org/scalacheck/Cogen.scala#L20-L29)
+  - [`Cogen[T]`](https://github.com/typelevel/scalacheck/blob/master/src/main/scala/org/scalacheck/Cogen.scala)
 - `magnolify-guava` - type class derivation for [Guava](https://guava.dev)
-  - [`Funnel[T]`](https://guava.dev/releases/25.0-jre/api/docs/com/google/common/hash/Funnel.html)
-  
-- `magnolify-avro` - conversion between Scala case classes and [Apache Avro](https://github.com/apache/avro) `GenericRecord`
-- `magnolify-bigquery` - conversion between Scala case classes and [Google Cloud BigQuery](https://cloud.google.com/bigquery/) `TableRow`
-- `magnolify-datastore` - conversion between Scala case classes and [Google Cloud Datastore](https://cloud.google.com/datastore/) `Entity`
-- `magnolify-tensorflow` - conversion between Scala case classes and [TensorFlow](https://www.tensorflow.org/) `Example`
+  - [`Funnel[T]`](https://guava.dev/releases/snapshot-jre/api/docs/com/google/common/hash/Funnel.html)
+
+- `magnolify-avro` - conversion between Scala types and [Apache Avro](https://github.com/apache/avro) `GenericRecord`
+- `magnolify-bigquery` - conversion between Scala types and [Google Cloud BigQuery](https://cloud.google.com/bigquery/) `TableRow`
+- `magnolify-datastore` - conversion between Scala types and [Google Cloud Datastore](https://cloud.google.com/datastore/) `Entity`
+- `magnolify-tensorflow` - conversion between Scala types and [TensorFlow](https://www.tensorflow.org/) `Example`
 
 # Usage
 
 Cats, ScalaCheck, and Guava type class derivation can be performed both automatically and semi-automatically.
 
-Automatic derivation with implicits:
+Automatic derivation works out of the box by importing implicits from `magnolify.$module.auto._`.
+It works with context bounds i.e. `def plus[T: Semigroup](x: T, y: T)` and implicit paramemters i.e.
+`def f[T](x: T, y: T)(implicit sg: Semigroup[T])`.
+
 ```scala
-case class MyCaseClass(field: NestedCaseClass) 
-case class NestedCaseClass(innerField: String) // works with other non-String elements, this is just an example
+case class Inner(int: Int, str: String)
+case class Outer(inner: Inner)
 
-// implicitly keyword summons an instance of the typeclass wrapping a given case class
-// typeclasses are generated at compile time with macros & Magnolia
-// this works if each element within the case class has a typeclass instance defined within the implicit scope
+// implicitly[T] summons an implicit instance of T
+// - which Magnolia derives at compile time if T is a typeclass F[A]
+// - and A is a case class or ADT
+// - recursively summons typeclasses for case class fields or ADT subtypes
 
-// an example with Cats using the Eq typeclass
+// an example with Cats Semigroup
 import magnolify.cats.auto._
-import cats.kernel.Eq
-// similar to Eq.fromUniversalEquals for a case class but it's at compile time, and don't need == defined reasonably
-// instead of using == in fromUniversalEquals, you need an Eq instance for each part of your case class
-implicit val eqString: Eq[String] = ??? // could be fromUniversalEquals, but doesn't have to be
-val eqCaseClass: Eq[MyCaseClass] = implicitly[Eq[MyCaseClass]] 
+import cats._
+import cats.instances.all._ // implicit instances for Semigroup[Int], etc.
+val sg: Semigroup[Outer] = implicitly[Semigroup[Outer]]
+sg.combine(Outer(Inner(1, "hello, ")), Outer(Inner(100, "world!")))
+// = Outer(Inner(101,hello, world!))
 
-// an example with ScalaCheck using the Arbitrary typeclass
-// this example is a bit more practical, since there's no typeclass instantiation built into Scalacheck, unlike Cats
+// an example with ScalaCheck Arbitrary
 import magnolify.scalacheck.auto._
-import org.scalacheck.Arbitrary
-implicit val arbString: Arbitrary[String] = ??? // could be Arbitrary.arbitrary[String]
-val arbitraryCaseClass: Arbitrary[MyCaseClass] = implicitly[Arbitrary[MyCaseClass]]
+import org.scalacheck._ // implicit instances for Arbitrary[Int], etc.
+val arb: Arbitrary[Outer] = implicitly[Arbitrary[Outer]]
+arb.arbitrary.sample
+// = Some(Outer(Inter(12345, abcde)))
 
-// an example with Guava using the Funnel typeclass
-import magnolify.guava.auto._
-import com.google.common.hash.Funnel
-implicit val funnelString: Funnel[String] = ??? // could be Funnels.stringFunnel(charset)
-val implicitly[Funnel[MyCaseClass]]
+// an example with Guava Funnel
+import magnolify.guava.auto._ // includes implicit instances for Funnel[Int], etc.
+import com.google.common.hash._
+val fnl: Funnel[Outer] = implicitly[Funnel[Outer]]
+BloomFilter.create[Outer](fnl, 1000) // a BloomFilter that works with Outer
 ```
 
-Semi-automatic derivation happens explicitly by calling the derivation yourself instead of summoning an implicit.
+Semi-automatic derivation needs to be called explicitly.
+
 ```scala
 import magnolify.cats.semiauto._
-EqDerivation[MyCaseClass]
-HashDerivation[MyCaseClass]
-SemigroupDerivation[MyCaseClass]
-MonoidDerivation[MyCaseClass]
-GroupDerivation[MyCaseClass]
+import cats._
+import cats.instances.all._
+EqDerivation[Outer]
+HashDerivation[Outer]
+SemigroupDerivation[Outer]
+MonoidDerivation[Outer]
+// this fails due to missing `Group[String]` instance
+// GroupDerivation[Outer]
 
 import magnolify.scalacheck.semiauto._
-ArbitraryDerivation[MyCaseClass]
-CogenDerivation[MyCaseClass]
+import org.scalacheck._
+ArbitraryDerivation[Outer]
+CogenDerivation[Outer]
 
 import magnolify.guava.semiauto._
-FunnelDerivation[MyCaseClass]
+FunnelDerivation[Outer]
 ```
 
-Conversion between a case class instance and an instance of another type (e.g. GenericRecord) containing the same data must be called explicitly/semi-automatically, specifying the case class to be used for conversion, rather than deriving entirely with implicits.
+Typeclasses for data type conversion must be called explicitly.
 
 ```scala
-// case classes used in examples
-case class MyCaseClass(field: NestedCaseClass) 
-case class NestedCaseClass(innerField: String) // works with other non-String elements, this is just an example
+import java.net.URI
+case class Inner(long: Long, str: String, uri: URI)
+case class Outer(inner: Inner)
 
-// an annotated example with Avro GenericRecord
+// Avro GenericRecord
 import magnolify.avro._
 import org.apache.avro.generic.GenericRecord
-val typeclass = AvroType[MyCaseClass] // AvroType typeclass instance defines to and from conversions between Case Class and GenericRecord
-val genericRecord: GenericRecord = typeclass.to(MyCaseClass(NestedCaseClass("hi"))) // instantiate a case class, then pass in
-val caseClass: MyCaseClass = typeclass.from(genericRecord) // roundtrip
-
-typeclass.schema // Avro Schema
 implicit val uriField = AvroField.from[String](URI.create)(_.toString) // custom field type
+val avroType = AvroType[Outer]
+val genericRecord: GenericRecord = avroType.to(Outer(Inner(1L, "hello", URI.create("https://www.spotify.com"))))
+val caseClass: Outer = avroType.from(genericRecord)
 
-// The other three converters work similarly to Avro: 
+avroType.schema // Avro Schema
 
-// an example with BigQuery TableRow
+// BigQuery TableRow
 import magnolify.bigquery._
-val typeclass = TableRowType[MyCaseClass] 
-val tableRow: TableRow = typeclass.to(MyCaseClass(NestedCaseClass("hi"))) 
-val caseClass: MyCaseClass = typeclass.from(tableRow)
-
-typeclass.schema // BigQuery TableSchema
+import com.google.api.services.bigquery.model.TableRow
 implicit val uriField = TableRowField.from[String](URI.create)(_.toString) // custom field type
+val trType = TableRowType[Outer]
+val tableRow: TableRow = trType.to(Outer(Inner(1L, "hello", URI.create("https://www.spotify.com"))))
+val caseClass: Outer = trType.from(tableRow)
 
-// an example with Datastore Entity
+trType.schema // BigQuery TableSchema
+
+// Datastore Entity
 import magnolify.datastore._
-val typeclass = EntityType[MyCaseClass]
-val datastoreEntity = typeclass.to(MyCaseClass(NestedCaseClass("hi")))
-val caseClass: MyCaseClass = typeclass.from(datastoreEntity)
-
 implicit val uriField = EntityField.from[String](URI.create)(_.toString) // custom field type
+val entityType = EntityType[Outer]
+val entity = entityType.to(Outer(Inner(1L, "hello", URI.create("https://www.spotify.com")))).build
+val caseClass: Outer = entityType.from(entity)
 
 // an example with TensorFlow Example
 import magnolify.tensorflow._
-val typeclass = ExampleType[MyCaseClass]
-val tensorflowExample = typeclass.to(MyCaseClass(NestedCaseClass("hi")))
-val caseClass = typeclass.from(tensorflowExample)
-
-// custom field type
-implicit val stringField = ExampleField.from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8) 
+import com.google.protobuf.ByteString
+// custom field types
+implicit val stringField = ExampleField.from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
+implicit val uriField =
+  ExampleField.from[ByteString](b => URI.create(b.toStringUtf8))(u => ByteString.copyFromUtf8(u.toString))
+val exampleType = ExampleType[Outer]
+val example = exampleType.to(Outer(Inner(1L, "hello", URI.create("https://www.spotify.com")))).build
+val caseClass = exampleType.from(example)
 ```
 
 # License
