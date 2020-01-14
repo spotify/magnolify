@@ -32,10 +32,9 @@ This library includes the following modules.
 
 # Usage
 
-Cats, ScalaCheck, and Guava type class derivation can be performed both automatically and semi-automatically.
+Cats, ScalaCheck, and Guava typeclass derivation can be performed both automatically and semi-automatically.
 
-Automatic derivation are provided as implicits through `import magnolify.$module.auto._`.  It works with context bounds i.e. `def plus[T: Semigroup](x: T, y: T)` and implicit paramemters i.e.
-`def f[T](x: T, y: T)(implicit sg: Semigroup[T])`. The following examples summon them via `implicitly`.
+Automatic derivation are provided as implicits through `import magnolify.$module.auto._`.  It works with context bounds i.e. `def plus[T: Semigroup](x: T, y: T)` and implicit paramemters i.e. `def f[T](x: T, y: T)(implicit sg: Semigroup[T])`. The following examples summon them via `implicitly`.
 
 ```scala
 case class Inner(int: Int, str: String)
@@ -45,7 +44,7 @@ case class Outer(inner: Inner)
 import magnolify.cats.auto._
 import cats._
 import cats.instances.all._ // implicit instances for Semigroup[Int], etc.
-val sg: Semigroup[Outer] = implicitly[Semigroup[Outer]]
+val sg: = implicitly[Semigroup[Outer]]
 sg.combine(Outer(Inner(1, "hello, ")), Outer(Inner(100, "world!")))
 // = Outer(Inner(101,hello, world!))
 
@@ -69,20 +68,20 @@ Semi-automatic derivation needs to be called explicitly.
 import magnolify.cats.semiauto._
 import cats._
 import cats.instances.all._
-EqDerivation[Outer]
-HashDerivation[Outer]
-SemigroupDerivation[Outer]
-MonoidDerivation[Outer]
+val eq: Eq[Outer] = EqDerivation[Outer]
+val hash: Hash[Outer] = HashDerivation[Outer]
+val sg: Semigroup[Outer] = SemigroupDerivation[Outer]
+val mon: Monoid[Outer] = MonoidDerivation[Outer]
 // this fails due to missing `Group[String]` instance
-// GroupDerivation[Outer]
+val group: Group[Outer] = GroupDerivation[Outer]
 
 import magnolify.scalacheck.semiauto._
 import org.scalacheck._
-ArbitraryDerivation[Outer]
-CogenDerivation[Outer]
+val arb: Arbitrary[Outer] = ArbitraryDerivation[Outer]
+val cogen: Cogen[Outer] = CogenDerivation[Outer]
 
 import magnolify.guava.semiauto._
-FunnelDerivation[Outer]
+val fnl: Funnel[Outer] = FunnelDerivation[Outer]
 ```
 
 Typeclasses for data type conversion must be called explicitly.
@@ -91,14 +90,15 @@ Typeclasses for data type conversion must be called explicitly.
 import java.net.URI
 case class Inner(long: Long, str: String, uri: URI)
 case class Outer(inner: Inner)
+val record = Outer(Inner(1L, "hello", URI.create("https://www.spotify.com")))
 
 // Avro GenericRecord
 import magnolify.avro._
 import org.apache.avro.generic.GenericRecord
 implicit val uriField = AvroField.from[String](URI.create)(_.toString) // custom field type
 val avroType = AvroType[Outer]
-val genericRecord: GenericRecord = avroType.to(Outer(Inner(1L, "hello", URI.create("https://www.spotify.com"))))
-val caseClass: Outer = avroType.from(genericRecord)
+val genericRecord: GenericRecord = avroType.to(record)
+val copy: Outer = avroType.from(genericRecord)
 
 avroType.schema // Avro Schema
 
@@ -107,8 +107,8 @@ import magnolify.bigquery._
 import com.google.api.services.bigquery.model.TableRow
 implicit val uriField = TableRowField.from[String](URI.create)(_.toString) // custom field type
 val tableRowType = TableRowType[Outer]
-val tableRow: TableRow = tableRowType.to(Outer(Inner(1L, "hello", URI.create("https://www.spotify.com"))))
-val caseClass: Outer = tableRowType.from(tableRow)
+val tableRow: TableRow = tableRowType.to(record)
+val copy: Outer = tableRowType.from(tableRow)
 
 tableRowType.schema // BigQuery TableSchema
 
@@ -116,8 +116,8 @@ tableRowType.schema // BigQuery TableSchema
 import magnolify.datastore._
 implicit val uriField = EntityField.from[String](URI.create)(_.toString) // custom field type
 val entityType = EntityType[Outer]
-val entity = entityType.to(Outer(Inner(1L, "hello", URI.create("https://www.spotify.com")))).build
-val caseClass: Outer = entityType.from(entity)
+val entityBuilder: Entity.Builder = entityType.to(record)
+val copy: Outer = entityType.from(entityBuilder.build)
 
 // TensorFlow Example
 import magnolify.tensorflow._
@@ -127,8 +127,8 @@ implicit val stringField = ExampleField.from[ByteString](_.toStringUtf8)(ByteStr
 implicit val uriField =
   ExampleField.from[ByteString](b => URI.create(b.toStringUtf8))(u => ByteString.copyFromUtf8(u.toString))
 val exampleType = ExampleType[Outer]
-val example = exampleType.to(Outer(Inner(1L, "hello", URI.create("https://www.spotify.com")))).build
-val caseClass = exampleType.from(example)
+val exampleBuilder: Example.Builder = exampleType.to(record)
+val copy = exampleType.from(exampleBuilder.build)
 ```
 
 # License
