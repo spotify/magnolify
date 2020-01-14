@@ -34,20 +34,14 @@ This library includes the following modules.
 
 Cats, ScalaCheck, and Guava type class derivation can be performed both automatically and semi-automatically.
 
-Automatic derivation works out of the box by importing implicits from `magnolify.$module.auto._`.
-It works with context bounds i.e. `def plus[T: Semigroup](x: T, y: T)` and implicit paramemters i.e.
-`def f[T](x: T, y: T)(implicit sg: Semigroup[T])`.
+Automatic derivation are provided as implicits through `import magnolify.$module.auto._`.  It works with context bounds i.e. `def plus[T: Semigroup](x: T, y: T)` and implicit paramemters i.e.
+`def f[T](x: T, y: T)(implicit sg: Semigroup[T])`. The following examples summon them via `implicitly`.
 
 ```scala
 case class Inner(int: Int, str: String)
 case class Outer(inner: Inner)
 
-// implicitly[T] summons an implicit instance of T
-// - which Magnolia derives at compile time if T is a typeclass F[A]
-// - and A is a case class or ADT
-// - recursively summons typeclasses for case class fields or ADT subtypes
-
-// an example with Cats Semigroup
+// Cats Semigroup
 import magnolify.cats.auto._
 import cats._
 import cats.instances.all._ // implicit instances for Semigroup[Int], etc.
@@ -55,18 +49,18 @@ val sg: Semigroup[Outer] = implicitly[Semigroup[Outer]]
 sg.combine(Outer(Inner(1, "hello, ")), Outer(Inner(100, "world!")))
 // = Outer(Inner(101,hello, world!))
 
-// an example with ScalaCheck Arbitrary
+// ScalaCheck Arbitrary
 import magnolify.scalacheck.auto._
 import org.scalacheck._ // implicit instances for Arbitrary[Int], etc.
 val arb: Arbitrary[Outer] = implicitly[Arbitrary[Outer]]
 arb.arbitrary.sample
 // = Some(Outer(Inter(12345, abcde)))
 
-// an example with Guava Funnel
+// Guava Funnel
 import magnolify.guava.auto._ // includes implicit instances for Funnel[Int], etc.
 import com.google.common.hash._
 val fnl: Funnel[Outer] = implicitly[Funnel[Outer]]
-BloomFilter.create[Outer](fnl, 1000) // a BloomFilter that works with Outer
+val bf: BloomFilter[Outer] = BloomFilter.create[Outer](fnl, 1000)
 ```
 
 Semi-automatic derivation needs to be called explicitly.
@@ -112,11 +106,11 @@ avroType.schema // Avro Schema
 import magnolify.bigquery._
 import com.google.api.services.bigquery.model.TableRow
 implicit val uriField = TableRowField.from[String](URI.create)(_.toString) // custom field type
-val trType = TableRowType[Outer]
-val tableRow: TableRow = trType.to(Outer(Inner(1L, "hello", URI.create("https://www.spotify.com"))))
-val caseClass: Outer = trType.from(tableRow)
+val tableRowType = TableRowType[Outer]
+val tableRow: TableRow = tableRowType.to(Outer(Inner(1L, "hello", URI.create("https://www.spotify.com"))))
+val caseClass: Outer = tableRowType.from(tableRow)
 
-trType.schema // BigQuery TableSchema
+tableRowType.schema // BigQuery TableSchema
 
 // Datastore Entity
 import magnolify.datastore._
@@ -125,7 +119,7 @@ val entityType = EntityType[Outer]
 val entity = entityType.to(Outer(Inner(1L, "hello", URI.create("https://www.spotify.com")))).build
 val caseClass: Outer = entityType.from(entity)
 
-// an example with TensorFlow Example
+// TensorFlow Example
 import magnolify.tensorflow._
 import com.google.protobuf.ByteString
 // custom field types
