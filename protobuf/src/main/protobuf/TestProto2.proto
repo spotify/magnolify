@@ -1,0 +1,50 @@
+syntax = "proto2";
+
+package magnolify.skeleton.proto;
+
+option java_package = "magnolify.skeleton.proto";
+
+
+message IntegersP2 {
+    required int32 i = 1;
+    required int64 l = 2;
+}
+
+message NumbersP2 {
+    required int32 i = 1;
+    required int64 l = 2;
+    required float f = 3;
+    required double d = 4;
+}
+
+message NullableP2 {
+    optional string s = 1;
+    optional bool b = 2;
+    optional int32 i = 3;
+}
+
+message RequiredP2 {
+    required string s = 1;
+    required bool b = 2;
+    required int32 i = 3;
+}
+
+message RepeatedP2 {
+    repeated string s = 1;
+    repeated bool b = 2;
+    repeated int32 i = 3;
+}
+
+message NestedP2 {
+    required string s = 1;
+    required bool b = 2;
+    required int32 i = 3;
+    required RequiredP2 r = 4;
+    required NullableP2 o = 5;
+    required RepeatedP2 l = 6;
+}
+
+message CustomP2 {
+    required string u = 1;
+    required int64 d = 2;
+}

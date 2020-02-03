@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package magnolify.skeleton.proto;
+
+option java_package = "magnolify.skeleton.proto";
+
+message IntegersP3 {
+     int32 i = 1;
+     int64 l = 2;
+}
+
+message NumbersP3 {
+     int32 i = 1;
+     int64 l = 2;
+     float f = 3;
+     double d = 4;
+}
+
+message NullableP3 {
+     string s = 1;
+     bool b = 2;
+     int32 i = 3;
+}
+
+message RepeatedP3 {
+    repeated string s = 1;
+    repeated bool b = 2;
+    repeated int32 i = 3;
+}
+
+message NestedP3 {
+     string s = 1;
+     bool b = 2;
+     int32 i = 3;
+     NullableP3 o = 5;
+     RepeatedP3 l = 6;
+}
+
+message CustomP3 {
+    string u = 1;
+    int64 d = 2;
+}
