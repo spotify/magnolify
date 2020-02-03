@@ -26,7 +26,7 @@ val datastoreVersion = "1.6.3"
 val guavaVersion = "28.2-jre"
 val jacksonVersion = "2.10.2"
 val jodaTimeVersion = "2.10.5"
-val protobufVersion = "3.10.0"
+val protobufVersion = "3.11.1" // needs to match protoc-jar version in project/plugins.sbt
 val scalacheckVersion = "1.14.3"
 val tensorflowVersion = "1.15.0"
 
@@ -122,6 +122,7 @@ lazy val root: Project = project
     avro,
     bigquery,
     datastore,
+    protobuf,
     tensorflow,
     test
   )
@@ -276,6 +277,24 @@ lazy val tensorflow: Project = project
     test % "test->test"
   )
 
+lazy val protobuf: Project = project
+  .in(file("protobuf"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-protobuf",
+    description := "Magnolia add-on for Apache Avro",
+    libraryDependencies ++= Seq(
+      "com.github.os72" % "protoc-jar" % protobufVersion
+    )
+  )
+  .dependsOn(
+    shared,
+    cats % Test,
+    scalacheck % Test,
+    test % "test->test"
+  )
+  .enablePlugins(ProtobufPlugin)
+
 lazy val jmh: Project = project
   .in(file("jmh"))
   .settings(
@@ -293,7 +312,14 @@ lazy val jmh: Project = project
       "joda-time" % "joda-time" % jodaTimeVersion % Test,
       "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
       "org.tensorflow" % "proto" % tensorflowVersion % Test
-    )
+    ),
+    // proto config
+    protobufProtocOptions in ProtobufConfig ++= Seq("--include_std_types"),
+    sourceDirectories in ProtobufConfig += (protobufExternalIncludePath in ProtobufConfig).value,
+    ProtobufConfig / version := protobufVersion,
+//    ProtobufConfig / protobufRunProtoc := { args =>
+//      com.github.os72.protocjar.Protoc.runProtoc("-v3.6.0" +: args.toArray)
+//    } // is this needed?
   )
   .dependsOn(
     scalacheck % Test,
@@ -303,6 +329,7 @@ lazy val jmh: Project = project
     bigquery % Test,
     datastore % Test,
     tensorflow % Test,
+    protobuf % Test,
     test % "test->test"
   )
-  .enablePlugins(JmhPlugin)
+  .enablePlugins(JmhPlugin, ProtobufPlugin)
