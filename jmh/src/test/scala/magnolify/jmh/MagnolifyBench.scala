@@ -115,6 +115,19 @@ class EntityBench {
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @State(Scope.Thread)
+class ProtobufBench {
+  import magnolify.protobuf._
+  import magnolify.test.Proto2._
+  private val nested = implicitly[Arbitrary[Nested]].arbitrary.sample.get
+  private val protoType = ProtobufType[Nested, NestedP2]
+  private val protoNested = protoType.to(nested)
+  @Benchmark def protoTo: NestedP2 = protoType.to(nested)
+  @Benchmark def protoFrom: Nested = protoType.from(protoNested)
+}
+
+@BenchmarkMode(Array(Mode.AverageTime))
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
+@State(Scope.Thread)
 class ExampleBench {
   import com.google.protobuf.ByteString
   import magnolify.tensorflow._

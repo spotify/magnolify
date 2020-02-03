@@ -28,6 +28,7 @@ This library includes the following modules.
 - `magnolify-avro` - conversion between Scala types and [Apache Avro](https://github.com/apache/avro) `GenericRecord`
 - `magnolify-bigquery` - conversion between Scala types and [Google Cloud BigQuery](https://cloud.google.com/bigquery/) `TableRow`
 - `magnolify-datastore` - conversion between Scala types and [Google Cloud Datastore](https://cloud.google.com/datastore/) `Entity`
+- `magnolify-protobuf` - conversion between Scala types and [Google Protocol Buffer](https://developers.google.com/protocol-buffers/docs/overview) `Message`
 - `magnolify-tensorflow` - conversion between Scala types and [TensorFlow](https://www.tensorflow.org/) `Example`
 
 # Usage
@@ -118,6 +119,13 @@ implicit val uriField = EntityField.from[String](URI.create)(_.toString) // cust
 val entityType = EntityType[Outer]
 val entityBuilder: Entity.Builder = entityType.to(record)
 val copy: Outer = entityType.from(entityBuilder.build)
+
+// Protobuf
+import magnolify.protobuf._
+implicit val uriField: ProtobufField[URI] = ProtobufField.from[URI](URI.create)(_.toString)
+val protobufType = ProtobufType[Outer, Proto] // Proto is compiled Protobuf Message
+val proto: Proto = protobufType.to(record)
+val copy: Outer = protobufType.from(proto)
 
 // TensorFlow Example
 import magnolify.tensorflow._

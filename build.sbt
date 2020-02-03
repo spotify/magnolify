@@ -26,7 +26,8 @@ val datastoreVersion = "1.6.3"
 val guavaVersion = "28.2-jre"
 val jacksonVersion = "2.10.2"
 val jodaTimeVersion = "2.10.5"
-val protobufVersion = "3.10.0"
+val protobufVersion = "3.11.4"
+
 val scalacheckVersion = "1.14.3"
 val tensorflowVersion = "1.15.0"
 
@@ -122,6 +123,7 @@ lazy val root: Project = project
     avro,
     bigquery,
     datastore,
+    protobuf,
     tensorflow,
     test
   )
@@ -145,8 +147,12 @@ lazy val test: Project = project
     libraryDependencies ++= Seq(
       "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion % Test
+    ),
+    protobufRunProtoc in ProtobufConfig := (args =>
+      com.github.os72.protocjar.Protoc.runProtoc(args.toArray)
     )
   )
+  .enablePlugins(ProtobufPlugin)
 
 lazy val scalacheck: Project = project
   .in(file("scalacheck"))
@@ -259,6 +265,23 @@ lazy val datastore: Project = project
     test % "test->test"
   )
 
+lazy val protobuf: Project = project
+  .in(file("protobuf"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-protobuf",
+    description := "Magnolia add-on for Google Protocol Buffer",
+    libraryDependencies ++= Seq(
+      "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
+    )
+  )
+  .dependsOn(
+    shared,
+    cats % Test,
+    scalacheck % Test,
+    test % "test->test"
+  )
+
 lazy val tensorflow: Project = project
   .in(file("tensorflow"))
   .settings(
@@ -303,6 +326,7 @@ lazy val jmh: Project = project
     bigquery % Test,
     datastore % Test,
     tensorflow % Test,
+    protobuf % Test,
     test % "test->test"
   )
   .enablePlugins(JmhPlugin)

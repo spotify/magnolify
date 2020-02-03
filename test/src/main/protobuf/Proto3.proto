@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package magnolify.test;
+
+option java_package = "magnolify.test";
+
+message IntegersP3 {
+    int32 i = 1;
+    int64 l = 2;
+}
+
+message NumbersP3 {
+    int32 i = 1;
+    int64 l = 2;
+    float f = 3;
+    double d = 4;
+}
+
+message SingularP3 {
+    string s = 1;
+    bool b = 2;
+    int32 i = 3;
+}
+
+message RepeatedP3 {
+    repeated string s = 1;
+    repeated bool b = 2;
+    repeated int32 i = 3;
+}
+
+message NestedP3 {
+    string s = 1;
+    bool b = 2;
+    int32 i = 3;
+    SingularP3 r = 4;
+    repeated SingularP3 l = 5;
+}
+
+message CollectionP3 {
+    repeated int32 a = 1;
+    repeated int32 l = 2;
+    repeated int32 v = 3;
+}
+
+message MoreCollectionP3 {
+    repeated int32 i = 1;
+    repeated int32 s = 2;
+    repeated int32 is = 3;
+}
+
+message CustomP3 {
+    string u = 1;
+    int64 d = 2;
+}
+
+message BytesP3 {
+    bytes b = 1;
+}
