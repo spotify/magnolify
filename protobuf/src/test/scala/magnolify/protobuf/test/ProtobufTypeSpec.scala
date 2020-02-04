@@ -40,9 +40,9 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
     eqMessage: Eq[U] = Eq.instance[U]((first, second) => {
       first.getDescriptorForType == second.getDescriptorForType &&
         (first.getAllFields.asScala == second.getAllFields.asScala)
-    })//(_ == _)
+    })
   ): Unit = {
-//    ensureSerializable(tpe) // TODO not serializable
+    ensureSerializable(tpe)
 
     val eqCaseClass = implicitly[Eq[T]]
 
@@ -50,11 +50,6 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
       val r: U = tpe(t)
       val rCopy: U = r.newBuilderForType().mergeFrom(r).build().asInstanceOf[U]
       val copy: T = tpe(rCopy)
-      // TODO remove this once done debugging
-//      if (className[T].contains("Collection")) {
-//        println(s"t: $t, r: $r, copy: $copy")
-//        println(s"r: $r, rCopy: $rCopy")
-//      }
       Prop.all(eqCaseClass.eqv(t, copy), eqMessage.eqv(r, rCopy))
     }
   }

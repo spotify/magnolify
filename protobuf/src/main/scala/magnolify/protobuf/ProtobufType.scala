@@ -31,10 +31,13 @@ import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
 import scala.reflect.ClassTag
 
+sealed trait MessageInfo
+
+case class MessageBuilder(b: Message.Builder) extends MessageInfo
+
 
 sealed trait ProtobufType[T, ParentMsgT <: Message] extends Converter[T, ParentMsgT,
   ParentMsgT] {
-  val messageBuilder: Message.Builder
   def apply(r: ParentMsgT): T = from(r)
   def apply(t: T): ParentMsgT = to(t)
 }
@@ -43,14 +46,12 @@ object ProtobufType {
   implicit def apply[T, ParentMsgT <: Message : ClassTag]
   (implicit f: ProtobufField.Record[T]): ProtobufType[T, ParentMsgT] =
     new ProtobufType[T, ParentMsgT] {
-      override val messageBuilder: Message.Builder = implicitly[ClassTag[ParentMsgT]]
+      override def from(v: ParentMsgT): T = f.from(v)
+      override def to(v: T): ParentMsgT = f.to(v, MessageBuilder(implicitly[ClassTag[ParentMsgT]]
         .runtimeClass
         .getMethod("newBuilder")
         .invoke(null)
-        .asInstanceOf[Message.Builder]
-
-      override def from(v: ParentMsgT): T = f.from(v, messageBuilder)
-      override def to(v: T): ParentMsgT = f.to(v, messageBuilder).asInstanceOf[ParentMsgT]
+        .asInstanceOf[Message.Builder])).asInstanceOf[ParentMsgT]
     }
 }
 
@@ -58,10 +59,10 @@ sealed trait ProtobufField[T] extends Serializable { self =>
   type FromT
   type ToT
 
-  def from(v: FromT, b: Message.Builder): T
-  def to(v: T, b: Message.Builder): ToT
+  def from(v: FromT): T
+  def to(v: T, messageInfo: MessageInfo): ToT
 
-  def fromAny(v: Any, b: Message.Builder): T = from(v.asInstanceOf[FromT], b)
+  def fromAny(v: Any): T = from(v.asInstanceOf[FromT])
 }
 
 object ProtobufField {
@@ -71,7 +72,6 @@ object ProtobufField {
     override type ToT = To
   }
 
-  trait Generic[T] extends Aux[T, Any, Any] // todo rm
   trait Record[T] extends Aux[T, Message, Message]
 
   //////////////////////////////////////////////////
@@ -80,31 +80,36 @@ object ProtobufField {
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
 
-    override def from(v: Message, b: Message.Builder): T =
+    override def from(v: Message): T = {
       caseClass.construct(p => {
-        val fieldDescriptor = b.getDescriptorForType.findFieldByName(p.label)
+        val fieldDescriptor = v.getDescriptorForType.findFieldByName(p.label)
 
         if (fieldDescriptor.getType == FieldDescriptor.Type.MESSAGE) {
           // nested
-          p.typeclass.fromAny(v.getField(fieldDescriptor), b.newBuilderForField(fieldDescriptor))
+          p.typeclass.fromAny(v.getField(fieldDescriptor))
         } else {
           // non-nested
-          p.typeclass.fromAny(v.getField(fieldDescriptor), b)
+          p.typeclass.fromAny(v.getField(fieldDescriptor))
         }
       })
+    }
 
-    override def to(v: T, bu: Message.Builder): Message = {
+    override def to(v: T, bu: MessageInfo): Message = {
+      val b = bu match {
+        case MessageBuilder(i) => i
+      }
       // clear builder from previous runs before using it to construct a new instance
-      caseClass.parameters.foldLeft(bu.clear()) { (b, p) =>
+      caseClass.parameters.foldLeft(b.clear()) { (b, p) =>
         val fieldDescriptor = b.getDescriptorForType.findFieldByName(p.label)
 
         if (fieldDescriptor.getType == FieldDescriptor.Type.MESSAGE) { // nested records
-          val messageValue = p.typeclass.to(p.dereference(v), b.newBuilderForField(fieldDescriptor))
+          val messageValue = p.typeclass.to(p.dereference(v),
+            MessageBuilder(b.newBuilderForField(fieldDescriptor)))
 
           if (messageValue == null) b else b.setField(fieldDescriptor, messageValue)
         } else {
           // non-nested
-          val fieldValue = p.typeclass.to(p.dereference(v), b)
+          val fieldValue = p.typeclass.to(p.dereference(v), MessageBuilder(b))
           if (fieldValue == null) b else b.setField(fieldDescriptor, fieldValue)
         }
       }
@@ -123,21 +128,6 @@ object ProtobufField {
 
   def apply[T](implicit f: ProtobufField[T]): ProtobufField[T] = f
 
-  // TODO decide what to do with this
-//  def from[T]: FromWord[T] = new FromWord[T]
-//
-//  class FromWord[T] {
-//    def apply[U](f: T => U)(g: U => T)(implicit trf: ProtobufField[T]): ProtobufField[U] =
-//      new ProtobufField[U] {
-//        override type FromT = trf.FromT
-//        override type ToT = trf.ToT
-//
-//        override def from(v: FromT): U = f(trf.from(v, descriptor))
-//
-//        override def to(v: U): ToT = trf.to(g(v), descriptor)
-//      }
-//  }
-
   //////////////////////////////////////////////////
 
   private def at[T, From, To](f: From => T)(g: T => To): ProtobufField[T] =
@@ -145,9 +135,9 @@ object ProtobufField {
       override type FromT = From
       override type ToT = To
 
-      override def from(v: FromT, b: Message.Builder): T = f(v)
+      override def from(v: FromT): T = f(v)
 
-      override def to(v: T, b: Message.Builder): ToT = g(v)
+      override def to(v: T, b: MessageInfo): ToT = g(v)
     }
 
   def from[T, Repr](f: Repr => T)(g: T => Repr): ProtobufField[T] =
@@ -172,27 +162,27 @@ object ProtobufField {
                                      fc: FactoryCompat[T, C[T]]
                                    ): ProtobufField[C[T]] =
     new Aux[C[T], ju.List[f.FromT], ju.List[f.ToT]] {
-      override def from(v: ju.List[f.FromT], b: Message.Builder): C[T] =
+      override def from(v: ju.List[f.FromT]): C[T] =
         if (v == null) {
           fc.newBuilder.result()
         } else {
-          fc.build(v.asScala.iterator.map(f.from(_, b)))
+          fc.build(v.asScala.iterator.map(f.from(_)))
         }
-      override def to(v: C[T], b: Message.Builder): ju.List[f.ToT] =
+      override def to(v: C[T], b: MessageInfo): ju.List[f.ToT] =
         if (v.isEmpty) null else v.iterator.map(f.to(_, b)).toList.asJava
     }
 
   implicit def pfMap[T, U](implicit k: ProtobufField[T], v: ProtobufField[U])
   : ProtobufField[Map[T, U]] =
     new Aux[Map[T, U], ju.Map[k.FromT, v.FromT], ju.Map[k.ToT, v.ToT]] {
-      override def from(kvalues: ju.Map[k.FromT, v.FromT], b: Message.Builder): Map[T, U] =
+      override def from(kvalues: ju.Map[k.FromT, v.FromT]): Map[T, U] =
         if (kvalues == null) {
           Map.empty
         } else {
-          kvalues.asScala.iterator.map(kv => (k.from(kv._1, b), v.from(kv._2, b))).toMap
+          kvalues.asScala.iterator.map(kv => (k.from(kv._1), v.from(kv._2))).toMap
         }
 
-      override def to(kvalues: Map[T, U], b: Message.Builder): ju.Map[k.ToT, v.ToT] =
+      override def to(kvalues: Map[T, U], b: MessageInfo): ju.Map[k.ToT, v.ToT] =
         if (kvalues.isEmpty) null else kvalues.iterator.map(kv => (k.to(kv._1, b), v.to(kv._2, b)))
           .toMap
           .asJava
