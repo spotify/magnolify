@@ -149,17 +149,6 @@ object ProtobufField {
     ju.Arrays.copyOfRange(bb.array(), bb.position(), bb.limit())
   )(ByteBuffer.wrap)
 
-  implicit def pfOption[T](implicit f: ProtobufField[T]): ProtobufField[Option[T]] =
-    new Aux[Option[T], f.FromT, f.ToT] {
-      override def from(v: f.FromT, d: Descriptor): Option[T] =
-        if (v == null) None else Some(f.from(v, d))
-      override def to(v: Option[T], d: Descriptor): f.ToT = v match {
-        case None    => null.asInstanceOf[f.ToT]
-        case Some(x) => f.to(x, d)
-      }
-    }
-
-
   implicit def pfIterable[T, C[_]](implicit f: ProtobufField[T],
                                      ti: C[T] => Iterable[T],
                                      fc: FactoryCompat[T, C[T]]

@@ -37,27 +37,39 @@ import scala.reflect._
 object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
   private def test[T: ClassTag : Arbitrary : Eq, U <: Message : ClassTag](
     implicit tpe: ProtobufType[T, U],
-    eqMessage: Eq[U] = Eq.fromUniversalEquals[U]
+    eqMessage: Eq[U] = Eq.instance[U]((first, second) => {
+      first.getDescriptorForType == second.getDescriptorForType &&
+        (first.getAllFields.asScala == second.getAllFields.asScala)
+    })//(_ == _)
   ): Unit = {
 //    ensureSerializable(tpe) // TODO not serializable
+
+    val eqCaseClass = implicitly[Eq[T]]
 
     property(className[U]) = Prop.forAll { t: T =>
       val r: U = tpe(t)
       val rCopy: U = r.newBuilderForType().mergeFrom(r).build().asInstanceOf[U]
       val copy: T = tpe(rCopy)
-      Prop.all(implicitly[Eq[T]].eqv(t, copy), eqMessage.eqv(r, rCopy))
+      // TODO remove this once done debugging
+//      if (className[T].contains("Nullable")) {
+//        println(s"t: $t, copy: $copy")
+//      }
+      Prop.all(eqCaseClass.eqv(t, copy), eqMessage.eqv(r, rCopy))
     }
   }
 
   test[Integers, IntegersP2]
   test[Integers, IntegersP3]
   test[Required, RequiredP2]
-  test[Nullable, NullableP2]
-  test[Nullable, NullableP3]
+  // we don't support mapping nullable fields into Option, because
+  // e.g. Option[Boolean] has three potential values but an optional proto field only has two
+  // so in this test the optional fields get mapped to their types, not wrapped in Option
+  test[Required, NullableP2]
+  test[Required, NullableP3]
   test[Repeated, RepeatedP2]
   test[Repeated, RepeatedP3]
-  test[Nested, NestedP2]
-  test[Nested, NestedP3]
+  test[NestedNoOption, NestedP2]
+  test[NestedNoOption, NestedP3]
 
   // TODO test collections and maps - need to figure out which apply to protobuf
 //  {

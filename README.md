@@ -29,6 +29,7 @@ This library includes the following modules.
 - `magnolify-bigquery` - conversion between Scala types and [Google Cloud BigQuery](https://cloud.google.com/bigquery/) `TableRow`
 - `magnolify-datastore` - conversion between Scala types and [Google Cloud Datastore](https://cloud.google.com/datastore/) `Entity`
 - `magnolify-tensorflow` - conversion between Scala types and [TensorFlow](https://www.tensorflow.org/) `Example`
+- `magnolify-protobuf` - conversion between Scala types and [Google Protocol Buffer](https://developers.google.com/protocol-buffers/docs/overview) `Message`
 
 # Usage
 
@@ -130,6 +131,15 @@ val exampleType = ExampleType[Outer]
 val exampleBuilder: Example.Builder = exampleType.to(record)
 val copy = exampleType.from(exampleBuilder.build)
 ```
+
+Protobuf works slightly differently in that you need to specify both the type of the case class 
+and of the Proto file. Note that Protobuf doesn't support wrapping optional types in `scala.Option`,
+ because the protobuf default value behavior makes it ambiguous whether options should be `None` 
+ or have the default value. This means that round-trip behavior of an Option that was None would 
+ be the default value. To avoid this, we have chosen not to implement an Option converter, so 
+ case classes with Options will fail to compile. 
+
+// TODO working proto example once code is complete
 
 # License
 
