@@ -51,8 +51,9 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
       val rCopy: U = r.newBuilderForType().mergeFrom(r).build().asInstanceOf[U]
       val copy: T = tpe(rCopy)
       // TODO remove this once done debugging
-//      if (className[T].contains("Nullable")) {
-//        println(s"t: $t, copy: $copy")
+//      if (className[T].contains("Collection")) {
+//        println(s"t: $t, r: $r, copy: $copy")
+//        println(s"r: $r, rCopy: $rCopy")
 //      }
       Prop.all(eqCaseClass.eqv(t, copy), eqMessage.eqv(r, rCopy))
     }
@@ -71,7 +72,7 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
   test[NestedNoOption, NestedP2]
   test[NestedNoOption, NestedP3]
 
-  // TODO test maps 
+  // TODO test maps
   {
     import Collections._
     test[Collections, CollectionP2]

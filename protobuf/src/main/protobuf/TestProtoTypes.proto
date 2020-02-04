@@ -32,8 +32,8 @@ message NestedP3 {
      string s = 1;
      bool b = 2;
      int32 i = 3;
-     NullableP3 r = 5;
-     RepeatedP3 l = 6;
+     NullableP3 r = 4;
+     repeated NullableP3 l = 5;
 }
 
 message CollectionP3 {
