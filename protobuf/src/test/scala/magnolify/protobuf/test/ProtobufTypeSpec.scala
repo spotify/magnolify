@@ -71,12 +71,14 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
   test[NestedNoOption, NestedP2]
   test[NestedNoOption, NestedP3]
 
-  // TODO test collections and maps - need to figure out which apply to protobuf
-//  {
-//    import Collections._
-//    test[Collections]
-//    test[MoreCollections]
-//  }
+  // TODO test maps 
+  {
+    import Collections._
+    test[Collections, CollectionP2]
+    test[MoreCollections, MoreCollectionP2]
+    test[Collections, CollectionP3]
+    test[MoreCollections, MoreCollectionP3]
+  }
 
   {
     import Custom._
