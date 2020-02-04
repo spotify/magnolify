@@ -40,8 +40,19 @@ message NestedP2 {
     required bool b = 2;
     required int32 i = 3;
     required RequiredP2 r = 4;
-    required NullableP2 o = 5;
     required RepeatedP2 l = 6;
+}
+
+message CollectionP2 {
+    repeated int32 a = 1;
+    repeated int32 l = 2;
+    repeated int32 v = 3;
+}
+
+message MoreCollectionP2 {
+    repeated int32 i = 1;
+    repeated int32 s = 2;
+    repeated int32 is = 3;
 }
 
 message CustomP2 {
