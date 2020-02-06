@@ -67,7 +67,6 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
   test[NestedNoOption, NestedP2]
   test[NestedNoOption, NestedP3]
 
-  // TODO test maps
   {
     import Collections._
     test[Collections, CollectionP2]
@@ -84,6 +83,5 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
       ProtobufField.from[Duration, Long](Duration.ofMillis)(_.toMillis)
     test[Custom, CustomP2]
     test[Custom, CustomP3]
-
   }
 }
