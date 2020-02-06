@@ -316,10 +316,10 @@ lazy val jmh: Project = project
     // proto config
     protobufProtocOptions in ProtobufConfig ++= Seq("--include_std_types"),
     sourceDirectories in ProtobufConfig += (protobufExternalIncludePath in ProtobufConfig).value,
-    ProtobufConfig / version := protobufVersion,
+    ProtobufConfig / version := protobufVersion
 //    ProtobufConfig / protobufRunProtoc := { args =>
 //      com.github.os72.protocjar.Protoc.runProtoc("-v3.6.0" +: args.toArray)
-//    } // is this needed?
+//    } // TODO is this needed?
   )
   .dependsOn(
     scalacheck % Test,

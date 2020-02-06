@@ -38,12 +38,12 @@ object Simple {
     l: List[Required]
   )
   case class NestedNoOption(
-                     b: Boolean,
-                     i: Int,
-                     s: String,
-                     r: Required,
-                     l: List[Required]
-                   )
+    b: Boolean,
+    i: Int,
+    s: String,
+    r: Required,
+    l: List[Required]
+  )
   case class Collections(a: Array[Int], l: List[Int], v: Vector[Int])
   case class MoreCollections(i: Iterable[Int], s: Seq[Int], is: IndexedSeq[Int])
   case class Custom(u: URI, d: Duration)

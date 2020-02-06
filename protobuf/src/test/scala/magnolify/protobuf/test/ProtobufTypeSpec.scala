@@ -35,12 +35,12 @@ import org.scalacheck._
 import scala.reflect._
 
 object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
-  private def test[T: ClassTag : Arbitrary : Eq, U <: Message : ClassTag](
+  private def test[T: ClassTag: Arbitrary: Eq, U <: Message: ClassTag](
     implicit tpe: ProtobufType[T, U],
-    eqMessage: Eq[U] = Eq.instance[U]((first, second) => {
+    eqMessage: Eq[U] = Eq.instance[U] { (first, second) =>
       first.getDescriptorForType == second.getDescriptorForType &&
-        (first.getAllFields.asScala == second.getAllFields.asScala)
-    })
+      (first.getAllFields.asScala == second.getAllFields.asScala)
+    }
   ): Unit = {
     ensureSerializable(tpe)
 
@@ -77,8 +77,7 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
 
   {
     import Custom._
-    implicit val pfUri: ProtobufField[URI] = ProtobufField.from[URI, String](URI.create)(_
-      .toString)
+    implicit val pfUri: ProtobufField[URI] = ProtobufField.from[URI, String](URI.create)(_.toString)
     implicit val pfDuration: ProtobufField[Duration] =
       ProtobufField.from[Duration, Long](Duration.ofMillis)(_.toMillis)
     test[Custom, CustomP2]
