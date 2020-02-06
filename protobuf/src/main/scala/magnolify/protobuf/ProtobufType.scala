@@ -164,21 +164,4 @@ object ProtobufField {
       override def to(v: C[T], b: Message.Builder): ju.List[f.ToT] =
         if (v.isEmpty) null else v.iterator.map(f.to(_, b)).toList.asJava
     }
-
-  implicit def pfMap[T, U](implicit k: ProtobufField[T], v: ProtobufField[U])
-  : ProtobufField[Map[T, U]] =
-    new Aux[Map[T, U], ju.Map[k.FromT, v.FromT], ju.Map[k.ToT, v.ToT]] {
-      override def from(kvalues: ju.Map[k.FromT, v.FromT]): Map[T, U] =
-        if (kvalues == null) {
-          Map.empty
-        } else {
-          kvalues.asScala.iterator.map(kv => (k.from(kv._1), v.from(kv._2))).toMap
-        }
-
-      override def to(kvalues: Map[T, U], b: Message.Builder): ju.Map[k.ToT, v.ToT] =
-        if (kvalues.isEmpty) null else kvalues.iterator.map(kv => (k.to(kv._1, b), v.to(kv._2, b)))
-          .toMap
-          .asJava
-    }
-
 }
