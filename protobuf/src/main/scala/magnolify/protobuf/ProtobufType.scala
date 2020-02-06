@@ -16,7 +16,6 @@
  */
 package magnolify.protobuf
 
-
 import java.nio.ByteBuffer
 import java.{util => ju}
 
@@ -31,22 +30,26 @@ import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
 import scala.reflect.ClassTag
 
-sealed trait ProtobufType[T, ParentMsgT <: Message] extends Converter[T, ParentMsgT,
-  ParentMsgT] {
+sealed trait ProtobufType[T, ParentMsgT <: Message] extends Converter[T, ParentMsgT, ParentMsgT] {
   def apply(r: ParentMsgT): T = from(r)
   def apply(t: T): ParentMsgT = to(t)
 }
 
 object ProtobufType {
-  implicit def apply[T, ParentMsgT <: Message : ClassTag]
-  (implicit f: ProtobufField.Record[T]): ProtobufType[T, ParentMsgT] =
+  implicit def apply[T, ParentMsgT <: Message: ClassTag](
+    implicit f: ProtobufField.Record[T]
+  ): ProtobufType[T, ParentMsgT] =
     new ProtobufType[T, ParentMsgT] {
       override def from(v: ParentMsgT): T = f.from(v)
-      override def to(v: T): ParentMsgT = f.to(v, implicitly[ClassTag[ParentMsgT]]
-        .runtimeClass
-        .getMethod("newBuilder")
-        .invoke(null)
-        .asInstanceOf[Message.Builder]).asInstanceOf[ParentMsgT]
+      override def to(v: T): ParentMsgT =
+        f.to(
+            v,
+            implicitly[ClassTag[ParentMsgT]].runtimeClass
+              .getMethod("newBuilder")
+              .invoke(null)
+              .asInstanceOf[Message.Builder]
+          )
+          .asInstanceOf[ParentMsgT]
     }
 }
 
@@ -76,7 +79,7 @@ object ProtobufField {
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
 
     override def from(v: Message): T = {
-      caseClass.construct(p => {
+      caseClass.construct { p =>
         val fieldDescriptor = v.getDescriptorForType.findFieldByName(p.label)
 
         if (fieldDescriptor.getType == FieldDescriptor.Type.MESSAGE) {
@@ -86,26 +89,27 @@ object ProtobufField {
           // non-nested
           p.typeclass.fromAny(v.getField(fieldDescriptor))
         }
-      })
+      }
     }
 
     override def to(v: T, bu: Message.Builder): Message = {
 
       // clear builder from previous runs before using it to construct a new instance
-      caseClass.parameters.foldLeft(bu.clear()) { (b, p) =>
-        val fieldDescriptor = b.getDescriptorForType.findFieldByName(p.label)
+      caseClass.parameters
+        .foldLeft(bu.clear()) { (b, p) =>
+          val fieldDescriptor = b.getDescriptorForType.findFieldByName(p.label)
 
-        if (fieldDescriptor.getType == FieldDescriptor.Type.MESSAGE) { // nested records
-          val messageValue = p.typeclass.to(p.dereference(v),
-            b.newBuilderForField(fieldDescriptor))
+          if (fieldDescriptor.getType == FieldDescriptor.Type.MESSAGE) { // nested records
+            val messageValue =
+              p.typeclass.to(p.dereference(v), b.newBuilderForField(fieldDescriptor))
 
-          if (messageValue == null) b else b.setField(fieldDescriptor, messageValue)
-        } else {
-          // non-nested
-          val fieldValue = p.typeclass.to(p.dereference(v), b)
-          if (fieldValue == null) b else b.setField(fieldDescriptor, fieldValue)
+            if (messageValue == null) b else b.setField(fieldDescriptor, messageValue)
+          } else {
+            // non-nested
+            val fieldValue = p.typeclass.to(p.dereference(v), b)
+            if (fieldValue == null) b else b.setField(fieldDescriptor, fieldValue)
+          }
         }
-      }
         .build()
     }
   }
@@ -139,21 +143,21 @@ object ProtobufField {
   private def id[T]: ProtobufField[T] =
     at[T, T, T](identity)(identity)
 
-
   implicit val pfBoolean = id[Boolean]
   implicit val pfString = id[String]
   implicit val pfInt = id[Int]
   implicit val pfLong = id[Long]
   implicit val pfFloat = id[Float]
   implicit val pfDouble = id[Double]
-  implicit val pfBytes = from[Array[Byte], ByteBuffer](bb =>
-    ju.Arrays.copyOfRange(bb.array(), bb.position(), bb.limit())
-  )(ByteBuffer.wrap)
+  implicit val pfBytes =
+    from[Array[Byte], ByteBuffer](bb => ju.Arrays.copyOfRange(bb.array(), bb.position(), bb.limit())
+    )(ByteBuffer.wrap)
 
-  implicit def pfIterable[T, C[_]](implicit f: ProtobufField[T],
-                                     ti: C[T] => Iterable[T],
-                                     fc: FactoryCompat[T, C[T]]
-                                   ): ProtobufField[C[T]] =
+  implicit def pfIterable[T, C[_]](
+    implicit f: ProtobufField[T],
+    ti: C[T] => Iterable[T],
+    fc: FactoryCompat[T, C[T]]
+  ): ProtobufField[C[T]] =
     new Aux[C[T], ju.List[f.FromT], ju.List[f.ToT]] {
       override def from(v: ju.List[f.FromT]): C[T] =
         if (v == null) {
