@@ -16,7 +16,6 @@
  */
 package magnolify.protobuf
 
-import java.nio.ByteBuffer
 import java.{util => ju}
 
 import com.google.protobuf.Descriptors.FieldDescriptor
