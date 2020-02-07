@@ -26,7 +26,8 @@ val datastoreVersion = "1.6.3"
 val guavaVersion = "28.2-jre"
 val jacksonVersion = "2.10.2"
 val jodaTimeVersion = "2.10.5"
-val protobufVersion = "3.11.1" // needs to match protoc-jar version in project/plugins.sbt
+val protobufVersion = Option(sys.props("protobuf.version")).getOrElse("3.11.3")
+
 val scalacheckVersion = "1.14.3"
 val tensorflowVersion = "1.15.0"
 
@@ -283,8 +284,9 @@ lazy val protobuf: Project = project
     commonSettings,
     moduleName := "magnolify-protobuf",
     description := "Magnolia add-on for Google Protocol Buffer",
+    version in ProtobufConfig := protobufVersion,
     libraryDependencies ++= Seq(
-      "com.github.os72" % "protoc-jar" % protobufVersion
+      "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided,
     )
   )
   .dependsOn(
