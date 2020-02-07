@@ -55,7 +55,7 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
   }
 
   test[Integers, IntegersP2]
-  test[Integers, IntegersP3]
+  test[Integers, IntegersP3]    
   test[Required, RequiredP2]
   // we don't support mapping nullable fields into Option, because
   // e.g. Option[Boolean] has three potential values but an optional proto field only has two

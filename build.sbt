@@ -124,6 +124,7 @@ lazy val root: Project = project
     bigquery,
     datastore,
     protobuf,
+    protobufTest,
     tensorflow,
     test
   )
@@ -290,7 +291,23 @@ lazy val protobuf: Project = project
     )
   )
   .dependsOn(
-    shared,
+    shared
+  )
+
+
+lazy val protobufTest: Project = project
+  .in(file("protobuf-test"))
+  .settings(
+    commonSettings, noPublishSettings,
+    moduleName := "magnolify-protobuf-test",
+    description := "Tests for Magnolia add-on for Google Protocol Buffer",
+    version in ProtobufConfig := protobufVersion,
+    libraryDependencies ++= Seq(
+      "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided,
+    )
+  )
+  .dependsOn(
+    protobuf,
     cats % Test,
     scalacheck % Test,
     test % "test->test"
