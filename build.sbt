@@ -287,23 +287,23 @@ lazy val protobuf: Project = project
     description := "Magnolia add-on for Google Protocol Buffer",
     version in ProtobufConfig := protobufVersion,
     libraryDependencies ++= Seq(
-      "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided,
+      "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
     )
   )
   .dependsOn(
     shared
   )
 
-
 lazy val protobufTest: Project = project
   .in(file("protobuf-test"))
   .settings(
-    commonSettings, noPublishSettings,
+    commonSettings,
+    noPublishSettings,
     moduleName := "magnolify-protobuf-test",
     description := "Tests for Magnolia add-on for Google Protocol Buffer",
     version in ProtobufConfig := protobufVersion,
     libraryDependencies ++= Seq(
-      "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided,
+      "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
     )
   )
   .dependsOn(
