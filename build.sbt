@@ -282,7 +282,7 @@ lazy val protobuf: Project = project
   .settings(
     commonSettings,
     moduleName := "magnolify-protobuf",
-    description := "Magnolia add-on for Apache Avro",
+    description := "Magnolia add-on for Google Protocol Buffer",
     libraryDependencies ++= Seq(
       "com.github.os72" % "protoc-jar" % protobufVersion
     )
