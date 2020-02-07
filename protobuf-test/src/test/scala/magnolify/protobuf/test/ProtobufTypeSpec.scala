@@ -55,7 +55,7 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
   }
 
   test[Integers, IntegersP2]
-  test[Integers, IntegersP3]    
+  test[Integers, IntegersP3]
   test[Required, RequiredP2]
   // we don't support mapping nullable fields into Option, because
   // e.g. Option[Boolean] has three potential values but an optional proto field only has two
@@ -66,6 +66,14 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
   test[Repeated, RepeatedP3]
   test[NestedNoOption, NestedP2]
   test[NestedNoOption, NestedP3]
+
+  {
+    implicit val eqB: Eq[Array[Byte]] = Eq.instance[Array[Byte]] {(first, second) =>
+      first.zip(second).map(x => x._1 == x._2).forall(identity)
+    }
+    test[Bytes, BytesP2]
+    test[Bytes, BytesP3]
+  }
 
   {
     import Collections._

@@ -20,7 +20,7 @@ import java.nio.ByteBuffer
 import java.{util => ju}
 
 import com.google.protobuf.Descriptors.FieldDescriptor
-import com.google.protobuf.Message
+import com.google.protobuf.{ByteString, Message}
 import magnolia._
 import magnolify.shared.Converter
 import magnolify.shims.FactoryCompat
@@ -143,8 +143,7 @@ object ProtobufField {
   implicit val pfFloat = id[Float]
   implicit val pfDouble = id[Double]
   implicit val pfBytes =
-    from[Array[Byte], ByteBuffer](bb => ju.Arrays.copyOfRange(bb.array(), bb.position(), bb.limit())
-    )(ByteBuffer.wrap)
+    from[Array[Byte], ByteString](_.toByteArray)(ByteString.copyFrom)
 
   implicit def pfIterable[T, C[_]](
     implicit f: ProtobufField[T],

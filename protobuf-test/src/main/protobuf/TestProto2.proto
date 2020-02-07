@@ -59,3 +59,7 @@ message CustomP2 {
     required string u = 1;
     required int64 d = 2;
 }
+
+message BytesP2 {
+    required bytes b = 1;
+}
