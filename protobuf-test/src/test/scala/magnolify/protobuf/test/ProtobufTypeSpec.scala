@@ -68,7 +68,7 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
   test[NestedNoOption, NestedP3]
 
   {
-    implicit val eqB: Eq[Array[Byte]] = Eq.instance[Array[Byte]] {(first, second) =>
+    implicit val eqB: Eq[Array[Byte]] = Eq.instance[Array[Byte]] { (first, second) =>
       first.zip(second).map(x => x._1 == x._2).forall(identity)
     }
     test[Bytes, BytesP2]
