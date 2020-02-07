@@ -81,14 +81,7 @@ object ProtobufField {
     override def from(v: Message): T = {
       caseClass.construct { p =>
         val fieldDescriptor = v.getDescriptorForType.findFieldByName(p.label)
-
-        if (fieldDescriptor.getType == FieldDescriptor.Type.MESSAGE) {
-          // nested
-          p.typeclass.fromAny(v.getField(fieldDescriptor))
-        } else {
-          // non-nested
-          p.typeclass.fromAny(v.getField(fieldDescriptor))
-        }
+        p.typeclass.fromAny(v.getField(fieldDescriptor))
       }
     }
 
