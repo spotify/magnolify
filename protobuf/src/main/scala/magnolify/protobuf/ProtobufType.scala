@@ -88,7 +88,7 @@ object ProtobufField {
 
       // clear builder from previous runs before using it to construct a new instance
       caseClass.parameters
-        .foldLeft(bu.clear()) { (b, p) =>
+        .foldLeft(bu.getDefaultInstanceForType.newBuilderForType()) { (b, p) =>
           val fieldDescriptor = b.getDescriptorForType.findFieldByName(p.label)
 
           if (fieldDescriptor.getType == FieldDescriptor.Type.MESSAGE) { // nested records
