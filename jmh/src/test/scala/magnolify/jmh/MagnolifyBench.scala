@@ -135,3 +135,17 @@ class ExampleBench {
 
 // Option[T] and Seq[T] not supported
 case class ExampleNested(b: Boolean, i: Int, s: String, r: Required, o: Option[Required])
+
+
+@BenchmarkMode(Array(Mode.AverageTime))
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
+@State(Scope.Thread)
+class ProtobufBench {
+  import magnolify.protobuf._
+  import magnolify.skeleton.proto.TestProtoTypes._
+  private val nestedNoOption = implicitly[Arbitrary[NestedNoOption]].arbitrary.sample.get
+  private val protoType = ProtobufType[NestedNoOption, NestedP3]
+  private val protoNested = protoType.to(nestedNoOption)
+  @Benchmark def protoTo: NestedP3 = protoType.to(nestedNoOption)
+  @Benchmark def protoFrom: NestedNoOption = protoType.from(protoNested)
+}
