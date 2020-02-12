@@ -19,8 +19,8 @@ description := "A collection of Magnolia add-on modules"
 
 val magnoliaVersion = "0.12.6"
 
-val avroVersion = "1.9.1"
-val bigqueryVersion = "v2-rev20191211-1.30.8"
+val avroVersion = "1.9.2"
+val bigqueryVersion = "v2-rev20191211-1.30.3"
 val catsVersion = "2.0.0"
 val datastoreVersion = "1.6.3"
 val guavaVersion = "28.2-jre"

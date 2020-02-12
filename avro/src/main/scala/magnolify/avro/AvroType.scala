@@ -23,7 +23,7 @@ import magnolia._
 import magnolify.shared.Converter
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
-import org.apache.avro.Schema
+import org.apache.avro.{JsonProperties, Schema}
 import org.apache.avro.generic.{GenericArray, GenericData, GenericRecord, GenericRecordBuilder}
 
 import scala.annotation.implicitNotFound
@@ -147,7 +147,7 @@ object AvroField {
   implicit def afOption[T](implicit f: AvroField[T]): AvroField[Option[T]] =
     new Aux[Option[T], f.FromT, f.ToT] {
       override val schema: Schema = Schema.createUnion(Schema.create(Schema.Type.NULL), f.schema)
-      override def defaultVal: Any = Schema.Field.NULL_DEFAULT_VALUE
+      override def defaultVal: Any = JsonProperties.NULL_VALUE
       override def from(v: f.FromT): Option[T] =
         if (v == null) None else Some(f.from(v))
       override def to(v: Option[T]): f.ToT = v match {
