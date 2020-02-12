@@ -23,6 +23,7 @@ val avroVersion = "1.9.2"
 val bigqueryVersion = "v2-rev20191211-1.30.3"
 val catsVersion = "2.0.0"
 val datastoreVersion = "1.6.3"
+val grpcApiVersion = "1.17.0"
 val guavaVersion = "28.2-jre"
 val jacksonVersion = "2.10.2"
 val jodaTimeVersion = "2.10.5"
@@ -252,7 +253,8 @@ lazy val datastore: Project = project
     moduleName := "magnolify-datastore",
     description := "Magnolia add-on for Google Cloud Datastore",
     libraryDependencies ++= Seq(
-      "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Provided
+      "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Provided,
+      "com.google.api.grpc" % "proto-google-common-protos" % grpcApiVersion % Provided
     )
   )
   .dependsOn(
@@ -330,6 +332,7 @@ lazy val jmh: Project = project
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
       "joda-time" % "joda-time" % jodaTimeVersion % Test,
       "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
+      "com.google.api.grpc" % "proto-google-common-protos" % grpcApiVersion % Test,
       "org.tensorflow" % "proto" % tensorflowVersion % Test
     ),
     // proto config
