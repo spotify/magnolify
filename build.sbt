@@ -352,6 +352,7 @@ lazy val jmh: Project = project
     datastore % Test,
     tensorflow % Test,
     protobuf % Test,
+    protobufTest % Test,
     test % "test->test"
   )
   .enablePlugins(JmhPlugin, ProtobufPlugin)
