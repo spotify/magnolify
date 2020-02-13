@@ -16,9 +16,6 @@
  */
 package magnolify.cats.test
 
-import java.net.URI
-import java.time.Duration
-
 import cats._
 import cats.instances.all._
 import cats.kernel.laws.discipline._

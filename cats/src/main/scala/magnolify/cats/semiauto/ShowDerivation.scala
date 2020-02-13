@@ -27,30 +27,19 @@ import scala.language.experimental.macros
 object ShowDerivation {
   type Typeclass[T] = Show[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] =
-    Show.show(ShowMethods.combine(caseClass))
+  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = Show.show { x =>
+    caseClass.parameters
+      .map { p =>
+        s"${p.label} = ${p.typeclass.show(p.dereference(x))}"
+      }
+      .mkString(s"${caseClass.typeName.full} {", ", ", "}")
+  }
 
-  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] =
-    Show.show(ShowMethods.dispatch(sealedTrait))
+  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = Show.show { x =>
+    sealedTrait.dispatch(x) { sub =>
+      sub.typeclass.show(sub.cast(x))
+    }
+  }
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
-}
-
-private object ShowMethods {
-  def combine[T, Typeclass[T] <: Show[T]](caseClass: CaseClass[Typeclass, T]): (T) => String =
-    (x) => {
-      caseClass.parameters
-        .map { p =>
-          s"${p.label} = ${p.typeclass.show(p.dereference(x))}"
-        }
-        .mkString(s"${caseClass.typeName.full} {", ", ", "}")
-    }
-
-  def dispatch[T, Typeclass[T] <: Show[T]](
-    sealedTrait: SealedTrait[Typeclass, T]
-  ): (T) => String =
-    (x) =>
-      sealedTrait.dispatch(x) { sub =>
-        sub.typeclass.show(sub.cast(x))
-      }
 }
