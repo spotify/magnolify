@@ -39,9 +39,11 @@ object ShowDerivation {
 private object ShowMethods {
   def combine[T, Typeclass[T] <: Show[T]](caseClass: CaseClass[Typeclass, T]): (T) => String =
     (x) => {
-      caseClass.parameters.map { p =>
-        s"${p.label} = ${p.typeclass.show(p.dereference(x))}"
-      }.mkString(s"${caseClass.typeName.full} {", ", ", "}")
+      caseClass.parameters
+        .map { p =>
+          s"${p.label} = ${p.typeclass.show(p.dereference(x))}"
+        }
+        .mkString(s"${caseClass.typeName.full} {", ", ", "}")
     }
 
   def dispatch[T, Typeclass[T] <: Show[T]](

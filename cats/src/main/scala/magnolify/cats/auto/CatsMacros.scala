@@ -60,7 +60,7 @@ private object CatsMacros {
   }
 }
 
-trait LowPriorityImplicits extends LowPriorityGenGroup with LowPriorityGenShow{
+trait LowPriorityImplicits extends LowPriorityGenGroup with LowPriorityGenShow {
   // more specific implicits to workaround ambiguous implicit values with cats
   implicit def genListMonoid[T] = new ListMonoid[T]
   implicit def genOptionMonoid[T: Semigroup] = new OptionMonoid[T]
