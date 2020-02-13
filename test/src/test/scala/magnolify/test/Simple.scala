@@ -59,5 +59,8 @@ object Simple {
     implicit val coDuration: Cogen[Duration] = Cogen(_.toMillis)
     implicit val hashUri: Hash[URI] = Hash.fromUniversalHashCode[URI]
     implicit val hashDuration: Hash[Duration] = Hash.fromUniversalHashCode[Duration]
+
+    implicit val showUri: Show[URI] = Show.fromToString
+    implicit val showDuration: Show[Duration] = Show.fromToString
   }
 }
