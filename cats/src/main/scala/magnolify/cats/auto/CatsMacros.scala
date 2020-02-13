@@ -52,9 +52,15 @@ private object CatsMacros {
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.GroupDerivation.apply[$wtt]"""
   }
+
+  def genShowMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
+    import c.universe._
+    val wtt = weakTypeTag[T]
+    q"""_root_.magnolify.cats.semiauto.ShowDerivation.apply[$wtt]"""
+  }
 }
 
-trait LowPriorityImplicits extends LowPriorityGenGroup {
+trait LowPriorityImplicits extends LowPriorityGenGroup with LowPriorityGenShow {
   // more specific implicits to workaround ambiguous implicit values with cats
   implicit def genListMonoid[T] = new ListMonoid[T]
   implicit def genOptionMonoid[T: Semigroup] = new OptionMonoid[T]
@@ -78,4 +84,8 @@ trait LowPriorityGenMonoid extends LowPriorityGenSemigroup {
 
 trait LowPriorityGenSemigroup {
   implicit def genSemigroup[T]: Semigroup[T] = macro CatsMacros.genSemigroupMacro[T]
+}
+
+trait LowPriorityGenShow {
+  implicit def genShow[T]: Show[T] = macro CatsMacros.genShowMacro[T]
 }
