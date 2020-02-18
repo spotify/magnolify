@@ -29,16 +29,12 @@ object ShowDerivation {
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = Show.show { x =>
     caseClass.parameters
-      .map { p =>
-        s"${p.label} = ${p.typeclass.show(p.dereference(x))}"
-      }
+      .map(p => s"${p.label} = ${p.typeclass.show(p.dereference(x))}")
       .mkString(s"${caseClass.typeName.full} {", ", ", "}")
   }
 
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = Show.show { x =>
-    sealedTrait.dispatch(x) { sub =>
-      sub.typeclass.show(sub.cast(x))
-    }
+    sealedTrait.dispatch(x)(sub => sub.typeclass.show(sub.cast(x)))
   }
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]

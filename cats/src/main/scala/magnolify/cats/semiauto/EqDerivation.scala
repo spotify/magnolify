@@ -35,10 +35,7 @@ object EqDerivation {
 
 private object EqMethods {
   def combine[T, Typeclass[T] <: Eq[T]](caseClass: CaseClass[Typeclass, T]): (T, T) => Boolean =
-    (x, y) =>
-      caseClass.parameters.forall { p =>
-        p.typeclass.eqv(p.dereference(x), p.dereference(y))
-      }
+    (x, y) => caseClass.parameters.forall(p => p.typeclass.eqv(p.dereference(x), p.dereference(y)))
 
   def dispatch[T, Typeclass[T] <: Eq[T]](
     sealedTrait: SealedTrait[Typeclass, T]

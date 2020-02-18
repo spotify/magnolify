@@ -43,9 +43,7 @@ object FunnelDerivationSpec extends MagnolifySpec("FunnelDerivation") {
     property(s"$name.uniqueness") = Prop.forAll(Gen.listOfN(10, g)) { xs =>
       xs.map(toBytes(_, fnl)).toSet.size == xs.map(f).toSet.size
     }
-    property(s"$name.consistency") = Prop.forAll { x: T =>
-      toBytes(x, fnl) == toBytes(x, fnl)
-    }
+    property(s"$name.consistency") = Prop.forAll { x: T => toBytes(x, fnl) == toBytes(x, fnl) }
   }
 
   private def toBytes[T](x: T, fnl: Funnel[T]): List[Byte] = {

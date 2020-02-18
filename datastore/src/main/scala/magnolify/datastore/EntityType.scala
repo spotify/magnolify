@@ -135,9 +135,7 @@ object EntityField {
           Value
             .newBuilder()
             .setArrayValue(
-              v.foldLeft(ArrayValue.newBuilder()) { (b, x) =>
-                  b.addValues(f.to(x))
-                }
+              v.foldLeft(ArrayValue.newBuilder())((b, x) => b.addValues(f.to(x)))
                 .build()
             )
         }
