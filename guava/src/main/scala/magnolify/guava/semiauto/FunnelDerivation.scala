@@ -40,9 +40,7 @@ object FunnelDerivation {
 
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = new Funnel[T] {
     override def funnel(from: T, into: PrimitiveSink): Unit =
-      sealedTrait.dispatch(from) { sub =>
-        sub.typeclass.funnel(sub.cast(from), into)
-      }
+      sealedTrait.dispatch(from)(sub => sub.typeclass.funnel(sub.cast(from), into))
   }
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]

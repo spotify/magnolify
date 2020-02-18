@@ -73,9 +73,7 @@ object ExampleField {
       if (prefix == null) label else s"$prefix.$label"
 
     override def get(f: Features, k: String): T =
-      caseClass.construct { p =>
-        p.typeclass.get(f, key(k, p.label))
-      }
+      caseClass.construct(p => p.typeclass.get(f, key(k, p.label)))
 
     override def put(f: Features.Builder, k: String, v: T): Features.Builder =
       caseClass.parameters.foldLeft(f) { (f, p) =>

@@ -126,8 +126,10 @@ object TableRowField {
   implicit val trfNumeric =
     at[BigDecimal]("NUMERIC")(NumericConverter.toBigDecimal)(NumericConverter.fromBigDecimal)
 
-  implicit val trfByteArray = at[Array[Byte]]("BYTES")(x => BaseEncoding.base64().decode(x.toString)
-  )(x => BaseEncoding.base64().encode(x))
+  implicit val trfByteArray =
+    at[Array[Byte]]("BYTES")(x => BaseEncoding.base64().decode(x.toString))(x =>
+      BaseEncoding.base64().encode(x)
+    )
 
   import TimestampConverter._
   implicit val trfInstant = at("TIMESTAMP")(toInstant)(fromInstant)
