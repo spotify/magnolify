@@ -69,9 +69,12 @@ trait FunnelImplicits {
     ti: C[T] => Iterable[T]
   ): Funnel[C[T]] =
     funnel { (sink, from) =>
-      // inject a boolean to distinguish `None` and `Some("")`
-      // it might not work for `List("")` vs `List("", "", ...)` though
-      sink.putBoolean(from.nonEmpty)
-      from.foreach(fnl.funnel(_, sink))
+      var i = 0
+      from.foreach { x =>
+        fnl.funnel(x, sink)
+        i += 1
+      }
+      // inject size to distinguish `None`, `Some("")`, and `List("", "", ...)`
+      sink.putInt(i)
     }
 }
