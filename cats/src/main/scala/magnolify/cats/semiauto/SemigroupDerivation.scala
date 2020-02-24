@@ -44,10 +44,7 @@ object SemigroupDerivation {
 
 private object SemigroupMethods {
   def combine[T, Typeclass[T] <: Semigroup[T]](caseClass: CaseClass[Typeclass, T]): (T, T) => T =
-    (x, y) =>
-      caseClass.construct { p =>
-        p.typeclass.combine(p.dereference(x), p.dereference(y))
-      }
+    (x, y) => caseClass.construct(p => p.typeclass.combine(p.dereference(x), p.dereference(y)))
 
   def combineAllOption[T, Typeclass[T] <: Semigroup[T]](
     caseClass: CaseClass[Typeclass, T]

@@ -27,9 +27,7 @@ object ShimsSpec extends Properties("Shims") {
     fc: FactoryCompat[Int, C[Int]]
   ): Unit = {
     val name = ct.runtimeClass.getSimpleName
-    property(name) = Prop.forAll { xs: List[Int] =>
-      fc.build(xs).toList == xs
-    }
+    property(name) = Prop.forAll { xs: List[Int] => fc.build(xs).toList == xs }
   }
 
   test[Array]
