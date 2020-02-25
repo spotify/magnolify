@@ -105,14 +105,14 @@ object AvroField {
   def from[T]: FromWord[T] = new FromWord[T]
 
   class FromWord[T] {
-    def apply[U](f: T => U)(g: U => T)(implicit trf: AvroField[T]): AvroField[U] =
+    def apply[U](f: T => U)(g: U => T)(implicit af: AvroField[T]): AvroField[U] =
       new AvroField[U] {
-        override type FromT = trf.FromT
-        override type ToT = trf.ToT
-        override val schema: Schema = trf.schema
-        override def defaultVal: Any = trf.defaultVal
-        override def from(v: FromT): U = f(trf.from(v))
-        override def to(v: U): ToT = trf.to(g(v))
+        override type FromT = af.FromT
+        override type ToT = af.ToT
+        override val schema: Schema = af.schema
+        override def defaultVal: Any = af.defaultVal
+        override def from(v: FromT): U = f(af.from(v))
+        override def to(v: U): ToT = af.to(g(v))
       }
   }
 
