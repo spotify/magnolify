@@ -53,10 +53,9 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
   test[Integers, IntegersP2]
   test[Integers, IntegersP3]
   test[Required, RequiredP2]
-  // we don't support mapping nullable fields into Option, because
-  // e.g. Option[Boolean] has three potential values but an optional proto field only has two
-  // so in this test the optional fields get mapped to their types, not wrapped in Option
-  test[Required, NullableP2]
+  test[Nullable, NullableP2]
+  // PROTO3 removes the notion of require vs optional fields.
+  // The new singular field returns default value if unset, making it required essentially.
   test[Required, NullableP3]
   test[Repeated, RepeatedP2]
   test[Repeated, RepeatedP3]

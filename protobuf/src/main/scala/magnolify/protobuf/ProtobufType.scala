@@ -18,7 +18,8 @@ package magnolify.protobuf
 
 import java.{util => ju}
 
-import com.google.protobuf.Descriptors.FieldDescriptor
+import com.google.protobuf.Descriptors.FileDescriptor.Syntax.PROTO2
+import com.google.protobuf.Descriptors.{FieldDescriptor, FileDescriptor}
 import com.google.protobuf.{ByteString, Message}
 import magnolia._
 import magnolify.shared.Converter
@@ -76,27 +77,34 @@ object ProtobufField {
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
     override def from(v: Message): T = {
+      val descriptor = v.getDescriptorForType
+      val syntax = descriptor.getFile.getSyntax
+
       caseClass.construct { p =>
-        val fieldDescriptor = v.getDescriptorForType.findFieldByName(p.label)
-        p.typeclass.fromAny(v.getField(fieldDescriptor))
+        val field = descriptor.findFieldByName(p.label)
+        // hasField behaves correctly on PROTO2 optional fields
+        val value = if (syntax == PROTO2 && field.isOptional && !v.hasField(field)) {
+          null
+        } else {
+          v.getField(field)
+        }
+        p.typeclass.fromAny(value)
       }
     }
 
     override def to(v: T, bu: Message.Builder): Message =
       caseClass.parameters
         .foldLeft(bu.getDefaultInstanceForType.newBuilderForType()) { (b, p) =>
-          val fieldDescriptor = b.getDescriptorForType.findFieldByName(p.label)
+          val field = b.getDescriptorForType.findFieldByName(p.label)
 
-          if (fieldDescriptor.getType == FieldDescriptor.Type.MESSAGE) { // nested records
-            val messageValue =
-              p.typeclass.to(p.dereference(v), b.newBuilderForField(fieldDescriptor))
-
-            if (messageValue == null) b else b.setField(fieldDescriptor, messageValue)
+          val value = if (field.getType == FieldDescriptor.Type.MESSAGE) {
+            // nested records
+            p.typeclass.to(p.dereference(v), b.newBuilderForField(field))
           } else {
             // non-nested
-            val fieldValue = p.typeclass.to(p.dereference(v), b)
-            if (fieldValue == null) b else b.setField(fieldDescriptor, fieldValue)
+            p.typeclass.to(p.dereference(v), b)
           }
+          if (value == null) b else b.setField(field, value)
         }
         .build()
   }
@@ -114,12 +122,12 @@ object ProtobufField {
   def from[T]: FromWord[T] = new FromWord[T]
 
   class FromWord[T] {
-    def apply[U](f: T => U)(g: U => T)(implicit pbF: ProtobufField[T]): ProtobufField[U] =
+    def apply[U](f: T => U)(g: U => T)(implicit pf: ProtobufField[T]): ProtobufField[U] =
       new ProtobufField[U] {
-        override type FromT = pbF.FromT
-        override type ToT = pbF.ToT
-        override def from(v: FromT): U = f(pbF.from(v))
-        override def to(v: U, b: Message.Builder): ToT = pbF.to(g(v), b)
+        override type FromT = pf.FromT
+        override type ToT = pf.ToT
+        override def from(v: FromT): U = f(pf.from(v))
+        override def to(v: U, b: Message.Builder): ToT = pf.to(g(v), b)
       }
   }
 
@@ -144,6 +152,15 @@ object ProtobufField {
   implicit val pfString = id[String]
   implicit val pfByteString = id[ByteString]
   implicit val pfByteArray = aux2[Array[Byte], ByteString](_.toByteArray)(ByteString.copyFrom)
+
+  implicit def pfOption[T](implicit f: ProtobufField[T]): ProtobufField[Option[T]] =
+    new Aux[Option[T], f.FromT, f.ToT] {
+      override def from(v: f.FromT): Option[T] = if (v == null) None else Some(f.from(v))
+      override def to(v: Option[T], b: Message.Builder): f.ToT = v match {
+        case None => null.asInstanceOf[f.ToT]
+        case Some(x) => f.to(x, b)
+      }
+    }
 
   implicit def pfIterable[T, C[_]](
     implicit f: ProtobufField[T],
