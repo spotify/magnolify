@@ -19,7 +19,7 @@ package magnolify.protobuf
 import java.{util => ju}
 
 import com.google.protobuf.Descriptors.FileDescriptor.Syntax.PROTO2
-import com.google.protobuf.Descriptors.{FieldDescriptor, FileDescriptor}
+import com.google.protobuf.Descriptors.{Descriptor, FieldDescriptor}
 import com.google.protobuf.{ByteString, Message}
 import magnolia._
 import magnolify.shared.Converter
@@ -37,8 +37,18 @@ sealed trait ProtobufType[T, MsgT <: Message] extends Converter[T, MsgT, MsgT] {
 
 object ProtobufType {
   implicit def apply[T, MsgT <: Message](
-    implicit f: ProtobufField.Record[T], ct: ClassTag[MsgT]
-  ): ProtobufType[T, MsgT] =
+    implicit f: ProtobufField.Record[T],
+    ct: ClassTag[MsgT]
+  ): ProtobufType[T, MsgT] = {
+    if (f.hasOptional) {
+      val syntax = ct.runtimeClass
+        .getMethod("getDescriptor")
+        .invoke(null)
+        .asInstanceOf[Descriptor]
+        .getFile
+        .getSyntax
+      require(syntax == PROTO2, "Only PROTO2 supports optional fields")
+    }
     new ProtobufType[T, MsgT] {
       override def from(v: MsgT): T = f.from(v)
       override def to(v: T): MsgT =
@@ -51,11 +61,14 @@ object ProtobufType {
           )
           .asInstanceOf[MsgT]
     }
+  }
 }
 
 sealed trait ProtobufField[T] extends Serializable { self =>
   type FromT
   type ToT
+
+  val hasOptional: Boolean
 
   def from(v: FromT): T
   def to(v: T, b: Message.Builder): ToT
@@ -76,6 +89,8 @@ object ProtobufField {
   type Typeclass[T] = ProtobufField[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
+    override val hasOptional: Boolean = caseClass.parameters.exists(_.typeclass.hasOptional)
+
     override def from(v: Message): T = {
       val descriptor = v.getDescriptorForType
       val syntax = descriptor.getFile.getSyntax
@@ -126,6 +141,7 @@ object ProtobufField {
       new ProtobufField[U] {
         override type FromT = pf.FromT
         override type ToT = pf.ToT
+        override val hasOptional: Boolean = pf.hasOptional
         override def from(v: FromT): U = f(pf.from(v))
         override def to(v: U, b: Message.Builder): ToT = pf.to(g(v), b)
       }
@@ -135,6 +151,7 @@ object ProtobufField {
     new ProtobufField[T] {
       override type FromT = From
       override type ToT = To
+      override val hasOptional: Boolean = false
       override def from(v: FromT): T = f(v)
       override def to(v: T, b: Message.Builder): ToT = g(v)
     }
@@ -155,9 +172,10 @@ object ProtobufField {
 
   implicit def pfOption[T](implicit f: ProtobufField[T]): ProtobufField[Option[T]] =
     new Aux[Option[T], f.FromT, f.ToT] {
+      override val hasOptional: Boolean = true
       override def from(v: f.FromT): Option[T] = if (v == null) None else Some(f.from(v))
       override def to(v: Option[T], b: Message.Builder): f.ToT = v match {
-        case None => null.asInstanceOf[f.ToT]
+        case None    => null.asInstanceOf[f.ToT]
         case Some(x) => f.to(x, b)
       }
     }
@@ -168,6 +186,7 @@ object ProtobufField {
     fc: FactoryCompat[T, C[T]]
   ): ProtobufField[C[T]] =
     new Aux[C[T], ju.List[f.FromT], ju.List[f.ToT]] {
+      override val hasOptional: Boolean = false
       override def from(v: ju.List[f.FromT]): C[T] =
         if (v == null) {
           fc.newBuilder.result()
