@@ -23,11 +23,10 @@ val avroVersion = "1.9.2"
 val bigqueryVersion = "v2-rev20191211-1.30.3"
 val catsVersion = "2.0.0"
 val datastoreVersion = "1.6.3"
-val grpcApiVersion = "1.17.0"
 val guavaVersion = "28.2-jre"
 val jacksonVersion = "2.10.2"
 val jodaTimeVersion = "2.10.5"
-val protobufVersion = Option(sys.props("protobuf.version")).getOrElse("3.11.3")
+val protobufVersion = "3.11.4"
 
 val scalacheckVersion = "1.14.3"
 val tensorflowVersion = "1.15.0"
@@ -125,7 +124,6 @@ lazy val root: Project = project
     bigquery,
     datastore,
     protobuf,
-    protobufTest,
     tensorflow,
     test
   )
@@ -149,8 +147,12 @@ lazy val test: Project = project
     libraryDependencies ++= Seq(
       "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion % Test
+    ),
+    protobufRunProtoc in ProtobufConfig := (args =>
+      com.github.os72.protocjar.Protoc.runProtoc(args.toArray)
     )
   )
+  .enablePlugins(ProtobufPlugin)
 
 lazy val scalacheck: Project = project
   .in(file("scalacheck"))
@@ -253,8 +255,24 @@ lazy val datastore: Project = project
     moduleName := "magnolify-datastore",
     description := "Magnolia add-on for Google Cloud Datastore",
     libraryDependencies ++= Seq(
-      "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Provided,
-      "com.google.api.grpc" % "proto-google-common-protos" % grpcApiVersion % Provided
+      "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Provided
+    )
+  )
+  .dependsOn(
+    shared,
+    cats % Test,
+    scalacheck % Test,
+    test % "test->test"
+  )
+
+lazy val protobuf: Project = project
+  .in(file("protobuf"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-protobuf",
+    description := "Magnolia add-on for Google Protocol Buffer",
+    libraryDependencies ++= Seq(
+      "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
     )
   )
   .dependsOn(
@@ -281,41 +299,6 @@ lazy val tensorflow: Project = project
     test % "test->test"
   )
 
-lazy val protobuf: Project = project
-  .in(file("protobuf"))
-  .settings(
-    commonSettings,
-    moduleName := "magnolify-protobuf",
-    description := "Magnolia add-on for Google Protocol Buffer",
-    version in ProtobufConfig := protobufVersion,
-    libraryDependencies ++= Seq(
-      "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
-    )
-  )
-  .dependsOn(
-    shared
-  )
-
-lazy val protobufTest: Project = project
-  .in(file("protobuf-test"))
-  .settings(
-    commonSettings,
-    noPublishSettings,
-    moduleName := "magnolify-protobuf-test",
-    description := "Tests for Magnolia add-on for Google Protocol Buffer",
-    version in ProtobufConfig := protobufVersion,
-    libraryDependencies ++= Seq(
-      "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
-    )
-  )
-  .dependsOn(
-    protobuf,
-    cats % Test,
-    scalacheck % Test,
-    test % "test->test"
-  )
-  .enablePlugins(ProtobufPlugin)
-
 lazy val jmh: Project = project
   .in(file("jmh"))
   .settings(
@@ -332,16 +315,8 @@ lazy val jmh: Project = project
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
       "joda-time" % "joda-time" % jodaTimeVersion % Test,
       "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
-      "com.google.api.grpc" % "proto-google-common-protos" % grpcApiVersion % Test,
       "org.tensorflow" % "proto" % tensorflowVersion % Test
-    ),
-    // proto config
-    protobufProtocOptions in ProtobufConfig ++= Seq("--include_std_types"),
-    sourceDirectories in ProtobufConfig += (protobufExternalIncludePath in ProtobufConfig).value,
-    ProtobufConfig / version := protobufVersion
-//    ProtobufConfig / protobufRunProtoc := { args =>
-//      com.github.os72.protocjar.Protoc.runProtoc("-v3.6.0" +: args.toArray)
-//    } // TODO is this needed?
+    )
   )
   .dependsOn(
     scalacheck % Test,
@@ -352,7 +327,6 @@ lazy val jmh: Project = project
     datastore % Test,
     tensorflow % Test,
     protobuf % Test,
-    protobufTest % Test,
     test % "test->test"
   )
-  .enablePlugins(JmhPlugin, ProtobufPlugin)
+  .enablePlugins(JmhPlugin)

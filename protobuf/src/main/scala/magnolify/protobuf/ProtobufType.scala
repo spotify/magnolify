@@ -29,26 +29,26 @@ import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
 import scala.reflect.ClassTag
 
-sealed trait ProtobufType[T, ParentMsgT <: Message] extends Converter[T, ParentMsgT, ParentMsgT] {
-  def apply(r: ParentMsgT): T = from(r)
-  def apply(t: T): ParentMsgT = to(t)
+sealed trait ProtobufType[T, MsgT <: Message] extends Converter[T, MsgT, MsgT] {
+  def apply(r: MsgT): T = from(r)
+  def apply(t: T): MsgT = to(t)
 }
 
 object ProtobufType {
-  implicit def apply[T, ParentMsgT <: Message: ClassTag](
-    implicit f: ProtobufField.Record[T]
-  ): ProtobufType[T, ParentMsgT] =
-    new ProtobufType[T, ParentMsgT] {
-      override def from(v: ParentMsgT): T = f.from(v)
-      override def to(v: T): ParentMsgT =
+  implicit def apply[T, MsgT <: Message](
+    implicit f: ProtobufField.Record[T], ct: ClassTag[MsgT]
+  ): ProtobufType[T, MsgT] =
+    new ProtobufType[T, MsgT] {
+      override def from(v: MsgT): T = f.from(v)
+      override def to(v: T): MsgT =
         f.to(
             v,
-            implicitly[ClassTag[ParentMsgT]].runtimeClass
+            ct.runtimeClass
               .getMethod("newBuilder")
               .invoke(null)
               .asInstanceOf[Message.Builder]
           )
-          .asInstanceOf[ParentMsgT]
+          .asInstanceOf[MsgT]
     }
 }
 
@@ -63,7 +63,6 @@ sealed trait ProtobufField[T] extends Serializable { self =>
 }
 
 object ProtobufField {
-
   trait Aux[T, From, To] extends ProtobufField[T] {
     override type FromT = From
     override type ToT = To
@@ -76,7 +75,6 @@ object ProtobufField {
   type Typeclass[T] = ProtobufField[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-
     override def from(v: Message): T = {
       caseClass.construct { p =>
         val fieldDescriptor = v.getDescriptorForType.findFieldByName(p.label)
@@ -84,9 +82,7 @@ object ProtobufField {
       }
     }
 
-    override def to(v: T, bu: Message.Builder): Message = {
-
-      // clear builder from previous runs before using it to construct a new instance
+    override def to(v: T, bu: Message.Builder): Message =
       caseClass.parameters
         .foldLeft(bu.getDefaultInstanceForType.newBuilderForType()) { (b, p) =>
           val fieldDescriptor = b.getDescriptorForType.findFieldByName(p.label)
@@ -103,12 +99,10 @@ object ProtobufField {
           }
         }
         .build()
-    }
   }
 
   @implicitNotFound("Cannot derive ProtobufField for sealed trait")
   private sealed trait Dispatchable[T]
-
   def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
 
   implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
@@ -117,32 +111,39 @@ object ProtobufField {
 
   def apply[T](implicit f: ProtobufField[T]): ProtobufField[T] = f
 
-  //////////////////////////////////////////////////
+  def from[T]: FromWord[T] = new FromWord[T]
 
-  private def at[T, From, To](f: From => T)(g: T => To): ProtobufField[T] =
+  class FromWord[T] {
+    def apply[U](f: T => U)(g: U => T)(implicit pbF: ProtobufField[T]): ProtobufField[U] =
+      new ProtobufField[U] {
+        override type FromT = pbF.FromT
+        override type ToT = pbF.ToT
+        override def from(v: FromT): U = f(pbF.from(v))
+        override def to(v: U, b: Message.Builder): ToT = pbF.to(g(v), b)
+      }
+  }
+
+  private def aux[T, From, To](f: From => T)(g: T => To): ProtobufField[T] =
     new ProtobufField[T] {
       override type FromT = From
       override type ToT = To
-
       override def from(v: FromT): T = f(v)
-
       override def to(v: T, b: Message.Builder): ToT = g(v)
     }
 
-  def from[T, Repr](f: Repr => T)(g: T => Repr): ProtobufField[T] =
-    at[T, Repr, Repr](f)(g)
+  private def aux2[T, Repr](f: Repr => T)(g: T => Repr): ProtobufField[T] =
+    aux[T, Repr, Repr](f)(g)
 
-  private def id[T]: ProtobufField[T] =
-    at[T, T, T](identity)(identity)
+  private def id[T]: ProtobufField[T] = aux[T, T, T](identity)(identity)
 
   implicit val pfBoolean = id[Boolean]
-  implicit val pfString = id[String]
   implicit val pfInt = id[Int]
   implicit val pfLong = id[Long]
   implicit val pfFloat = id[Float]
   implicit val pfDouble = id[Double]
-  implicit val pfBytes =
-    from[Array[Byte], ByteString](_.toByteArray)(ByteString.copyFrom)
+  implicit val pfString = id[String]
+  implicit val pfByteString = id[ByteString]
+  implicit val pfByteArray = aux2[Array[Byte], ByteString](_.toByteArray)(ByteString.copyFrom)
 
   implicit def pfIterable[T, C[_]](
     implicit f: ProtobufField[T],

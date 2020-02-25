@@ -28,8 +28,8 @@ This library includes the following modules.
 - `magnolify-avro` - conversion between Scala types and [Apache Avro](https://github.com/apache/avro) `GenericRecord`
 - `magnolify-bigquery` - conversion between Scala types and [Google Cloud BigQuery](https://cloud.google.com/bigquery/) `TableRow`
 - `magnolify-datastore` - conversion between Scala types and [Google Cloud Datastore](https://cloud.google.com/datastore/) `Entity`
-- `magnolify-tensorflow` - conversion between Scala types and [TensorFlow](https://www.tensorflow.org/) `Example`
 - `magnolify-protobuf` - conversion between Scala types and [Google Protocol Buffer](https://developers.google.com/protocol-buffers/docs/overview) `Message`
+- `magnolify-tensorflow` - conversion between Scala types and [TensorFlow](https://www.tensorflow.org/) `Example`
 
 # Usage
 
@@ -132,19 +132,19 @@ val exampleBuilder: Example.Builder = exampleType.to(record)
 val copy = exampleType.from(exampleBuilder.build)
 ```
 
-Protobuf works slightly differently in that you need to specify both the type of the case class 
+Protobuf works slightly differently in that you need to specify both the type of the case class
 and of the Proto file. Note that Protobuf support has some limitations:
 1. It doesn't support wrapping optional types in `scala.Option`,
- because the protobuf default value behavior makes it ambiguous whether options should be `None` 
- or have the default value. This means that round-trip behavior of an Option that was None would 
- be the default value. To avoid this, we have chosen not to implement an Option converter, so 
- case classes with Options will fail to compile. 
-2. It doesn't support Map fields, as descriptors for those can't be retrieved from the generated 
-code. 
+ because the protobuf default value behavior makes it ambiguous whether options should be `None`
+ or have the default value. This means that round-trip behavior of an Option that was None would
+ be the default value. To avoid this, we have chosen not to implement an Option converter, so
+ case classes with Options will fail to compile.
+2. It doesn't support Map fields, as descriptors for those can't be retrieved from the generated
+code.
 
 ```scala
 
-// Given a .proto file, with generated Java code imported into scope, 
+// Given a .proto file, with generated Java code imported into scope,
 // and a proto of the form
 // message CustomP3 {
 //    string u = 1;
@@ -155,7 +155,7 @@ import java.time.Duration
 import java.net.URI
 import magnolify.protobuf._
 
-implicit val pfUri: ProtobufField[URI] = 
+implicit val pfUri: ProtobufField[URI] =
     ProtobufField.from[URI, String](URI.create)(_.toString)
 implicit val pfDuration: ProtobufField[Duration] =
     ProtobufField.from[Duration, Long](Duration.ofMillis)(_.toMillis)

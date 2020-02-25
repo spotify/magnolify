@@ -26,8 +26,8 @@ import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.protobuf._
 import magnolify.shims.JavaConverters._
-import magnolify.skeleton.proto.TestProto2._
-import magnolify.skeleton.proto.TestProtoTypes._
+import magnolify.test.Proto2._
+import magnolify.test.Proto3._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
@@ -37,20 +37,16 @@ import scala.reflect._
 object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
   private def test[T: ClassTag: Arbitrary: Eq, U <: Message: ClassTag](
     implicit tpe: ProtobufType[T, U],
-    eqMessage: Eq[U] = Eq.instance[U] { (first, second) =>
-      first.getDescriptorForType == second.getDescriptorForType &&
-      (first.getAllFields.asScala == second.getAllFields.asScala)
-    }
+    eqt: Eq[T],
+    eqm: Eq[U] = Eq.instance[U](_.toByteString == _.toByteString)
   ): Unit = {
     ensureSerializable(tpe)
-
-    val eqCaseClass = implicitly[Eq[T]]
 
     property(className[U]) = Prop.forAll { t: T =>
       val r: U = tpe(t)
       val rCopy: U = r.newBuilderForType().mergeFrom(r).build().asInstanceOf[U]
       val copy: T = tpe(rCopy)
-      Prop.all(eqCaseClass.eqv(t, copy), eqMessage.eqv(r, rCopy))
+      Prop.all(eqt.eqv(t, copy), eqm.eqv(r, rCopy))
     }
   }
 
@@ -68,9 +64,7 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
   test[NestedNoOption, NestedP3]
 
   {
-    implicit val eqB: Eq[Array[Byte]] = Eq.instance[Array[Byte]] { (first, second) =>
-      first.zip(second).map(x => x._1 == x._2).forall(identity)
-    }
+    implicit val eqB: Eq[Array[Byte]] = Eq.by(_.toList)
     test[Bytes, BytesP2]
     test[Bytes, BytesP3]
   }
@@ -85,9 +79,9 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
 
   {
     import Custom._
-    implicit val pfUri: ProtobufField[URI] = ProtobufField.from[URI, String](URI.create)(_.toString)
+    implicit val pfUri: ProtobufField[URI] = ProtobufField.from[String](URI.create)(_.toString)
     implicit val pfDuration: ProtobufField[Duration] =
-      ProtobufField.from[Duration, Long](Duration.ofMillis)(_.toMillis)
+      ProtobufField.from[Long](Duration.ofMillis)(_.toMillis)
     test[Custom, CustomP2]
     test[Custom, CustomP3]
   }
