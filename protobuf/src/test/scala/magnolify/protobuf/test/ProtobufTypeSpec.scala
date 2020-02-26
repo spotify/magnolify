@@ -71,7 +71,7 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
   {
     implicit val arbByteString: Arbitrary[ByteString] =
       Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
-    implicit val eqByteString: Eq[ByteString] = Eq(_ == _)
+    implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
     implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
     test[BytesA, BytesP2]
     test[BytesB, BytesP3]
