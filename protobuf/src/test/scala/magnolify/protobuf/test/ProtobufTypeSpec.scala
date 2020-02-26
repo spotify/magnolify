@@ -65,7 +65,7 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
   }
   test[Repeated, RepeatedP2]
   test[Repeated, RepeatedP3]
-  test[NestedNoOption, NestedP2]
+  test[Nested, NestedP2]
   test[NestedNoOption, NestedP3]
 
   {
