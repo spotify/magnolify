@@ -16,9 +16,10 @@
  */
 package magnolify.protobuf
 
+import java.lang.reflect.Method
 import java.{util => ju}
 
-import com.google.protobuf.Descriptors.FileDescriptor.Syntax.PROTO2
+import com.google.protobuf.Descriptors.FileDescriptor.Syntax
 import com.google.protobuf.Descriptors.{Descriptor, FieldDescriptor}
 import com.google.protobuf.{ByteString, Message}
 import magnolia._
@@ -27,6 +28,7 @@ import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
 
 import scala.annotation.implicitNotFound
+import scala.collection.concurrent
 import scala.language.experimental.macros
 import scala.reflect.ClassTag
 
@@ -48,19 +50,19 @@ object ProtobufType {
           .asInstanceOf[Descriptor]
           .getFile
           .getSyntax
-        require(syntax == PROTO2, "Option[T] support is PROTO2 only")
+        require(syntax == Syntax.PROTO2, "Option[T] support is PROTO2 only")
+      }
+
+      @transient private var _newBuilder: Method = _
+      private def newBuilder: Message.Builder = {
+        if (_newBuilder == null) {
+          _newBuilder = ct.runtimeClass.getMethod("newBuilder")
+        }
+        _newBuilder.invoke(null).asInstanceOf[Message.Builder]
       }
 
       override def from(v: MsgT): T = f.from(v)
-      override def to(v: T): MsgT =
-        f.to(
-            v,
-            ct.runtimeClass
-              .getMethod("newBuilder")
-              .invoke(null)
-              .asInstanceOf[Message.Builder]
-          )
-          .asInstanceOf[MsgT]
+      override def to(v: T): MsgT = f.to(v, newBuilder).asInstanceOf[MsgT]
     }
 }
 
@@ -89,16 +91,29 @@ object ProtobufField {
   type Typeclass[T] = ProtobufField[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
+    // One Record[T] instance may be used for multiple Message types
+    @transient private val fieldsCache: concurrent.Map[String, Array[FieldDescriptor]] =
+      concurrent.TrieMap.empty
+    private def getFields(descriptor: Descriptor): Array[FieldDescriptor] =
+      fieldsCache.getOrElseUpdate(
+        descriptor.getFullName, {
+          val fields = new Array[FieldDescriptor](caseClass.parameters.size)
+          caseClass.parameters.foreach(p => fields(p.index) = descriptor.findFieldByName(p.label))
+          fields
+        }
+      )
+
     override val hasOptional: Boolean = caseClass.parameters.exists(_.typeclass.hasOptional)
 
     override def from(v: Message): T = {
       val descriptor = v.getDescriptorForType
       val syntax = descriptor.getFile.getSyntax
+      val fields = getFields(descriptor)
 
       caseClass.construct { p =>
-        val field = descriptor.findFieldByName(p.label)
+        val field = fields(p.index)
         // hasField behaves correctly on PROTO2 optional fields
-        val value = if (syntax == PROTO2 && field.isOptional && !v.hasField(field)) {
+        val value = if (syntax == Syntax.PROTO2 && field.isOptional && !v.hasField(field)) {
           null
         } else {
           v.getField(field)
@@ -107,21 +122,23 @@ object ProtobufField {
       }
     }
 
-    override def to(v: T, bu: Message.Builder): Message =
-      caseClass.parameters
-        .foldLeft(bu.getDefaultInstanceForType.newBuilderForType()) { (b, p) =>
-          val field = b.getDescriptorForType.findFieldByName(p.label)
+    override def to(v: T, bu: Message.Builder): Message = {
+      val fields = getFields(bu.getDescriptorForType)
 
+      caseClass.parameters
+        .foldLeft(bu) { (b, p) =>
+          val field = fields(p.index)
           val value = if (field.getType == FieldDescriptor.Type.MESSAGE) {
             // nested records
             p.typeclass.to(p.dereference(v), b.newBuilderForField(field))
           } else {
             // non-nested
-            p.typeclass.to(p.dereference(v), b)
+            p.typeclass.to(p.dereference(v), null)
           }
           if (value == null) b else b.setField(field, value)
         }
         .build()
+    }
   }
 
   @implicitNotFound("Cannot derive ProtobufField for sealed trait")
@@ -143,7 +160,7 @@ object ProtobufField {
         override type ToT = pf.ToT
         override val hasOptional: Boolean = pf.hasOptional
         override def from(v: FromT): U = f(pf.from(v))
-        override def to(v: U, b: Message.Builder): ToT = pf.to(g(v), b)
+        override def to(v: U, b: Message.Builder): ToT = pf.to(g(v), null)
       }
   }
 
@@ -191,7 +208,7 @@ object ProtobufField {
         if (v == null) {
           fc.newBuilder.result()
         } else {
-          fc.build(v.asScala.iterator.map(f.from(_)))
+          fc.build(v.asScala.iterator.map(f.from))
         }
       override def to(v: C[T], b: Message.Builder): ju.List[f.ToT] =
         if (v.isEmpty) null else v.iterator.map(f.to(_, b)).toList.asJava
