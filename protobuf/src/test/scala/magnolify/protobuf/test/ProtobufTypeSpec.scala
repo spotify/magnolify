@@ -57,6 +57,12 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
   test[Required, RequiredP2]
   test[Required, SingularP3]
   test[Nullable, NullableP2]
+  try {
+    test[Nullable, SingularP3]
+  } catch {
+    case e: IllegalArgumentException =>
+      require(e.getMessage == "requirement failed: Option[T] support is PROTO2 only")
+  }
   test[Repeated, RepeatedP2]
   test[Repeated, RepeatedP3]
   test[NestedNoOption, NestedP2]

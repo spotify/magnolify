@@ -47,7 +47,7 @@ object ProtobufType {
         .asInstanceOf[Descriptor]
         .getFile
         .getSyntax
-      require(syntax == PROTO2, "Only PROTO2 supports optional fields")
+      require(syntax == PROTO2, "Option[T] support is PROTO2 only")
     }
     new ProtobufType[T, MsgT] {
       override def from(v: MsgT): T = f.from(v)
