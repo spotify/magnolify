@@ -34,7 +34,7 @@ import org.scalacheck._
 
 import scala.reflect._
 
-object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
+object ProtobufTypeSpec extends MagnolifySpec("ProtobufType") {
   private def test[T: ClassTag: Arbitrary: Eq, U <: Message: ClassTag](
     implicit tpe: ProtobufType[T, U],
     eqt: Eq[T]
