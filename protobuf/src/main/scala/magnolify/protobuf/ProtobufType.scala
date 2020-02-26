@@ -39,17 +39,18 @@ object ProtobufType {
   implicit def apply[T, MsgT <: Message](
     implicit f: ProtobufField.Record[T],
     ct: ClassTag[MsgT]
-  ): ProtobufType[T, MsgT] = {
-    if (f.hasOptional) {
-      val syntax = ct.runtimeClass
-        .getMethod("getDescriptor")
-        .invoke(null)
-        .asInstanceOf[Descriptor]
-        .getFile
-        .getSyntax
-      require(syntax == PROTO2, "Option[T] support is PROTO2 only")
-    }
+  ): ProtobufType[T, MsgT] =
     new ProtobufType[T, MsgT] {
+      if (f.hasOptional) {
+        val syntax = ct.runtimeClass
+          .getMethod("getDescriptor")
+          .invoke(null)
+          .asInstanceOf[Descriptor]
+          .getFile
+          .getSyntax
+        require(syntax == PROTO2, "Option[T] support is PROTO2 only")
+      }
+
       override def from(v: MsgT): T = f.from(v)
       override def to(v: T): MsgT =
         f.to(
@@ -61,7 +62,6 @@ object ProtobufType {
           )
           .asInstanceOf[MsgT]
     }
-  }
 }
 
 sealed trait ProtobufField[T] extends Serializable { self =>
