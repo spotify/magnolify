@@ -37,16 +37,14 @@ import scala.reflect._
 object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
   private def test[T: ClassTag: Arbitrary: Eq, U <: Message: ClassTag](
     implicit tpe: ProtobufType[T, U],
-    eqt: Eq[T],
-    eqm: Eq[U] = Eq.instance[U](_.toByteString == _.toByteString)
+    eqt: Eq[T]
   ): Unit = {
     ensureSerializable(tpe)
 
     property(className[U]) = Prop.forAll { t: T =>
-      val r: U = tpe(t)
-      val rCopy: U = r.newBuilderForType().mergeFrom(r).build().asInstanceOf[U]
-      val copy: T = tpe(rCopy)
-      Prop.all(eqt.eqv(t, copy), eqm.eqv(r, rCopy))
+      val r = tpe(t)
+      val copy = tpe(r)
+      eqt.eqv(t, copy)
     }
   }
 
