@@ -35,7 +35,7 @@ import org.scalacheck._
 
 import scala.reflect._
 
-object AvroTypeSpec extends MagnolifySpec("AvroRecordType") {
+object AvroTypeSpec extends MagnolifySpec("AvroType") {
   private def test[T: Arbitrary: ClassTag](
     implicit tpe: AvroType[T],
     eqt: Eq[T],
