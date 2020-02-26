@@ -120,6 +120,13 @@ val entityType = EntityType[Outer]
 val entityBuilder: Entity.Builder = entityType.to(record)
 val copy: Outer = entityType.from(entityBuilder.build)
 
+// Protobuf
+import magnolify.protobuf._
+implicit val uriField: ProtobufField[URI] = ProtobufField.from[URI](URI.create)(_.toString)
+val protobufType = ProtobufType[Outer, Proto] // Proto is compiled Protobuf Message
+val proto: Proto = protobufType.to(record)
+val copy: Outer = protobufType.from(proto)
+
 // TensorFlow Example
 import magnolify.tensorflow._
 import com.google.protobuf.ByteString
@@ -130,44 +137,6 @@ implicit val uriField =
 val exampleType = ExampleType[Outer]
 val exampleBuilder: Example.Builder = exampleType.to(record)
 val copy = exampleType.from(exampleBuilder.build)
-```
-
-Protobuf works slightly differently in that you need to specify both the type of the case class
-and of the Proto file. Note that Protobuf support has some limitations:
-1. It doesn't support wrapping optional types in `scala.Option`,
- because the protobuf default value behavior makes it ambiguous whether options should be `None`
- or have the default value. This means that round-trip behavior of an Option that was None would
- be the default value. To avoid this, we have chosen not to implement an Option converter, so
- case classes with Options will fail to compile.
-2. It doesn't support Map fields, as descriptors for those can't be retrieved from the generated
-code.
-
-```scala
-
-// Given a .proto file, with generated Java code imported into scope,
-// and a proto of the form
-// message CustomP3 {
-//    string u = 1;
-//    int64 d = 2;
-//}
-
-import java.time.Duration
-import java.net.URI
-import magnolify.protobuf._
-
-implicit val pfUri: ProtobufField[URI] =
-    ProtobufField.from[URI, String](URI.create)(_.toString)
-implicit val pfDuration: ProtobufField[Duration] =
-    ProtobufField.from[Duration, Long](Duration.ofMillis)(_.toMillis)
-case class Custom(u: URI, d: Duration)
-
-val pt = ProtobufType[Custom, CustomP3]
-
-val cc = Custom(URI.create("http://example.com"), Duration.ofMillis(0L))
-
-val customProto = pt(cc) // is of type CustomP3, extends Message
-val ccCopy = pt(customProto) // is a case class of type Custom
-
 ```
 
 # License

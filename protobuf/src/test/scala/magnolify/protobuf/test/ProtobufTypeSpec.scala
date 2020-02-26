@@ -21,7 +21,7 @@ import java.time.Duration
 
 import cats._
 import cats.instances.all._
-import com.google.protobuf.Message
+import com.google.protobuf.{ByteString, Message}
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.protobuf._
@@ -69,9 +69,12 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
   test[NestedNoOption, NestedP3]
 
   {
-    implicit val eqB: Eq[Array[Byte]] = Eq.by(_.toList)
-    test[Bytes, BytesP2]
-    test[Bytes, BytesP3]
+    implicit val arbByteString: Arbitrary[ByteString] =
+      Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
+    implicit val eqByteString: Eq[ByteString] = Eq(_ == _)
+    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
+    test[BytesA, BytesP2]
+    test[BytesB, BytesP3]
   }
 
   {
@@ -91,3 +94,13 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
     test[Custom, CustomP3]
   }
 }
+
+case class BytesA(b: ByteString)
+case class BytesB(b: Array[Byte])
+case class NestedNoOption(
+  b: Boolean,
+  i: Int,
+  s: String,
+  r: Required,
+  l: List[Required]
+)

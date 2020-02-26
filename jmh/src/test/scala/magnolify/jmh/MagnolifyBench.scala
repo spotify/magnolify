@@ -115,6 +115,19 @@ class EntityBench {
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @State(Scope.Thread)
+class ProtobufBench {
+  import magnolify.protobuf._
+  import magnolify.test.Proto2._
+  private val nested = implicitly[Arbitrary[Nested]].arbitrary.sample.get
+  private val protoType = ProtobufType[Nested, NestedP2]
+  private val protoNested = protoType.to(nested)
+  @Benchmark def protoTo: NestedP2 = protoType.to(nested)
+  @Benchmark def protoFrom: Nested = protoType.from(protoNested)
+}
+
+@BenchmarkMode(Array(Mode.AverageTime))
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
+@State(Scope.Thread)
 class ExampleBench {
   import com.google.protobuf.ByteString
   import magnolify.tensorflow._
@@ -135,17 +148,3 @@ class ExampleBench {
 
 // Option[T] and Seq[T] not supported
 case class ExampleNested(b: Boolean, i: Int, s: String, r: Required, o: Option[Required])
-
-
-@BenchmarkMode(Array(Mode.AverageTime))
-@OutputTimeUnit(TimeUnit.NANOSECONDS)
-@State(Scope.Thread)
-class ProtobufBench {
-  import magnolify.protobuf._
-  import magnolify.skeleton.proto.TestProtoTypes._
-  private val nestedNoOption = implicitly[Arbitrary[NestedNoOption]].arbitrary.sample.get
-  private val protoType = ProtobufType[NestedNoOption, NestedP3]
-  private val protoNested = protoType.to(nestedNoOption)
-  @Benchmark def protoTo: NestedP3 = protoType.to(nestedNoOption)
-  @Benchmark def protoFrom: NestedNoOption = protoType.from(protoNested)
-}
