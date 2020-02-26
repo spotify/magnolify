@@ -16,7 +16,7 @@ message NumbersP3 {
     double d = 4;
 }
 
-message NullableP3 {
+message SingularP3 {
     string s = 1;
     bool b = 2;
     int32 i = 3;
@@ -32,8 +32,8 @@ message NestedP3 {
     string s = 1;
     bool b = 2;
     int32 i = 3;
-    NullableP3 r = 4;
-    repeated NullableP3 l = 5;
+    SingularP3 r = 4;
+    repeated SingularP3 l = 5;
 }
 
 message CollectionP3 {

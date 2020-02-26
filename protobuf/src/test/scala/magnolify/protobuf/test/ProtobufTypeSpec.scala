@@ -52,11 +52,11 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufRecordType") {
 
   test[Integers, IntegersP2]
   test[Integers, IntegersP3]
-  test[Required, RequiredP2]
-  test[Nullable, NullableP2]
   // PROTO3 removes the notion of require vs optional fields.
   // The new singular field returns default value if unset, making it required essentially.
-  test[Required, NullableP3]
+  test[Required, RequiredP2]
+  test[Required, SingularP3]
+  test[Nullable, NullableP2]
   test[Repeated, RepeatedP2]
   test[Repeated, RepeatedP3]
   test[NestedNoOption, NestedP2]
