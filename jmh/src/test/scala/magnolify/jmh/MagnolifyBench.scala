@@ -20,12 +20,13 @@ import java.util.concurrent.TimeUnit
 
 import magnolify.scalacheck.auto._
 import magnolify.test.Simple._
-
 import org.scalacheck._
 import org.openjdk.jmh.annotations._
 
 object MagnolifyBench {
-  val nested: Nested = implicitly[Arbitrary[Nested]].arbitrary.sample.get
+  val seed: rng.Seed = rng.Seed(0)
+  val prms: Gen.Parameters = Gen.Parameters.default
+  val nested: Nested = implicitly[Arbitrary[Nested]].arbitrary(prms, seed).get
 }
 
 @BenchmarkMode(Array(Mode.AverageTime))
@@ -35,7 +36,7 @@ class ScalaCheckBench {
   import MagnolifyBench._
   private val arb = implicitly[Arbitrary[Nested]]
   private val co = implicitly[Cogen[Nested]]
-  @Benchmark def arbitrary: Option[Nested] = arb.arbitrary(Gen.Parameters.default, rng.Seed(0))
+  @Benchmark def arbitrary: Option[Nested] = arb.arbitrary(prms, seed)
   @Benchmark def cogen: rng.Seed = co.perturb(rng.Seed(0), nested)
 }
 
@@ -47,7 +48,7 @@ class CatsBench {
   import cats.instances.all._
   import magnolify.cats.semiauto._
   import MagnolifyBench._
-  private val integers = implicitly[Arbitrary[Integers]].arbitrary.sample.get
+  private val integers = implicitly[Arbitrary[Integers]].arbitrary(prms, seed).get
   private val xs = Array.fill(100)(integers)
   private val sg = SemigroupDerivation[Integers]
   private val mon = MonoidDerivation[Integers]
@@ -118,7 +119,7 @@ class EntityBench {
 class ProtobufBench {
   import magnolify.protobuf._
   import magnolify.test.Proto2._
-  private val nested = implicitly[Arbitrary[Nested]].arbitrary.sample.get
+  import MagnolifyBench._
   private val protoType = ProtobufType[Nested, NestedP2]
   private val protoNested = protoType.to(nested)
   @Benchmark def protoTo: NestedP2 = protoType.to(nested)
@@ -140,7 +141,7 @@ class ExampleBench {
   private implicit val efString: ExampleField.Primitive[String] =
     ExampleField.from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
   private val exampleType = ExampleType[ExampleNested]
-  private val exampleNested = implicitly[Arbitrary[ExampleNested]].arbitrary.sample.get
+  private val exampleNested = implicitly[Arbitrary[ExampleNested]].arbitrary(prms, seed).get
   private val example = exampleType.to(exampleNested).build()
   @Benchmark def exampleTo: Example.Builder = exampleType.to(exampleNested)
   @Benchmark def exampleFrom: ExampleNested = exampleType.from(example)
