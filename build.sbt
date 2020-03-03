@@ -24,7 +24,7 @@ val bigqueryVersion = "v2-rev20191211-1.30.3"
 val catsVersion = "2.0.0"
 val datastoreVersion = "1.6.3"
 val guavaVersion = "28.2-jre"
-val jacksonVersion = "2.10.2"
+val jacksonVersion = "2.10.3"
 val jodaTimeVersion = "2.10.5"
 val protobufVersion = "3.11.4"
 
