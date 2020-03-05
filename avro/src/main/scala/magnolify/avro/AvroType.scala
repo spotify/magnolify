@@ -30,14 +30,15 @@ import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
 
 sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
-  val schema: Schema
+  protected val schemaSchema: String
+  def schema: Schema = new Schema.Parser().parse(schemaSchema)
   def apply(r: GenericRecord): T = from(r)
   def apply(t: T): GenericRecord = to(t)
 }
 
 object AvroType {
   implicit def apply[T](implicit f: AvroField.Record[T]): AvroType[T] = new AvroType[T] {
-    override val schema: Schema = f.schema
+    override protected val schemaSchema: String = f.schema.toString()
     override def from(v: GenericRecord): T = f.from(v)
     override def to(v: T): GenericRecord = f.to(v)
   }
@@ -47,7 +48,8 @@ sealed trait AvroField[T] extends Serializable { self =>
   type FromT
   type ToT
 
-  val schema: Schema
+  protected val schemaSchema: String
+  def schema: Schema = new Schema.Parser().parse(schemaSchema)
   def defaultVal: Any
   def from(v: FromT): T
   def to(v: T): ToT
@@ -68,15 +70,17 @@ object AvroField {
   type Typeclass[T] = AvroField[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    override val schema: Schema = Schema.createRecord(
-      caseClass.typeName.short,
-      null,
-      caseClass.typeName.owner,
-      false,
-      caseClass.parameters.map { p =>
-        new Schema.Field(p.label, p.typeclass.schema, null, p.typeclass.defaultVal)
-      }.asJava
-    )
+    override protected val schemaSchema: String = Schema
+      .createRecord(
+        caseClass.typeName.short,
+        null,
+        caseClass.typeName.owner,
+        false,
+        caseClass.parameters.map { p =>
+          new Schema.Field(p.label, p.typeclass.schema, null, p.typeclass.defaultVal)
+        }.asJava
+      )
+      .toString()
 
     override def defaultVal: Any = null
 
@@ -109,7 +113,7 @@ object AvroField {
       new AvroField[U] {
         override type FromT = af.FromT
         override type ToT = af.ToT
-        override val schema: Schema = af.schema
+        override protected val schemaSchema: String = af.schema.toString()
         override def defaultVal: Any = af.defaultVal
         override def from(v: FromT): U = f(af.from(v))
         override def to(v: U): ToT = af.to(g(v))
@@ -122,7 +126,7 @@ object AvroField {
     new AvroField[T] {
       override type FromT = From
       override type ToT = To
-      override val schema: Schema = Schema.create(tpe)
+      override protected val schemaSchema: String = Schema.create(tpe).toString()
       override def defaultVal: Any = null
       override def from(v: FromT): T = f(v)
       override def to(v: T): ToT = g(v)
@@ -146,7 +150,8 @@ object AvroField {
 
   implicit def afOption[T](implicit f: AvroField[T]): AvroField[Option[T]] =
     new Aux[Option[T], f.FromT, f.ToT] {
-      override val schema: Schema = Schema.createUnion(Schema.create(Schema.Type.NULL), f.schema)
+      override protected val schemaSchema: String =
+        Schema.createUnion(Schema.create(Schema.Type.NULL), f.schema).toString()
       override def defaultVal: Any = JsonProperties.NULL_VALUE
       override def from(v: f.FromT): Option[T] =
         if (v == null) None else Some(f.from(v))
@@ -162,7 +167,7 @@ object AvroField {
     fc: FactoryCompat[T, C[T]]
   ): AvroField[C[T]] =
     new Aux[C[T], ju.List[f.FromT], GenericArray[f.ToT]] {
-      override val schema: Schema = Schema.createArray(f.schema)
+      override protected val schemaSchema: String = Schema.createArray(f.schema).toString()
       override def defaultVal: Any = ju.Collections.emptyList()
       override def from(v: ju.List[f.FromT]): C[T] =
         if (v == null) fc.newBuilder.result() else fc.build(v.asScala.iterator.map(f.from))
@@ -176,7 +181,7 @@ object AvroField {
 
   implicit def afMap[T](implicit f: AvroField[T]): AvroField[Map[String, T]] =
     new Aux[Map[String, T], ju.Map[CharSequence, f.FromT], ju.Map[String, f.ToT]] {
-      override val schema: Schema = Schema.createMap(f.schema)
+      override protected val schemaSchema: String = Schema.createMap(f.schema).toString()
       override def defaultVal: Any = ju.Collections.emptyMap()
       override def from(v: ju.Map[CharSequence, f.FromT]): Map[String, T] =
         if (v == null) {
