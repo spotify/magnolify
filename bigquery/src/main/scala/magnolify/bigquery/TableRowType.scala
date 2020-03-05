@@ -18,6 +18,8 @@ package magnolify.bigquery
 
 import java.{util => ju}
 
+import com.google.api.client.json.GenericJson
+import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.common.io.BaseEncoding
 import magnolia._
@@ -27,9 +29,11 @@ import magnolify.shims.JavaConverters._
 
 import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
+import scala.reflect.ClassTag
 
 sealed trait TableRowType[T] extends Converter[T, TableRow, TableRow] {
-  def schema: TableSchema
+  protected val schemaString: String
+  def schema: TableSchema = Schemas.fromJson[TableSchema](schemaString)
   def apply(v: TableRow): T = from(v)
   def apply(v: T): TableRow = to(v)
 }
@@ -37,7 +41,9 @@ sealed trait TableRowType[T] extends Converter[T, TableRow, TableRow] {
 object TableRowType {
   implicit def apply[T](implicit f: TableRowField.Record[T]): TableRowType[T] =
     new TableRowType[T] {
-      override def schema: TableSchema = new TableSchema().setFields(f.fieldSchema.getFields)
+      override protected val schemaString: String =
+        Schemas.toJson(new TableSchema().setFields(f.fieldSchema.getFields))
+
       override def from(v: TableRow): T = f.from(v)
       override def to(v: T): TableRow = f.to(v)
     }
@@ -47,7 +53,8 @@ sealed trait TableRowField[T] extends Serializable { self =>
   type FromT
   type ToT
 
-  def fieldSchema: TableFieldSchema
+  protected val schemaString: String
+  def fieldSchema: TableFieldSchema = Schemas.fromJson[TableFieldSchema](schemaString)
   def from(v: FromT): T
   def to(v: T): ToT
 
@@ -68,11 +75,13 @@ object TableRowField {
   type Typeclass[T] = TableRowField[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    override def fieldSchema: TableFieldSchema =
-      new TableFieldSchema()
-        .setType("STRUCT")
-        .setMode("REQUIRED")
-        .setFields(caseClass.parameters.map(p => p.typeclass.fieldSchema.setName(p.label)).asJava)
+    override protected val schemaString: String =
+      Schemas.toJson(
+        new TableFieldSchema()
+          .setType("STRUCT")
+          .setMode("REQUIRED")
+          .setFields(caseClass.parameters.map(p => p.typeclass.fieldSchema.setName(p.label)).asJava)
+      )
 
     override def from(v: java.util.Map[String, AnyRef]): T =
       caseClass.construct(p => p.typeclass.fromAny(v.get(p.label)))
@@ -104,7 +113,7 @@ object TableRowField {
       new TableRowField[U] {
         override type FromT = trf.FromT
         override type ToT = trf.ToT
-        override def fieldSchema: TableFieldSchema = trf.fieldSchema
+        override protected val schemaString: String = Schemas.toJson(trf.fieldSchema)
         override def from(v: FromT): U = f(trf.from(v))
         override def to(v: U): ToT = trf.to(g(v))
       }
@@ -113,8 +122,8 @@ object TableRowField {
   //////////////////////////////////////////////////
 
   private def at[T](tpe: String)(f: Any => T)(g: T => Any): TableRowField[T] = new Generic[T] {
-    override def fieldSchema: TableFieldSchema =
-      new TableFieldSchema().setType(tpe).setMode("REQUIRED")
+    override protected val schemaString: String =
+      Schemas.toJson(new TableFieldSchema().setType(tpe).setMode("REQUIRED"))
     override def from(v: Any): T = f(v)
     override def to(v: T): Any = g(v)
   }
@@ -139,7 +148,8 @@ object TableRowField {
 
   implicit def trfOption[T](implicit f: TableRowField[T]): TableRowField[Option[T]] =
     new Aux[Option[T], f.FromT, f.ToT] {
-      override def fieldSchema: TableFieldSchema = f.fieldSchema.setMode("NULLABLE")
+      override protected val schemaString: String =
+        Schemas.toJson(f.fieldSchema.setMode("NULLABLE"))
       override def from(v: f.FromT): Option[T] =
         if (v == null) None else Some(f.from(v))
       override def to(v: Option[T]): f.ToT = v match {
@@ -154,7 +164,8 @@ object TableRowField {
     fc: FactoryCompat[T, C[T]]
   ): TableRowField[C[T]] =
     new Aux[C[T], ju.List[f.FromT], ju.List[f.ToT]] {
-      override def fieldSchema: TableFieldSchema = f.fieldSchema.setMode("REPEATED")
+      override protected val schemaString: String =
+        Schemas.toJson(f.fieldSchema.setMode("REPEATED"))
       override def from(v: ju.List[f.FromT]): C[T] =
         if (v == null) {
           fc.newBuilder.result()
@@ -164,4 +175,12 @@ object TableRowField {
       override def to(v: C[T]): ju.List[f.ToT] =
         if (v.isEmpty) null else v.iterator.map(f.to(_)).toList.asJava
     }
+}
+
+private object Schemas {
+  private val jsonFactory = JacksonFactory.getDefaultInstance
+  def toJson(schema: TableSchema) = jsonFactory.toString(schema)
+  def toJson(schema: TableFieldSchema) = jsonFactory.toString(schema)
+  def fromJson[T <: GenericJson](schemaString: String)(implicit ct: ClassTag[T]): T =
+    jsonFactory.fromString(schemaString, ct.runtimeClass).asInstanceOf[T]
 }
