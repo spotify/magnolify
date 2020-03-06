@@ -56,11 +56,14 @@ class CatsBench {
   private val h = HashDerivation[Nested]
   private val e = EqDerivation[Nested]
   @Benchmark def semigroupCombine: Integers = sg.combine(integers, integers)
+  @Benchmark def semigroupCombineN: Integers = sg.combineN(xs.head, 100)
   @Benchmark def semigroupCombineAllOption: Option[Integers] = sg.combineAllOption(xs)
   @Benchmark def monoidCombine: Integers = mon.combine(integers, integers)
+  @Benchmark def monoidCombineN: Integers = mon.combineN(xs.head, 100)
   @Benchmark def monoidCombineAllOption: Option[Integers] = mon.combineAllOption(xs)
   @Benchmark def monoidEmpty: Integers = mon.empty
   @Benchmark def groupCombine: Integers = grp.combine(integers, integers)
+  @Benchmark def groupCombineN: Integers = grp.combineN(xs.head, 100)
   @Benchmark def groupCombineAllOption: Option[Integers] = grp.combineAllOption(xs)
   @Benchmark def groupEmpty: Integers = grp.empty
   @Benchmark def groupInverse: Integers = grp.inverse(integers)

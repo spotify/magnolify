@@ -28,11 +28,22 @@ object GroupDerivation {
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
     val emptyImpl = MonoidMethods.empty(caseClass)
     val combineImpl = SemigroupMethods.combine(caseClass)
+    val combineNImpl = SemigroupMethods.combineN(caseClass)
     val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
 
     new Group[T] {
       override def empty: T = emptyImpl
       override def combine(x: T, y: T): T = combineImpl(x, y)
+      override def combineN(a: T, n: Int): T =
+        if (n > 0) {
+          combineNImpl(a, n)
+        } else if (n == 0) {
+          emptyImpl
+        } else if (n == Int.MinValue) {
+          combineN(inverse(combine(a, a)), 1073741824)
+        } else {
+          combineNImpl(inverse(a), -n)
+        }
       override def combineAllOption(as: TraversableOnce[T]): Option[T] = combineAllOptionImpl(as)
 
       override def inverse(a: T): T = caseClass.construct { p =>

@@ -28,11 +28,20 @@ object MonoidDerivation {
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
     val emptyImpl = MonoidMethods.empty(caseClass)
     val combineImpl = SemigroupMethods.combine(caseClass)
+    val combineNImpl = SemigroupMethods.combineN(caseClass)
     val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
 
     new Monoid[T] {
       override def empty: T = emptyImpl
       override def combine(x: T, y: T): T = combineImpl(x, y)
+      override def combineN(a: T, n: Int): T =
+        if (n < 0) {
+          throw new IllegalArgumentException("Repeated combining for monoids must have n >= 0")
+        } else if (n == 0) {
+          emptyImpl
+        } else {
+          combineNImpl(a, n)
+        }
       override def combineAllOption(as: TraversableOnce[T]): Option[T] = combineAllOptionImpl(as)
     }
   }
