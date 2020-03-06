@@ -29,6 +29,7 @@ object GroupDerivation {
     val emptyImpl = MonoidMethods.empty(caseClass)
     val combineImpl = SemigroupMethods.combine(caseClass)
     val combineNImpl = SemigroupMethods.combineN(caseClass)
+    val combineAllImpl = MonoidMethods.combineAll(caseClass)
     val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
 
     new Group[T] {
@@ -44,6 +45,7 @@ object GroupDerivation {
         } else {
           combineNImpl(inverse(x), -n)
         }
+      override def combineAll(xs: IterableOnce[T]): T = combineAllImpl(xs)
       override def combineAllOption(as: TraversableOnce[T]): Option[T] = combineAllOptionImpl(as)
 
       override def inverse(a: T): T = caseClass.construct { p =>
