@@ -29,6 +29,7 @@ object MonoidDerivation {
     val emptyImpl = MonoidMethods.empty(caseClass)
     val combineImpl = SemigroupMethods.combine(caseClass)
     val combineNImpl = SemigroupMethods.combineN(caseClass)
+    val combineAllImpl = MonoidMethods.combineAll(caseClass)
     val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
 
     new Monoid[T] {
@@ -42,6 +43,8 @@ object MonoidDerivation {
         } else {
           combineNImpl(a, n)
         }
+
+      override def combineAll(as: IterableOnce[T]): T = combineAllImpl(as)
       override def combineAllOption(as: TraversableOnce[T]): Option[T] = combineAllOptionImpl(as)
     }
   }
@@ -56,4 +59,25 @@ object MonoidDerivation {
 private object MonoidMethods {
   def empty[T, Typeclass[T] <: Monoid[T]](caseClass: CaseClass[Typeclass, T]): T =
     caseClass.construct(_.typeclass.empty)
+
+  def combineAll[T, Typeclass[T] <: Monoid[T]](
+    caseClass: CaseClass[Typeclass, T]
+  ): IterableOnce[T] => T = {
+    val combineImpl = SemigroupMethods.combine(caseClass)
+    val emptyImpl = MonoidMethods.empty(caseClass)
+    xs: IterableOnce[T] =>
+      xs match {
+        case it: Iterable[T] if it.nonEmpty =>
+          // input is re-iterable and non-empty, combineAll on each field
+          val result = Array.fill[Any](caseClass.parameters.length)(null)
+          var i = 0
+          while (i < caseClass.parameters.length) {
+            val p = caseClass.parameters(i)
+            result(i) = p.typeclass.combineAll(it.iterator.map(p.dereference))
+            i += 1
+          }
+          caseClass.rawConstruct(result)
+        case xs => xs.foldLeft(emptyImpl)(combineImpl)
+      }
+  }
 }
