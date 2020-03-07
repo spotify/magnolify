@@ -132,8 +132,8 @@ import magnolify.tensorflow._
 import com.google.protobuf.ByteString
 // custom field types
 implicit val stringField = ExampleField.from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
-implicit val uriField =
-  ExampleField.from[ByteString](b => URI.create(b.toStringUtf8))(u => ByteString.copyFromUtf8(u.toString))
+implicit val uriField = ExampleField
+  .from[ByteString](b => URI.create(b.toStringUtf8))(u => ByteString.copyFromUtf8(u.toString))
 val exampleType = ExampleType[Outer]
 val exampleBuilder: Example.Builder = exampleType.to(record)
 val copy = exampleType.from(exampleBuilder.build)
