@@ -41,6 +41,12 @@ object SemigroupDerivationSpec extends MagnolifySpec("SemigroupDerivation") {
   case class Record(i: Int, m: MiniInt)
   test[Record]
 
+  test[Numbers]
+  implicit val sgBool: Semigroup[Boolean] = Semigroup.instance(_ ^ _)
+  test[Nullable]
+  test[Repeated]
+  test[Nested]
+
   {
     import Custom._
     implicit val sgUri: Semigroup[URI] =

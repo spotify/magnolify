@@ -16,7 +16,7 @@
  */
 package magnolify.cats.auto
 
-import _root_.cats._
+import cats._
 import cats.kernel.{Band, CommutativeGroup, CommutativeMonoid, CommutativeSemigroup}
 import cats.kernel.instances._
 
