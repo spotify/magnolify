@@ -28,7 +28,7 @@ object MonoidDerivation {
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
     val emptyImpl = MonoidMethods.empty(caseClass)
     val combineImpl = SemigroupMethods.combine(caseClass)
-    val combineNImpl = SemigroupMethods.combineN(caseClass)
+    val combineNImpl = SemigroupMethods.combineNBase(caseClass)
     val combineAllImpl = MonoidMethods.combineAll(caseClass)
     val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
 

@@ -40,6 +40,7 @@ object Simple {
   case class Collections(a: Array[Int], l: List[Int], v: Vector[Int])
   case class MoreCollections(i: Iterable[Int], s: Seq[Int], is: IndexedSeq[Int])
   case class Custom(u: URI, d: Duration)
+  case class Sets(i: Set[Int], s: Set[String])
 
   object Collections {
     implicit def eqIterable[T, C[_]](implicit eq: Eq[T], tt: C[T] => Iterable[T]): Eq[C[T]] =
