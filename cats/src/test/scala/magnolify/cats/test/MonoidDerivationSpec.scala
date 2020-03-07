@@ -65,7 +65,7 @@ object MonoidDerivationSpec extends MagnolifySpec("MonoidDerivation") {
 }
 
 object CommutativeMonoidDerivationSpec extends MagnolifySpec("CommutativeMonoidDerivation") {
-  private def test[T: Arbitrary : ClassTag : Eq : CommutativeMonoid]: Unit = {
+  private def test[T: Arbitrary: ClassTag: Eq: CommutativeMonoid]: Unit = {
     ensureSerializable(implicitly[CommutativeMonoid[T]])
     include(CommutativeMonoidTests[T].commutativeMonoid.all, className[T] + ".")
   }

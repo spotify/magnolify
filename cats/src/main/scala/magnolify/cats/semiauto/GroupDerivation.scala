@@ -90,15 +90,16 @@ private object GroupMethods {
     val f = SemigroupMethods.combineNBase(caseClass)
     val inverseImpl = inverse(caseClass)
     val removeImpl = remove(caseClass)
-    (a: T, n: Int) => if (n > 0) {
-      f(a, n)
-    } else if (n == 0) {
-      emptyImpl
-    } else if (n == Int.MinValue) {
-      f(inverseImpl(combineImpl(a, a)), 1073741824)
-    } else {
-      f(inverseImpl(a), -n)
-    }
+    (a: T, n: Int) =>
+      if (n > 0) {
+        f(a, n)
+      } else if (n == 0) {
+        emptyImpl
+      } else if (n == Int.MinValue) {
+        f(inverseImpl(combineImpl(a, a)), 1073741824)
+      } else {
+        f(inverseImpl(a), -n)
+      }
   }
 
   def inverse[T, Typeclass[T] <: Group[T]](caseClass: CaseClass[Typeclass, T]): T => T =

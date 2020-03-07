@@ -82,13 +82,14 @@ private object MonoidMethods {
   def combineN[T, Typeclass[T] <: Monoid[T]](caseClass: CaseClass[Typeclass, T]): (T, Int) => T = {
     val emptyImpl = empty(caseClass)
     val f = SemigroupMethods.combineNBase(caseClass)
-    (a: T, n: Int) => if (n < 0) {
-      throw new IllegalArgumentException("Repeated combining for monoids must have n >= 0")
-    } else if (n == 0) {
-      emptyImpl
-    } else {
-      f(a, n)
-    }
+    (a: T, n: Int) =>
+      if (n < 0) {
+        throw new IllegalArgumentException("Repeated combining for monoids must have n >= 0")
+      } else if (n == 0) {
+        emptyImpl
+      } else {
+        f(a, n)
+      }
   }
 
   def combineAll[T, Typeclass[T] <: Monoid[T]](

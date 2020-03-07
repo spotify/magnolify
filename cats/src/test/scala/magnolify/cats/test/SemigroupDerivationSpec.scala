@@ -65,7 +65,7 @@ object SemigroupDerivationSpec extends MagnolifySpec("SemigroupDerivation") {
 }
 
 object CommutativeSemigroupDerivationSpec extends MagnolifySpec("CommutativeSemigroupDerivation") {
-  private def test[T: Arbitrary : ClassTag : Eq : CommutativeSemigroup]: Unit = {
+  private def test[T: Arbitrary: ClassTag: Eq: CommutativeSemigroup]: Unit = {
     ensureSerializable(implicitly[CommutativeSemigroup[T]])
     include(CommutativeSemigroupTests[T].commutativeSemigroup.all, className[T] + ".")
   }
@@ -74,7 +74,7 @@ object CommutativeSemigroupDerivationSpec extends MagnolifySpec("CommutativeSemi
 }
 
 object BandDerivationSpec extends MagnolifySpec("BandSemigroupDerivation") {
-  private def test[T: Arbitrary : ClassTag : Eq : Band]: Unit = {
+  private def test[T: Arbitrary: ClassTag: Eq: Band]: Unit = {
     ensureSerializable(implicitly[Band[T]])
     include(BandTests[T].band.all, className[T] + ".")
   }
