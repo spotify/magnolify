@@ -60,7 +60,8 @@ private object CatsMacros {
   }
 }
 
-trait LowPriorityImplicits extends LowPriorityGenGroup with LowPriorityGenShow {
+trait LowPriorityImplicits extends LowPriorityGenGroup
+  with LowPriorityGenHash with LowPriorityGenShow {
   // more specific implicits to workaround ambiguous implicit values with cats
   implicit def genListMonoid[T] = new ListMonoid[T]
   implicit def genOptionMonoid[T: Semigroup] = new OptionMonoid[T]
@@ -68,22 +69,19 @@ trait LowPriorityImplicits extends LowPriorityGenGroup with LowPriorityGenShow {
   implicit def genOptionOrder[T: Order] = new OptionOrder[T]
 }
 
-trait LowPriorityGenGroup extends LowPriorityGenMonoid {
+trait LowPriorityGenGroup {
+  implicit def genGroup[T]: Group[T] = macro CatsMacros.genGroupMacro[T]
+  implicit def genMonoid[T]: Monoid[T] = macro CatsMacros.genMonoidMacro[T]
+  implicit def genSemigroup[T]: Semigroup[T] = macro CatsMacros.genSemigroupMacro[T]
+}
+
+trait LowPriorityGenHash {
   // more specific implicits to workaround ambiguous implicit values with cats
   implicit def genListHash[T: Hash] = new ListHash[T]
   implicit def genOptionHash[T: Hash] = new OptionHash[T]
 
   implicit def genHash[T]: Hash[T] = macro CatsMacros.genHashMacro[T]
-  implicit def genGroup[T]: Group[T] = macro CatsMacros.genGroupMacro[T]
-}
-
-trait LowPriorityGenMonoid extends LowPriorityGenSemigroup {
   implicit def genEq[T]: Eq[T] = macro CatsMacros.genEqMacro[T]
-  implicit def genMonoid[T]: Monoid[T] = macro CatsMacros.genMonoidMacro[T]
-}
-
-trait LowPriorityGenSemigroup {
-  implicit def genSemigroup[T]: Semigroup[T] = macro CatsMacros.genSemigroupMacro[T]
 }
 
 trait LowPriorityGenShow {
