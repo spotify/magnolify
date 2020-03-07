@@ -41,6 +41,7 @@ object SemigroupDerivationSpec extends MagnolifySpec("SemigroupDerivation") {
   {
     implicit val sgBool: Semigroup[Boolean] = Semigroup.instance(_ ^ _)
     test[Required]
+    implicitly[Monoid[Option[Boolean]]] // FIXME: 2.11 workaround for test[Nullable]
     test[Nullable]
     test[Repeated]
     // FIXME: breaks 2.11: magnolia.Deferred is used for derivation of recursive typeclasses
