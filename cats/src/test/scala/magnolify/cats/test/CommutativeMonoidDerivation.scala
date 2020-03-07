@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Spotify AB.
+ * Copyright 2020 Spotify AB.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package magnolify.cats.test
 
 import cats._
 import cats.instances.all._
+import cats.kernel.CommutativeMonoid
 import cats.kernel.laws.discipline._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
@@ -26,17 +27,16 @@ import org.scalacheck._
 
 import scala.reflect._
 
-object GroupDerivationSpec extends MagnolifySpec("GroupDerivation") {
-  private def test[T: Arbitrary: ClassTag: Eq: Group]: Unit = {
-    ensureSerializable(implicitly[Group[T]])
-    include(GroupTests[T].group.all, className[T] + ".")
+object CommutativeMonoidDerivationSpec extends MagnolifySpec("CommutativeMonoidDerivation") {
+  private def test[T: Arbitrary: ClassTag: Eq: CommutativeMonoid]: Unit = {
+    ensureSerializable(implicitly[CommutativeMonoid[T]])
+    include(CommutativeMonoidTests[T].commutativeMonoid.all, className[T] + ".")
   }
 
   import Types.MiniInt
-  implicit val gMiniInt: Group[MiniInt] = new Group[MiniInt] {
+  implicit val cmMiniInt: CommutativeMonoid[MiniInt] = new CommutativeMonoid[MiniInt] {
     override def empty: MiniInt = MiniInt(0)
     override def combine(x: MiniInt, y: MiniInt): MiniInt = MiniInt(x.i + y.i)
-    override def inverse(a: MiniInt): MiniInt = MiniInt(-a.i)
   }
   case class Record(i: Int, m: MiniInt)
   test[Record]

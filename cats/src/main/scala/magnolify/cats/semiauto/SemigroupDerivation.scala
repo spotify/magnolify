@@ -17,7 +17,6 @@
 package magnolify.cats.semiauto
 
 import cats.Semigroup
-import cats.kernel._
 import magnolia._
 
 import scala.annotation.implicitNotFound
@@ -39,50 +38,6 @@ object SemigroupDerivation {
   }
 
   @implicitNotFound("Cannot derive Semigroup for sealed trait")
-  private sealed trait Dispatchable[T]
-  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
-
-  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
-}
-
-object CommutativeSemigroupDerivation {
-  type Typeclass[T] = CommutativeSemigroup[T]
-
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
-    val combineImpl = SemigroupMethods.combine(caseClass)
-    val combineNImpl = SemigroupMethods.combineN(caseClass)
-    val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
-
-    new CommutativeSemigroup[T] {
-      override def combine(x: T, y: T): T = combineImpl(x, y)
-      override def combineN(a: T, n: Int): T = combineNImpl(a, n)
-      override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
-    }
-  }
-
-  @implicitNotFound("Cannot derive CommutativeSemigroup for sealed trait")
-  private sealed trait Dispatchable[T]
-  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
-
-  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
-}
-
-object BandDerivation {
-  type Typeclass[T] = Band[T]
-
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
-    val combineImpl = SemigroupMethods.combine(caseClass)
-    val combineNImpl = SemigroupMethods.combineN(caseClass)
-    val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
-
-    new Band[T] {
-      override def combine(x: T, y: T): T = combineImpl(x, y)
-      override def combineN(a: T, n: Int): T = combineNImpl(a, n)
-      override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
-    }
-  }
-
-  @implicitNotFound("Cannot derive BandDerivation for sealed trait")
   private sealed trait Dispatchable[T]
   def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
 

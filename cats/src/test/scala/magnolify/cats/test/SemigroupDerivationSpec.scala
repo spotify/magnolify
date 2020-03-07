@@ -21,7 +21,6 @@ import java.time.Duration
 
 import cats._
 import cats.instances.all._
-import cats.kernel.{Band, CommutativeSemigroup}
 import cats.kernel.laws.discipline._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
@@ -37,23 +36,10 @@ object SemigroupDerivationSpec extends MagnolifySpec("SemigroupDerivation") {
     include(SemigroupTests[T].semigroup.all, className[T] + ".")
   }
 
-  test[Integers]
-
-  {
-    implicit val sgBool: Semigroup[Boolean] = Semigroup.instance(_ ^ _)
-    test[Required]
-    implicitly[Monoid[Option[Boolean]]] // FIXME: 2.11 workaround for test[Nullable]
-    test[Nullable]
-    test[Repeated]
-    // FIXME: breaks 2.11: magnolia.Deferred is used for derivation of recursive typeclasses
-    // test[Nested]
-  }
-
-  {
-    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
-    implicit val sgArray: Semigroup[Array[Int]] = Semigroup.instance(_ ++ _)
-    test[Collections]
-  }
+  import Types.MiniInt
+  implicit val sgMiniInt: Semigroup[MiniInt] = Semigroup.instance((x, y) => MiniInt(x.i + y.i))
+  case class Record(i: Int, m: MiniInt)
+  test[Record]
 
   {
     import Custom._
@@ -62,32 +48,4 @@ object SemigroupDerivationSpec extends MagnolifySpec("SemigroupDerivation") {
     implicit val sgDuration: Semigroup[Duration] = Semigroup.instance(_ plus _)
     test[Custom]
   }
-}
-
-object CommutativeSemigroupDerivationSpec extends MagnolifySpec("CommutativeSemigroupDerivation") {
-  private def test[T: Arbitrary: ClassTag: Eq: CommutativeSemigroup]: Unit = {
-    ensureSerializable(implicitly[CommutativeSemigroup[T]])
-    include(CommutativeSemigroupTests[T].commutativeSemigroup.all, className[T] + ".")
-  }
-
-  import Types.MiniInt
-  implicit val csgMiniInt: CommutativeSemigroup[MiniInt] = new CommutativeSemigroup[MiniInt] {
-    override def combine(x: MiniInt, y: MiniInt): MiniInt = MiniInt(x.i + y.i)
-  }
-  case class Record(i: Int, m: MiniInt)
-  test[Record]
-}
-
-object BandDerivationSpec extends MagnolifySpec("BandSemigroupDerivation") {
-  private def test[T: Arbitrary: ClassTag: Eq: Band]: Unit = {
-    ensureSerializable(implicitly[Band[T]])
-    include(BandTests[T].band.all, className[T] + ".")
-  }
-
-  import Types.MiniSet
-  implicit val bMiniSet: Band[MiniSet] = new Band[MiniSet] {
-    override def combine(x: MiniSet, y: MiniSet): MiniSet = MiniSet(x.s ++ y.s)
-  }
-  case class Record(m: MiniSet)
-  test[Record]
 }

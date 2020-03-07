@@ -26,7 +26,9 @@ object Types {
   object MiniInt {
     def apply(i: Int): MiniInt = new MiniInt(i)
 
-    implicit val arbMiniInt: Arbitrary[MiniInt] = Arbitrary(Arbitrary.arbInt.arbitrary.map(MiniInt(_)))
+    implicit val arbMiniInt: Arbitrary[MiniInt] = Arbitrary(
+      Arbitrary.arbInt.arbitrary.map(MiniInt(_))
+    )
     implicit val eqMiniInt: Eq[MiniInt] = Eq.by(_.i)
   }
 
@@ -35,7 +37,9 @@ object Types {
   object MiniSet {
     def apply(s: Set[Int]): MiniSet = new MiniSet(s)
 
-    implicit val arbMiniSet: Arbitrary[MiniSet] = Arbitrary(Arbitrary.arbContainer[Set, Int].arbitrary.map(MiniSet(_)))
+    implicit val arbMiniSet: Arbitrary[MiniSet] = Arbitrary(
+      Arbitrary.arbContainer[Set, Int].arbitrary.map(MiniSet(_))
+    )
     implicit val eqMiniSet: Eq[MiniSet] = Eq.by(_.s)
   }
 

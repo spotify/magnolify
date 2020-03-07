@@ -21,7 +21,6 @@ import java.time.Duration
 
 import cats._
 import cats.instances.all._
-import cats.kernel.CommutativeMonoid
 import cats.kernel.laws.discipline._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
@@ -37,23 +36,13 @@ object MonoidDerivationSpec extends MagnolifySpec("MonoidDerivation") {
     include(MonoidTests[T].monoid.all, className[T] + ".")
   }
 
-  test[Integers]
-
-  {
-    implicit val mBool: Monoid[Boolean] = Monoid.instance(false, _ || _)
-    test[Required]
-    implicitly[Monoid[Option[Boolean]]] // FIXME: 2.11 workaround for test[Nullable]
-    test[Nullable]
-    test[Repeated]
-    // FIXME: breaks 2.11: magnolia.Deferred is used for derivation of recursive typeclasses
-    // test[Nested]
+  import Types.MiniInt
+  implicit val mMiniInt: Monoid[MiniInt] = new Monoid[MiniInt] {
+    override def empty: MiniInt = MiniInt(0)
+    override def combine(x: MiniInt, y: MiniInt): MiniInt = MiniInt(x.i + y.i)
   }
-
-  {
-    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
-    implicit val mArray: Monoid[Array[Int]] = Monoid.instance(Array.emptyIntArray, _ ++ _)
-    test[Collections]
-  }
+  case class Record(i: Int, m: MiniInt)
+  test[Record]
 
   {
     import Custom._
@@ -62,18 +51,4 @@ object MonoidDerivationSpec extends MagnolifySpec("MonoidDerivation") {
     implicit val mDuration: Monoid[Duration] = Monoid.instance(Duration.ZERO, _ plus _)
     test[Custom]
   }
-}
-
-object CommutativeMonoidDerivationSpec extends MagnolifySpec("CommutativeMonoidDerivation") {
-  private def test[T: Arbitrary: ClassTag: Eq: CommutativeMonoid]: Unit = {
-    ensureSerializable(implicitly[CommutativeMonoid[T]])
-    include(CommutativeMonoidTests[T].commutativeMonoid.all, className[T] + ".")
-  }
-
-  import Types.MiniInt
-  implicit val cmMiniInt: CommutativeMonoid[MiniInt] = new CommutativeMonoid[MiniInt] {
-    override def empty: MiniInt = MiniInt(0)
-    override def combine(x: MiniInt, y: MiniInt): MiniInt = MiniInt(x.i + y.i)
-  }
-  test[MiniInt]
 }
