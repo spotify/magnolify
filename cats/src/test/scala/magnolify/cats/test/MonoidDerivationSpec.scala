@@ -70,7 +70,10 @@ object CommutativeMonoidDerivationSpec extends MagnolifySpec("CommutativeMonoidD
     include(CommutativeMonoidTests[T].commutativeMonoid.all, className[T] + ".")
   }
 
-  // cats.kernel.instances.MapInstances.catsKernelStdCommutativeMonoidForMap
-  case class Maps(i: Int, m: Map[String, Int])
-  test[Maps]
+  import Types.MiniInt
+  implicit val cmMiniInt: CommutativeMonoid[MiniInt] = new CommutativeMonoid[MiniInt] {
+    override def empty: MiniInt = MiniInt(0)
+    override def combine(x: MiniInt, y: MiniInt): MiniInt = MiniInt(x.i + y.i)
+  }
+  test[MiniInt]
 }

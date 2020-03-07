@@ -34,7 +34,14 @@ object GroupDerivationSpec extends MagnolifySpec("GroupDerivation") {
     include(GroupTests[T].group.all, className[T] + ".")
   }
 
-  test[Integers]
+  import Types.MiniInt
+  implicit val gMiniInt: Group[MiniInt] = new Group[MiniInt] {
+    override def empty: MiniInt = MiniInt(0)
+    override def combine(x: MiniInt, y: MiniInt): MiniInt = MiniInt(x.i + y.i)
+    override def inverse(a: MiniInt): MiniInt = MiniInt(-a.i)
+  }
+  case class Record(i: Int, m: MiniInt)
+  test[Record]
 }
 
 object CommutativeGroupDerivationSpec extends MagnolifySpec("CommutativeGroupDerivation") {
@@ -43,7 +50,5 @@ object CommutativeGroupDerivationSpec extends MagnolifySpec("CommutativeGroupDer
     include(CommutativeGroupTests[T].commutativeGroup.all, className[T] + ".")
   }
 
-  // cats.kernel.instances.IntInstances.catsKernelStdGroupForInt
-  // cats.kernel.instances.LongInstances.catsKernelStdGroupForLong
   test[Integers]
 }

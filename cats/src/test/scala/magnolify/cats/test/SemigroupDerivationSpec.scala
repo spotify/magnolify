@@ -70,7 +70,12 @@ object CommutativeSemigroupDerivationSpec extends MagnolifySpec("CommutativeSemi
     include(CommutativeSemigroupTests[T].commutativeSemigroup.all, className[T] + ".")
   }
 
-  test[Integers]
+  import Types.MiniInt
+  implicit val csgMiniInt: CommutativeSemigroup[MiniInt] = new CommutativeSemigroup[MiniInt] {
+    override def combine(x: MiniInt, y: MiniInt): MiniInt = MiniInt(x.i + y.i)
+  }
+  case class Record(i: Int, m: MiniInt)
+  test[Record]
 }
 
 object BandDerivationSpec extends MagnolifySpec("BandSemigroupDerivation") {
@@ -79,7 +84,10 @@ object BandDerivationSpec extends MagnolifySpec("BandSemigroupDerivation") {
     include(BandTests[T].band.all, className[T] + ".")
   }
 
-  test[Sets]
+  import Types.MiniSet
+  implicit val bMiniSet: Band[MiniSet] = new Band[MiniSet] {
+    override def combine(x: MiniSet, y: MiniSet): MiniSet = MiniSet(x.s ++ y.s)
+  }
+  case class Record(m: MiniSet)
+  test[Record]
 }
-
-case class Sets(i: Set[Int], s: Set[String])
