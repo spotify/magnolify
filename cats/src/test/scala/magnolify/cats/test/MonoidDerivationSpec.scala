@@ -70,5 +70,7 @@ object CommutativeMonoidDerivationSpec extends MagnolifySpec("CommutativeMonoidD
     include(CommutativeMonoidTests[T].commutativeMonoid.all, className[T] + ".")
   }
 
-  test[Integers]
+  // cats.kernel.instances.MapInstances.catsKernelStdCommutativeMonoidForMap
+  case class Maps(i: Int, m: Map[String, Int])
+  test[Maps]
 }

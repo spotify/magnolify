@@ -43,5 +43,7 @@ object CommutativeGroupDerivationSpec extends MagnolifySpec("CommutativeGroupDer
     include(CommutativeGroupTests[T].commutativeGroup.all, className[T] + ".")
   }
 
+  // cats.kernel.instances.IntInstances.catsKernelStdGroupForInt
+  // cats.kernel.instances.LongInstances.catsKernelStdGroupForLong
   test[Integers]
 }
