@@ -17,6 +17,7 @@
 package magnolify.cats.semiauto
 
 import cats.Monoid
+import cats.kernel.CommutativeMonoid
 import magnolia._
 
 import scala.annotation.implicitNotFound
@@ -28,22 +29,40 @@ object MonoidDerivation {
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
     val emptyImpl = MonoidMethods.empty(caseClass)
     val combineImpl = SemigroupMethods.combine(caseClass)
-    val combineNImpl = SemigroupMethods.combineNBase(caseClass)
+    val combineNImpl = MonoidMethods.combineN(caseClass)
     val combineAllImpl = MonoidMethods.combineAll(caseClass)
     val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
 
     new Monoid[T] {
       override def empty: T = emptyImpl
       override def combine(x: T, y: T): T = combineImpl(x, y)
-      override def combineN(a: T, n: Int): T =
-        if (n < 0) {
-          throw new IllegalArgumentException("Repeated combining for monoids must have n >= 0")
-        } else if (n == 0) {
-          emptyImpl
-        } else {
-          combineNImpl(a, n)
-        }
+      override def combineN(a: T, n: Int): T = combineNImpl(a, n)
+      override def combineAll(as: IterableOnce[T]): T = combineAllImpl(as)
+      override def combineAllOption(as: TraversableOnce[T]): Option[T] = combineAllOptionImpl(as)
+    }
+  }
 
+  @implicitNotFound("Cannot derive Monoid for sealed trait")
+  private sealed trait Dispatchable[T]
+  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
+
+  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
+}
+
+object CommutativeMonoidDerivation {
+  type Typeclass[T] = CommutativeMonoid[T]
+
+  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+    val emptyImpl = MonoidMethods.empty(caseClass)
+    val combineImpl = SemigroupMethods.combine(caseClass)
+    val combineNImpl = MonoidMethods.combineN(caseClass)
+    val combineAllImpl = MonoidMethods.combineAll(caseClass)
+    val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
+
+    new CommutativeMonoid[T] {
+      override def empty: T = emptyImpl
+      override def combine(x: T, y: T): T = combineImpl(x, y)
+      override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAll(as: IterableOnce[T]): T = combineAllImpl(as)
       override def combineAllOption(as: TraversableOnce[T]): Option[T] = combineAllOptionImpl(as)
     }
@@ -59,6 +78,18 @@ object MonoidDerivation {
 private object MonoidMethods {
   def empty[T, Typeclass[T] <: Monoid[T]](caseClass: CaseClass[Typeclass, T]): T =
     caseClass.construct(_.typeclass.empty)
+
+  def combineN[T, Typeclass[T] <: Monoid[T]](caseClass: CaseClass[Typeclass, T]): (T, Int) => T = {
+    val emptyImpl = empty(caseClass)
+    val f = SemigroupMethods.combineNBase(caseClass)
+    (a: T, n: Int) => if (n < 0) {
+      throw new IllegalArgumentException("Repeated combining for monoids must have n >= 0")
+    } else if (n == 0) {
+      emptyImpl
+    } else {
+      f(a, n)
+    }
+  }
 
   def combineAll[T, Typeclass[T] <: Monoid[T]](
     caseClass: CaseClass[Typeclass, T]

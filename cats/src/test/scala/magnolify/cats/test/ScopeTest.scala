@@ -18,7 +18,7 @@ package magnolify.cats.test
 
 import cats._
 import cats.instances.all._
-import cats.kernel.{Band, CommutativeSemigroup}
+import cats.kernel.{Band, CommutativeMonoid, CommutativeSemigroup}
 import magnolify.test.Simple._
 
 object ScopeTest {
@@ -30,6 +30,7 @@ object ScopeTest {
     implicitly[CommutativeSemigroup[Numbers]]
     implicitly[Band[Sets]]
     implicitly[Monoid[Numbers]]
+    implicitly[CommutativeMonoid[Numbers]]
     implicitly[Group[Numbers]]
     implicitly[Show[Numbers]]
   }
@@ -42,6 +43,7 @@ object ScopeTest {
     CommutativeSemigroupDerivation[Numbers]
     BandDerivation[Sets]
     MonoidDerivation[Numbers]
+    CommutativeMonoidDerivation[Numbers]
     GroupDerivation[Numbers]
     ShowDerivation[Numbers]
   }
