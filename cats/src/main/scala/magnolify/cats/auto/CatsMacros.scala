@@ -89,7 +89,7 @@ trait LowPriorityImplicits
     extends LowPriorityGenCommmutativeGroup
     with LowPriorityGenHash
     with LowPriorityGenShow {
-  // more specific implicits to workaround ambiguous implicit values with cats
+  // workaround for ambiguous implicit values with cats
   implicit def catsKernelStdOrderForList[A: Order]: Order[List[A]] =
     new ListOrder[A]
   implicit def catsKernelStdPartialOrderForList[A: PartialOrder]: PartialOrder[List[A]] =
