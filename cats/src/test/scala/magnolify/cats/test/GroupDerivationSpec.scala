@@ -18,6 +18,7 @@ package magnolify.cats.test
 
 import cats._
 import cats.instances.all._
+import cats.kernel.CommutativeGroup
 import cats.kernel.laws.discipline._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
@@ -31,6 +32,15 @@ object GroupDerivationSpec extends MagnolifySpec("GroupDerivation") {
   private def test[T: Arbitrary: ClassTag: Eq: Group]: Unit = {
     ensureSerializable(implicitly[Group[T]])
     include(GroupTests[T].group.all, className[T] + ".")
+  }
+
+  test[Integers]
+}
+
+object CommutativeGroupDerivationSpec extends MagnolifySpec("CommutativeGroupDerivation") {
+  private def test[T: Arbitrary: ClassTag: Eq: CommutativeGroup]: Unit = {
+    ensureSerializable(implicitly[CommutativeGroup[T]])
+    include(CommutativeGroupTests[T].commutativeGroup.all, className[T] + ".")
   }
 
   test[Integers]

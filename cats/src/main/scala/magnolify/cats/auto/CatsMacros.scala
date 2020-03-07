@@ -17,7 +17,7 @@
 package magnolify.cats.auto
 
 import _root_.cats._
-import cats.kernel.{Band, CommutativeMonoid, CommutativeSemigroup}
+import cats.kernel.{Band, CommutativeGroup, CommutativeMonoid, CommutativeSemigroup}
 import cats.kernel.instances._
 
 import scala.language.experimental.macros
@@ -72,6 +72,12 @@ private object CatsMacros {
     q"""_root_.magnolify.cats.semiauto.GroupDerivation.apply[$wtt]"""
   }
 
+  def genCommutativeGroupMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
+    import c.universe._
+    val wtt = weakTypeTag[T]
+    q"""_root_.magnolify.cats.semiauto.CommutativeGroupDerivation.apply[$wtt]"""
+  }
+
   def genShowMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
@@ -90,6 +96,7 @@ trait LowPriorityImplicits extends LowPriorityGenGroup
 
 trait LowPriorityGenGroup extends LowPriorityGenMonoid {
   implicit def genGroup[T]: Group[T] = macro CatsMacros.genGroupMacro[T]
+  implicit def genCommutativeGroup[T]: CommutativeGroup[T] = macro CatsMacros.genCommutativeGroupMacro[T]
 }
 
 trait LowPriorityGenMonoid extends LowPriorityGenSemigroup {

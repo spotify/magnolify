@@ -17,6 +17,7 @@
 package magnolify.cats.semiauto
 
 import cats.Group
+import cats.kernel.CommutativeGroup
 import magnolia._
 
 import scala.annotation.implicitNotFound
@@ -28,33 +29,20 @@ object GroupDerivation {
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
     val emptyImpl = MonoidMethods.empty(caseClass)
     val combineImpl = SemigroupMethods.combine(caseClass)
-    val combineNImpl = SemigroupMethods.combineNBase(caseClass)
+    val combineNImpl = GroupMethods.combineN(caseClass)
     val combineAllImpl = MonoidMethods.combineAll(caseClass)
     val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
+    val inverseImpl = GroupMethods.inverse(caseClass)
+    val removeImpl = GroupMethods.remove(caseClass)
 
     new Group[T] {
       override def empty: T = emptyImpl
       override def combine(x: T, y: T): T = combineImpl(x, y)
-      override def combineN(a: T, n: Int): T =
-        if (n > 0) {
-          combineNImpl(a, n)
-        } else if (n == 0) {
-          emptyImpl
-        } else if (n == Int.MinValue) {
-          combineN(inverse(combine(a, a)), 1073741824)
-        } else {
-          combineNImpl(inverse(a), -n)
-        }
+      override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAll(as: IterableOnce[T]): T = combineAllImpl(as)
       override def combineAllOption(as: TraversableOnce[T]): Option[T] = combineAllOptionImpl(as)
-
-      override def inverse(a: T): T = caseClass.construct { p =>
-        p.typeclass.inverse(p.dereference(a))
-      }
-
-      override def remove(a: T, b: T): T = caseClass.construct { p =>
-        p.typeclass.remove(p.dereference(a), p.dereference(b))
-      }
+      override def inverse(a: T): T = inverseImpl(a)
+      override def remove(a: T, b: T): T = removeImpl(a, b)
     }
   }
 
@@ -63,4 +51,59 @@ object GroupDerivation {
   def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
+}
+
+object CommutativeGroupDerivation {
+  type Typeclass[T] = CommutativeGroup[T]
+
+  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+    val emptyImpl = MonoidMethods.empty(caseClass)
+    val combineImpl = SemigroupMethods.combine(caseClass)
+    val combineNImpl = GroupMethods.combineN(caseClass)
+    val combineAllImpl = MonoidMethods.combineAll(caseClass)
+    val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
+    val inverseImpl = GroupMethods.inverse(caseClass)
+    val removeImpl = GroupMethods.remove(caseClass)
+
+    new CommutativeGroup[T] {
+      override def empty: T = emptyImpl
+      override def combine(x: T, y: T): T = combineImpl(x, y)
+      override def combineN(a: T, n: Int): T = combineNImpl(a, n)
+      override def combineAll(as: IterableOnce[T]): T = combineAllImpl(as)
+      override def combineAllOption(as: TraversableOnce[T]): Option[T] = combineAllOptionImpl(as)
+      override def inverse(a: T): T = inverseImpl(a)
+      override def remove(a: T, b: T): T = removeImpl(a, b)
+    }
+  }
+
+  @implicitNotFound("Cannot derive Group for sealed trait")
+  private sealed trait Dispatchable[T]
+  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
+
+  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
+}
+
+private object GroupMethods {
+  def combineN[T, Typeclass[T] <: Group[T]](caseClass: CaseClass[Typeclass, T]): (T, Int) => T = {
+    val emptyImpl = MonoidMethods.empty(caseClass)
+    val combineImpl = SemigroupMethods.combine(caseClass)
+    val f = SemigroupMethods.combineNBase(caseClass)
+    val inverseImpl = inverse(caseClass)
+    val removeImpl = remove(caseClass)
+    (a: T, n: Int) => if (n > 0) {
+      f(a, n)
+    } else if (n == 0) {
+      emptyImpl
+    } else if (n == Int.MinValue) {
+      f(inverseImpl(combineImpl(a, a)), 1073741824)
+    } else {
+      f(inverseImpl(a), -n)
+    }
+  }
+
+  def inverse[T, Typeclass[T] <: Group[T]](caseClass: CaseClass[Typeclass, T]): T => T =
+    a => caseClass.construct(p => p.typeclass.inverse(p.dereference(a)))
+
+  def remove[T, Typeclass[T] <: Group[T]](caseClass: CaseClass[Typeclass, T]): (T, T) => T =
+    (a, b) => caseClass.construct(p => p.typeclass.remove(p.dereference(a), p.dereference(b)))
 }
