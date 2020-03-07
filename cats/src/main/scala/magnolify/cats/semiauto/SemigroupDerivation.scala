@@ -60,7 +60,7 @@ object CommutativeSemigroupDerivation {
     }
   }
 
-  @implicitNotFound("Cannot derive Semigroup for sealed trait")
+  @implicitNotFound("Cannot derive CommutativeSemigroup for sealed trait")
   private sealed trait Dispatchable[T]
   def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
 
@@ -82,7 +82,7 @@ object BandDerivation {
     }
   }
 
-  @implicitNotFound("Cannot derive Semigroup for sealed trait")
+  @implicitNotFound("Cannot derive BandDerivation for sealed trait")
   private sealed trait Dispatchable[T]
   def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
 

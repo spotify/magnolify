@@ -68,7 +68,7 @@ object CommutativeMonoidDerivation {
     }
   }
 
-  @implicitNotFound("Cannot derive Monoid for sealed trait")
+  @implicitNotFound("Cannot derive CommutativeMonoid for sealed trait")
   private sealed trait Dispatchable[T]
   def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
 
