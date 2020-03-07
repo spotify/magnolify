@@ -42,12 +42,15 @@ object SemigroupDerivationSpec extends MagnolifySpec("SemigroupDerivation") {
   test[Record]
 
   test[Integers]
-  implicit val sgBool: Semigroup[Boolean] = Semigroup.instance(_ ^ _)
-  test[Required]
-  test[Nullable]
-  test[Repeated]
-  // FIXME: breaks 2.1.1: ambiguous implicit values catsKernelStdMonoidForString vs genGroup
-  // test[Nested]
+
+  {
+    implicit val sgBool: Semigroup[Boolean] = Semigroup.instance(_ ^ _)
+    test[Required]
+    test[Nullable]
+    test[Repeated]
+    // FIXME: breaks 2.1.1: ambiguous implicit values catsKernelStdMonoidForString vs genGroup
+    // test[Nested]
+  }
 
   {
     import Custom._

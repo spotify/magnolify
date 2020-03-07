@@ -45,6 +45,14 @@ object MonoidDerivationSpec extends MagnolifySpec("MonoidDerivation") {
   test[Record]
 
   {
+    implicit val mBool: Monoid[Boolean] = Monoid.instance(false, _ || _)
+    test[Required]
+    test[Nullable]
+    test[Repeated]
+    // FIXME: breaks 2.1.1: ambiguous implicit values catsKernelStdMonoidForString vs genGroup
+    // test[Nested]
+  }
+  {
     import Custom._
     implicit val mUri: Monoid[URI] =
       Monoid.instance(URI.create(""), (x, y) => URI.create(x.toString + y.toString))
