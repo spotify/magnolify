@@ -28,6 +28,7 @@ object ScopeTest {
     implicitly[Semigroup[Numbers]]
     implicitly[Monoid[Numbers]]
     implicitly[Group[Numbers]]
+    implicitly[Show[Numbers]]
   }
 
   object Semi {
@@ -37,5 +38,6 @@ object ScopeTest {
     SemigroupDerivation[Numbers]
     MonoidDerivation[Numbers]
     GroupDerivation[Numbers]
+    ShowDerivation[Numbers]
   }
 }
