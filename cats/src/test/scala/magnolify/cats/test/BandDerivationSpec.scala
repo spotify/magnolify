@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Spotify AB.
+ * Copyright 2020 Spotify AB.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package magnolify.cats.test
 
 import cats._
 import cats.instances.all._
+import cats.kernel.Band
 import cats.kernel.laws.discipline._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
@@ -26,18 +27,16 @@ import org.scalacheck._
 
 import scala.reflect._
 
-object GroupDerivationSpec extends MagnolifySpec("GroupDerivation") {
-  private def test[T: Arbitrary: ClassTag: Eq: Group]: Unit = {
-    ensureSerializable(implicitly[Group[T]])
-    include(GroupTests[T].group.all, className[T] + ".")
+object BandDerivationSpec extends MagnolifySpec("BandSemigroupDerivation") {
+  private def test[T: Arbitrary: ClassTag: Eq: Band]: Unit = {
+    ensureSerializable(implicitly[Band[T]])
+    include(BandTests[T].band.all, className[T] + ".")
   }
 
-  import Types.MiniInt
-  implicit val gMiniInt: Group[MiniInt] = new Group[MiniInt] {
-    override def empty: MiniInt = MiniInt(0)
-    override def combine(x: MiniInt, y: MiniInt): MiniInt = MiniInt(x.i + y.i)
-    override def inverse(a: MiniInt): MiniInt = MiniInt(-a.i)
+  import Types.MiniSet
+  implicit val bMiniSet: Band[MiniSet] = new Band[MiniSet] {
+    override def combine(x: MiniSet, y: MiniSet): MiniSet = MiniSet(x.s ++ y.s)
   }
-  case class Record(i: Int, m: MiniInt)
+  case class Record(s: Set[Int], m: MiniSet)
   test[Record]
 }

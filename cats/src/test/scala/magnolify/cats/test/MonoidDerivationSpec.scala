@@ -36,23 +36,22 @@ object MonoidDerivationSpec extends MagnolifySpec("MonoidDerivation") {
     include(MonoidTests[T].monoid.all, className[T] + ".")
   }
 
-  test[Integers]
+  import Types.MiniInt
+  implicit val mMiniInt: Monoid[MiniInt] = new Monoid[MiniInt] {
+    override def empty: MiniInt = MiniInt(0)
+    override def combine(x: MiniInt, y: MiniInt): MiniInt = MiniInt(x.i + y.i)
+  }
+  case class Record(i: Int, m: MiniInt)
+  test[Record]
 
   {
     implicit val mBool: Monoid[Boolean] = Monoid.instance(false, _ || _)
     test[Required]
     test[Nullable]
     test[Repeated]
-    // FIXME: breaks 2.11: magnolia.Deferred is used for derivation of recursive typeclasses
+    // FIXME: breaks 2.1.1: ambiguous implicit values catsKernelStdMonoidForString vs genGroup
     // test[Nested]
   }
-
-  {
-    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
-    implicit val mArray: Monoid[Array[Int]] = Monoid.instance(Array.emptyIntArray, _ ++ _)
-    test[Collections]
-  }
-
   {
     import Custom._
     implicit val mUri: Monoid[URI] =

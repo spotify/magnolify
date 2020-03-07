@@ -32,12 +32,7 @@ object SemigroupDerivation {
 
     new Semigroup[T] {
       override def combine(x: T, y: T): T = combineImpl(x, y)
-      override def combineN(a: T, n: Int): T =
-        if (n <= 0) {
-          throw new IllegalArgumentException("Repeated combining for semigroups must have n > 0")
-        } else {
-          combineNImpl(a, n)
-        }
+      override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
     }
   }
@@ -53,15 +48,29 @@ private object SemigroupMethods {
   def combine[T, Typeclass[T] <: Semigroup[T]](caseClass: CaseClass[Typeclass, T]): (T, T) => T =
     (x, y) => caseClass.construct(p => p.typeclass.combine(p.dereference(x), p.dereference(y)))
 
-  def combineN[T, Typeclass[T] <: Semigroup[T]](caseClass: CaseClass[Typeclass, T]): (T, Int) => T =
-    (x: T, n: Int) => caseClass.construct(p => p.typeclass.combineN(p.dereference(x), n))
+  def combineNBase[T, Typeclass[T] <: Semigroup[T]](
+    caseClass: CaseClass[Typeclass, T]
+  ): (T, Int) => T =
+    (a: T, n: Int) => caseClass.construct(p => p.typeclass.combineN(p.dereference(a), n))
+
+  def combineN[T, Typeclass[T] <: Semigroup[T]](
+    caseClass: CaseClass[Typeclass, T]
+  ): (T, Int) => T = {
+    val f = combineNBase(caseClass)
+    (a: T, n: Int) =>
+      if (n <= 0) {
+        throw new IllegalArgumentException("Repeated combining for semigroups must have n > 0")
+      } else {
+        f(a, n)
+      }
+  }
 
   def combineAllOption[T, Typeclass[T] <: Semigroup[T]](
     caseClass: CaseClass[Typeclass, T]
   ): IterableOnce[T] => Option[T] = {
     val combineImpl = combine(caseClass)
-    xs: IterableOnce[T] =>
-      xs match {
+    as: IterableOnce[T] =>
+      as match {
         case it: Iterable[T] if it.nonEmpty =>
           // input is re-iterable and non-empty, combineAllOption on each field
           val result = Array.fill[Any](caseClass.parameters.length)(null)

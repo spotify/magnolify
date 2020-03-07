@@ -36,6 +36,11 @@ object SemigroupDerivationSpec extends MagnolifySpec("SemigroupDerivation") {
     include(SemigroupTests[T].semigroup.all, className[T] + ".")
   }
 
+  import Types.MiniInt
+  implicit val sgMiniInt: Semigroup[MiniInt] = Semigroup.instance((x, y) => MiniInt(x.i + y.i))
+  case class Record(i: Int, m: MiniInt)
+  test[Record]
+
   test[Integers]
 
   {
@@ -43,14 +48,8 @@ object SemigroupDerivationSpec extends MagnolifySpec("SemigroupDerivation") {
     test[Required]
     test[Nullable]
     test[Repeated]
-    // FIXME: breaks 2.11: magnolia.Deferred is used for derivation of recursive typeclasses
+    // FIXME: breaks 2.1.1: ambiguous implicit values catsKernelStdMonoidForString vs genGroup
     // test[Nested]
-  }
-
-  {
-    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
-    implicit val sgArray: Semigroup[Array[Int]] = Semigroup.instance(_ ++ _)
-    test[Collections]
   }
 
   {

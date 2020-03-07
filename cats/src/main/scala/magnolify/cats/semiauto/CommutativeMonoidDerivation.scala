@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Spotify AB.
+ * Copyright 2020 Spotify AB.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,14 @@
  */
 package magnolify.cats.semiauto
 
-import cats.Monoid
+import cats.kernel.CommutativeMonoid
 import magnolia._
 
 import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
 
-object MonoidDerivation {
-  type Typeclass[T] = Monoid[T]
+object CommutativeMonoidDerivation {
+  type Typeclass[T] = CommutativeMonoid[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
     val emptyImpl = MonoidMethods.empty(caseClass)
@@ -32,7 +32,7 @@ object MonoidDerivation {
     val combineAllImpl = MonoidMethods.combineAll(caseClass)
     val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
 
-    new Monoid[T] {
+    new CommutativeMonoid[T] {
       override def empty: T = emptyImpl
       override def combine(x: T, y: T): T = combineImpl(x, y)
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
@@ -41,48 +41,9 @@ object MonoidDerivation {
     }
   }
 
-  @implicitNotFound("Cannot derive Monoid for sealed trait")
+  @implicitNotFound("Cannot derive CommutativeMonoid for sealed trait")
   private sealed trait Dispatchable[T]
   def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
-}
-
-private object MonoidMethods {
-  def empty[T, Typeclass[T] <: Monoid[T]](caseClass: CaseClass[Typeclass, T]): T =
-    caseClass.construct(_.typeclass.empty)
-
-  def combineN[T, Typeclass[T] <: Monoid[T]](caseClass: CaseClass[Typeclass, T]): (T, Int) => T = {
-    val emptyImpl = empty(caseClass)
-    val f = SemigroupMethods.combineNBase(caseClass)
-    (a: T, n: Int) =>
-      if (n < 0) {
-        throw new IllegalArgumentException("Repeated combining for monoids must have n >= 0")
-      } else if (n == 0) {
-        emptyImpl
-      } else {
-        f(a, n)
-      }
-  }
-
-  def combineAll[T, Typeclass[T] <: Monoid[T]](
-    caseClass: CaseClass[Typeclass, T]
-  ): IterableOnce[T] => T = {
-    val combineImpl = SemigroupMethods.combine(caseClass)
-    val emptyImpl = MonoidMethods.empty(caseClass)
-    as: IterableOnce[T] =>
-      as match {
-        case it: Iterable[T] if it.nonEmpty =>
-          // input is re-iterable and non-empty, combineAll on each field
-          val result = Array.fill[Any](caseClass.parameters.length)(null)
-          var i = 0
-          while (i < caseClass.parameters.length) {
-            val p = caseClass.parameters(i)
-            result(i) = p.typeclass.combineAll(it.iterator.map(p.dereference))
-            i += 1
-          }
-          caseClass.rawConstruct(result)
-        case xs => xs.foldLeft(emptyImpl)(combineImpl)
-      }
-  }
 }
