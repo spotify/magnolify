@@ -45,14 +45,16 @@ object HashDerivation {
     }
   }
 
-  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = new Hash[T] {
-    override def hash(x: T): Int = sealedTrait.dispatch(x) { sub =>
-      sub.typeclass.hash(sub.cast(x))
+  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = {
+    val eqvImpl = EqMethods.dispatch(sealedTrait)
+
+    new Hash[T] {
+      override def hash(x: T): Int = sealedTrait.dispatch(x) { sub =>
+        sub.typeclass.hash(sub.cast(x))
+      }
+
+      override def eqv(x: T, y: T): Boolean = eqvImpl(x, y)
     }
-
-    private val eqvImpl = EqMethods.dispatch(sealedTrait)
-
-    override def eqv(x: T, y: T): Boolean = eqvImpl(x, y)
   }
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
