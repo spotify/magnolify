@@ -21,6 +21,7 @@ import java.time.Duration
 
 import cats._
 import cats.instances.all._
+import cats.kernel.{Band, CommutativeSemigroup}
 import cats.kernel.laws.discipline._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
@@ -62,3 +63,23 @@ object SemigroupDerivationSpec extends MagnolifySpec("SemigroupDerivation") {
     test[Custom]
   }
 }
+
+object CommutativeSemigroupDerivationSpec extends MagnolifySpec("CommutativeSemigroupDerivation") {
+  private def test[T: Arbitrary : ClassTag : Eq : CommutativeSemigroup]: Unit = {
+    ensureSerializable(implicitly[CommutativeSemigroup[T]])
+    include(CommutativeSemigroupTests[T].commutativeSemigroup.all, className[T] + ".")
+  }
+
+  test[Integers]
+}
+
+object BandDerivationSpec extends MagnolifySpec("BandSemigroupDerivation") {
+  private def test[T: Arbitrary : ClassTag : Eq : Band]: Unit = {
+    ensureSerializable(implicitly[Band[T]])
+    include(BandTests[T].band.all, className[T] + ".")
+  }
+
+  test[Sets]
+}
+
+case class Sets(i: Set[Int], s: Set[String])

@@ -21,6 +21,7 @@ import java.time.Duration
 
 import cats._
 import cats.instances.all._
+import cats.kernel.CommutativeMonoid
 import cats.kernel.laws.discipline._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
@@ -61,4 +62,13 @@ object MonoidDerivationSpec extends MagnolifySpec("MonoidDerivation") {
     implicit val mDuration: Monoid[Duration] = Monoid.instance(Duration.ZERO, _ plus _)
     test[Custom]
   }
+}
+
+object CommutativeMonoidDerivationSpec extends MagnolifySpec("CommutativeMonoidDerivation") {
+  private def test[T: Arbitrary : ClassTag : Eq : CommutativeMonoid]: Unit = {
+    ensureSerializable(implicitly[CommutativeMonoid[T]])
+    include(CommutativeMonoidTests[T].commutativeMonoid.all, className[T] + ".")
+  }
+
+  test[Integers]
 }
