@@ -38,7 +38,7 @@ object MonoidDerivation {
       override def combine(x: T, y: T): T = combineImpl(x, y)
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAll(as: IterableOnce[T]): T = combineAllImpl(as)
-      override def combineAllOption(as: TraversableOnce[T]): Option[T] = combineAllOptionImpl(as)
+      override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
     }
   }
 
@@ -64,7 +64,7 @@ object CommutativeMonoidDerivation {
       override def combine(x: T, y: T): T = combineImpl(x, y)
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAll(as: IterableOnce[T]): T = combineAllImpl(as)
-      override def combineAllOption(as: TraversableOnce[T]): Option[T] = combineAllOptionImpl(as)
+      override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
     }
   }
 
@@ -96,8 +96,8 @@ private object MonoidMethods {
   ): IterableOnce[T] => T = {
     val combineImpl = SemigroupMethods.combine(caseClass)
     val emptyImpl = MonoidMethods.empty(caseClass)
-    xs: IterableOnce[T] =>
-      xs match {
+    as: IterableOnce[T] =>
+      as match {
         case it: Iterable[T] if it.nonEmpty =>
           // input is re-iterable and non-empty, combineAll on each field
           val result = Array.fill[Any](caseClass.parameters.length)(null)

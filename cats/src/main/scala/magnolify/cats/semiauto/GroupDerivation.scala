@@ -40,7 +40,7 @@ object GroupDerivation {
       override def combine(x: T, y: T): T = combineImpl(x, y)
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAll(as: IterableOnce[T]): T = combineAllImpl(as)
-      override def combineAllOption(as: TraversableOnce[T]): Option[T] = combineAllOptionImpl(as)
+      override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
       override def inverse(a: T): T = inverseImpl(a)
       override def remove(a: T, b: T): T = removeImpl(a, b)
     }
@@ -70,13 +70,13 @@ object CommutativeGroupDerivation {
       override def combine(x: T, y: T): T = combineImpl(x, y)
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAll(as: IterableOnce[T]): T = combineAllImpl(as)
-      override def combineAllOption(as: TraversableOnce[T]): Option[T] = combineAllOptionImpl(as)
+      override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
       override def inverse(a: T): T = inverseImpl(a)
       override def remove(a: T, b: T): T = removeImpl(a, b)
     }
   }
 
-  @implicitNotFound("Cannot derive Group for sealed trait")
+  @implicitNotFound("Cannot derive CommutativeGroup for sealed trait")
   private sealed trait Dispatchable[T]
   def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
 

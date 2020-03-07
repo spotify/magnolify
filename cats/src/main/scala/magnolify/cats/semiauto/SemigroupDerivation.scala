@@ -94,7 +94,7 @@ private object SemigroupMethods {
     (x, y) => caseClass.construct(p => p.typeclass.combine(p.dereference(x), p.dereference(y)))
 
   def combineNBase[T, Typeclass[T] <: Semigroup[T]](caseClass: CaseClass[Typeclass, T]): (T, Int) => T =
-    (x: T, n: Int) => caseClass.construct(p => p.typeclass.combineN(p.dereference(x), n))
+    (a: T, n: Int) => caseClass.construct(p => p.typeclass.combineN(p.dereference(a), n))
 
   def combineN[T, Typeclass[T] <: Semigroup[T]](caseClass: CaseClass[Typeclass, T]): (T, Int) => T = {
     val f = combineNBase(caseClass)
@@ -109,8 +109,8 @@ private object SemigroupMethods {
     caseClass: CaseClass[Typeclass, T]
   ): IterableOnce[T] => Option[T] = {
     val combineImpl = combine(caseClass)
-    xs: IterableOnce[T] =>
-      xs match {
+    as: IterableOnce[T] =>
+      as match {
         case it: Iterable[T] if it.nonEmpty =>
           // input is re-iterable and non-empty, combineAllOption on each field
           val result = Array.fill[Any](caseClass.parameters.length)(null)
