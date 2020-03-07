@@ -100,14 +100,14 @@ trait LowPriorityGenGroup extends LowPriorityGenMonoid {
 }
 
 trait LowPriorityGenMonoid extends LowPriorityGenSemigroup {
-  implicit def genCommutativeMonoid[T]: CommutativeMonoid[T] = macro CatsMacros.genCommutativeMonoidMacro[T]
   implicit def genMonoid[T]: Monoid[T] = macro CatsMacros.genMonoidMacro[T]
+  implicit def genCommutativeMonoid[T]: CommutativeMonoid[T] = macro CatsMacros.genCommutativeMonoidMacro[T]
 }
 
 trait LowPriorityGenSemigroup {
+  implicit def genSemigroup[T]: Semigroup[T] = macro CatsMacros.genSemigroupMacro[T]
   implicit def genCommutativeSemigroup[T]: CommutativeSemigroup[T] = macro CatsMacros.genCommutativeSemigroupMacro[T]
   implicit def genBand[T]: Band[T] = macro CatsMacros.genBandMacro[T]
-  implicit def genSemigroup[T]: Semigroup[T] = macro CatsMacros.genSemigroupMacro[T]
 }
 
 trait LowPriorityGenHash {
