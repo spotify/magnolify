@@ -35,7 +35,7 @@ object CommutativeGroupDerivation {
     val removeImpl = GroupMethods.remove(caseClass)
 
     new CommutativeGroup[T] {
-      override def empty: T = emptyImpl
+      override def empty: T = emptyImpl()
       override def combine(x: T, y: T): T = combineImpl(x, y)
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAll(as: IterableOnce[T]): T = combineAllImpl(as)

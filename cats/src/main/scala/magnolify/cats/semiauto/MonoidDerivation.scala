@@ -33,7 +33,7 @@ object MonoidDerivation {
     val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
 
     new Monoid[T] {
-      override def empty: T = emptyImpl
+      override def empty: T = emptyImpl()
       override def combine(x: T, y: T): T = combineImpl(x, y)
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAll(as: IterableOnce[T]): T = combineAllImpl(as)
@@ -49,8 +49,11 @@ object MonoidDerivation {
 }
 
 private object MonoidMethods {
-  def empty[T, Typeclass[T] <: Monoid[T]](caseClass: CaseClass[Typeclass, T]): T =
-    caseClass.construct(_.typeclass.empty)
+  def empty[T, Typeclass[T] <: Monoid[T]](caseClass: CaseClass[Typeclass, T]): () => T =
+    new Function0[T] with Serializable {
+      @transient private lazy val value = caseClass.construct(_.typeclass.empty)
+      override def apply(): T = value
+    }
 
   def combineN[T, Typeclass[T] <: Monoid[T]](caseClass: CaseClass[Typeclass, T]): (T, Int) => T = {
     val emptyImpl = empty(caseClass)
@@ -59,7 +62,7 @@ private object MonoidMethods {
       if (n < 0) {
         throw new IllegalArgumentException("Repeated combining for monoids must have n >= 0")
       } else if (n == 0) {
-        emptyImpl
+        emptyImpl()
       } else {
         f(a, n)
       }
@@ -82,7 +85,7 @@ private object MonoidMethods {
             i += 1
           }
           caseClass.rawConstruct(result)
-        case xs => xs.foldLeft(emptyImpl)(combineImpl)
+        case xs => xs.foldLeft(emptyImpl())(combineImpl)
       }
   }
 }
