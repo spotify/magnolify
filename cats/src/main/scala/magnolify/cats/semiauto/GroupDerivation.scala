@@ -35,7 +35,7 @@ object GroupDerivation {
     val removeImpl = GroupMethods.remove(caseClass)
 
     new Group[T] {
-      override def empty: T = emptyImpl
+      override def empty: T = emptyImpl()
       override def combine(x: T, y: T): T = combineImpl(x, y)
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAll(as: IterableOnce[T]): T = combineAllImpl(as)
@@ -63,7 +63,7 @@ private object GroupMethods {
       if (n > 0) {
         f(a, n)
       } else if (n == 0) {
-        emptyImpl
+        emptyImpl()
       } else if (n == Int.MinValue) {
         f(inverseImpl(combineImpl(a, a)), 1073741824)
       } else {

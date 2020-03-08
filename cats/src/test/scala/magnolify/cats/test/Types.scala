@@ -21,7 +21,7 @@ import cats.instances.all._
 import org.scalacheck.Arbitrary
 
 object Types {
-  class MiniInt(val i: Int) extends Serializable
+  class MiniInt(val i: Int)
 
   object MiniInt {
     def apply(i: Int): MiniInt = new MiniInt(i)
@@ -32,7 +32,7 @@ object Types {
     implicit val eqMiniInt: Eq[MiniInt] = Eq.by(_.i)
   }
 
-  class MiniSet(val s: Set[Int]) extends Serializable
+  class MiniSet(val s: Set[Int])
 
   object MiniSet {
     def apply(s: Set[Int]): MiniSet = new MiniSet(s)
