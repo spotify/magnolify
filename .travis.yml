@@ -3,9 +3,9 @@ matrix:
   include:
     - scala: 2.11.12
       jdk: openjdk8
-    - scala: 2.12.10
+    - scala: 2.12.11
       jdk: openjdk8
-    - scala: 2.12.10
+    - scala: 2.12.11
       jdk: openjdk11
     - scala: 2.13.1
       jdk: openjdk8
