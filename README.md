@@ -30,6 +30,7 @@ This library includes the following modules.
 - `magnolify-datastore` - conversion between Scala types and [Google Cloud Datastore](https://cloud.google.com/datastore/) `Entity`
 - `magnolify-protobuf` - conversion between Scala types and [Google Protocol Buffer](https://developers.google.com/protocol-buffers/docs/overview) `Message`
 - `magnolify-tensorflow` - conversion between Scala types and [TensorFlow](https://www.tensorflow.org/) `Example`
+- `magnolify-bigtable` - conversion between Scala types and [Google Cloud BigTable](https://cloud.google.com/bigtable) to `Mutation`, from `Row`
 
 # Usage
 
@@ -137,6 +138,17 @@ implicit val uriField = ExampleField
 val exampleType = ExampleType[Outer]
 val exampleBuilder: Example.Builder = exampleType.to(record)
 val copy = exampleType.from(exampleBuilder.build)
+
+// Bigtable Example
+import magnolify.bigtable._
+implicit val uriField = BigtableField.from[String](x => URI.create(x))(_.toString)
+
+val bigtableType = BigtableType[Outer]
+val mutations: Iterable[Mutation] = x.to(record)
+// write mutations to BigTable
+
+val row: Row = ... // read com.google.cloud.bigtable.data.v2.models.Row from BigTable
+val copy: Outer = x.from(row)
 ```
 
 # License

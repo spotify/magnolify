@@ -30,6 +30,7 @@ val protobufVersion = "3.11.4"
 
 val scalacheckVersion = "1.14.3"
 val tensorflowVersion = "1.15.0"
+val bigtableVersion = "1.11.0"
 
 val commonSettings = Seq(
   organization := "com.spotify",
@@ -330,3 +331,20 @@ lazy val jmh: Project = project
     test % "test->test"
   )
   .enablePlugins(JmhPlugin)
+
+lazy val bigtable: Project = project
+  .in(file("bigtable"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-bigtable",
+    description := "Magnolia add-on for Google BigTable",
+    libraryDependencies ++= Seq(
+      "com.google.cloud" % "google-cloud-bigtable" % bigtableVersion % Provided
+    )
+  )
+  .dependsOn(
+    shared,
+    cats % Test,
+    scalacheck % Test,
+    test % "test->test"
+  )
