@@ -44,7 +44,7 @@ object AvroType {
   }
 }
 
-sealed trait AvroField[T] extends Serializable { self =>
+sealed trait AvroField[T] extends Serializable {
   type FromT
   type ToT
 

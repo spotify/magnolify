@@ -66,7 +66,7 @@ object ProtobufType {
     }
 }
 
-sealed trait ProtobufField[T] extends Serializable { self =>
+sealed trait ProtobufField[T] extends Serializable {
   type FromT
   type ToT
 

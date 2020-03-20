@@ -39,7 +39,7 @@ object EntityType {
   }
 }
 
-sealed trait EntityField[T] extends Serializable { self =>
+sealed trait EntityField[T] extends Serializable {
   def from(v: Value): T
   def to(v: T): Value.Builder
 }

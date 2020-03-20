@@ -49,7 +49,7 @@ object TableRowType {
     }
 }
 
-sealed trait TableRowField[T] extends Serializable { self =>
+sealed trait TableRowField[T] extends Serializable {
   type FromT
   type ToT
 

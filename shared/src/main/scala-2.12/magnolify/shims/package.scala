@@ -31,7 +31,7 @@ package object shims {
     override def map[A, B](from: F[A])(fn: A => B): F[B] = mapS(from)(fn)
   }
 
-  trait FactoryCompat[-A, +C] extends Serializable { self =>
+  trait FactoryCompat[-A, +C] extends Serializable {
     def newBuilder: mutable.Builder[A, C]
     def build(xs: TraversableOnce[A]): C = (newBuilder ++= xs).result()
   }

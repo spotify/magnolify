@@ -41,7 +41,7 @@ object ExampleType {
   }
 }
 
-sealed trait ExampleField[T] extends Serializable { self =>
+sealed trait ExampleField[T] extends Serializable {
   def get(f: Features, k: String): T
   def put(f: Features.Builder, k: String, v: T): Features.Builder
 }
