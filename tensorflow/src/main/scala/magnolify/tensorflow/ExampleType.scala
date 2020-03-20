@@ -136,7 +136,7 @@ object ExampleField {
         .build()
   }
 
-  implicit val efBytes = new Primitive[ByteString] {
+  implicit val efByteString = new Primitive[ByteString] {
     override type ValueT = ByteString
     override def fromFeature(v: Feature): ju.List[ByteString] =
       if (v == null) {
@@ -151,6 +151,8 @@ object ExampleField {
         .setBytesList(BytesList.newBuilder().addAllValue(v.asJava))
         .build()
   }
+
+  implicit val efByteArray = from[ByteString](_.toByteArray)(ByteString.copyFrom(_))
 
   implicit def efOption[T](implicit ef: ExampleField[T]): ExampleField[Option[T]] =
     new ExampleField[Option[T]] {

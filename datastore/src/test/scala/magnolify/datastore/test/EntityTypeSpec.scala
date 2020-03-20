@@ -70,6 +70,7 @@ object EntityTypeSpec extends MagnolifySpec("EntityType") {
       Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
     implicit val eqInstant: Eq[Instant] = Eq.by(_.toEpochMilli)
     implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
+    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
     test[DatastoreTypes]
   }
 
@@ -80,4 +81,4 @@ object EntityTypeSpec extends MagnolifySpec("EntityType") {
   }
 }
 
-case class DatastoreTypes(bs: ByteString, ts: Instant)
+case class DatastoreTypes(bs: ByteString, ba: Array[Byte], ts: Instant)
