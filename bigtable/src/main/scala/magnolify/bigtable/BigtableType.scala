@@ -26,18 +26,62 @@ import scala.collection._
 import com.google.bigtable.v2.Mutation
 import com.google.bigtable.v2.Mutation.SetCell
 import com.google.cloud.bigtable.data.v2.models.{Row, RowCell}
+import magnolify.shared.Converter
 
 import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
 import magnolify.shims.JavaConverters._
 
-sealed trait BigtableType[T] extends Serializable {
+sealed trait BigtableTypeReader[T] extends Serializable {
+  def from(v: Row): T
+}
 
-  def from(v: Row, columnFamily: String = BigtableType.DEFAULT_COLUMN_FAMILY_NAME): T
+sealed trait BigtableTypeWriter[T] extends Serializable {
+  def to(v: T): Iterable[Mutation]
+}
 
-  def to(v: T, columnFamily: String = BigtableType.DEFAULT_COLUMN_FAMILY_NAME,
-               timestamp: Long = 0L,
-               columnQualifier: String = null): Iterable[Mutation]
+trait BigtableType[T] extends Converter[T, Row, Iterable[Mutation]] {
+
+  def from(v: Row): T = fromBuilder.build.from(v)
+  def to(v: T): Iterable[Mutation] = toBuilder.build.to(v)
+
+  val toBuilder: BigtableTypeWriterBuilder[T]
+  val fromBuilder: BigtableTypeReaderBuilder[T]
+
+}
+
+private[bigtable] final class BigtableTypeReaderBuilder[T](f: BigtableField[T],
+                                                           columnFamily: String)
+  extends Serializable {
+
+  def withColumnFamily(columnFamily: String): BigtableTypeReaderBuilder[T] =
+    new BigtableTypeReaderBuilder(f, columnFamily)
+
+  def build: BigtableTypeReader[T] = new BigtableTypeReader[T] {
+    def from(v: Row): T = f.get(columnFamily, v, null)
+  }
+
+}
+
+private[bigtable]final class BigtableTypeWriterBuilder[T](f: BigtableField[T],
+                                         columnFamily: String,
+                                         timestamp: Long,
+                                         columnQualifier: String) extends Serializable {
+
+  def withColumnFamily(columnFamily: String): BigtableTypeWriterBuilder[T] =
+    new BigtableTypeWriterBuilder(f, columnFamily, timestamp, columnQualifier)
+
+  def withTimestamp(timestamp: Long): BigtableTypeWriterBuilder[T] =
+    new BigtableTypeWriterBuilder(f, columnFamily, timestamp, columnQualifier)
+
+  def withColumnQualifier(columnQualifier: String): BigtableTypeWriterBuilder[T] =
+    new BigtableTypeWriterBuilder(f, columnFamily, timestamp, columnQualifier)
+
+  def build: BigtableTypeWriter[T] = new BigtableTypeWriter[T] {
+    def to(v: T): Iterable[Mutation] =
+      f.put(columnQualifier, v).map(Mutations.newSetCellMutation(columnFamily, timestamp))
+  }
+
 
 }
 
@@ -45,16 +89,11 @@ object BigtableType {
   val DEFAULT_COLUMN_QUALIFIER_NAME = "q"
   val DEFAULT_COLUMN_FAMILY_NAME = "f"
 
-  implicit def apply[T](implicit f: BigtableField[T]): BigtableType[T] = new BigtableType[T] {
-
-    def from(v: Row, columnFamily: String = BigtableType.DEFAULT_COLUMN_FAMILY_NAME): T =
-      f.get(columnFamily, v, null)
-
-    def to(v: T, columnFamily: String = BigtableType.DEFAULT_COLUMN_FAMILY_NAME,
-                 timestamp: Long = 0L,
-                 columnQualifier: String = null): Iterable[Mutation] =
-      f.put(columnQualifier, v).map(Mutations.newSetCellMutation(columnFamily, timestamp))
-
+  implicit def apply[T](implicit f: BigtableField[T]): BigtableType[T] =  new BigtableType[T] {
+    val toBuilder: BigtableTypeWriterBuilder[T] =
+      new BigtableTypeWriterBuilder(f, DEFAULT_COLUMN_FAMILY_NAME, timestamp = 0L, null)
+    val fromBuilder: BigtableTypeReaderBuilder[T] =
+      new BigtableTypeReaderBuilder(f, DEFAULT_COLUMN_FAMILY_NAME)
   }
 }
 
