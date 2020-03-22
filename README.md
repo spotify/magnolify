@@ -119,9 +119,9 @@ import magnolify.bigtable._
 implicit val uriField = BigtableField.from[String](URI.create)(_.toString)
 
 val bigtableType = BigtableType[Outer]
-val mutations: Iterable[Mutation] = bigtableType.to(record)
-val row: Row = BigtableType.mutationsToRow(mutations)
-val copy: Outer = bigtableType.from(row)
+val mutations: Iterable[Mutation] = bigtableType(record, "ColumnFamily")
+val row: Row = BigtableType.mutationsToRow(ByteString.copyFromUtf8("RowKey"), mutations)
+val copy: Outer = bigtableType.from(row, "ColumnFamily")
 
 // Datastore Entity
 import magnolify.datastore._
