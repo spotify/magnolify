@@ -27,15 +27,14 @@ import magnolify.shared.Converter
 import magnolify.shims.JavaConverters._
 
 import scala.annotation.implicitNotFound
-import scala.collection._
 import scala.language.experimental.macros
 
-sealed trait BigtableType[T] extends Converter[T, Row, Seq[Mutation]] {
+sealed trait BigtableType[T] extends Converter[T, Row, Seq[Mutation.Builder]] {
   protected val columnFamily: String
   protected val timestampMicros: Long
 
   def apply(v: Row): T = from(v)
-  def apply(v: T): Seq[Mutation] = to(v)
+  def apply(v: T): Seq[Mutation] = to(v).map(_.build())
 }
 
 object BigtableType {
@@ -51,17 +50,13 @@ object BigtableType {
     override protected val columnFamily: String = _columnFamily
     override protected val timestampMicros: Long = _timestampMicros
 
-    override def from(v: Row): T =
-      f.get(columnFamily, v, null)
+    override def from(v: Row): T = f.get(columnFamily, v, null)
 
-    override def to(v: T): Seq[Mutation] =
+    override def to(v: T): Seq[Mutation.Builder] =
       f.put(null, v).map { b =>
         Mutation
           .newBuilder()
-          .setSetCell(
-            b.setFamilyName(columnFamily).setTimestampMicros(timestampMicros)
-          )
-          .build()
+          .setSetCell(b.setFamilyName(columnFamily).setTimestampMicros(timestampMicros))
       }
   }
 
@@ -84,7 +79,7 @@ object BigtableType {
     )
 
   def rowToMutations(row: Row): Seq[Mutation] =
-    row.getCells.asScala.map { cell =>
+    row.getCells.asScala.iterator.map { cell =>
       Mutation
         .newBuilder()
         .setSetCell(
@@ -96,7 +91,7 @@ object BigtableType {
             .setValue(cell.getValue)
         )
         .build()
-    }
+    }.toSeq
 }
 
 sealed trait BigtableField[T] extends Serializable {

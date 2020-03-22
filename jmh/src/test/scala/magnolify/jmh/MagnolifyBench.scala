@@ -114,9 +114,9 @@ class BigtableBench {
   import MagnolifyBench._
   private val bigtableType = BigtableType[BigtableNested]
   private val bigtableNested = implicitly[Arbitrary[BigtableNested]].arbitrary(prms, seed).get
-  private val mutations = bigtableType.to(bigtableNested)
+  private val mutations = bigtableType.to(bigtableNested).map(_.build())
   private val row = BigtableType.mutationsToRow(ByteString.EMPTY, mutations)
-  @Benchmark def bigtableTo: Iterable[Mutation] = bigtableType.to(bigtableNested)
+  @Benchmark def bigtableTo: Seq[Mutation.Builder] = bigtableType.to(bigtableNested)
   @Benchmark def bigtableFrom: BigtableNested = bigtableType.from(row)
 }
 
