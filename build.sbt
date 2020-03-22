@@ -357,4 +357,3 @@ lazy val jmh: Project = project
     test % "test->test"
   )
   .enablePlugins(JmhPlugin)
-
