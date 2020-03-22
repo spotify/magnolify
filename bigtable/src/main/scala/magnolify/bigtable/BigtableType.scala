@@ -20,6 +20,7 @@ import java.nio.ByteBuffer
 
 import com.google.bigtable.v2.Mutation
 import com.google.bigtable.v2.Mutation.SetCell
+import com.google.cloud.bigtable.data.v2.internal.ByteStringComparator
 import com.google.cloud.bigtable.data.v2.models.{Row, RowCell}
 import com.google.protobuf.ByteString
 import magnolia._
@@ -57,7 +58,7 @@ object BigtableType {
             setCell.getFamilyName,
             setCell.getColumnQualifier,
             setCell.getTimestampMicros,
-            Nil.asJava,
+            java.util.Collections.emptyList(),
             setCell.getValue
           )
         }
@@ -93,10 +94,8 @@ object BigtableField {
     private def columnQualifier(k: String): ByteString =
       ByteString.copyFromUtf8(k)
 
-    override def get(xs: java.util.List[RowCell], k: String): T = {
-      val cq = columnQualifier(k)
-      fromByteString(xs.asScala.find(_.getQualifier == cq).get.getValue)
-    }
+    override def get(xs: java.util.List[RowCell], k: String): T =
+      fromByteString(RowCells.find(xs, k).getValue)
 
     override def put(k: String, v: T): Seq[SetCell.Builder] =
       Seq(
@@ -147,8 +146,7 @@ object BigtableField {
     override def toByteString(v: T): ByteString = {
       val bb = ByteBuffer.allocate(capacity)
       g(bb, v)
-      bb.rewind()
-      ByteString.copyFrom(bb)
+      ByteString.copyFrom(bb.array())
     }
   }
 
@@ -164,22 +162,82 @@ object BigtableField {
     override def fromByteString(v: ByteString): ByteString = v
     override def toByteString(v: ByteString): ByteString = v
   }
-  implicit val btfByteArray = from[ByteString](_.toByteArray)(ByteString.copyFrom(_))
-  implicit val btfString = from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8(_))
+  implicit val btfByteArray = from[ByteString](_.toByteArray)(ByteString.copyFrom)
+  implicit val btfString = from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
 
   implicit def btfOption[A](implicit btf: BigtableField[A]): BigtableField[Option[A]] =
     new BigtableField[Option[A]] {
-      override def get(xs: java.util.List[RowCell], k: String): Option[A] = {
-        val isOption = xs.asScala.exists { c =>
-          val q = c.getQualifier.toStringUtf8
-          q == k || q.startsWith(s"$k.") // optional primitive or nested field
-        }
-        if (isOption) Some(btf.get(xs, k)) else None
-      }
+      override def get(xs: java.util.List[RowCell], k: String): Option[A] =
+        RowCells.findNullable(xs, k).map(btf.get(_, k))
 
-      override def put(k: String, vo: Option[A]): Seq[SetCell.Builder] = vo match {
-        case None    => Seq.empty
-        case Some(v) => btf.put(k, v)
+      override def put(k: String, v: Option[A]): Seq[SetCell.Builder] =
+        v.toSeq.flatMap(btf.put(k, _))
+    }
+}
+
+private object RowCells {
+  private val cmp = ByteStringComparator.INSTANCE
+
+  private def find(
+    xs: java.util.List[RowCell],
+    columnQualifier: String,
+    matchPrefix: Boolean
+  ): (Int, Int, Boolean) = {
+    val cq = ByteString.copyFromUtf8(columnQualifier)
+    val pre = if (matchPrefix) ByteString.copyFromUtf8(s"$columnQualifier.") else ByteString.EMPTY
+    var low = 0
+    var high = xs.size()
+    var idx = -1
+    var isNested = false
+    while (idx == -1 && low < high) {
+      val mid = (high + low) / 2
+      val current = xs.get(mid).getQualifier
+      if (matchPrefix && current.startsWith(pre)) {
+        idx = mid
+        isNested = true
+      } else {
+        val c = cmp.compare(current, cq)
+        if (c < 0) {
+          low = mid + 1
+        } else if (c == 0) {
+          idx = mid
+          low = mid + 1
+        } else {
+          high = mid
+        }
       }
     }
+
+    if (isNested) {
+      low = idx - 1
+      while (low >= 0 && xs.get(low).getQualifier.startsWith(pre)) {
+        low -= 1
+      }
+      high = idx + 1
+      while (idx < xs.size() && xs.get(high).getQualifier.startsWith(pre)) {
+        high += 1
+      }
+      (low + 1, high, isNested)
+    } else {
+      (idx, idx, isNested)
+    }
+  }
+
+  def find(xs: java.util.List[RowCell], columnQualifier: String): RowCell = {
+    val (idx, _, _) = find(xs, columnQualifier, false)
+    require(idx != -1, s"Column qualifier not found: $columnQualifier")
+    xs.get(idx)
+  }
+
+  def findNullable(
+    xs: java.util.List[RowCell],
+    columnQualifier: String
+  ): Option[java.util.List[RowCell]] = {
+    val (low, high, isNested) = find(xs, columnQualifier, true)
+    if (isNested) {
+      Some(xs.subList(low, high))
+    } else {
+      if (low == -1) None else Some(java.util.Collections.singletonList(xs.get(low)))
+    }
+  }
 }
