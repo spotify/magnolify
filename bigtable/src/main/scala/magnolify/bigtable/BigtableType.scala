@@ -31,7 +31,6 @@ import scala.language.experimental.macros
 
 sealed trait BigtableType[T] extends Converter[T, Row, Seq[Mutation.Builder]] {
   protected val columnFamily: String
-  protected val timestampMicros: Long
 
   def apply(v: Row): T = from(v)
   def apply(v: T): Seq[Mutation] = to(v).map(_.build())
@@ -42,13 +41,12 @@ object BigtableType {
   val DEFAULT_COLUMN_QUALIFIER_NAME = "q"
 
   implicit def apply[T](implicit f: BigtableField[T]): BigtableType[T] =
-    BigtableType(BigtableType.DEFAULT_COLUMN_FAMILY_NAME, 0L)
+    BigtableType(BigtableType.DEFAULT_COLUMN_FAMILY_NAME)
 
-  def apply[T](_columnFamily: String, _timestampMicros: Long)(
+  def apply[T](_columnFamily: String)(
     implicit f: BigtableField[T]
   ): BigtableType[T] = new BigtableType[T] {
     override protected val columnFamily: String = _columnFamily
-    override protected val timestampMicros: Long = _timestampMicros
 
     override def from(v: Row): T = f.get(columnFamily, v, null)
 
@@ -56,7 +54,7 @@ object BigtableType {
       f.put(null, v).map { b =>
         Mutation
           .newBuilder()
-          .setSetCell(b.setFamilyName(columnFamily).setTimestampMicros(timestampMicros))
+          .setSetCell(b.setFamilyName(columnFamily))
       }
   }
 
