@@ -18,7 +18,6 @@ package magnolify.jmh
 
 import java.util.concurrent.TimeUnit
 
-import com.google.protobuf.ByteString
 import magnolify.scalacheck.auto._
 import magnolify.test.Simple._
 import org.scalacheck._
@@ -110,14 +109,15 @@ class TableRowBench {
 @State(Scope.Thread)
 class BigtableBench {
   import com.google.bigtable.v2.Mutation
+  import com.google.protobuf.ByteString
   import magnolify.bigtable._
   import MagnolifyBench._
   private val bigtableType = BigtableType[BigtableNested]
   private val bigtableNested = implicitly[Arbitrary[BigtableNested]].arbitrary(prms, seed).get
-  private val mutations = bigtableType.to(bigtableNested).map(_.build())
+  private val mutations = bigtableType(bigtableNested, "cf")
   private val row = BigtableType.mutationsToRow(ByteString.EMPTY, mutations)
-  @Benchmark def bigtableTo: Seq[Mutation.Builder] = bigtableType.to(bigtableNested)
-  @Benchmark def bigtableFrom: BigtableNested = bigtableType.from(row)
+  @Benchmark def bigtableTo: Seq[Mutation] = bigtableType(bigtableNested, "cf")
+  @Benchmark def bigtableFrom: BigtableNested = bigtableType(row, "cf")
 }
 
 @BenchmarkMode(Array(Mode.AverageTime))
