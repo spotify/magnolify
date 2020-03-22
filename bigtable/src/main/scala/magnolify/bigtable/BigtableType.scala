@@ -33,7 +33,8 @@ sealed trait BigtableType[T] extends Converter[T, java.util.List[RowCell], Seq[S
   def apply(v: Row, columnFamily: String): T = from(v.getCells(columnFamily))
   def apply(v: T, columnFamily: String, timestampMicros: Long = 0L): Seq[Mutation] =
     to(v).map { b =>
-      Mutation.newBuilder()
+      Mutation
+        .newBuilder()
         .setSetCell(b.setFamilyName(columnFamily).setTimestampMicros(timestampMicros))
         .build()
     }
