@@ -14,74 +14,99 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package magnolify.bigtable
 
 import java.nio.ByteBuffer
 
-import com.google.protobuf.ByteString
-import magnolia._
-
-import scala.collection._
 import com.google.bigtable.v2.Mutation
 import com.google.bigtable.v2.Mutation.SetCell
+import com.google.cloud.bigtable.data.v2.internal.ByteStringComparator
 import com.google.cloud.bigtable.data.v2.models.{Row, RowCell}
+import com.google.protobuf.ByteString
+import magnolia._
+import magnolify.shared.Converter
+import magnolify.shims.JavaConverters._
 
 import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
-import magnolify.shims.JavaConverters._
 
-sealed trait BigtableType[T] extends Serializable {
-
-  def from(v: Row, columnFamily: String = BigtableType.DEFAULT_COLUMN_FAMILY_NAME): T
-
-  def to(v: T, columnFamily: String = BigtableType.DEFAULT_COLUMN_FAMILY_NAME,
-               timestamp: Long = 0L,
-               columnQualifier: String = null): Iterable[Mutation]
-
+sealed trait BigtableType[T] extends Converter[T, java.util.List[RowCell], Seq[SetCell.Builder]] {
+  def apply(v: Row, columnFamily: String): T = from(v.getCells(columnFamily))
+  def apply(v: T, columnFamily: String, timestampMicros: Long = 0L): Seq[Mutation] =
+    to(v).map { b =>
+      Mutation
+        .newBuilder()
+        .setSetCell(b.setFamilyName(columnFamily).setTimestampMicros(timestampMicros))
+        .build()
+    }
 }
 
 object BigtableType {
-  val DEFAULT_COLUMN_QUALIFIER_NAME = "q"
-  val DEFAULT_COLUMN_FAMILY_NAME = "f"
-
   implicit def apply[T](implicit f: BigtableField[T]): BigtableType[T] = new BigtableType[T] {
-
-    def from(v: Row, columnFamily: String = BigtableType.DEFAULT_COLUMN_FAMILY_NAME): T =
-      f.get(columnFamily, v, null)
-
-    def to(v: T, columnFamily: String = BigtableType.DEFAULT_COLUMN_FAMILY_NAME,
-                 timestamp: Long = 0L,
-                 columnQualifier: String = null): Iterable[Mutation] =
-      f.put(columnQualifier, v).map(Mutations.newSetCellMutation(columnFamily, timestamp))
-
+    override def from(xs: java.util.List[RowCell]): T = f.get(xs, null)
+    override def to(v: T): Seq[SetCell.Builder] = f.put(null, v)
   }
+
+  def mutationsToRow(key: ByteString, mutations: Seq[Mutation]): Row =
+    Row.create(
+      key,
+      mutations
+        .sortBy(_.getSetCell.getColumnQualifier.toStringUtf8)
+        .map { m =>
+          val setCell = m.getSetCell
+          RowCell.create(
+            setCell.getFamilyName,
+            setCell.getColumnQualifier,
+            setCell.getTimestampMicros,
+            java.util.Collections.emptyList(),
+            setCell.getValue
+          )
+        }
+        .asJava
+    )
+
+  def rowToMutations(row: Row): Seq[Mutation] =
+    row.getCells.asScala.iterator.map { cell =>
+      Mutation
+        .newBuilder()
+        .setSetCell(
+          SetCell
+            .newBuilder()
+            .setFamilyName(cell.getFamily)
+            .setColumnQualifier(cell.getQualifier)
+            .setTimestampMicros(cell.getTimestamp)
+            .setValue(cell.getValue)
+        )
+        .build()
+    }.toSeq
 }
 
 sealed trait BigtableField[T] extends Serializable {
-  def get(columnFamily: String, v: Row, k: String): T
-  def put(k: String, v: T): Iterable[SetCell.Builder]
+  def get(xs: java.util.List[RowCell], k: String): T
+  def put(k: String, v: T): Seq[SetCell.Builder]
 }
 
 object BigtableField {
   trait Primitive[T] extends BigtableField[T] {
-    type ValueT
     def fromByteString(v: ByteString): T
     def toByteString(v: T): ByteString
 
-    def get(columnFamily: String, f: Row, k: String): T = {
-      val columnQualifier = Option(k).getOrElse(BigtableType.DEFAULT_COLUMN_QUALIFIER_NAME)
-      val cells = f.getCells(columnFamily, columnQualifier)
-      require(cells.size() == 1)
-      fromByteString(cells.get(0).getValue)
-    }
+    private def columnQualifier(k: String): ByteString =
+      ByteString.copyFromUtf8(k)
 
-    def put(k: String, v: T): Iterable[SetCell.Builder] =
-      Iterable(Mutations.newSetCell(
-        ByteString.copyFromUtf8(Option(k).getOrElse(BigtableType.DEFAULT_COLUMN_QUALIFIER_NAME)),
-        toByteString(v))
+    override def get(xs: java.util.List[RowCell], k: String): T =
+      fromByteString(RowCells.find(xs, k).getValue)
+
+    override def put(k: String, v: T): Seq[SetCell.Builder] =
+      Seq(
+        SetCell
+          .newBuilder()
+          .setColumnQualifier(columnQualifier(k))
+          .setValue(toByteString(v))
       )
   }
+
+  //////////////////////////////////////////////////
 
   type Typeclass[T] = BigtableField[T]
 
@@ -89,13 +114,11 @@ object BigtableField {
     private def key(prefix: String, label: String): String =
       if (prefix == null) label else s"$prefix.$label"
 
-    def get(columnFamily: String, f: Row, k: String): T =
-      caseClass.construct(p => p.typeclass.get(columnFamily, f, key(k, p.label)))
+    override def get(xs: java.util.List[RowCell], k: String): T =
+      caseClass.construct(p => p.typeclass.get(xs, key(k, p.label)))
 
-    def put(k: String, v: T): Iterable[SetCell.Builder] =
-      caseClass.parameters.flatMap { p =>
-        p.typeclass.put(key(k, p.label), p.dereference(v))
-      }
+    override def put(k: String, v: T): Seq[SetCell.Builder] =
+      caseClass.parameters.flatMap(p => p.typeclass.put(key(k, p.label), p.dereference(v)))
   }
 
   @implicitNotFound("Cannot derive BigtableField for sealed trait")
@@ -109,112 +132,112 @@ object BigtableField {
   def from[T]: FromWord[T] = new FromWord
 
   class FromWord[T] {
-    def apply[U](f: T => U)(g: U => T)(implicit ef: Primitive[T]): Primitive[U] =
+    def apply[U](f: T => U)(g: U => T)(implicit btf: Primitive[T]): Primitive[U] =
       new Primitive[U] {
-        type ValueT = ef.ValueT
-        def fromByteString(v: ByteString): U = f(ef.fromByteString(v))
-        def toByteString(v: U): ByteString = ef.toByteString(g(v))
+        def fromByteString(v: ByteString): U = f(btf.fromByteString(v))
+        def toByteString(v: U): ByteString = btf.toByteString(g(v))
       }
   }
 
-  private def writeByteString(capacity: Int,
-                              writer: ByteBuffer => Unit): ByteString = {
-    val byteBuffer = ByteBuffer.allocate(capacity)
-    writer(byteBuffer)
-    byteBuffer.rewind()
-
-    ByteString.copyFrom(byteBuffer)
-  }
-
-  implicit val btLong = new Primitive[Long] {
-    type ValueT = Long
-
-    def fromByteString(v: ByteString): Long =
-      v.asReadOnlyByteBuffer().asLongBuffer().get()
-
-    def toByteString(v: Long): ByteString =
-      writeByteString(java.lang.Long.BYTES, _.putLong(v))
-  }
-
-  implicit val btInt = new Primitive[Int] {
-    type ValueT = Int
-
-    def fromByteString(v: ByteString): Int =
-      v.asReadOnlyByteBuffer().asIntBuffer().get()
-
-    def toByteString(v: Int): ByteString =
-      writeByteString(java.lang.Integer.BYTES, _.putInt(v))
-  }
-
-  implicit val btFloat = new Primitive[Float] {
-    type ValueT = Float
-
-    def fromByteString(v: ByteString): Float =
-      v.asReadOnlyByteBuffer().asFloatBuffer().get()
-
-    def toByteString(v: Float): ByteString =
-      writeByteString(java.lang.Float.BYTES, _.putFloat(v))
-  }
-
-  implicit val btDouble = new Primitive[Double] {
-    type ValueT = Double
-
-    def fromByteString(v: ByteString): Double =
-      v.asReadOnlyByteBuffer().asDoubleBuffer().get()
-
-    def toByteString(v: Double): ByteString =
-      writeByteString(java.lang.Double.BYTES, _.putDouble(v))
-  }
-
-  implicit val btShort = new Primitive[Short] {
-    type ValueT = Short
-
-    def fromByteString(v: ByteString): Short =
-      v.asReadOnlyByteBuffer().asShortBuffer().get()
-
-    def toByteString(v: Short): ByteString =
-      writeByteString(java.lang.Float.BYTES, _.putShort(v))
-  }
-
-  implicit val btString = new Primitive[String] {
-    type ValueT = String
-
-    def fromByteString(v: ByteString): String =
-      v.toStringUtf8
-
-    def toByteString(v: String): ByteString =
-      ByteString.copyFromUtf8(v)
-  }
-
-  implicit val btBoolean = new Primitive[Boolean] {
-      type ValueT = Boolean
-
-      def fromByteString(v: ByteString): Boolean =
-         v.asReadOnlyByteBuffer().asShortBuffer().get() match {
-           case 0 => false
-           case _ => true
-         }
-
-      def toByteString(v: Boolean): ByteString =
-        writeByteString(java.lang.Float.BYTES, _.putShort(if(v) 1 else 0))
-  }
-
-  implicit def btOption[A](implicit btField: BigtableField[A]) = new BigtableField[Option[A]] {
-    private def hasNestedField(columnFamily: String, r: Row, k: String): Boolean =
-      r.getCells(columnFamily).asScala.iterator.exists(_.getQualifier.toStringUtf8.startsWith(s"$k."))
-
-    def get(columnFamily: String, v: Row, k: String): Option[A] = {
-      if (v.getCells(columnFamily, k).size() > 0 || hasNestedField(columnFamily, v, k))
-        Option(btField.get(columnFamily, v, k))
-      else
-        Option.empty
-    }
-
-    def put(k: String, vo: Option[A]): Iterable[SetCell.Builder]
-    = vo match {
-      case None    => Iterable.empty
-      case Some(v) => btField.put(k, v)
+  private def primitive[T](
+    capacity: Int
+  )(f: ByteBuffer => T)(g: (ByteBuffer, T) => Unit): Primitive[T] = new Primitive[T] {
+    override def fromByteString(v: ByteString): T = f(v.asReadOnlyByteBuffer())
+    override def toByteString(v: T): ByteString = {
+      val bb = ByteBuffer.allocate(capacity)
+      g(bb, v)
+      ByteString.copyFrom(bb.array())
     }
   }
 
+  implicit val btfInt = primitive[Int](java.lang.Integer.BYTES)(_.getInt)(_.putInt(_))
+  implicit val btfLong = primitive[Long](java.lang.Long.BYTES)(_.getLong)(_.putLong(_))
+  implicit val btfFloat = primitive[Float](java.lang.Float.BYTES)(_.getFloat)(_.putFloat(_))
+  implicit val btfDouble = primitive[Double](java.lang.Double.BYTES)(_.getDouble)(_.putDouble(_))
+  implicit val btfByte = primitive[Byte](java.lang.Byte.BYTES)(_.get)(_.put(_))
+  implicit val btfShort = primitive[Short](java.lang.Short.BYTES)(_.getShort)(_.putShort(_))
+  implicit val btfBoolean = from[Byte](_ == 1)(if (_) 1 else 0)
+
+  implicit val btfByteString = new Primitive[ByteString] {
+    override def fromByteString(v: ByteString): ByteString = v
+    override def toByteString(v: ByteString): ByteString = v
+  }
+  implicit val btfByteArray = from[ByteString](_.toByteArray)(ByteString.copyFrom)
+  implicit val btfString = from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
+
+  implicit def btfOption[A](implicit btf: BigtableField[A]): BigtableField[Option[A]] =
+    new BigtableField[Option[A]] {
+      override def get(xs: java.util.List[RowCell], k: String): Option[A] =
+        RowCells.findNullable(xs, k).map(btf.get(_, k))
+
+      override def put(k: String, v: Option[A]): Seq[SetCell.Builder] =
+        v.toSeq.flatMap(btf.put(k, _))
+    }
+}
+
+private object RowCells {
+  private val cmp = ByteStringComparator.INSTANCE
+
+  private def find(
+    xs: java.util.List[RowCell],
+    columnQualifier: String,
+    matchPrefix: Boolean
+  ): (Int, Int, Boolean) = {
+    val cq = ByteString.copyFromUtf8(columnQualifier)
+    val pre = if (matchPrefix) ByteString.copyFromUtf8(s"$columnQualifier.") else ByteString.EMPTY
+    var low = 0
+    var high = xs.size()
+    var idx = -1
+    var isNested = false
+    while (idx == -1 && low < high) {
+      val mid = (high + low) / 2
+      val current = xs.get(mid).getQualifier
+      if (matchPrefix && current.startsWith(pre)) {
+        idx = mid
+        isNested = true
+      } else {
+        val c = cmp.compare(current, cq)
+        if (c < 0) {
+          low = mid + 1
+        } else if (c == 0) {
+          idx = mid
+          low = mid + 1
+        } else {
+          high = mid
+        }
+      }
+    }
+
+    if (isNested) {
+      low = idx - 1
+      while (low >= 0 && xs.get(low).getQualifier.startsWith(pre)) {
+        low -= 1
+      }
+      high = idx + 1
+      while (idx < xs.size() && xs.get(high).getQualifier.startsWith(pre)) {
+        high += 1
+      }
+      (low + 1, high, isNested)
+    } else {
+      (idx, idx, isNested)
+    }
+  }
+
+  def find(xs: java.util.List[RowCell], columnQualifier: String): RowCell = {
+    val (idx, _, _) = find(xs, columnQualifier, false)
+    require(idx != -1, s"Column qualifier not found: $columnQualifier")
+    xs.get(idx)
+  }
+
+  def findNullable(
+    xs: java.util.List[RowCell],
+    columnQualifier: String
+  ): Option[java.util.List[RowCell]] = {
+    val (low, high, isNested) = find(xs, columnQualifier, true)
+    if (isNested) {
+      Some(xs.subList(low, high))
+    } else {
+      if (low == -1) None else Some(java.util.Collections.singletonList(xs.get(low)))
+    }
+  }
 }

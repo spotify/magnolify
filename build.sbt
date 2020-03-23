@@ -21,6 +21,7 @@ val magnoliaVersion = "0.12.8"
 
 val avroVersion = "1.9.2"
 val bigqueryVersion = "v2-rev20191211-1.30.9"
+val bigtableVersion = "1.11.0"
 val catsVersion = "2.0.0"
 val datastoreVersion = "1.6.3"
 val guavaVersion = "28.2-jre"
@@ -30,7 +31,6 @@ val protobufVersion = "3.11.4"
 
 val scalacheckVersion = "1.14.3"
 val tensorflowVersion = "1.15.0"
-val bigtableVersion = "1.11.0"
 
 val commonSettings = Seq(
   organization := "com.spotify",
@@ -129,6 +129,7 @@ lazy val root: Project = project
     guava,
     avro,
     bigquery,
+    bigtable,
     datastore,
     protobuf,
     tensorflow,
@@ -255,6 +256,23 @@ lazy val bigquery: Project = project
     test % "test->test"
   )
 
+lazy val bigtable: Project = project
+  .in(file("bigtable"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-bigtable",
+    description := "Magnolia add-on for Google Cloud Bigtable",
+    libraryDependencies ++= Seq(
+      "com.google.cloud" % "google-cloud-bigtable" % bigtableVersion % Provided
+    )
+  )
+  .dependsOn(
+    shared,
+    cats % Test,
+    scalacheck % Test,
+    test % "test->test"
+  )
+
 lazy val datastore: Project = project
   .in(file("datastore"))
   .settings(
@@ -320,6 +338,7 @@ lazy val jmh: Project = project
     libraryDependencies ++= Seq(
       "org.apache.avro" % "avro" % avroVersion % Test,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
+      "com.google.cloud" % "google-cloud-bigtable" % bigtableVersion % Test,
       "joda-time" % "joda-time" % jodaTimeVersion % Test,
       "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
       "org.tensorflow" % "proto" % tensorflowVersion % Test
@@ -331,26 +350,10 @@ lazy val jmh: Project = project
     guava % Test,
     avro % Test,
     bigquery % Test,
+    bigtable % Test,
     datastore % Test,
     tensorflow % Test,
     protobuf % Test,
     test % "test->test"
   )
   .enablePlugins(JmhPlugin)
-
-lazy val bigtable: Project = project
-  .in(file("bigtable"))
-  .settings(
-    commonSettings,
-    moduleName := "magnolify-bigtable",
-    description := "Magnolia add-on for Google BigTable",
-    libraryDependencies ++= Seq(
-      "com.google.cloud" % "google-cloud-bigtable" % bigtableVersion % Provided
-    )
-  )
-  .dependsOn(
-    shared,
-    cats % Test,
-    scalacheck % Test,
-    test % "test->test"
-  )

@@ -14,9 +14,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-package magnolify.bigtable
-package test
+package magnolify.bigtable.test
 
 import java.net.URI
 import java.time.Duration
@@ -24,67 +22,56 @@ import java.time.Duration
 import cats._
 import cats.instances.all._
 import com.google.protobuf.ByteString
+import magnolify.bigtable._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
-import com.google.bigtable.v2.Mutation
-import com.google.cloud.bigtable.data.v2.models.{Row, RowCell}
-import magnolify.shims.JavaConverters._
 
 import scala.reflect._
 
-// Collections are not supported
-case class BigtableNested(b: Boolean, i: Int, s: String, r: Required, o: Option[Required])
-
 object BigtableTypeSpec extends MagnolifySpec("BigtableType") {
-
-  case class Inner(long: Long, str: String, uri: URI)
-  case class Outer(inner: Inner)
-  val record = Outer(Inner(1L, "hello", URI.create("https://www.spotify.com")))
-
-  private def mutationsToRow(mutations: Iterable[Mutation]): Row =
-    Row.create(
-      ByteString.copyFromUtf8("key"),
-      mutations.toList
-        .map(_.getSetCell)
-        .sortBy(_.getColumnQualifier.toStringUtf8)
-        .map { setCell =>
-        RowCell.create(
-          setCell.getFamilyName, setCell.getColumnQualifier,
-          setCell.getTimestampMicros, List.empty.asJava, setCell.getValue)
-      }.asJava
-  )
-
-  private def test[T: Arbitrary: ClassTag]
-  (implicit tpe: BigtableType[T], eq: Eq[T]): Unit = {
+  private def test[T: Arbitrary: ClassTag](implicit tpe: BigtableType[T], eq: Eq[T]): Unit = {
     ensureSerializable(tpe)
     property(className[T]) = Prop.forAll { t: T =>
-      val mutations = tpe.to(t)
-      val row = mutationsToRow(mutations)
+      val mutations = tpe(t, "cf")
+      val row = BigtableType.mutationsToRow(ByteString.EMPTY, mutations)
+      val copy = tpe(row, "cf")
+      val rowCopy = BigtableType.mutationsToRow(ByteString.EMPTY, BigtableType.rowToMutations(row))
 
-      val copy = tpe.from(row)
-      eq.eqv(t, copy)
+      Prop.all(
+        eq.eqv(t, copy),
+        row == rowCopy
+      )
     }
   }
 
-  test[Int]
-  test[String]
-  test[Boolean]
-  test[Double]
   test[Integers]
   test[Required]
   test[Nullable]
   test[BigtableNested]
 
-  import Custom._
+  {
+    implicit val arbByteString: Arbitrary[ByteString] =
+      Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
+    implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
+    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
+    test[BigtableTypes]
+  }
 
-  implicit val efUri: BigtableField.Primitive[URI] =
-    BigtableField.from[String](x => URI.create(x))(_.toString)
+  {
+    import Custom._
+    implicit val btfUri: BigtableField[URI] =
+      BigtableField.from[String](x => URI.create(x))(_.toString)
+    implicit val btfDuration: BigtableField[Duration] =
+      BigtableField.from[Long](Duration.ofMillis)(_.toMillis)
 
-  implicit val efDuration: BigtableField.Primitive[Duration] =
-    BigtableField.from[Long](Duration.ofMillis)(_.toMillis)
-
-  test[Custom]
+    test[Custom]
+  }
 }
+
+// Collections are not supported
+case class BigtableNested(b: Boolean, i: Int, s: String, r: Required, o: Option[Required])
+
+case class BigtableTypes(bs: ByteString, ba: Array[Byte])

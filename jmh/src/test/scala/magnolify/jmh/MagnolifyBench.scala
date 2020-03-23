@@ -107,6 +107,22 @@ class TableRowBench {
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @State(Scope.Thread)
+class BigtableBench {
+  import com.google.bigtable.v2.Mutation
+  import com.google.protobuf.ByteString
+  import magnolify.bigtable._
+  import MagnolifyBench._
+  private val bigtableType = BigtableType[BigtableNested]
+  private val bigtableNested = implicitly[Arbitrary[BigtableNested]].arbitrary(prms, seed).get
+  private val mutations = bigtableType(bigtableNested, "cf")
+  private val row = BigtableType.mutationsToRow(ByteString.EMPTY, mutations)
+  @Benchmark def bigtableTo: Seq[Mutation] = bigtableType(bigtableNested, "cf")
+  @Benchmark def bigtableFrom: BigtableNested = bigtableType(row, "cf")
+}
+
+@BenchmarkMode(Array(Mode.AverageTime))
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
+@State(Scope.Thread)
 class EntityBench {
   import com.google.datastore.v1.Entity
   import magnolify.datastore._
@@ -151,6 +167,9 @@ class ExampleBench {
   @Benchmark def exampleTo: Example.Builder = exampleType.to(exampleNested)
   @Benchmark def exampleFrom: ExampleNested = exampleType.from(example)
 }
+
+// Collections are not supported
+case class BigtableNested(b: Boolean, i: Int, s: String, r: Required, o: Option[Required])
 
 // Option[T] and Seq[T] not supported
 case class ExampleNested(b: Boolean, i: Int, s: String, r: Required, o: Option[Required])
