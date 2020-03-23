@@ -47,7 +47,7 @@ object BigtableTypeSpec extends MagnolifySpec("BigtableType") {
     }
   }
 
-  test[Integers]
+  test[Numbers]
   test[Required]
   test[Nullable]
   test[BigtableNested]

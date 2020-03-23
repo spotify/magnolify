@@ -165,6 +165,20 @@ object BigtableField {
   implicit val btfByteArray = from[ByteString](_.toByteArray)(ByteString.copyFrom)
   implicit val btfString = from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
 
+  implicit val btfBigInt =
+    from[ByteString](bs => BigInt(bs.toByteArray))(bi => ByteString.copyFrom(bi.toByteArray))
+  implicit val btfBigDecimal = from[ByteString] { bs =>
+    val bb = bs.asReadOnlyByteBuffer()
+    val scale = bb.getInt
+    val unscaled = BigInt(bs.substring(java.lang.Integer.BYTES).toByteArray)
+    BigDecimal.apply(unscaled, scale)
+  } { bd =>
+    val scale = bd.bigDecimal.scale()
+    val unscaled = bd.bigDecimal.unscaledValue().toByteArray
+    val bb = ByteBuffer.allocate(java.lang.Integer.BYTES + unscaled.length)
+    ByteString.copyFrom(bb.putInt(scale).put(unscaled).array())
+  }
+
   implicit def btfOption[A](implicit btf: BigtableField[A]): BigtableField[Option[A]] =
     new BigtableField[Option[A]] {
       override def get(xs: java.util.List[RowCell], k: String): Option[A] =
