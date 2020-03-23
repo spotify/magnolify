@@ -21,9 +21,6 @@ import magnolia._
 
 import scala.language.experimental.macros
 
-/*
- * implementation is brought from magnolia tutorial
- */
 object ShowDerivation {
   type Typeclass[T] = Show[T]
 
