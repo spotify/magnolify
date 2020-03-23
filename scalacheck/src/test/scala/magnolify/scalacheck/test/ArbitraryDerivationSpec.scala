@@ -79,7 +79,8 @@ object ArbitraryDerivationSpec extends MagnolifySpec("ArbitraryDerivation") {
 
   {
     import magnolify.scalacheck.semiauto.ArbitraryDerivation.Fallback
-    implicit val f: Fallback[GNode[Int]] = Fallback[GLeaf[Int]]
+    // implicit val f: Fallback[GNode[Int]] = Fallback[GLeaf[Int]]
+    implicit val f: Fallback[GNode[Int]] = Fallback(GLeaf(0))
     test[GNode[Int]]
   }
 
