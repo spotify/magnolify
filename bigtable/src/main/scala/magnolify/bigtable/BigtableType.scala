@@ -18,10 +18,8 @@ package magnolify.bigtable
 
 import java.nio.ByteBuffer
 
-import com.google.bigtable.v2.Mutation
+import com.google.bigtable.v2.{Cell, Column, Family, Mutation, Row}
 import com.google.bigtable.v2.Mutation.SetCell
-import com.google.cloud.bigtable.data.v2.internal.ByteStringComparator
-import com.google.cloud.bigtable.data.v2.models.{Row, RowCell}
 import com.google.protobuf.ByteString
 import magnolia._
 import magnolify.shared.Converter
@@ -30,8 +28,14 @@ import magnolify.shims.JavaConverters._
 import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
 
-sealed trait BigtableType[T] extends Converter[T, java.util.List[RowCell], Seq[SetCell.Builder]] {
-  def apply(v: Row, columnFamily: String): T = from(v.getCells(columnFamily))
+sealed trait BigtableType[T] extends Converter[T, java.util.List[Column], Seq[SetCell.Builder]] {
+  def apply(v: Row, columnFamily: String): T =
+    from(
+      v.getFamiliesList.asScala
+        .find(_.getName == columnFamily)
+        .map(_.getColumnsList)
+        .getOrElse(java.util.Collections.emptyList())
+    )
   def apply(v: T, columnFamily: String, timestampMicros: Long = 0L): Seq[Mutation] =
     to(v).map { b =>
       Mutation
@@ -43,46 +47,55 @@ sealed trait BigtableType[T] extends Converter[T, java.util.List[RowCell], Seq[S
 
 object BigtableType {
   implicit def apply[T](implicit f: BigtableField[T]): BigtableType[T] = new BigtableType[T] {
-    override def from(xs: java.util.List[RowCell]): T = f.get(xs, null)
+    override def from(xs: java.util.List[Column]): T = f.get(xs, null)
     override def to(v: T): Seq[SetCell.Builder] = f.put(null, v)
   }
 
-  def mutationsToRow(key: ByteString, mutations: Seq[Mutation]): Row =
-    Row.create(
-      key,
-      mutations
-        .sortBy(_.getSetCell.getColumnQualifier.toStringUtf8)
-        .map { m =>
-          val setCell = m.getSetCell
-          RowCell.create(
-            setCell.getFamilyName,
-            setCell.getColumnQualifier,
-            setCell.getTimestampMicros,
-            java.util.Collections.emptyList(),
-            setCell.getValue
-          )
-        }
-        .asJava
-    )
+  def mutationsToRow(key: ByteString, mutations: Seq[Mutation]): Row = {
+    val families = mutations
+      .map(_.getSetCell)
+      .groupBy(_.getFamilyName)
+      .map {
+        case (familyName, setCells) =>
+          val columns = setCells
+            .sortBy(_.getColumnQualifier.toStringUtf8)
+            .map { setCell =>
+              Column
+                .newBuilder()
+                .setQualifier(setCell.getColumnQualifier)
+                .addCells(
+                  Cell
+                    .newBuilder()
+                    .setValue(setCell.getValue)
+                    .setTimestampMicros(setCell.getTimestampMicros)
+                )
+                .build()
+            }
+          Family.newBuilder().setName(familyName).addAllColumns(columns.asJava).build()
+      }
+    Row.newBuilder().setKey(key).addAllFamilies(families.asJava).build()
+  }
 
   def rowToMutations(row: Row): Seq[Mutation] =
-    row.getCells.asScala.iterator.map { cell =>
-      Mutation
-        .newBuilder()
-        .setSetCell(
-          SetCell
-            .newBuilder()
-            .setFamilyName(cell.getFamily)
-            .setColumnQualifier(cell.getQualifier)
-            .setTimestampMicros(cell.getTimestamp)
-            .setValue(cell.getValue)
-        )
-        .build()
-    }.toSeq
+    for {
+      family <- row.getFamiliesList.asScala.toSeq
+      column <- family.getColumnsList.asScala
+      cell <- column.getCellsList.asScala
+    } yield Mutation
+      .newBuilder()
+      .setSetCell(
+        SetCell
+          .newBuilder()
+          .setFamilyName(family.getName)
+          .setColumnQualifier(column.getQualifier)
+          .setTimestampMicros(cell.getTimestampMicros)
+          .setValue(cell.getValue)
+      )
+      .build()
 }
 
 sealed trait BigtableField[T] extends Serializable {
-  def get(xs: java.util.List[RowCell], k: String): T
+  def get(xs: java.util.List[Column], k: String): T
   def put(k: String, v: T): Seq[SetCell.Builder]
 }
 
@@ -94,8 +107,8 @@ object BigtableField {
     private def columnQualifier(k: String): ByteString =
       ByteString.copyFromUtf8(k)
 
-    override def get(xs: java.util.List[RowCell], k: String): T =
-      fromByteString(RowCells.find(xs, k).getValue)
+    override def get(xs: java.util.List[Column], k: String): T =
+      fromByteString(Columns.find(xs, k).getCells(0).getValue)
 
     override def put(k: String, v: T): Seq[SetCell.Builder] =
       Seq(
@@ -114,7 +127,7 @@ object BigtableField {
     private def key(prefix: String, label: String): String =
       if (prefix == null) label else s"$prefix.$label"
 
-    override def get(xs: java.util.List[RowCell], k: String): T =
+    override def get(xs: java.util.List[Column], k: String): T =
       caseClass.construct(p => p.typeclass.get(xs, key(k, p.label)))
 
     override def put(k: String, v: T): Seq[SetCell.Builder] =
@@ -181,19 +194,17 @@ object BigtableField {
 
   implicit def btfOption[A](implicit btf: BigtableField[A]): BigtableField[Option[A]] =
     new BigtableField[Option[A]] {
-      override def get(xs: java.util.List[RowCell], k: String): Option[A] =
-        RowCells.findNullable(xs, k).map(btf.get(_, k))
+      override def get(xs: java.util.List[Column], k: String): Option[A] =
+        Columns.findNullable(xs, k).map(btf.get(_, k))
 
       override def put(k: String, v: Option[A]): Seq[SetCell.Builder] =
         v.toSeq.flatMap(btf.put(k, _))
     }
 }
 
-private object RowCells {
-  private val cmp = ByteStringComparator.INSTANCE
-
+private object Columns {
   private def find(
-    xs: java.util.List[RowCell],
+    xs: java.util.List[Column],
     columnQualifier: String,
     matchPrefix: Boolean
   ): (Int, Int, Boolean) = {
@@ -210,7 +221,7 @@ private object RowCells {
         idx = mid
         isNested = true
       } else {
-        val c = cmp.compare(current, cq)
+        val c = ByteStringComparator.INSTANCE.compare(current, cq)
         if (c < 0) {
           low = mid + 1
         } else if (c == 0) {
@@ -237,16 +248,16 @@ private object RowCells {
     }
   }
 
-  def find(xs: java.util.List[RowCell], columnQualifier: String): RowCell = {
+  def find(xs: java.util.List[Column], columnQualifier: String): Column = {
     val (idx, _, _) = find(xs, columnQualifier, false)
     require(idx != -1, s"Column qualifier not found: $columnQualifier")
     xs.get(idx)
   }
 
   def findNullable(
-    xs: java.util.List[RowCell],
+    xs: java.util.List[Column],
     columnQualifier: String
-  ): Option[java.util.List[RowCell]] = {
+  ): Option[java.util.List[Column]] = {
     val (low, high, isNested) = find(xs, columnQualifier, true)
     if (isNested) {
       Some(xs.subList(low, high))

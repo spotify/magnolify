@@ -263,7 +263,7 @@ lazy val bigtable: Project = project
     moduleName := "magnolify-bigtable",
     description := "Magnolia add-on for Google Cloud Bigtable",
     libraryDependencies ++= Seq(
-      "com.google.cloud" % "google-cloud-bigtable" % bigtableVersion % Provided
+      "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Provided
     )
   )
   .dependsOn(
