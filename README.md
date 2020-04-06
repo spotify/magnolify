@@ -64,6 +64,18 @@ val fnl: Funnel[Outer] = implicitly[Funnel[Outer]]
 val bf: BloomFilter[Outer] = BloomFilter.create[Outer](fnl, 1000)
 ```
 
+Some [Algebird](https://github.com/twitter/algebird) instances extend those from Cats and can be derivated as well.
+
+```scala
+import cats.instances.all._
+import magnolify.cats.auto._
+import com.twitter.{algebird => a}
+
+case class Record(i: Int, o: Option[Int], l: List[Int], s: Set[Int], m: Map[String, Int])
+val sg: a.Semigroup[Record] = implicitly[a.Semigroup[Record]]
+val mon: a.Monoid[Record] = implicitly[a.Monoid[Record]]
+```
+
 Semi-automatic derivation needs to be called explicitly.
 
 ```scala
