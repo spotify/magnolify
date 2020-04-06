@@ -132,7 +132,7 @@ val copy: Outer = entityType.from(entityBuilder.build)
 
 // Protobuf
 import magnolify.protobuf._
-implicit val uriField: ProtobufField[URI] = ProtobufField.from[URI](URI.create)(_.toString)
+implicit val uriField: ProtobufField[URI] = ProtobufField.from[String](URI.create)(_.toString)
 val protobufType = ProtobufType[Outer, Proto] // Proto is compiled Protobuf Message
 val proto: Proto = protobufType.to(record)
 val copy: Outer = protobufType.from(proto)
