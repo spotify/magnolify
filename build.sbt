@@ -17,7 +17,7 @@
 name := "magnolify"
 description := "A collection of Magnolia add-on modules"
 
-val magnoliaVersion = "0.12.8"
+val magnoliaVersion = "0.13.1"
 
 val avroVersion = "1.9.2"
 val bigqueryVersion = "v2-rev20200324-1.30.9"
