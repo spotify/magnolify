@@ -16,9 +16,9 @@ This library includes the following modules.
 - `magnolify-cats` - type class derivation for [Cats](https://github.com/typelevel/cats), specifically
   - [`Eq[T]`](https://typelevel.org/cats/api/cats/kernel/Eq.html)
   - [`Hash[T]`](https://typelevel.org/cats/api/cats/kernel/Hash.html)
-  - [`Semigroup[T]`](https://typelevel.org/cats/api/cats/kernel/Semigroup.html)
-  - [`Monoid[T]`](https://typelevel.org/cats/api/cats/kernel/Monoid.html)
-  - [`Group[T]`](https://typelevel.org/cats/api/cats/kernel/Group.html)
+  - [`Semigroup[T]`](https://typelevel.org/cats/api/cats/kernel/Semigroup.html), [`CommutativeSemigroup[T]`](https://typelevel.org/cats/api/cats/kernel/CommutativeSemigroup.html), [`Band[T]`](https://typelevel.org/cats/api/cats/kernel/Band.html)
+  - [`Monoid[T]`](https://typelevel.org/cats/api/cats/kernel/Monoid.html), [`CommutativeMonoid[T]`](https://typelevel.org/cats/api/cats/kernel/CommutativeMonoid.html)
+  - [`Group[T]`](https://typelevel.org/cats/api/cats/kernel/Group.html), [`CommutativeGroup[T]`](https://typelevel.org/cats/api/cats/kernel/CommutativeGroup.html)
 - `magnolify-scalacheck` - type class derivation for [ScalaCheck](https://github.com/typelevel/scalacheck)
   - [`Arbitrary[T]`](https://github.com/typelevel/scalacheck/blob/master/doc/UserGuide.md#universally-quantified-properties)
   - [`Cogen[T]`](https://github.com/typelevel/scalacheck/blob/master/src/main/scala/org/scalacheck/Cogen.scala)
