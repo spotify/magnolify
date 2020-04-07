@@ -25,7 +25,7 @@ cache:
     - $HOME/.sbt/boot
 
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION clean scalafmtSbtCheck scalafmtCheck test:scalafmtCheck coverage test coverageReport coverageAggregate
+  - sbt ++$TRAVIS_SCALA_VERSION clean scalafmtSbtCheck scalafmtCheck test:scalafmtCheck coverage test coverageAggregate
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
