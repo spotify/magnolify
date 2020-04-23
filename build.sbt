@@ -17,7 +17,7 @@
 name := "magnolify"
 description := "A collection of Magnolia add-on modules"
 
-val magnoliaVersion = "0.14.5"
+val magnoliaVersion = "0.15.0"
 
 val avroVersion = "1.9.2"
 val bigqueryVersion = "v2-rev20200324-1.30.9"
@@ -42,11 +42,14 @@ val commonSettings = Seq(
     case "2.12" => Seq("-language:higherKinds")
     case "2.13" => Nil
   }),
-  libraryDependencies += {
+  libraryDependencies ++= {
     if (scalaBinaryVersion.value == "2.11") {
-      "me.lyh" %% "magnolia" % "0.10.1-jto"
+      Seq("me.lyh" %% "magnolia" % "0.10.1-jto")
     } else {
-      "com.propensive" %% "magnolia" % magnoliaVersion
+      Seq(
+        "com.propensive" %% "magnolia" % magnoliaVersion,
+        "org.scala-lang" % "scala-reflect" % scalaVersion.value
+      )
     }
   },
   // https://github.com/typelevel/scalacheck/pull/427#issuecomment-424330310
