@@ -74,4 +74,4 @@ object BigtableTypeSpec extends MagnolifySpec("BigtableType") {
 // Collections are not supported
 case class BigtableNested(b: Boolean, i: Int, s: String, r: Required, o: Option[Required])
 
-case class BigtableTypes(bs: ByteString, ba: Array[Byte])
+case class BigtableTypes(b: Byte, c: Char, s: Short, bs: ByteString, ba: Array[Byte])
