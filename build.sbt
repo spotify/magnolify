@@ -26,7 +26,7 @@ val catsVersion = "2.0.0"
 val datastoreVersion = "1.6.3"
 val guavaVersion = "29.0-jre"
 val jacksonVersion = "2.10.3"
-val jodaTimeVersion = "2.10.5"
+val jodaTimeVersion = "2.10.6"
 val protobufVersion = "3.11.4"
 
 val scalacheckVersion = "1.14.3"
