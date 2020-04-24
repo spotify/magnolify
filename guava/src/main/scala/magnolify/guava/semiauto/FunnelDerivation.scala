@@ -62,6 +62,9 @@ trait FunnelImplicits {
 
   implicit val booleanFunnel: Funnel[Boolean] = funnel[Boolean](_.putBoolean(_))
   implicit val stringFunnel: Funnel[String] = funnel[String](_.putString(_, Charsets.UTF_8))
+  implicit val byteFunnel: Funnel[Byte] = funnel[Byte](_.putByte(_))
+  implicit val charFunnel: Funnel[Char] = funnel[Char](_.putChar(_))
+  implicit val shortFunnel: Funnel[Short] = funnel[Short](_.putShort(_))
 
   // There is an implicit Option[T] => Iterable[T]
   implicit def iterableFunnel[T, C[_]](

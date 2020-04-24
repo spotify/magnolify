@@ -55,6 +55,7 @@ object FunnelDerivationSpec extends MagnolifySpec("FunnelDerivation") {
   test[Integers]
   test[Required]
   test[Nullable]
+  test[FunnelTypes]
 
   {
     import Collections._
@@ -74,6 +75,8 @@ object FunnelDerivationSpec extends MagnolifySpec("FunnelDerivation") {
   test[Shape]
   test[Color]
 }
+
+case class FunnelTypes(b: Byte, c: Char, s: Short)
 
 class BytesSink extends PrimitiveSink {
   private val baos = new ByteArrayOutputStream()
