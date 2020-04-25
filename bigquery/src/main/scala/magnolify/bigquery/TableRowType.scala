@@ -97,7 +97,14 @@ object TableRowField {
       )
 
     override def from(v: java.util.Map[String, AnyRef]): T =
-      caseClass.construct(p => p.typeclass.fromAny(v.get(p.label)))
+      caseClass.construct { p =>
+        val f = v.get(p.label)
+        if (f == null && p.default.isDefined) {
+          p.default.get
+        } else {
+          p.typeclass.fromAny(f)
+        }
+      }
 
     override def to(v: T): TableRow =
       caseClass.parameters.foldLeft(new TableRow) { (tr, p) =>
