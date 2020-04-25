@@ -59,7 +59,14 @@ object EntityField {
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
     override def fromEntity(v: Entity): T =
-      caseClass.construct(p => p.typeclass.from(v.getPropertiesOrDefault(p.label, null)))
+      caseClass.construct { p =>
+        val f = v.getPropertiesOrDefault(p.label, null)
+        if (f == null && p.default.isDefined) {
+          p.default.get
+        } else {
+          p.typeclass.from(f)
+        }
+      }
 
     override def toEntity(v: T): Entity.Builder =
       caseClass.parameters.foldLeft(Entity.newBuilder()) { (eb, p) =>
