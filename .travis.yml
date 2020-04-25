@@ -12,6 +12,22 @@ matrix:
     - scala: 2.13.2
       jdk: openjdk11
 
+    - name: scalafmt
+      scala: 2.13.2
+      jdk: openjdk11
+      script: sbt ++$TRAVIS_SCALA_VERSION clean scalafmtSbtCheck scalafmtCheck test:scalafmtCheck
+
+    - name: coverage
+      scala: 2.13.2
+      jdk: openjdk11
+      script: sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport coverageAggregate
+      after_success: bash <(curl -s https://codecov.io/bash)
+
+    - name: avro
+      scala: 2.13.1
+      jdk: openjdk11
+      script: sbt ++$TRAVIS_SCALA_VERSION -Davro.version=1.8.2 clean avro/test
+
 before_cache:
   # Tricks to avoid unnecessary cache updates
   - rm -f $HOME/.ivy2/.sbt.ivy.lock
@@ -25,10 +41,7 @@ cache:
     - $HOME/.sbt/boot
 
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION clean scalafmtSbtCheck scalafmtCheck test:scalafmtCheck coverage test coverageAggregate
-
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
+  - sbt ++$TRAVIS_SCALA_VERSION clean test
 
 notifications:
   email:
