@@ -21,6 +21,7 @@ import java.time.{Duration, Instant}
 
 import cats._
 import cats.instances.all._
+import com.google.datastore.v1.Entity
 import com.google.datastore.v1.client.DatastoreHelper.makeValue
 import com.google.protobuf.ByteString
 import magnolify.datastore._
@@ -80,7 +81,26 @@ object EntityTypeSpec extends MagnolifySpec("EntityType") {
       EntityField.at[Int](_.getIntegerValue.toInt)(makeValue(_))
     implicit val efUri: EntityField[URI] = EntityField.from[String](URI.create)(_.toString)
   }
+
+  {
+    val it = EntityType[DefaultInner]
+    require(it(Entity.getDefaultInstance) == DefaultInner())
+    val inner = DefaultInner(2, Some(2), List(2, 2))
+    require(it(it(inner)) == inner)
+
+    val ot = EntityType[DefaultOuter]
+    require(ot(Entity.getDefaultInstance) == DefaultOuter())
+    val outer =
+      DefaultOuter(DefaultInner(3, Some(3), List(3, 3)), Some(DefaultInner(3, Some(3), List(3, 3))))
+    require(ot(ot(outer)) == outer)
+  }
 }
 
 case class Unsafe(b: Byte, c: Char, s: Short, i: Int, f: Float)
 case class DatastoreTypes(u: Unit, bs: ByteString, ba: Array[Byte], ts: Instant)
+
+case class DefaultInner(i: Int = 1, o: Option[Int] = Some(1), l: List[Int] = List(1, 1))
+case class DefaultOuter(
+  i: DefaultInner = DefaultInner(2, Some(2), List(2, 2)),
+  o: Option[DefaultInner] = Some(DefaultInner(2, Some(2), List(2, 2)))
+)
