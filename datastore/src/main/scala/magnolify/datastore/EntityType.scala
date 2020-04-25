@@ -18,7 +18,7 @@ package magnolify.datastore
 
 import com.google.datastore.v1._
 import com.google.datastore.v1.client.DatastoreHelper.makeValue
-import com.google.protobuf.ByteString
+import com.google.protobuf.{ByteString, NullValue}
 import magnolia._
 import magnolify.shared.Converter
 import magnolify.shims.FactoryCompat
@@ -106,6 +106,8 @@ object EntityField {
   implicit val efByteArray =
     at[Array[Byte]](_.getBlobValue.toByteArray)(v => makeValue(ByteString.copyFrom(v)))
   implicit val efTimestamp = at(TimestampConverter.toInstant)(TimestampConverter.fromInstant)
+  implicit val efUnit =
+    at[Unit](_ => ())(_ => Value.newBuilder().setNullValue(NullValue.NULL_VALUE))
 
   implicit def efOption[T](implicit f: EntityField[T]): EntityField[Option[T]] =
     new EntityField[Option[T]] {

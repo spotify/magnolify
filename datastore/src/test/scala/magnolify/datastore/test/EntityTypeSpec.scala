@@ -81,4 +81,4 @@ object EntityTypeSpec extends MagnolifySpec("EntityType") {
   }
 }
 
-case class DatastoreTypes(bs: ByteString, ba: Array[Byte], ts: Instant)
+case class DatastoreTypes(u: Unit, bs: ByteString, ba: Array[Byte], ts: Instant)
