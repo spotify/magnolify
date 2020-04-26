@@ -80,10 +80,6 @@ object ExampleTypeSpec extends MagnolifySpec("ExampleType") {
     implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
     test[ExampleTypes]
   }
-
-  {
-    implicit val efInt: ExampleField[Int] = ExampleField.from[Long](_.toInt)(_.toLong)
-  }
 }
 
 // Option[T] and Seq[T] not supported

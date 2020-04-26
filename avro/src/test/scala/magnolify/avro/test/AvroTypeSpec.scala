@@ -89,10 +89,6 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
     test[MapPrimitive]
     test[MapNested]
   }
-
-  {
-    implicit val afUri: AvroField[URI] = AvroField.from[String](URI.create)(_.toString)
-  }
 }
 
 case class AvroTypes(bs: Array[Byte])

@@ -86,11 +86,6 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
     implicit val eqDateTime: Eq[LocalDateTime] = Eq.instance((x, y) => (x compareTo y) == 0)
     test[BigQueryTypes]
   }
-
-  {
-    implicit val efInt: TableRowField[Int] = TableRowField.from[Long](_.toInt)(_.toLong)
-    implicit val efUri: TableRowField[URI] = TableRowField.from[String](URI.create)(_.toString)
-  }
 }
 
 case class BigQueryTypes(i: Instant, d: LocalDate, t: LocalTime, dt: LocalDateTime, bd: BigDecimal)
