@@ -21,6 +21,7 @@ import java.time.Duration
 
 import cats._
 import cats.instances.all._
+import com.google.bigtable.v2.Row
 import com.google.protobuf.ByteString
 import magnolify.bigtable._
 import magnolify.cats.auto._
@@ -69,9 +70,31 @@ object BigtableTypeSpec extends MagnolifySpec("BigtableType") {
 
     test[Custom]
   }
+
+  {
+    val it = BigtableType[DefaultInner]
+    ensureSerializable(it)
+    require(it(Row.getDefaultInstance, "cf") == DefaultInner())
+    val inner = DefaultInner(2, Some(2))
+    require(it(BigtableType.mutationsToRow(ByteString.EMPTY, it(inner, "cf")), "cf") == inner)
+
+    val ot = BigtableType[DefaultOuter]
+    ensureSerializable(ot)
+    require(ot(Row.getDefaultInstance, "cf") == DefaultOuter())
+    val outer =
+      DefaultOuter(DefaultInner(3, Some(3)), Some(DefaultInner(3, Some(3))))
+    require(ot(BigtableType.mutationsToRow(ByteString.EMPTY, ot(outer, "cf")), "cf") == outer)
+  }
 }
 
 // Collections are not supported
 case class BigtableNested(b: Boolean, i: Int, s: String, r: Required, o: Option[Required])
 
 case class BigtableTypes(b: Byte, c: Char, s: Short, bs: ByteString, ba: Array[Byte])
+
+// Collections are not supported
+case class DefaultInner(i: Int = 1, o: Option[Int] = Some(1))
+case class DefaultOuter(
+  i: DefaultInner = DefaultInner(2, Some(2)),
+  o: Option[DefaultInner] = Some(DefaultInner(2, Some(2)))
+)

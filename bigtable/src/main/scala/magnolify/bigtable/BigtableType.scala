@@ -47,7 +47,7 @@ sealed trait BigtableType[T] extends Converter[T, java.util.List[Column], Seq[Se
 
 object BigtableType {
   implicit def apply[T](implicit f: BigtableField[T]): BigtableType[T] = new BigtableType[T] {
-    override def from(xs: java.util.List[Column]): T = f.get(xs, null)
+    override def from(xs: java.util.List[Column]): T = f.get(xs, null).get
     override def to(v: T): Seq[SetCell.Builder] = f.put(null, v)
   }
 
@@ -94,8 +94,27 @@ object BigtableType {
       .build()
 }
 
+sealed trait Result[+T] {
+  def get: T = this match {
+    case Result.Column(v)  => v
+    case Result.Default(v) => v
+    case Result.None       => throw new NoSuchElementException
+  }
+}
+
+private object Result {
+  // value from column bytes
+  case class Column[T](value: T) extends Result[T]
+
+  // value from case class default
+  case class Default[T](value: T) extends Result[T]
+
+  // value not found
+  case object None extends Result[Nothing]
+}
+
 sealed trait BigtableField[T] extends Serializable {
-  def get(xs: java.util.List[Column], k: String): T
+  def get(xs: java.util.List[Column], k: String): Result[T]
   def put(k: String, v: T): Seq[SetCell.Builder]
 }
 
@@ -107,8 +126,10 @@ object BigtableField {
     private def columnQualifier(k: String): ByteString =
       ByteString.copyFromUtf8(k)
 
-    override def get(xs: java.util.List[Column], k: String): T =
-      fromByteString(Columns.find(xs, k).getCells(0).getValue)
+    override def get(xs: java.util.List[Column], k: String): Result[T] = {
+      val v = Columns.find(xs, k)
+      if (v == null) Result.None else Result.Column(fromByteString(v.getCells(0).getValue))
+    }
 
     override def put(k: String, v: T): Seq[SetCell.Builder] =
       Seq(
@@ -127,8 +148,24 @@ object BigtableField {
     private def key(prefix: String, label: String): String =
       if (prefix == null) label else s"$prefix.$label"
 
-    override def get(xs: java.util.List[Column], k: String): T =
-      caseClass.construct(p => p.typeclass.get(xs, key(k, p.label)))
+    override def get(xs: java.util.List[Column], k: String): Result[T] = {
+      var fallback = true
+      val r = caseClass.construct { p =>
+        val cq = key(k, p.label)
+        (p.typeclass.get(xs, cq), p.default) match {
+          case (Result.Column(x), _) =>
+            fallback = false
+            x
+          case (Result.Default(_), Some(x)) => x
+          case (Result.Default(x), None)    => x
+          case (Result.None, Some(x))       => x
+          case _ =>
+            throw new IllegalArgumentException(s"Column qualifier not found: $cq")
+        }
+      }
+      // result is default if all fields are default
+      if (fallback) Result.Default(r) else Result.Column(r)
+    }
 
     override def put(k: String, v: T): Seq[SetCell.Builder] =
       caseClass.parameters.flatMap(p => p.typeclass.put(key(k, p.label), p.dereference(v)))
@@ -195,8 +232,13 @@ object BigtableField {
 
   implicit def btfOption[A](implicit btf: BigtableField[A]): BigtableField[Option[A]] =
     new BigtableField[Option[A]] {
-      override def get(xs: java.util.List[Column], k: String): Option[A] =
-        Columns.findNullable(xs, k).map(btf.get(_, k))
+      override def get(xs: java.util.List[Column], k: String): Result[Option[A]] =
+        Columns.findNullable(xs, k).map(btf.get(_, k)) match {
+          case Some(Result.Column(v))  => Result.Column(Some(v))
+          case Some(Result.Default(v)) => Result.Default(Some(v))
+          case Some(Result.None)       => Result.Default(None)
+          case None                    => Result.Default(None)
+        }
 
       override def put(k: String, v: Option[A]): Seq[SetCell.Builder] =
         v.toSeq.flatMap(btf.put(k, _))
@@ -251,8 +293,7 @@ private object Columns {
 
   def find(xs: java.util.List[Column], columnQualifier: String): Column = {
     val (idx, _, _) = find(xs, columnQualifier, false)
-    require(idx != -1, s"Column qualifier not found: $columnQualifier")
-    xs.get(idx)
+    if (idx == -1) null else xs.get(idx)
   }
 
   def findNullable(
