@@ -24,6 +24,7 @@ import cats.instances.all._
 import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
 import com.google.api.services.bigquery.model.TableRow
 import magnolify.bigquery._
+import magnolify.bigquery.unsafe._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.test.Simple._
@@ -47,13 +48,12 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
     }
   }
 
-  implicit val trfInt: TableRowField[Int] = TableRowField.from[Long](_.toInt)(_.toLong)
-
   test[Integers]
   test[Required]
   test[Nullable]
   test[Repeated]
   test[Nested]
+  test[Unsafe]
 
   {
     import Collections._
@@ -88,4 +88,5 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
   }
 }
 
+case class Unsafe(b: Byte, c: Char, s: Short, i: Int, _f: Float)
 case class BigQueryTypes(i: Instant, d: LocalDate, t: LocalTime, dt: LocalDateTime, bd: BigDecimal)

@@ -95,8 +95,8 @@ class AvroBench {
 class TableRowBench {
   import com.google.api.services.bigquery.model.{TableRow, TableSchema}
   import magnolify.bigquery._
+  import magnolify.bigquery.unsafe._
   import MagnolifyBench._
-  private implicit val trfInt: TableRowField[Int] = TableRowField.from[Long](_.toInt)(_.toLong)
   private val tableRowType = TableRowType[Nested]
   private val tableRow = tableRowType.to(nested)
   @Benchmark def tableRowTo: TableRow = tableRowType.to(nested)
