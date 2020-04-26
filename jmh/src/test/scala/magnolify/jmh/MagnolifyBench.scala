@@ -126,8 +126,8 @@ class BigtableBench {
 class EntityBench {
   import com.google.datastore.v1.Entity
   import magnolify.datastore._
+  import magnolify.datastore.unsafe._
   import MagnolifyBench._
-  private implicit val efInt: EntityField[Int] = EntityField.from[Long](_.toInt)(_.toLong)
   private val entityType = EntityType[Nested]
   private val entity = entityType.to(nested).build()
   @Benchmark def entityTo: Entity.Builder = entityType.to(nested)

@@ -24,6 +24,7 @@ import cats.instances.all._
 import com.google.datastore.v1.client.DatastoreHelper.makeValue
 import com.google.protobuf.ByteString
 import magnolify.datastore._
+import magnolify.datastore.unsafe._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.test.Simple._
@@ -42,12 +43,12 @@ object EntityTypeSpec extends MagnolifySpec("EntityType") {
     }
   }
 
-  implicit val efInt: EntityField[Int] = EntityField.from[Long](_.toInt)(_.toLong)
   test[Integers]
   test[Required]
   test[Nullable]
   test[Repeated]
   test[Nested]
+  test[Unsafe]
 
   {
     import Collections._
@@ -81,4 +82,5 @@ object EntityTypeSpec extends MagnolifySpec("EntityType") {
   }
 }
 
+case class Unsafe(b: Byte, c: Char, s: Short, i: Int, f: Float)
 case class DatastoreTypes(u: Unit, bs: ByteString, ba: Array[Byte], ts: Instant)
