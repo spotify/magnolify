@@ -25,6 +25,7 @@ import com.google.protobuf.ByteString
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.tensorflow._
+import magnolify.tensorflow.unsafe._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
@@ -41,18 +42,17 @@ object ExampleTypeSpec extends MagnolifySpec("ExampleType") {
     }
   }
 
-  implicit val efInt: ExampleField.Primitive[Int] = ExampleField.from[Long](_.toInt)(_.toLong)
+  test[Integers]
+  test[Required]
+  test[Nullable]
+  test[Repeated]
+  test[ExampleNested]
 
   {
-    implicit val efBoolean: ExampleField.Primitive[Boolean] =
-      ExampleField.from[Long](_ == 1)(x => if (x) 1 else 0)
-    implicit val efString: ExampleField.Primitive[String] =
-      ExampleField.from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
-    test[Integers]
-    test[Required]
-    test[Nullable]
-    test[Repeated]
-    test[ExampleNested]
+    // workaround for Double to Float precision loss
+    implicit val arbDouble: Arbitrary[Double] =
+      Arbitrary(Arbitrary.arbFloat.arbitrary.map(_.toDouble))
+    test[Unsafe]
   }
 
   {
@@ -84,5 +84,6 @@ object ExampleTypeSpec extends MagnolifySpec("ExampleType") {
 
 // Option[T] and Seq[T] not supported
 case class ExampleNested(b: Boolean, i: Int, s: String, r: Required, o: Option[Required])
-
 case class ExampleTypes(f: Float, bs: ByteString, ba: Array[Byte])
+
+case class Unsafe(b: Byte, c: Char, s: Short, i: Int, d: Double, bool: Boolean, str: String)

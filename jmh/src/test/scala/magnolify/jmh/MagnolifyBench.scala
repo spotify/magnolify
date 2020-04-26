@@ -153,14 +153,9 @@ class ProtobufBench {
 class ExampleBench {
   import com.google.protobuf.ByteString
   import magnolify.tensorflow._
+  import magnolify.tensorflow.unsafe._
   import org.tensorflow.example.Example
   import MagnolifyBench._
-  private implicit val efInt: ExampleField.Primitive[Int] =
-    ExampleField.from[Long](_.toInt)(_.toLong)
-  private implicit val efBoolean: ExampleField.Primitive[Boolean] =
-    ExampleField.from[Long](_ == 1)(x => if (x) 1 else 0)
-  private implicit val efString: ExampleField.Primitive[String] =
-    ExampleField.from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
   private val exampleType = ExampleType[ExampleNested]
   private val exampleNested = implicitly[Arbitrary[ExampleNested]].arbitrary(prms, seed).get
   private val example = exampleType.to(exampleNested).build()
