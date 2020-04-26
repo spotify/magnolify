@@ -7,7 +7,7 @@ magnolify
 [![Maven Central](https://img.shields.io/maven-central/v/com.spotify/magnolify-shared_2.13.svg)](https://maven-badges.herokuapp.com/maven-central/com.spotify/magnolify-shared_2.13)
 [![Scala Steward badge](https://img.shields.io/badge/Scala_Steward-helping-brightgreen.svg?style=flat&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAQCAMAAAARSr4IAAAAVFBMVEUAAACHjojlOy5NWlrKzcYRKjGFjIbp293YycuLa3pYY2LSqql4f3pCUFTgSjNodYRmcXUsPD/NTTbjRS+2jomhgnzNc223cGvZS0HaSD0XLjbaSjElhIr+AAAAAXRSTlMAQObYZgAAAHlJREFUCNdNyosOwyAIhWHAQS1Vt7a77/3fcxxdmv0xwmckutAR1nkm4ggbyEcg/wWmlGLDAA3oL50xi6fk5ffZ3E2E3QfZDCcCN2YtbEWZt+Drc6u6rlqv7Uk0LdKqqr5rk2UCRXOk0vmQKGfc94nOJyQjouF9H/wCc9gECEYfONoAAAAASUVORK5CYII=)](https://scala-steward.org)
 
-A collection of [Magnolia](https://github.com/propensive/magnolia) add-ons for common typeclass derivation, data type conversion, etc.; a simpler and faster successor to [shapeless-datatype](https://github.com/nevillelyh/shapeless-datatype).
+A collection of [Magnolia](https://github.com/propensive/magnolia) add-ons for common type class derivation, data type conversion, etc.; a simpler and faster successor to [shapeless-datatype](https://github.com/nevillelyh/shapeless-datatype).
 
 # Modules
 
@@ -34,132 +34,14 @@ This library includes the following modules.
 
 # Usage
 
-Cats, ScalaCheck, and Guava typeclass derivation can be performed both automatically and semi-automatically.
+See [derivation.md](https://github.com/spotify/magnolify/tree/master/docs/derivation.md) for type class derivation for Cats, Scalacheck, and Guava.
 
-Automatic derivation are provided as implicits through `import magnolify.$module.auto._`.  It works with context bounds i.e. `def plus[T: Semigroup](x: T, y: T)` and implicit paramemters i.e. `def f[T](x: T, y: T)(implicit sg: Semigroup[T])`. The following examples summon them via `implicitly`.
-
-```scala
-case class Inner(int: Int, str: String)
-case class Outer(inner: Inner)
-
-// Cats Semigroup
-import magnolify.cats.auto._
-import cats._
-import cats.instances.all._ // implicit instances for Semigroup[Int], etc.
-val sg: = implicitly[Semigroup[Outer]]
-sg.combine(Outer(Inner(1, "hello, ")), Outer(Inner(100, "world!")))
-// = Outer(Inner(101,hello, world!))
-
-// ScalaCheck Arbitrary
-import magnolify.scalacheck.auto._
-import org.scalacheck._ // implicit instances for Arbitrary[Int], etc.
-val arb: Arbitrary[Outer] = implicitly[Arbitrary[Outer]]
-arb.arbitrary.sample
-// = Some(Outer(Inter(12345, abcde)))
-
-// Guava Funnel
-import magnolify.guava.auto._ // includes implicit instances for Funnel[Int], etc.
-import com.google.common.hash._
-val fnl: Funnel[Outer] = implicitly[Funnel[Outer]]
-val bf: BloomFilter[Outer] = BloomFilter.create[Outer](fnl, 1000)
-```
-
-Some [Algebird](https://github.com/twitter/algebird) instances extend those from Cats and can be derivated as well.
-
-```scala
-import cats.instances.all._
-import magnolify.cats.auto._
-import com.twitter.{algebird => a}
-
-case class Record(i: Int, o: Option[Int], l: List[Int], s: Set[Int], m: Map[String, Int])
-val sg: a.Semigroup[Record] = implicitly[a.Semigroup[Record]]
-val mon: a.Monoid[Record] = implicitly[a.Monoid[Record]]
-```
-
-Semi-automatic derivation needs to be called explicitly.
-
-```scala
-import magnolify.cats.semiauto._
-import cats._
-import cats.instances.all._
-val eq: Eq[Outer] = EqDerivation[Outer]
-val hash: Hash[Outer] = HashDerivation[Outer]
-val sg: Semigroup[Outer] = SemigroupDerivation[Outer]
-val mon: Monoid[Outer] = MonoidDerivation[Outer]
-// this fails due to missing `Group[String]` instance
-val group: Group[Outer] = GroupDerivation[Outer]
-
-import magnolify.scalacheck.semiauto._
-import org.scalacheck._
-val arb: Arbitrary[Outer] = ArbitraryDerivation[Outer]
-val cogen: Cogen[Outer] = CogenDerivation[Outer]
-
-import magnolify.guava.semiauto._
-val fnl: Funnel[Outer] = FunnelDerivation[Outer]
-```
-
-Typeclasses for data type conversion must be called explicitly.
-
-```scala
-import java.net.URI
-case class Inner(long: Long, str: String, uri: URI)
-case class Outer(inner: Inner)
-val record = Outer(Inner(1L, "hello", URI.create("https://www.spotify.com")))
-
-// Avro GenericRecord
-import magnolify.avro._
-import org.apache.avro.generic.GenericRecord
-implicit val uriField = AvroField.from[String](URI.create)(_.toString) // custom field type
-val avroType = AvroType[Outer]
-val genericRecord: GenericRecord = avroType.to(record)
-val copy: Outer = avroType.from(genericRecord)
-
-avroType.schema // Avro Schema
-
-// BigQuery TableRow
-import magnolify.bigquery._
-import com.google.api.services.bigquery.model.TableRow
-implicit val uriField = TableRowField.from[String](URI.create)(_.toString) // custom field type
-val tableRowType = TableRowType[Outer]
-val tableRow: TableRow = tableRowType.to(record)
-val copy: Outer = tableRowType.from(tableRow)
-
-tableRowType.schema // BigQuery TableSchema
-
-// Bigtable Example
-import magnolify.bigtable._
-implicit val uriField = BigtableField.from[String](URI.create)(_.toString)
-
-val bigtableType = BigtableType[Outer]
-val mutations: Iterable[Mutation] = bigtableType(record, "ColumnFamily")
-val row: Row = BigtableType.mutationsToRow(ByteString.copyFromUtf8("RowKey"), mutations)
-val copy: Outer = bigtableType.from(row, "ColumnFamily")
-
-// Datastore Entity
-import magnolify.datastore._
-implicit val uriField = EntityField.from[String](URI.create)(_.toString) // custom field type
-val entityType = EntityType[Outer]
-val entityBuilder: Entity.Builder = entityType.to(record)
-val copy: Outer = entityType.from(entityBuilder.build)
-
-// Protobuf
-import magnolify.protobuf._
-implicit val uriField: ProtobufField[URI] = ProtobufField.from[String](URI.create)(_.toString)
-val protobufType = ProtobufType[Outer, Proto] // Proto is compiled Protobuf Message
-val proto: Proto = protobufType.to(record)
-val copy: Outer = protobufType.from(proto)
-
-// TensorFlow Example
-import magnolify.tensorflow._
-import com.google.protobuf.ByteString
-// custom field types
-implicit val stringField = ExampleField.from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
-implicit val uriField = ExampleField
-  .from[ByteString](b => URI.create(b.toStringUtf8))(u => ByteString.copyFromUtf8(u.toString))
-val exampleType = ExampleType[Outer]
-val exampleBuilder: Example.Builder = exampleType.to(record)
-val copy = exampleType.from(exampleBuilder.build)
-```
+See [avro.md](https://github.com/spotify/magnolify/tree/master/docs/avro.md)
+[bigquery.md](https://github.com/spotify/magnolify/tree/master/docs/bigquery.md)
+[bigtable.md](https://github.com/spotify/magnolify/tree/master/docs/bigtable.md)
+[datastore.md](https://github.com/spotify/magnolify/tree/master/docs/datastore.md)
+[protobuf.md](https://github.com/spotify/magnolify/tree/master/docs/protobuf.md)
+[tensorflow.md](https://github.com/spotify/magnolify/tree/master/docs/tensorflow.md) for data type conversions for these libraries.
 
 # License
 
