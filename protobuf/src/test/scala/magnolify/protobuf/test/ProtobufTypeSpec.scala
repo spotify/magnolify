@@ -25,6 +25,7 @@ import com.google.protobuf.{ByteString, Message}
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.protobuf._
+import magnolify.protobuf.unsafe._
 import magnolify.shims.JavaConverters._
 import magnolify.test.Proto2._
 import magnolify.test.Proto3._
@@ -65,6 +66,9 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufType") {
   test[Repeated, RepeatedP3]
   test[Nested, NestedP2]
   test[NestedNoOption, NestedP3]
+  test[UnsafeByte, IntegersP2]
+  test[UnsafeChar, IntegersP2]
+  test[UnsafeShort, IntegersP2]
 
   {
     implicit val arbByteString: Arbitrary[ByteString] =
@@ -93,6 +97,9 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufType") {
   }
 }
 
+case class UnsafeByte(i: Byte, l: Long)
+case class UnsafeChar(i: Char, l: Long)
+case class UnsafeShort(i: Short, l: Long)
 case class BytesA(b: ByteString)
 case class BytesB(b: Array[Byte])
 case class NestedNoOption(
