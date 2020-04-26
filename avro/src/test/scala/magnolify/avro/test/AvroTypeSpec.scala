@@ -23,6 +23,7 @@ import java.time.Duration
 import cats._
 import cats.instances.all._
 import magnolify.avro._
+import magnolify.avro.unsafe._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.shims.JavaConverters._
@@ -57,6 +58,7 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
   test[Nullable]
   test[Repeated]
   test[Nested]
+  test[Unsafe]
 
   {
     import Collections._
@@ -91,6 +93,7 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
   }
 }
 
+case class Unsafe(b: Byte, c: Char, s: Short)
 case class AvroTypes(bs: Array[Byte])
 case class MapPrimitive(m: Map[String, Int])
 case class MapNested(m: Map[String, Nested])
