@@ -1,7 +1,7 @@
 EntityType
 ==========
 
-`EntityType[T]` provides convertion between Scala type `T` and Datastore `Entity`. Custom support for type `T` can be added with an implicit instance of `EntityField[T]`.
+`EntityType[T]` provides conversion between Scala type `T` and Datastore `Entity`. Custom support for type `T` can be added with an implicit instance of `EntityField[T]`.
 
 ```scala
 import java.net.URI

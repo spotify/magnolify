@@ -1,7 +1,7 @@
 TableRowType
 ============
 
-`TableRowType[T]` provides convertion between Scala type `T` and BigQuery `TableRow`. Custom support for type `T` can be added with an implicit instance of `TableRowField[T]`.
+`TableRowType[T]` provides conversion between Scala type `T` and BigQuery `TableRow`. Custom support for type `T` can be added with an implicit instance of `TableRowField[T]`.
 
 ```scala
 import java.net.URI

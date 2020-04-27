@@ -3,7 +3,7 @@ Type Class Derivation
 
 Type class derivation for Cats, ScalaCheck, and Guava can be performed both automatically and semi-automatically.
 
-Automatic derivation are provided as implicits through `import magnolify.$module.auto._`.  It works with context bounds i.e. `def plus[T: Semigroup](x: T, y: T)` and implicit paramemters i.e. `def f[T](x: T, y: T)(implicit sg: Semigroup[T])`. The following examples summon them via `implicitly`.
+Automatic derivation are provided as implicits through `import magnolify.$module.auto._`.  It works with context bounds i.e. `def plus[T: Semigroup](x: T, y: T)` and implicit parameters i.e. `def f[T](x: T, y: T)(implicit sg: Semigroup[T])`. The following examples summon them via `implicitly`.
 
 ```scala
 case class Inner(int: Int, str: String)

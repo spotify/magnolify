@@ -1,7 +1,7 @@
 BigtableType
 ============
 
-`BigtableType[T]` provides convertion between Scala type `T` and Bigtable `Row`/`Seq[Mutation]` for read/write. Custom support for type `T` can be added with an implicit instance of `BigtableField[T]`.
+`BigtableType[T]` provides conversion between Scala type `T` and Bigtable `Row`/`Seq[Mutation]` for read/write. Custom support for type `T` can be added with an implicit instance of `BigtableField[T]`.
 
 ```scala
 import java.net.URI

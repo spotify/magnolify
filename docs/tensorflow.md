@@ -1,7 +1,7 @@
 ExampleType
 ===========
 
-`ExampleType[T]` provides convertion between Scala type `T` and TensorFlow `Example`. Custom support for type `T` can be added with an implicit instance of `ExampleField[T]`.
+`ExampleType[T]` provides conversion between Scala type `T` and TensorFlow `Example`. Custom support for type `T` can be added with an implicit instance of `ExampleField[T]`.
 
 ```scala
 import java.net.URI

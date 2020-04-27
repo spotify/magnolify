@@ -1,7 +1,7 @@
 AvroType
 ========
 
-`AvroType[T]` provides convertion between Scala type `T` and Avro `GenericRecord`. Custom support for type `T` can be added with an implicit instance of `AvroField[T]`.
+`AvroType[T]` provides conversion between Scala type `T` and Avro `GenericRecord`. Custom support for type `T` can be added with an implicit instance of `AvroField[T]`.
 
 ```scala
 import java.net.URI
