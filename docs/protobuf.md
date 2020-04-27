@@ -1,7 +1,7 @@
 ProtobufType
 ============
 
-`ProtobufType[T, MsgT]` provides convertion between Scala type `T` and Protobuf `MsgT <: Message`. Custom support for type `T` can be added with an implicit instance of `ProtobufField[T]`.
+`ProtobufType[T, MsgT]` provides conversion between Scala type `T` and Protobuf `MsgT <: Message`. Custom support for type `T` can be added with an implicit instance of `ProtobufField[T]`.
 
 ```scala
 import java.net.URI
