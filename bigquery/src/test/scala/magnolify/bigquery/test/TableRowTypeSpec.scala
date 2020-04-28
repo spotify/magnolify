@@ -90,6 +90,7 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
 
   {
     val trt = TableRowType[TableRowDesc]
+    ensureSerializable(trt)
     val schema = trt.schema
     require(trt.description == "TableRow with description")
     val fields = schema.getFields.asScala
@@ -99,6 +100,7 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
 
   {
     val trt = TableRowType[CustomDesc]
+    ensureSerializable(trt)
     val schema = trt.schema
     require(trt.description == "my-project:my-dataset.my-table")
     val fields = schema.getFields.asScala

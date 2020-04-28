@@ -95,6 +95,7 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
 
   {
     val at = AvroType[AvroDoc]
+    ensureSerializable(at)
     val schema = at.schema
     require(schema.getDoc == "Avro with doc")
     val fields = schema.getFields.asScala
@@ -104,6 +105,7 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
 
   {
     val at = AvroType[CustomDoc]
+    ensureSerializable(at)
     val schema = at.schema
     require(schema.getDoc == """{"doc": "Avro with doc", "path": "/path/to/my/data"}""")
     val fields = schema.getFields.asScala

@@ -29,7 +29,7 @@ import org.apache.avro.generic.{GenericArray, GenericData, GenericRecord, Generi
 import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.language.experimental.macros
 
-class doc(doc: String) extends StaticAnnotation {
+class doc(doc: String) extends StaticAnnotation with Serializable {
   override def toString: String = doc
 }
 

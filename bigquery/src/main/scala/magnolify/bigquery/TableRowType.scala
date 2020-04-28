@@ -31,7 +31,7 @@ import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.language.experimental.macros
 import scala.reflect.ClassTag
 
-class description(description: String) extends StaticAnnotation {
+class description(description: String) extends StaticAnnotation with Serializable {
   override def toString: String = description
 }
 
