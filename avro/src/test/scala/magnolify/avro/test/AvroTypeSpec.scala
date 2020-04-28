@@ -91,12 +91,24 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
     test[MapPrimitive]
     test[MapNested]
   }
+
+  {
+    val at = AvroType[AvroDoc]
+    val schema = at.schema
+    require(schema.getDoc == "Avro with doc")
+    val fields = schema.getFields.asScala
+    require(fields.find(_.name() == "s").exists(_.doc() == "string"))
+    require(fields.find(_.name() == "i").exists(_.doc() == "integers"))
+  }
 }
 
 case class Unsafe(b: Byte, c: Char, s: Short)
 case class AvroTypes(bs: Array[Byte])
 case class MapPrimitive(m: Map[String, Int])
 case class MapNested(m: Map[String, Nested])
+
+@doc("Avro with doc")
+case class AvroDoc(@doc("string") s: String, @doc("integers") i: Integers)
 
 private class Copier(private val schema: Schema) {
   private val encoder = EncoderFactory.get
