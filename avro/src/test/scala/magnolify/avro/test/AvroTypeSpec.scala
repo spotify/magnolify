@@ -18,7 +18,8 @@ package magnolify.avro.test
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.net.URI
-import java.time.Duration
+import java.time.format.DateTimeFormatter
+import java.time.{Duration, LocalDate}
 
 import cats._
 import cats.instances.all._
@@ -100,6 +101,29 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
     require(fields.find(_.name() == "s").exists(_.doc() == "string"))
     require(fields.find(_.name() == "i").exists(_.doc() == "integers"))
   }
+
+  {
+    val at = AvroType[CustomDoc]
+    val schema = at.schema
+    require(schema.getDoc == """{"doc": "Avro with doc", "path": "/path/to/my/data"}""")
+    val fields = schema.getFields.asScala
+    require(
+      fields
+        .find(_.name() == "s")
+        .exists(
+          _.doc() ==
+            """{"doc": "string", "since": "2020-01-01"}"""
+        )
+    )
+    require(
+      fields
+        .find(_.name() == "i")
+        .exists(
+          _.doc() ==
+            """{"doc": "integers", "since": "2020-02-01"}"""
+        )
+    )
+  }
 }
 
 case class Unsafe(b: Byte, c: Char, s: Short)
@@ -109,6 +133,19 @@ case class MapNested(m: Map[String, Nested])
 
 @doc("Avro with doc")
 case class AvroDoc(@doc("string") s: String, @doc("integers") i: Integers)
+
+class datasetDoc(doc: String, path: String) extends doc(s"""{"doc": "$doc", "path": "$path"}""")
+
+class fieldDoc(doc: String, since: LocalDate)
+    extends doc(
+      s"""{"doc": "$doc", "since": "${since.format(DateTimeFormatter.ofPattern("YYYY-MM-dd"))}"}"""
+    )
+
+@datasetDoc("Avro with doc", "/path/to/my/data")
+case class CustomDoc(
+  @fieldDoc("string", LocalDate.of(2020, 1, 1)) s: String,
+  @fieldDoc("integers", LocalDate.of(2020, 2, 1)) i: Integers
+)
 
 private class Copier(private val schema: Schema) {
   private val encoder = EncoderFactory.get
