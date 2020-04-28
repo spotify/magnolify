@@ -60,12 +60,6 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufType") {
   test[Required, RequiredP2]
   test[Required, SingularP3]
   test[Nullable, NullableP2]
-  try {
-    test[Nullable, SingularP3]
-  } catch {
-    case e: IllegalArgumentException =>
-      require(e.getMessage == "requirement failed: Option[T] support is PROTO2 only")
-  }
   test[Repeated, RepeatedP2]
   test[Repeated, RepeatedP3]
   test[Nested, NestedP2]
@@ -99,6 +93,34 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufType") {
     test[Custom, CustomP2]
     test[Custom, CustomP3]
   }
+
+  try {
+    val pt = ProtobufType[NullableNoneValue, RequiredP2]
+    pt(RequiredP2.getDefaultInstance)
+  } catch {
+    case e: IllegalArgumentException =>
+      require(e.getMessage == "requirement failed: @noneValue annotation supports PROTO3 only")
+  }
+
+  {
+    val pt = ProtobufType[NullableNoneValue, SingularP3]
+    ensureSerializable(pt)
+    val defaults = pt(SingularP3.getDefaultInstance)
+    val nones = pt(SingularP3.newBuilder().setB(true).setI(1).setS("abc").build())
+    require(defaults == NullableNoneValue(Some(false), Some(0), Some("")))
+    require(nones == NullableNoneValue(None, None, None))
+  }
+
+  {
+    val pt = ProtobufType[NestedNoneValue, NestedP3]
+    ensureSerializable(pt)
+    val defaults = pt(NestedP3.getDefaultInstance)
+    val nones = pt(
+      NestedP3.newBuilder().setR(SingularP3.newBuilder().setB(true).setI(1).setS("abc")).build()
+    )
+    require(defaults == NestedNoneValue(false, 0, "", Some(Required(false, 0, "")), Nil))
+    require(nones == NestedNoneValue(false, 0, "", None, Nil))
+  }
 }
 
 case class UnsafeByte(i: Byte, l: Long)
@@ -111,5 +133,18 @@ case class NestedNoOption(
   i: Int,
   s: String,
   r: Required,
+  l: List[Required]
+)
+
+case class NullableNoneValue(
+  @noneValue(true) b: Option[Boolean],
+  @noneValue(1) i: Option[Int],
+  @noneValue("abc") s: Option[String]
+)
+case class NestedNoneValue(
+  b: Boolean,
+  i: Int,
+  s: String,
+  @noneValue(Required(true, 1, "abc")) r: Option[Required],
   l: List[Required]
 )
