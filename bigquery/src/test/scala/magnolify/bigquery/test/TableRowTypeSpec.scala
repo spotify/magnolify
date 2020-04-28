@@ -27,6 +27,7 @@ import magnolify.bigquery._
 import magnolify.bigquery.unsafe._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
+import magnolify.shims.JavaConverters._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.joda.time._
@@ -86,7 +87,56 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
     implicit val eqDateTime: Eq[LocalDateTime] = Eq.instance((x, y) => (x compareTo y) == 0)
     test[BigQueryTypes]
   }
+
+  {
+    val trt = TableRowType[TableRowDesc]
+    val schema = trt.schema
+    require(trt.description == "TableRow with description")
+    val fields = schema.getFields.asScala
+    require(fields.find(_.getName == "s").exists(_.getDescription == "string"))
+    require(fields.find(_.getName == "i").exists(_.getDescription == "integers"))
+  }
+
+  {
+    val trt = TableRowType[CustomDesc]
+    val schema = trt.schema
+    require(trt.description == "my-project:my-dataset.my-table")
+    val fields = schema.getFields.asScala
+    require(
+      fields
+        .find(_.getName == "s")
+        .exists(
+          _.getDescription ==
+            """{"description": "string", "since": "2020-01-01"}"""
+        )
+    )
+    require(
+      fields
+        .find(_.getName == "i")
+        .exists(
+          _.getDescription ==
+            """{"description": "integers", "since": "2020-02-01"}"""
+        )
+    )
+  }
 }
 
 case class Unsafe(b: Byte, c: Char, s: Short, i: Int, _f: Float)
 case class BigQueryTypes(i: Instant, d: LocalDate, t: LocalTime, dt: LocalDateTime, bd: BigDecimal)
+
+@description("TableRow with description")
+case class TableRowDesc(@description("string") s: String, @description("integers") i: Integers)
+
+class tableDesc(projectId: String, datasetId: String, tableId: String)
+    extends description(s"$projectId:$datasetId.$tableId")
+
+class fieldDesc(description: String, since: LocalDate)
+    extends description(
+      s"""{"description": "$description", "since": "${since.toString("YYYY-MM-dd")}"}"""
+    )
+
+@tableDesc("my-project", "my-dataset", "my-table")
+case class CustomDesc(
+  @fieldDesc("string", LocalDate.parse("2020-01-01")) s: String,
+  @fieldDesc("integers", LocalDate.parse("2020-02-01")) i: Integers
+)

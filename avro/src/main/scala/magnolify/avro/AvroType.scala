@@ -26,8 +26,12 @@ import magnolify.shims.JavaConverters._
 import org.apache.avro.{JsonProperties, Schema}
 import org.apache.avro.generic.{GenericArray, GenericData, GenericRecord, GenericRecordBuilder}
 
-import scala.annotation.implicitNotFound
+import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.language.experimental.macros
+
+class doc(doc: String) extends StaticAnnotation {
+  override def toString: String = doc
+}
 
 sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
   protected val schemaString: String
@@ -69,15 +73,26 @@ object AvroField {
 
   type Typeclass[T] = AvroField[T]
 
+  private def getDoc(annotations: Seq[Any]): String = {
+    val docs = annotations.collect { case d: doc => d.toString }
+    require(docs.size <= 1, s"More than one @doc annotation: ${docs.mkString(", ")}")
+    docs.headOption.orNull
+  }
+
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
     override protected val schemaString: String = Schema
       .createRecord(
         caseClass.typeName.short,
-        null,
+        getDoc(caseClass.annotations),
         caseClass.typeName.owner,
         false,
         caseClass.parameters.map { p =>
-          new Schema.Field(p.label, p.typeclass.schema, null, p.typeclass.defaultVal)
+          new Schema.Field(
+            p.label,
+            p.typeclass.schema,
+            getDoc(p.annotations),
+            p.typeclass.defaultVal
+          )
         }.asJava
       )
       .toString()

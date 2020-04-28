@@ -27,12 +27,17 @@ import magnolify.shared.Converter
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
 
-import scala.annotation.implicitNotFound
+import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.language.experimental.macros
 import scala.reflect.ClassTag
 
+class description(description: String) extends StaticAnnotation {
+  override def toString: String = description
+}
+
 sealed trait TableRowType[T] extends Converter[T, TableRow, TableRow] {
   protected val schemaString: String
+  val description: String
   def schema: TableSchema = Schemas.fromJson[TableSchema](schemaString)
   def apply(v: TableRow): T = from(v)
   def apply(v: T): TableRow = to(v)
@@ -43,6 +48,7 @@ object TableRowType {
     new TableRowType[T] {
       override protected val schemaString: String =
         Schemas.toJson(new TableSchema().setFields(f.fieldSchema.getFields))
+      override val description: String = f.fieldSchema.getDescription
 
       override def from(v: TableRow): T = f.from(v)
       override def to(v: T): TableRow = f.to(v)
@@ -74,13 +80,22 @@ object TableRowField {
 
   type Typeclass[T] = TableRowField[T]
 
+  private def getDescription(annotations: Seq[Any]): String = {
+    val descs = annotations.collect { case d: description => d.toString }
+    require(descs.size <= 1, s"More than one @description annotation: ${descs.mkString(", ")}")
+    descs.headOption.orNull
+  }
+
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
     override protected val schemaString: String =
       Schemas.toJson(
         new TableFieldSchema()
           .setType("STRUCT")
           .setMode("REQUIRED")
-          .setFields(caseClass.parameters.map(p => p.typeclass.fieldSchema.setName(p.label)).asJava)
+          .setDescription(getDescription(caseClass.annotations))
+          .setFields(caseClass.parameters.map { p =>
+            p.typeclass.fieldSchema.setName(p.label).setDescription(getDescription(p.annotations))
+          }.asJava)
       )
 
     override def from(v: java.util.Map[String, AnyRef]): T =
