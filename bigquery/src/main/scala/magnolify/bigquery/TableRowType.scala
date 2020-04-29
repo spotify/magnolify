@@ -80,21 +80,19 @@ object TableRowField {
 
   type Typeclass[T] = TableRowField[T]
 
-  private def getDescription(annotations: Seq[Any]): String = {
-    val descs = annotations.collect { case d: description => d.toString }
-    require(descs.size <= 1, s"More than one @description annotation: ${descs.mkString(", ")}")
-    descs.headOption.orNull
-  }
-
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
     override protected val schemaString: String =
       Schemas.toJson(
         new TableFieldSchema()
           .setType("STRUCT")
           .setMode("REQUIRED")
-          .setDescription(getDescription(caseClass.annotations))
+          .setDescription(getDescription(caseClass.annotations, caseClass.typeName.full))
           .setFields(caseClass.parameters.map { p =>
-            p.typeclass.fieldSchema.setName(p.label).setDescription(getDescription(p.annotations))
+            p.typeclass.fieldSchema
+              .setName(p.label)
+              .setDescription(
+                getDescription(p.annotations, s"${caseClass.typeName.full}#${p.label}")
+              )
           }.asJava)
       )
 
@@ -109,6 +107,12 @@ object TableRowField {
         }
         tr
       }
+
+    private def getDescription(annotations: Seq[Any], name: String): String = {
+      val descs = annotations.collect { case d: description => d.toString }
+      require(descs.size <= 1, s"More than one @description annotation: $name")
+      descs.headOption.orNull
+    }
   }
 
   @implicitNotFound("Cannot derive TableRowField for sealed trait")

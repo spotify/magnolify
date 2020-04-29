@@ -126,6 +126,15 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
         )
     )
   }
+
+  require(
+    expectException[IllegalArgumentException](AvroType[DoubleRecordDoc]).getMessage ==
+      "requirement failed: More than one @doc annotation: magnolify.avro.test.DoubleRecordDoc"
+  )
+  require(
+    expectException[IllegalArgumentException](AvroType[DoubleFieldDoc]).getMessage ==
+      "requirement failed: More than one @doc annotation: magnolify.avro.test.DoubleFieldDoc#i"
+  )
 }
 
 case class Unsafe(b: Byte, c: Char, s: Short)
@@ -148,6 +157,11 @@ case class CustomDoc(
   @fieldDoc("string", LocalDate.of(2020, 1, 1)) s: String,
   @fieldDoc("integers", LocalDate.of(2020, 2, 1)) i: Integers
 )
+
+@doc("doc1")
+@doc("doc2")
+case class DoubleRecordDoc(i: Int)
+case class DoubleFieldDoc(@doc("doc1") @doc("doc2") i: Int)
 
 private class Copier(private val schema: Schema) {
   private val encoder = EncoderFactory.get

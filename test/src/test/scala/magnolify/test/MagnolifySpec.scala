@@ -39,4 +39,29 @@ abstract class MagnolifySpec(name: String) extends Properties(name) {
 
   def ensureSerializable[T <: Serializable](value: T): T =
     deserializeFromByteArray(serializeToByteArray(value)).asInstanceOf[T]
+
+  def expectException[T <: Throwable](expr: => Any)(implicit ct: ClassTag[T]): T = {
+    val cls = ct.runtimeClass
+    val caught =
+      try {
+        expr
+        None
+      } catch {
+        case e: Throwable =>
+          if (cls.isAssignableFrom(e.getClass)) {
+            Some(e.asInstanceOf[T])
+          } else {
+            throw new IllegalArgumentException(
+              s"Expected exception ${cls.getCanonicalName}, actual: $e"
+            )
+          }
+      }
+    caught match {
+      case Some(e) => e
+      case None =>
+        throw new IllegalArgumentException(s"Expected exception ${cls.getCanonicalName}, got none")
+    }
+  }
 }
+
+private class TestException(msg: String) extends Exception(msg)

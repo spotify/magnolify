@@ -121,6 +121,15 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
         )
     )
   }
+
+  require(
+    expectException[IllegalArgumentException](TableRowType[DoubleRecordDesc]).getMessage ==
+      "requirement failed: More than one @description annotation: magnolify.bigquery.test.DoubleRecordDesc"
+  )
+  require(
+    expectException[IllegalArgumentException](TableRowType[DoubleFieldDesc]).getMessage ==
+      "requirement failed: More than one @description annotation: magnolify.bigquery.test.DoubleFieldDesc#i"
+  )
 }
 
 case class Unsafe(b: Byte, c: Char, s: Short, i: Int, _f: Float)
@@ -142,3 +151,8 @@ case class CustomDesc(
   @fieldDesc("string", LocalDate.parse("2020-01-01")) s: String,
   @fieldDesc("integers", LocalDate.parse("2020-02-01")) i: Integers
 )
+
+@description("desc1")
+@description("desc2")
+case class DoubleRecordDesc(i: Int)
+case class DoubleFieldDesc(@description("desc1") @description("desc2") i: Int)

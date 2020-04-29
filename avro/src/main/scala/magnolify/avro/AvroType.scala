@@ -73,24 +73,18 @@ object AvroField {
 
   type Typeclass[T] = AvroField[T]
 
-  private def getDoc(annotations: Seq[Any]): String = {
-    val docs = annotations.collect { case d: doc => d.toString }
-    require(docs.size <= 1, s"More than one @doc annotation: ${docs.mkString(", ")}")
-    docs.headOption.orNull
-  }
-
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
     override protected val schemaString: String = Schema
       .createRecord(
         caseClass.typeName.short,
-        getDoc(caseClass.annotations),
+        getDoc(caseClass.annotations, caseClass.typeName.full),
         caseClass.typeName.owner,
         false,
         caseClass.parameters.map { p =>
           new Schema.Field(
             p.label,
             p.typeclass.schema,
-            getDoc(p.annotations),
+            getDoc(p.annotations, s"${caseClass.typeName.full}#${p.label}"),
             p.typeclass.defaultVal
           )
         }.asJava
@@ -109,6 +103,12 @@ object AvroField {
           if (f == null) b else b.set(p.label, f)
         }
         .build()
+
+    private def getDoc(annotations: Seq[Any], name: String): String = {
+      val docs = annotations.collect { case d: doc => d.toString }
+      require(docs.size <= 1, s"More than one @doc annotation: $name")
+      docs.headOption.orNull
+    }
   }
 
   @implicitNotFound("Cannot derive AvroField for sealed trait")
