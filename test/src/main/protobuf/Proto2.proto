@@ -17,26 +17,26 @@ message NumbersP2 {
 }
 
 message NullableP2 {
-    optional string s = 1;
-    optional bool b = 2;
+    optional bool b = 1;
+    optional string s = 2;
     optional int32 i = 3;
 }
 
 message RequiredP2 {
-    required string s = 1;
-    required bool b = 2;
+    required bool b = 1;
+    required string s = 2;
     required int32 i = 3;
 }
 
 message RepeatedP2 {
-    repeated string s = 1;
-    repeated bool b = 2;
+    repeated bool b = 1;
+    repeated string s = 2;
     repeated int32 i = 3;
 }
 
 message NestedP2 {
-    required string s = 1;
-    required bool b = 2;
+    required bool b = 1;
+    required string s = 2;
     required int32 i = 3;
     required RequiredP2 r = 4;
     optional RequiredP2 o = 5;
