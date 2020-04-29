@@ -94,14 +94,6 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufType") {
     test[Custom, CustomP3]
   }
 
-  try {
-    val pt = ProtobufType[NullableNoneValue, RequiredP2]
-    pt(RequiredP2.getDefaultInstance)
-  } catch {
-    case e: IllegalArgumentException =>
-      require(e.getMessage == "requirement failed: @noneValue annotation supports PROTO3 only")
-  }
-
   {
     val pt = ProtobufType[NullableNoneValue, SingularP3]
     ensureSerializable(pt)
@@ -121,6 +113,19 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufType") {
     require(defaults == NestedNoneValue(false, 0, "", Some(Required(false, 0, "")), Nil))
     require(nones == NestedNoneValue(false, 0, "", None, Nil))
   }
+
+  require(
+    expectException[IllegalArgumentException](ProtobufType[NullableNoneValue, RequiredP2]).getMessage ==
+      "requirement failed: @noneValue annotation supports PROTO3 only"
+  )
+  require(
+    expectException[IllegalArgumentException](ProtobufType[DoubleNoneValue, IntegersP3]).getMessage ==
+      "requirement failed: More than one @noneValue annotation: magnolify.protobuf.test.DoubleNoneValue#i"
+  )
+  require(
+    expectException[IllegalArgumentException](ProtobufType[RequiredNoneValue, IntegersP3]).getMessage ==
+      "requirement failed: @noneValue annotation supports Option[T] type only: magnolify.protobuf.test.RequiredNoneValue#i"
+  )
 }
 
 case class UnsafeByte(i: Byte, l: Long)
@@ -148,3 +153,5 @@ case class NestedNoneValue(
   @noneValue(Required(true, 1, "abc")) r: Option[Required],
   l: List[Required]
 )
+case class DoubleNoneValue(@noneValue(1) @noneValue(2) i: Option[Int], l: Long)
+case class RequiredNoneValue(@noneValue(1) i: Int, l: Long)

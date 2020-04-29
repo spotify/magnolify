@@ -48,6 +48,16 @@ object ProtobufType {
     ct: ClassTag[MsgT]
   ): ProtobufType[T, MsgT] =
     new ProtobufType[T, MsgT] {
+      if (f.hasNoneValue) {
+        val syntax = ct.runtimeClass
+          .getMethod("getDescriptor")
+          .invoke(null)
+          .asInstanceOf[Descriptor]
+          .getFile
+          .getSyntax
+        require(syntax == Syntax.PROTO3, "@noneValue annotation supports PROTO3 only")
+      }
+
       @transient private var _newBuilder: Method = _
       private def newBuilder: Message.Builder = {
         if (_newBuilder == null) {
@@ -65,6 +75,8 @@ sealed trait ProtobufField[T] extends Serializable {
   type FromT
   type ToT
 
+  protected val isOption = false
+
   def from(v: FromT): T
   def to(v: T, b: Message.Builder): ToT
 
@@ -77,19 +89,17 @@ object ProtobufField {
     override type ToT = To
   }
 
-  trait Record[T] extends Aux[T, Message, Message]
+  trait Record[T] extends Aux[T, Message, Message] {
+    def hasNoneValue: Boolean
+  }
 
   //////////////////////////////////////////////////
 
   type Typeclass[T] = ProtobufField[T]
 
-  private def getNoneValue(annotations: Seq[Any]): Option[Any] = {
-    val nvs = annotations.collect { case nv: noneValue => nv.get }
-    require(nvs.size <= 1, s"More than one @noneValue annotation: ${nvs.mkString(", ")}")
-    nvs.headOption
-  }
-
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
+    override def hasNoneValue: Boolean = noneValues.nonEmpty
+
     // One Record[T] instance may be used for multiple Message types
     private val fieldsCache: concurrent.Map[String, Array[FieldDescriptor]] =
       concurrent.TrieMap.empty
@@ -109,10 +119,9 @@ object ProtobufField {
 
       caseClass.construct { p =>
         val field = fields(p.index)
-        val nv = getNoneValue(p.annotations)
+        val nv = noneValues.get(p.index)
 
         if (syntax == Syntax.PROTO2) {
-          require(nv.isEmpty, "@noneValue annotation supports PROTO3 only")
           val value = if (field.isOptional && !v.hasField(field)) {
             null
           } else {
@@ -121,10 +130,9 @@ object ProtobufField {
           p.typeclass.fromAny(value)
         } else {
           val value = p.typeclass.fromAny(v.getField(field))
-          if (p.typeclass.isInstanceOf[OptionProtobufField[_]]) {
+          if (p.typeclass.isOption) {
             if (value == nv.asInstanceOf[p.PType]) None else value
           } else {
-            require(nv.isEmpty, "@noneValue annotation supports Option[T] fields only")
             value
           }
         }
@@ -147,6 +155,28 @@ object ProtobufField {
           if (value == null) b else b.setField(field, value)
         }
         .build()
+    }
+
+    private val noneValues: Map[Int, Any] = {
+      caseClass.parameters.iterator.flatMap { p =>
+        val nv = getNoneValue(p)
+        if (nv.isDefined) {
+          require(
+            p.typeclass.isOption,
+            s"@noneValue annotation supports Option[T] type only: ${caseClass.typeName.full}#${p.label}"
+          )
+        }
+        nv.map((p.index, _))
+      }.toMap
+    }
+
+    private def getNoneValue(p: Param[Typeclass, T]): Option[Any] = {
+      val nvs = p.annotations.collect { case nv: noneValue => nv.get }
+      require(
+        nvs.size <= 1,
+        s"More than one @noneValue annotation: ${caseClass.typeName.full}#${p.label}"
+      )
+      nvs.headOption
     }
   }
 
@@ -195,7 +225,14 @@ object ProtobufField {
   implicit val pfByteArray = aux2[Array[Byte], ByteString](_.toByteArray)(ByteString.copyFrom)
 
   implicit def pfOption[T](implicit f: ProtobufField[T]): ProtobufField[Option[T]] =
-    new OptionProtobufField[T](f)
+    new Aux[Option[T], f.FromT, f.ToT] {
+      override protected val isOption: Boolean = true
+      override def from(v: f.FromT): Option[T] = if (v == null) None else Some(f.from(v))
+      override def to(v: Option[T], b: Message.Builder): f.ToT = v match {
+        case None    => null.asInstanceOf[f.ToT]
+        case Some(x) => f.to(x, b)
+      }
+    }
 
   implicit def pfIterable[T, C[_]](
     implicit f: ProtobufField[T],
@@ -212,14 +249,4 @@ object ProtobufField {
       override def to(v: C[T], b: Message.Builder): ju.List[f.ToT] =
         if (v.isEmpty) null else v.iterator.map(f.to(_, b)).toList.asJava
     }
-}
-
-private class OptionProtobufField[T](val f: ProtobufField[T]) extends ProtobufField[Option[T]] {
-  override type FromT = f.FromT
-  override type ToT = f.ToT
-  override def from(v: f.FromT): Option[T] = if (v == null) None else Some(f.from(v))
-  override def to(v: Option[T], b: Message.Builder): f.ToT = v match {
-    case None    => null.asInstanceOf[f.ToT]
-    case Some(x) => f.to(x, b)
-  }
 }
