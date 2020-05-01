@@ -75,8 +75,6 @@ sealed trait ProtobufField[T] extends Serializable {
   type FromT
   type ToT
 
-  protected val isOption = false
-
   def from(v: FromT): T
   def to(v: T, b: Message.Builder): ToT
 
@@ -130,7 +128,7 @@ object ProtobufField {
           p.typeclass.fromAny(value)
         } else {
           val value = p.typeclass.fromAny(v.getField(field))
-          if (p.typeclass.isOption) {
+          if (nv.isDefined) {
             if (value == nv.asInstanceOf[p.PType]) None else value
           } else {
             value
@@ -162,9 +160,12 @@ object ProtobufField {
         val nv = getNoneValue(p)
         if (nv.isDefined) {
           require(
-            p.typeclass.isOption,
+            p.typeclass.isInstanceOf[OptionProtobufField[_]],
             s"@noneValue annotation supports Option[T] type only: ${caseClass.typeName.full}#${p.label}"
           )
+          p.typeclass
+            .asInstanceOf[OptionProtobufField[_]]
+            .typeCheck(nv.get, s"${caseClass.typeName.full}#${p.label}")
         }
         nv.map((p.index, _))
       }.toMap
@@ -224,15 +225,38 @@ object ProtobufField {
   implicit val pfByteString = id[ByteString]
   implicit val pfByteArray = aux2[Array[Byte], ByteString](_.toByteArray)(ByteString.copyFrom)
 
-  implicit def pfOption[T](implicit f: ProtobufField[T]): ProtobufField[Option[T]] =
-    new Aux[Option[T], f.FromT, f.ToT] {
-      override protected val isOption: Boolean = true
-      override def from(v: f.FromT): Option[T] = if (v == null) None else Some(f.from(v))
-      override def to(v: Option[T], b: Message.Builder): f.ToT = v match {
-        case None    => null.asInstanceOf[f.ToT]
-        case Some(x) => f.to(x, b)
-      }
+  private class OptionProtobufField[T: ClassTag](val f: ProtobufField[T])
+      extends ProtobufField[Option[T]] {
+    override type FromT = f.FromT
+    override type ToT = f.ToT
+    override def from(v: f.FromT): Option[T] = if (v == null) None else Some(f.from(v))
+    override def to(v: Option[T], b: Message.Builder): f.ToT = v match {
+      case None    => null.asInstanceOf[f.ToT]
+      case Some(x) => f.to(x, b)
     }
+    def typeCheck(v: Any, name: String): Unit = {
+      val vc = v.getClass
+      val cls = implicitly[ClassTag[T]].runtimeClass
+      val compatible = cls match {
+        case c if c == classOf[Boolean] => vc == classOf[java.lang.Boolean]
+        case c if c == classOf[Byte]    => vc == classOf[java.lang.Byte]
+        case c if c == classOf[Char]    => vc == classOf[java.lang.Character]
+        case c if c == classOf[Short]   => vc == classOf[java.lang.Short]
+        case c if c == classOf[Int]     => vc == classOf[java.lang.Integer]
+        case c if c == classOf[Long]    => vc == classOf[java.lang.Long]
+        case c if c == classOf[Float]   => vc == classOf[java.lang.Float]
+        case c if c == classOf[Double]  => vc == classOf[java.lang.Double]
+        case _                          => vc == cls
+      }
+      require(
+        compatible,
+        s"@noneValue annotation with incompatible type: $name ${vc.getCanonicalName} is not ${cls.getCanonicalName}"
+      )
+    }
+  }
+
+  implicit def pfOption[T: ClassTag](implicit f: ProtobufField[T]): ProtobufField[Option[T]] =
+    new OptionProtobufField[T](f)
 
   implicit def pfIterable[T, C[_]](
     implicit f: ProtobufField[T],

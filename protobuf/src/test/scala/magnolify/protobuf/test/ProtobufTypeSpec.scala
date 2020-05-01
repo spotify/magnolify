@@ -126,6 +126,18 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufType") {
     expectException[IllegalArgumentException](ProtobufType[RequiredNoneValue, IntegersP3]).getMessage ==
       "requirement failed: @noneValue annotation supports Option[T] type only: magnolify.protobuf.test.RequiredNoneValue#i"
   )
+  require(
+    expectException[IllegalArgumentException](ProtobufType[BadNoneValue1, IntegersP3]).getMessage ==
+      "requirement failed: @noneValue annotation with incompatible type: magnolify.protobuf.test.BadNoneValue1#i java.lang.Double is not int"
+  )
+  require(
+    expectException[IllegalArgumentException](ProtobufType[BadNoneValue2, IntegersP3]).getMessage ==
+      "requirement failed: @noneValue annotation with incompatible type: magnolify.protobuf.test.BadNoneValue2#i java.lang.String is not int"
+  )
+  require(
+    expectException[IllegalArgumentException](ProtobufType[BadNoneValue3, NestedP3]).getMessage ==
+      "requirement failed: @noneValue annotation with incompatible type: magnolify.protobuf.test.BadNoneValue3#r java.lang.String is not magnolify.test.Simple.Required"
+  )
 }
 
 case class UnsafeByte(i: Byte, l: Long)
@@ -155,3 +167,12 @@ case class NestedNoneValue(
 )
 case class DoubleNoneValue(@noneValue(1) @noneValue(2) i: Option[Int], l: Long)
 case class RequiredNoneValue(@noneValue(1) i: Int, l: Long)
+case class BadNoneValue1(@noneValue(1.0) i: Option[Int], l: Long)
+case class BadNoneValue2(@noneValue("abc") i: Option[Int], l: Long)
+case class BadNoneValue3(
+  b: Boolean,
+  i: Int,
+  s: String,
+  @noneValue("abc") r: Option[Required],
+  l: List[Required]
+)
