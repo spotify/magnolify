@@ -240,7 +240,7 @@ private object Columns {
         low -= 1
       }
       high = idx + 1
-      while (idx < xs.size() && xs.get(high).getQualifier.startsWith(pre)) {
+      while (high < xs.size() && xs.get(high).getQualifier.startsWith(pre)) {
         high += 1
       }
       (low + 1, high, isNested)
