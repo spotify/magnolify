@@ -39,11 +39,11 @@ import scala.reflect._
 
 object AvroTypeSpec extends MagnolifySpec("AvroType") {
   private def test[T: Arbitrary: ClassTag](
-    implicit tpe: AvroType[T],
+    implicit t: AvroType[T],
     eqt: Eq[T],
     eqr: Eq[GenericRecord] = Eq.instance(_ == _)
   ): Unit = {
-    ensureSerializable(tpe)
+    val tpe = ensureSerializable(t)
     // FIXME: test schema
     val copier = new Copier(tpe.schema)
     property(className[T]) = Prop.forAll { t: T =>
@@ -94,8 +94,7 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
   }
 
   {
-    val at = AvroType[AvroDoc]
-    ensureSerializable(at)
+    val at = ensureSerializable(AvroType[AvroDoc])
     val schema = at.schema
     require(schema.getDoc == "Avro with doc")
     val fields = schema.getFields.asScala
@@ -104,8 +103,7 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
   }
 
   {
-    val at = AvroType[CustomDoc]
-    ensureSerializable(at)
+    val at = ensureSerializable(AvroType[CustomDoc])
     val schema = at.schema
     require(schema.getDoc == """{"doc": "Avro with doc", "path": "/path/to/my/data"}""")
     val fields = schema.getFields.asScala

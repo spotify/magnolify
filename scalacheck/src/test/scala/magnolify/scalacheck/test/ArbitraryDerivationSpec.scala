@@ -27,10 +27,10 @@ import org.scalacheck.rng.Seed
 import scala.reflect._
 
 object ArbitraryDerivationSpec extends MagnolifySpec("ArbitraryDerivation") {
-  private def test[T: ClassTag](implicit arb: Arbitrary[T]): Unit = test[T, T](identity)
+  private def test[T: Arbitrary: ClassTag]: Unit = test[T, T](identity)
 
-  private def test[T: ClassTag, U](f: T => U)(implicit arb: Arbitrary[T]): Unit = {
-    ensureSerializable(arb)
+  private def test[T: ClassTag, U](f: T => U)(implicit t: Arbitrary[T]): Unit = {
+    val arb = ensureSerializable(t)
     val name = className[T]
     val g = arb.arbitrary
     val prms = Gen.Parameters.default

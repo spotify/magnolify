@@ -26,11 +26,11 @@ import org.scalacheck.rng.Seed
 import scala.reflect._
 
 object CogenDerivationSpec extends MagnolifySpec("CogenDerivation") {
-  private def test[T: ClassTag](implicit arb: Arbitrary[T], co: Cogen[T]): Unit =
+  private def test[T: Arbitrary: ClassTag: Cogen]: Unit =
     test[T, T](identity)
 
-  private def test[T: ClassTag, U](f: T => U)(implicit arb: Arbitrary[T], co: Cogen[T]): Unit = {
-    ensureSerializable(co)
+  private def test[T: ClassTag, U](f: T => U)(implicit arb: Arbitrary[T], t: Cogen[T]): Unit = {
+    val co = ensureSerializable(t)
     val name = className[T]
     implicit val arbList: Arbitrary[List[T]] = Arbitrary(Gen.listOfN(10, arb.arbitrary))
     property(s"$name.uniqueness") = Prop.forAll { (l: Long, xs: List[T]) =>

@@ -36,11 +36,15 @@ import org.scalacheck._
 import scala.reflect._
 
 object ProtobufTypeSpec extends MagnolifySpec("ProtobufType") {
+  {
+    val t = ensureSerializable(ProtobufType[Repeated, RepeatedP2])
+    t(RepeatedP2.getDefaultInstance)
+  }
   private def test[T: ClassTag: Arbitrary: Eq, U <: Message: ClassTag](
-    implicit tpe: ProtobufType[T, U],
+    implicit t: ProtobufType[T, U],
     eqt: Eq[T]
   ): Unit = {
-    ensureSerializable(tpe)
+    val tpe = ensureSerializable(t)
 
     property(className[U]) = Prop.forAll { t: T =>
       val r = tpe(t)

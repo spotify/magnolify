@@ -33,11 +33,11 @@ import org.scalacheck._
 import scala.reflect._
 
 object FunnelDerivationSpec extends MagnolifySpec("FunnelDerivation") {
-  private def test[T: ClassTag](implicit arb: Arbitrary[T], fnl: Funnel[T]): Unit =
+  private def test[T: Arbitrary: ClassTag: Funnel]: Unit =
     test[T, T](identity)
 
-  private def test[T: ClassTag, U](f: T => U)(implicit arb: Arbitrary[T], fnl: Funnel[T]): Unit = {
-    ensureSerializable(fnl)
+  private def test[T: ClassTag, U](f: T => U)(implicit arb: Arbitrary[T], t: Funnel[T]): Unit = {
+    val fnl = ensureSerializable(t)
     val name = className[T]
     val g = arb.arbitrary
     property(s"$name.uniqueness") = Prop.forAll(Gen.listOfN(10, g)) { xs =>

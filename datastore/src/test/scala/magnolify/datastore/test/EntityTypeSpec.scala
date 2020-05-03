@@ -34,8 +34,8 @@ import org.scalacheck._
 import scala.reflect._
 
 object EntityTypeSpec extends MagnolifySpec("EntityType") {
-  private def test[T: Arbitrary: ClassTag](implicit tpe: EntityType[T], eq: Eq[T]): Unit = {
-    ensureSerializable(tpe)
+  private def test[T: Arbitrary: ClassTag](implicit t: EntityType[T], eq: Eq[T]): Unit = {
+    val tpe = ensureSerializable(t)
     property(className[T]) = Prop.forAll { t: T =>
       val r = tpe(t)
       val copy = tpe(r)

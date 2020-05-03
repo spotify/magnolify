@@ -32,8 +32,8 @@ import org.scalacheck._
 import scala.reflect._
 
 object BigtableTypeSpec extends MagnolifySpec("BigtableType") {
-  private def test[T: Arbitrary: ClassTag](implicit tpe: BigtableType[T], eq: Eq[T]): Unit = {
-    ensureSerializable(tpe)
+  private def test[T: Arbitrary: ClassTag](implicit t: BigtableType[T], eq: Eq[T]): Unit = {
+    val tpe = ensureSerializable(t)
     property(className[T]) = Prop.forAll { t: T =>
       val mutations = tpe(t, "cf")
       val row = BigtableType.mutationsToRow(ByteString.EMPTY, mutations)
