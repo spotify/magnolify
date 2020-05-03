@@ -92,7 +92,7 @@ object ProtobufField {
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
     // One Record[T] instance may be used for multiple Message types
-    @transient private val fieldsCache: concurrent.Map[String, Array[FieldDescriptor]] =
+    private val fieldsCache: concurrent.Map[String, Array[FieldDescriptor]] =
       concurrent.TrieMap.empty
     private def getFields(descriptor: Descriptor): Array[FieldDescriptor] =
       fieldsCache.getOrElseUpdate(
