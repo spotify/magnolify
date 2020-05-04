@@ -32,9 +32,9 @@ import scala.collection.concurrent
 import scala.language.experimental.macros
 import scala.reflect.ClassTag
 
-class noneValue(value: Any) extends StaticAnnotation with Serializable {
+class asNone(value: Any) extends StaticAnnotation with Serializable {
   def get: Any = value
-  override def toString: String = s"noneValue($value)"
+  override def toString: String = s"asNone($value)"
 }
 
 sealed trait ProtobufType[T, MsgT <: Message] extends Converter[T, MsgT, MsgT] {
@@ -48,14 +48,14 @@ object ProtobufType {
     ct: ClassTag[MsgT]
   ): ProtobufType[T, MsgT] =
     new ProtobufType[T, MsgT] {
-      if (f.hasNoneValue) {
+      if (f.hasAsNone) {
         val syntax = ct.runtimeClass
           .getMethod("getDescriptor")
           .invoke(null)
           .asInstanceOf[Descriptor]
           .getFile
           .getSyntax
-        require(syntax == Syntax.PROTO3, "@noneValue annotation supports PROTO3 only")
+        require(syntax == Syntax.PROTO3, "@asNone annotation supports PROTO3 only")
       }
 
       @transient private var _newBuilder: Method = _
@@ -88,7 +88,7 @@ object ProtobufField {
   }
 
   trait Record[T] extends Aux[T, Message, Message] {
-    def hasNoneValue: Boolean
+    def hasAsNone: Boolean
   }
 
   //////////////////////////////////////////////////
@@ -96,7 +96,7 @@ object ProtobufField {
   type Typeclass[T] = ProtobufField[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    override def hasNoneValue: Boolean = noneValues.nonEmpty
+    override def hasAsNone: Boolean = asNoneValues.nonEmpty
 
     // One Record[T] instance may be used for multiple Message types
     private val fieldsCache: concurrent.Map[String, Array[FieldDescriptor]] =
@@ -117,7 +117,6 @@ object ProtobufField {
 
       caseClass.construct { p =>
         val field = fields(p.index)
-        val nv = noneValues.get(p.index)
 
         if (syntax == Syntax.PROTO2) {
           // PROTO2 supports `optional` and `hasField` behaves properly
@@ -129,10 +128,11 @@ object ProtobufField {
           p.typeclass.fromAny(value)
         } else {
           val value = p.typeclass.fromAny(v.getField(field))
-          if (nv.isDefined) {
-            // field is annotated with `@noneValue(x: T)` and `nv` is `Some(x: T)`
+          val anv = asNoneValues.get(p.index)
+          if (anv.isDefined) {
+            // field is annotated with `@asNone(x: T)` and `anv` is `Some(x: T)`
             // `p.typeclass` is `OptionProtobufField` and `p.PType` is `Option[T]`
-            if (value == nv.asInstanceOf[p.PType]) None else value
+            if (value == anv.asInstanceOf[p.PType]) None else value
           } else {
             value
           }
@@ -158,29 +158,29 @@ object ProtobufField {
         .build()
     }
 
-    private val noneValues: Map[Int, Any] = {
+    private val asNoneValues: Map[Int, Any] = {
       caseClass.parameters.iterator.flatMap { p =>
-        val nv = getNoneValue(p)
-        if (nv.isDefined) {
+        val anv = getAsNoneValue(p)
+        if (anv.isDefined) {
           require(
             p.typeclass.isInstanceOf[OptionProtobufField[_]],
-            s"@noneValue annotation supports Option[T] type only: ${caseClass.typeName.full}#${p.label}"
+            s"@asNone annotation supports Option[T] type only: ${caseClass.typeName.full}#${p.label}"
           )
           p.typeclass
             .asInstanceOf[OptionProtobufField[_]]
-            .checkNoneValue(nv.get, s"${caseClass.typeName.full}#${p.label}")
+            .checkAsNoneValue(anv.get, s"${caseClass.typeName.full}#${p.label}")
         }
-        nv.map((p.index, _))
+        anv.map((p.index, _))
       }.toMap
     }
 
-    private def getNoneValue(p: Param[Typeclass, T]): Option[Any] = {
-      val nvs = p.annotations.collect { case nv: noneValue => nv.get }
+    private def getAsNoneValue(p: Param[Typeclass, T]): Option[Any] = {
+      val anvs = p.annotations.collect { case anv: asNone => anv.get }
       require(
-        nvs.size <= 1,
-        s"More than one @noneValue annotation: ${caseClass.typeName.full}#${p.label}"
+        anvs.size <= 1,
+        s"More than one @asNone annotation: ${caseClass.typeName.full}#${p.label}"
       )
-      nvs.headOption
+      anvs.headOption
     }
   }
 
@@ -239,7 +239,7 @@ object ProtobufField {
     }
 
     // check whether `v: Any` in `@noneValue(v)` is compatible with field type `Option[T]`
-    def checkNoneValue(v: Any, name: String): Unit = {
+    def checkAsNoneValue(v: Any, name: String): Unit = {
       val vc = v.getClass
       val cls = implicitly[ClassTag[T]].runtimeClass
       val compatible = cls match {
@@ -256,7 +256,7 @@ object ProtobufField {
       }
       require(
         compatible,
-        s"@noneValue annotation with incompatible type: $name ${vc.getCanonicalName} is not ${cls.getCanonicalName}"
+        s"@asNone annotation with incompatible type: $name ${vc.getCanonicalName} is not ${cls.getCanonicalName}"
       )
     }
   }

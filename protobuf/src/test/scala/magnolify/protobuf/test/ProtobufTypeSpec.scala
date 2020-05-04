@@ -116,27 +116,27 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufType") {
 
   require(
     expectException[IllegalArgumentException](ProtobufType[NullableNoneValue, RequiredP2]).getMessage ==
-      "requirement failed: @noneValue annotation supports PROTO3 only"
+      "requirement failed: @asNone annotation supports PROTO3 only"
   )
   require(
     expectException[IllegalArgumentException](ProtobufType[DoubleNoneValue, IntegersP3]).getMessage ==
-      "requirement failed: More than one @noneValue annotation: magnolify.protobuf.test.DoubleNoneValue#i"
+      "requirement failed: More than one @asNone annotation: magnolify.protobuf.test.DoubleNoneValue#i"
   )
   require(
     expectException[IllegalArgumentException](ProtobufType[RequiredNoneValue, IntegersP3]).getMessage ==
-      "requirement failed: @noneValue annotation supports Option[T] type only: magnolify.protobuf.test.RequiredNoneValue#i"
+      "requirement failed: @asNone annotation supports Option[T] type only: magnolify.protobuf.test.RequiredNoneValue#i"
   )
   require(
     expectException[IllegalArgumentException](ProtobufType[BadNoneValue1, IntegersP3]).getMessage ==
-      "requirement failed: @noneValue annotation with incompatible type: magnolify.protobuf.test.BadNoneValue1#i java.lang.Double is not int"
+      "requirement failed: @asNone annotation with incompatible type: magnolify.protobuf.test.BadNoneValue1#i java.lang.Double is not int"
   )
   require(
     expectException[IllegalArgumentException](ProtobufType[BadNoneValue2, IntegersP3]).getMessage ==
-      "requirement failed: @noneValue annotation with incompatible type: magnolify.protobuf.test.BadNoneValue2#i java.lang.String is not int"
+      "requirement failed: @asNone annotation with incompatible type: magnolify.protobuf.test.BadNoneValue2#i java.lang.String is not int"
   )
   require(
     expectException[IllegalArgumentException](ProtobufType[BadNoneValue3, NestedP3]).getMessage ==
-      "requirement failed: @noneValue annotation with incompatible type: magnolify.protobuf.test.BadNoneValue3#r java.lang.String is not magnolify.test.Simple.Required"
+      "requirement failed: @asNone annotation with incompatible type: magnolify.protobuf.test.BadNoneValue3#r java.lang.String is not magnolify.test.Simple.Required"
   )
 }
 
@@ -154,25 +154,25 @@ case class NestedNoOption(
 )
 
 case class NullableNoneValue(
-  @noneValue(true) b: Option[Boolean],
-  @noneValue(1) i: Option[Int],
-  @noneValue("abc") s: Option[String]
+  @asNone(true) b: Option[Boolean],
+  @asNone(1) i: Option[Int],
+  @asNone("abc") s: Option[String]
 )
 case class NestedNoneValue(
   b: Boolean,
   i: Int,
   s: String,
-  @noneValue(Required(true, 1, "abc")) r: Option[Required],
+  @asNone(Required(true, 1, "abc")) r: Option[Required],
   l: List[Required]
 )
-case class DoubleNoneValue(@noneValue(1) @noneValue(2) i: Option[Int], l: Long)
-case class RequiredNoneValue(@noneValue(1) i: Int, l: Long)
-case class BadNoneValue1(@noneValue(1.0) i: Option[Int], l: Long)
-case class BadNoneValue2(@noneValue("abc") i: Option[Int], l: Long)
+case class DoubleNoneValue(@asNone(1) @asNone(2) i: Option[Int], l: Long)
+case class RequiredNoneValue(@asNone(1) i: Int, l: Long)
+case class BadNoneValue1(@asNone(1.0) i: Option[Int], l: Long)
+case class BadNoneValue2(@asNone("abc") i: Option[Int], l: Long)
 case class BadNoneValue3(
   b: Boolean,
   i: Int,
   s: String,
-  @noneValue("abc") r: Option[Required],
+  @asNone("abc") r: Option[Required],
   l: List[Required]
 )
