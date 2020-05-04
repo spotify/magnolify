@@ -120,6 +120,7 @@ object ProtobufField {
         val nv = noneValues.get(p.index)
 
         if (syntax == Syntax.PROTO2) {
+          // PROTO2 supports `optional` and `hasField` behaves properly
           val value = if (field.isOptional && !v.hasField(field)) {
             null
           } else {
@@ -129,6 +130,8 @@ object ProtobufField {
         } else {
           val value = p.typeclass.fromAny(v.getField(field))
           if (nv.isDefined) {
+            // field is annotated with `@noneValue(x: T)` and `nv` is `Some(x: T)`
+            // `p.typeclass` is `OptionProtobufField` and `p.PType` is `Option[T]`
             if (value == nv.asInstanceOf[p.PType]) None else value
           } else {
             value
@@ -165,7 +168,7 @@ object ProtobufField {
           )
           p.typeclass
             .asInstanceOf[OptionProtobufField[_]]
-            .typeCheck(nv.get, s"${caseClass.typeName.full}#${p.label}")
+            .checkNoneValue(nv.get, s"${caseClass.typeName.full}#${p.label}")
         }
         nv.map((p.index, _))
       }.toMap
@@ -234,10 +237,13 @@ object ProtobufField {
       case None    => null.asInstanceOf[f.ToT]
       case Some(x) => f.to(x, b)
     }
-    def typeCheck(v: Any, name: String): Unit = {
+
+    // check whether `v: Any` in `@noneValue(v)` is compatible with field type `Option[T]`
+    def checkNoneValue(v: Any, name: String): Unit = {
       val vc = v.getClass
       val cls = implicitly[ClassTag[T]].runtimeClass
       val compatible = cls match {
+        // special handling for primitive mismatches, e.g. `scala.Int` vs `java.lang.Integer`
         case c if c == classOf[Boolean] => vc == classOf[java.lang.Boolean]
         case c if c == classOf[Byte]    => vc == classOf[java.lang.Byte]
         case c if c == classOf[Char]    => vc == classOf[java.lang.Character]
