@@ -38,8 +38,8 @@ import org.scalacheck._
 import scala.reflect._
 
 object AvroTypeSpec extends MagnolifySpec("AvroType") {
-  private def test[T: Arbitrary: ClassTag](
-    implicit t: AvroType[T],
+  private def test[T: Arbitrary: ClassTag](implicit
+    t: AvroType[T],
     eqt: Eq[T],
     eqr: Eq[GenericRecord] = Eq.instance(_ == _)
   ): Unit = {

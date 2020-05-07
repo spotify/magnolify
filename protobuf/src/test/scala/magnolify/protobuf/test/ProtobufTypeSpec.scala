@@ -40,8 +40,8 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufType") {
     val t = ensureSerializable(ProtobufType[Repeated, RepeatedP2])
     t(RepeatedP2.getDefaultInstance)
   }
-  private def test[T: ClassTag: Arbitrary: Eq, U <: Message: ClassTag](
-    implicit t: ProtobufType[T, U],
+  private def test[T: ClassTag: Arbitrary: Eq, U <: Message: ClassTag](implicit
+    t: ProtobufType[T, U],
     eqt: Eq[T]
   ): Unit = {
     val tpe = ensureSerializable(t)

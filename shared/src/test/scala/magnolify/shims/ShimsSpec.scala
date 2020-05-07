@@ -21,8 +21,8 @@ import org.scalacheck._
 import scala.reflect._
 
 object ShimsSpec extends Properties("Shims") {
-  private def test[C[_]](
-    implicit ct: ClassTag[C[Int]],
+  private def test[C[_]](implicit
+    ct: ClassTag[C[Int]],
     ti: C[Int] => Iterable[Int],
     fc: FactoryCompat[Int, C[Int]]
   ): Unit = {
