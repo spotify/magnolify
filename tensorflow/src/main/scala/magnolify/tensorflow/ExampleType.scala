@@ -169,8 +169,8 @@ object ExampleField {
       }
     }
 
-  implicit def efIterable[T, C[_]](
-    implicit ef: Primitive[T],
+  implicit def efIterable[T, C[_]](implicit
+    ef: Primitive[T],
     ti: C[T] => Iterable[T],
     fc: FactoryCompat[T, C[T]]
   ): ExampleField[C[T]] = new ExampleField[C[T]] {

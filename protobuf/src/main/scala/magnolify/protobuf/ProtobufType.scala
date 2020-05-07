@@ -38,8 +38,8 @@ sealed trait ProtobufType[T, MsgT <: Message] extends Converter[T, MsgT, MsgT] {
 }
 
 object ProtobufType {
-  implicit def apply[T, MsgT <: Message](
-    implicit f: ProtobufField.Record[T],
+  implicit def apply[T, MsgT <: Message](implicit
+    f: ProtobufField.Record[T],
     ct: ClassTag[MsgT]
   ): ProtobufType[T, MsgT] =
     new ProtobufType[T, MsgT] {
@@ -197,8 +197,8 @@ object ProtobufField {
       }
     }
 
-  implicit def pfIterable[T, C[_]](
-    implicit f: ProtobufField[T],
+  implicit def pfIterable[T, C[_]](implicit
+    f: ProtobufField[T],
     ti: C[T] => Iterable[T],
     fc: FactoryCompat[T, C[T]]
   ): ProtobufField[C[T]] =

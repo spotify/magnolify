@@ -67,8 +67,8 @@ trait FunnelImplicits {
   implicit val shortFunnel: Funnel[Short] = funnel[Short](_.putShort(_))
 
   // There is an implicit Option[T] => Iterable[T]
-  implicit def iterableFunnel[T, C[_]](
-    implicit fnl: Funnel[T],
+  implicit def iterableFunnel[T, C[_]](implicit
+    fnl: Funnel[T],
     ti: C[T] => Iterable[T]
   ): Funnel[C[T]] =
     funnel { (sink, from) =>
