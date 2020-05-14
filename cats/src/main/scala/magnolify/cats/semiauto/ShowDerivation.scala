@@ -24,7 +24,7 @@ import scala.language.experimental.macros
 object ShowDerivation {
   type Typeclass[T] = Show[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = Show.show { x =>
+  def combine[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] = Show.show { x =>
     caseClass.parameters
       .map(p => s"${p.label} = ${p.typeclass.show(p.dereference(x))}")
       .mkString(s"${caseClass.typeName.full} {", ", ", "}")
