@@ -42,7 +42,7 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufType") {
   ): Unit = {
     val tpe = ensureSerializable(t)
 
-    property(className[U]) = Prop.forAll { t: T =>
+    property(s"${className[T]}.${className[U]}") = Prop.forAll { t: T =>
       val r = tpe(t)
       val copy = tpe(r)
       eqt.eqv(t, copy)
