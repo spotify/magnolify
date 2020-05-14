@@ -26,7 +26,7 @@ import scala.util.hashing.MurmurHash3
 object HashDerivation {
   type Typeclass[T] = Hash[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+  def combine[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] = {
     val eqvImpl = EqMethods.combine(caseClass)
 
     new Hash[T] {

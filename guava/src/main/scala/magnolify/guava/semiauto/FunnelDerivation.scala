@@ -25,7 +25,7 @@ import scala.language.experimental.macros
 object FunnelDerivation {
   type Typeclass[T] = Funnel[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = new Funnel[T] {
+  def combine[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] = new Funnel[T] {
     override def funnel(from: T, into: PrimitiveSink): Unit =
       if (caseClass.parameters.isEmpty) {
         into.putString(caseClass.typeName.short, Charsets.UTF_8)

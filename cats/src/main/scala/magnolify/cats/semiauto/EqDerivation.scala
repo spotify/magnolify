@@ -24,7 +24,7 @@ import scala.language.experimental.macros
 object EqDerivation {
   type Typeclass[T] = Eq[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] =
+  def combine[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] =
     Eq.instance(EqMethods.combine(caseClass))
 
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] =
@@ -34,7 +34,7 @@ object EqDerivation {
 }
 
 private object EqMethods {
-  def combine[T, Typeclass[T] <: Eq[T]](caseClass: CaseClass[Typeclass, T]): (T, T) => Boolean =
+  def combine[T, Typeclass[T] <: Eq[T]](caseClass: ReadOnlyCaseClass[Typeclass, T]): (T, T) => Boolean =
     (x, y) => caseClass.parameters.forall(p => p.typeclass.eqv(p.dereference(x), p.dereference(y)))
 
   def dispatch[T, Typeclass[T] <: Eq[T]](
