@@ -51,17 +51,37 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufType") {
 
   test[Integers, IntegersP2]
   test[Integers, IntegersP3]
-  // PROTO3 removes the notion of require vs optional fields.
-  // The new singular field returns default value if unset, making it required essentially.
   test[Required, RequiredP2]
   test[Required, SingularP3]
   test[Nullable, NullableP2]
+
+  // PROTO3 removes the notion of require vs optional fields.
+  // By default `Option[T] are not supported`.
   try {
     test[Nullable, SingularP3]
   } catch {
     case e: IllegalArgumentException =>
-      require(e.getMessage == "requirement failed: Option[T] support is PROTO2 only")
+      require(
+        e.getMessage ==
+          "requirement failed: Option[T] support is PROTO2 only, " +
+            "`import magnolify.protobuf.Optional.Proto3._` to enable PROTO3 support"
+      )
   }
+
+  // Adding `import magnolify.protobuf.Optional.Proto3._` enables PROTO3 `Option[T]` support.
+  // The new singular field returns default value if unset.
+  // Hence `None` round trips back as `Some(false/0/"")`.
+  {
+    import magnolify.protobuf.Optional.Proto3._
+    val eq = Eq.instance[Nullable] { (x, y) =>
+      x.b.getOrElse(false) == y.b.getOrElse(false) &&
+      x.i.getOrElse(0) == y.i.getOrElse(0) &&
+      x.s.getOrElse("") == y.s.getOrElse("")
+    }
+    val arb = implicitly[Arbitrary[Nullable]]
+    test(classTag[Nullable], arb, classTag[SingularP3], ProtobufType[Nullable, SingularP3], eq)
+  }
+
   test[Repeated, RepeatedP2]
   test[Repeated, RepeatedP3]
   test[Nested, NestedP2]
