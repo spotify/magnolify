@@ -37,10 +37,32 @@ sealed trait ProtobufType[T, MsgT <: Message] extends Converter[T, MsgT, MsgT] {
   def apply(t: T): MsgT = to(t)
 }
 
+sealed trait ProtobufOption {
+  def check(f: ProtobufField.Record[_], syntax: Syntax): Unit
+}
+
+object ProtobufOption {
+  implicit val proto2Option: ProtobufOption = new ProtobufOption {
+    override def check(f: ProtobufField.Record[_], syntax: Syntax): Unit =
+      if (f.hasOptional) {
+        require(
+          syntax == Syntax.PROTO2,
+          "Option[T] support is PROTO2 only, " +
+            "`import magnolify.protobuf.unsafe.Proto3Option._` to enable PROTO3 support"
+        )
+      }
+  }
+
+  private[protobuf] class Proto3Option extends ProtobufOption {
+    override def check(f: ProtobufField.Record[_], syntax: Syntax): Unit = ()
+  }
+}
+
 object ProtobufType {
   implicit def apply[T, MsgT <: Message](implicit
     f: ProtobufField.Record[T],
-    ct: ClassTag[MsgT]
+    ct: ClassTag[MsgT],
+    po: ProtobufOption
   ): ProtobufType[T, MsgT] =
     new ProtobufType[T, MsgT] {
       if (f.hasOptional) {
@@ -50,7 +72,7 @@ object ProtobufType {
           .asInstanceOf[Descriptor]
           .getFile
           .getSyntax
-        require(syntax == Syntax.PROTO2, "Option[T] support is PROTO2 only")
+        po.check(f, syntax)
       }
 
       @transient private var _newBuilder: Method = _

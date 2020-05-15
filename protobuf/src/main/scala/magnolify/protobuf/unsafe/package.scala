@@ -20,4 +20,8 @@ package object unsafe {
   implicit val pfByte = ProtobufField.from[Int](_.toByte)(_.toInt)
   implicit val pfChar = ProtobufField.from[Int](_.toChar)(_.toInt)
   implicit val pfShort = ProtobufField.from[Int](_.toShort)(_.toInt)
+
+  object Proto3Option {
+    implicit val proto3Option: ProtobufOption = new ProtobufOption.Proto3Option
+  }
 }
