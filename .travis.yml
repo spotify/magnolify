@@ -1,8 +1,6 @@
 language: scala
 matrix:
   include:
-    - scala: 2.11.12
-      jdk: openjdk8
     - scala: 2.12.11
       jdk: openjdk8
     - scala: 2.12.11
