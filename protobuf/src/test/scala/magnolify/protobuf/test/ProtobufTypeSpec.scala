@@ -64,15 +64,15 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufType") {
       require(
         e.getMessage ==
           "requirement failed: Option[T] support is PROTO2 only, " +
-            "`import magnolify.protobuf.Optional.Proto3._` to enable PROTO3 support"
+            "`import magnolify.protobuf.unsafe.Proto3Option._` to enable PROTO3 support"
       )
   }
 
-  // Adding `import magnolify.protobuf.Optional.Proto3._` enables PROTO3 `Option[T]` support.
+  // Adding `import magnolify.protobuf.unsafe.Proto3Option._` enables PROTO3 `Option[T]` support.
   // The new singular field returns default value if unset.
   // Hence `None` round trips back as `Some(false/0/"")`.
   {
-    import magnolify.protobuf.Optional.Proto3._
+    import magnolify.protobuf.unsafe.Proto3Option._
     val eq = Eq.instance[Nullable] { (x, y) =>
       x.b.getOrElse(false) == y.b.getOrElse(false) &&
       x.i.getOrElse(0) == y.i.getOrElse(0) &&
