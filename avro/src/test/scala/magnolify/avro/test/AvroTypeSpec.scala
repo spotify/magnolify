@@ -55,14 +55,10 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
   }
 
   private def roundTrip[T: Arbitrary: ClassTag](t: T)(implicit
-  at: AvroType[T],
-  eqt: Eq[T]
-  ): Unit = {
-    val to = at.to(t)
-    println(to)
-    val from = at.from(to)
-    println(from)
-  }
+    at: AvroType[T],
+    eqt: Eq[T]
+  ): Unit =
+    eqt.eqv(t, at.from(at.to(t)))
 
   test[Integers]
   test[Required]
@@ -135,13 +131,14 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
     )
   }
 
-{
-  implicit val afTrack = AvroType[Track]((name: String) => s"_$name")
-
-  val track = Track(1, "go alone", Artist(123, "shameera"), List("a", "b", "c"), true, Option(null))
-  roundTrip(track)
-  test[Track]
-}
+  {
+    import magnolify.shared.Converter._
+    implicit val afTrack = AvroType[Track](toSnakeCase)
+    test[Track]
+    val track =
+      Track(1, "Scala Scala", Artist(123, "Martin"), List("a", "b", "c"), true, Option(null))
+    roundTrip(track)
+  }
 
   require(
     expectException[IllegalArgumentException](AvroType[DoubleRecordDoc]).getMessage ==
@@ -158,8 +155,15 @@ case class AvroTypes(bs: Array[Byte])
 case class MapPrimitive(m: Map[String, Int])
 case class MapNested(m: Map[String, Nested])
 
-  case class Artist(artistId: Int, artistName: String)
-  case class Track(trackId: Int, trackName: String, artistValue: Artist, genreList: List[String], expValue: Boolean, extra: Option[String])
+case class Artist(artistId: Int, artistName: String)
+case class Track(
+  trackId: Int,
+  trackName: String,
+  artistValue: Artist,
+  genreList: List[String],
+  expValue: Boolean,
+  extra: Option[String]
+)
 
 @doc("Avro with doc")
 case class AvroDoc(@doc("string") s: String, @doc("integers") i: Integers)

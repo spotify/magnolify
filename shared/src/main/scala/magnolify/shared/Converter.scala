@@ -24,4 +24,15 @@ abstract class Converter[T, Reader, Writer] extends Serializable {
 object Converter {
   type CaseMapper = String => String
 
+  def toSnakeCase: CaseMapper = value => {
+    def snakify(chars: List[Char]): List[Char] =  chars match {
+      case '-' :: ls => '_' :: snakify(ls) // kebab-case => kebab_case 
+      case '_' :: ls => '_' :: snakify(ls) // snake_case => snake_case
+      case c :: ls if(c.toUpper == c) => '_' :: (c.toLower :: snakify(ls)) // camelCase => camel_case 
+      case c :: ls => c :: snakify(ls)
+      case a => a
+    }
+    if (value.isEmpty()) value 
+    else (value.charAt(0).toLower :: snakify(value.substring(1).toList)).mkString
+  }
 }
