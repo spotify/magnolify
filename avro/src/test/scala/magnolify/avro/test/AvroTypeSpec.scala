@@ -133,6 +133,7 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
 
   {
     import magnolify.shared.CaseMapper._
+    import magnolify.test.Product._
     implicit val afTrack = AvroType[Track](toSnakeCase)
     test[Track]
     val track =
@@ -154,16 +155,6 @@ case class Unsafe(b: Byte, c: Char, s: Short)
 case class AvroTypes(bs: Array[Byte])
 case class MapPrimitive(m: Map[String, Int])
 case class MapNested(m: Map[String, Nested])
-
-case class Artist(artistId: Int, artistName: String)
-case class Track(
-  trackId: Int,
-  trackName: String,
-  artistValue: Artist,
-  genreList: List[String],
-  expValue: Boolean,
-  extra: Option[String]
-)
 
 @doc("Avro with doc")
 case class AvroDoc(@doc("string") s: String, @doc("integers") i: Integers)

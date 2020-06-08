@@ -30,6 +30,7 @@ import magnolify.shims.JavaConverters._
 import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.language.experimental.macros
 import scala.reflect.ClassTag
+import magnolify.shared.CaseMapper
 
 class description(description: String) extends StaticAnnotation with Serializable {
   override def toString: String = description
@@ -44,14 +45,18 @@ sealed trait TableRowType[T] extends Converter[T, TableRow, TableRow] {
 }
 
 object TableRowType {
-  implicit def apply[T](implicit f: TableRowField.Record[T]): TableRowType[T] =
-    new TableRowType[T] {
-      override protected val schemaString: String =
-        Schemas.toJson(new TableSchema().setFields(f.fieldSchema.getFields))
-      override val description: String = f.fieldSchema.getDescription
+  implicit def apply[T: TableRowField.Record]: TableRowType[T] = apply(identity: CaseMapper)
 
-      override def from(v: TableRow): T = f.from(v)
-      override def to(v: T): TableRow = f.to(v)
+  def apply[T: TableRowField.Record](g: CaseMapper): TableRowType[T] =
+    new TableRowType[T] {
+      val f = implicitly[TableRowField.Record[T]]
+      override val caseMapper: CaseMapper = g
+      override protected val schemaString: String =
+        Schemas.toJson(new TableSchema().setFields(f.fieldSchema(caseMapper).getFields))
+      override val description: String = f.fieldSchema(caseMapper).getDescription
+
+      override def from(v: TableRow): T = f.from(v)(caseMapper)
+      override def to(v: T): TableRow = f.to(v)(caseMapper)
     }
 }
 
@@ -59,12 +64,13 @@ sealed trait TableRowField[T] extends Serializable {
   type FromT
   type ToT
 
-  protected val schemaString: String
-  def fieldSchema: TableFieldSchema = Schemas.fromJson[TableFieldSchema](schemaString)
-  def from(v: FromT): T
-  def to(v: T): ToT
+  protected def schemaString(cm: CaseMapper): String
+  def fieldSchema(cm: CaseMapper): TableFieldSchema =
+    Schemas.fromJson[TableFieldSchema](schemaString(cm))
+  def from(v: FromT)(cm: CaseMapper): T
+  def to(v: T)(cm: CaseMapper): ToT
 
-  def fromAny(v: Any): T = from(v.asInstanceOf[FromT])
+  def fromAny(v: Any)(cm: CaseMapper): T = from(v.asInstanceOf[FromT])(cm)
 }
 
 object TableRowField {
@@ -81,36 +87,37 @@ object TableRowField {
   type Typeclass[T] = TableRowField[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    override protected val schemaString: String =
+    override protected def schemaString(cm: CaseMapper): String =
       Schemas.toJson(
         new TableFieldSchema()
           .setType("STRUCT")
           .setMode("REQUIRED")
           .setDescription(getDescription(caseClass.annotations, caseClass.typeName.full))
           .setFields(caseClass.parameters.map { p =>
-            p.typeclass.fieldSchema
-              .setName(p.label)
+            p.typeclass
+              .fieldSchema(cm)
+              .setName(cm map p.label)
               .setDescription(
-                getDescription(p.annotations, s"${caseClass.typeName.full}#${p.label}")
+                getDescription(p.annotations, s"${caseClass.typeName.full}#${cm map p.label}")
               )
           }.asJava)
       )
 
-    override def from(v: java.util.Map[String, AnyRef]): T =
+    override def from(v: java.util.Map[String, AnyRef])(cm: CaseMapper): T =
       caseClass.construct { p =>
-        val f = v.get(p.label)
+        val f = v.get(cm map p.label)
         if (f == null && p.default.isDefined) {
           p.default.get
         } else {
-          p.typeclass.fromAny(f)
+          p.typeclass.fromAny(f)(cm)
         }
       }
 
-    override def to(v: T): TableRow =
+    override def to(v: T)(cm: CaseMapper): TableRow =
       caseClass.parameters.foldLeft(new TableRow) { (tr, p) =>
-        val f = p.typeclass.to(p.dereference(v))
+        val f = p.typeclass.to(p.dereference(v))(cm)
         if (f != null) {
-          tr.put(p.label, f)
+          tr.put(cm map p.label, f)
         }
         tr
       }
@@ -139,19 +146,20 @@ object TableRowField {
       new TableRowField[U] {
         override type FromT = trf.FromT
         override type ToT = trf.ToT
-        override protected val schemaString: String = Schemas.toJson(trf.fieldSchema)
-        override def from(v: FromT): U = f(trf.from(v))
-        override def to(v: U): ToT = trf.to(g(v))
+        override protected def schemaString(cm: CaseMapper): String =
+          Schemas.toJson(trf.fieldSchema(cm))
+        override def from(v: FromT)(cm: CaseMapper): U = f(trf.from(v)(cm))
+        override def to(v: U)(cm: CaseMapper): ToT = trf.to(g(v))(cm)
       }
   }
 
   //////////////////////////////////////////////////
 
   private def at[T](tpe: String)(f: Any => T)(g: T => Any): TableRowField[T] = new Generic[T] {
-    override protected val schemaString: String =
+    override protected def schemaString(cm: CaseMapper): String =
       Schemas.toJson(new TableFieldSchema().setType(tpe).setMode("REQUIRED"))
-    override def from(v: Any): T = f(v)
-    override def to(v: T): Any = g(v)
+    override def from(v: Any)(cm: CaseMapper): T = f(v)
+    override def to(v: T)(cm: CaseMapper): Any = g(v)
   }
 
   implicit val trfBool = at[Boolean]("BOOL")(_.toString.toBoolean)(identity)
@@ -174,13 +182,13 @@ object TableRowField {
 
   implicit def trfOption[T](implicit f: TableRowField[T]): TableRowField[Option[T]] =
     new Aux[Option[T], f.FromT, f.ToT] {
-      override protected val schemaString: String =
-        Schemas.toJson(f.fieldSchema.setMode("NULLABLE"))
-      override def from(v: f.FromT): Option[T] =
-        if (v == null) None else Some(f.from(v))
-      override def to(v: Option[T]): f.ToT = v match {
+      override protected def schemaString(cm: CaseMapper): String =
+        Schemas.toJson(f.fieldSchema(cm).setMode("NULLABLE"))
+      override def from(v: f.FromT)(cm: CaseMapper): Option[T] =
+        if (v == null) None else Some(f.from(v)(cm))
+      override def to(v: Option[T])(cm: CaseMapper): f.ToT = v match {
         case None    => null.asInstanceOf[f.ToT]
-        case Some(x) => f.to(x)
+        case Some(x) => f.to(x)(cm)
       }
     }
 
@@ -190,16 +198,16 @@ object TableRowField {
     fc: FactoryCompat[T, C[T]]
   ): TableRowField[C[T]] =
     new Aux[C[T], ju.List[f.FromT], ju.List[f.ToT]] {
-      override protected val schemaString: String =
-        Schemas.toJson(f.fieldSchema.setMode("REPEATED"))
-      override def from(v: ju.List[f.FromT]): C[T] =
+      override protected def schemaString(cm: CaseMapper): String =
+        Schemas.toJson(f.fieldSchema(cm).setMode("REPEATED"))
+      override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] =
         if (v == null) {
           fc.newBuilder.result()
         } else {
-          fc.build(v.asScala.iterator.map(f.from))
+          fc.build(v.asScala.iterator.map(f.from(_)(cm)))
         }
-      override def to(v: C[T]): ju.List[f.ToT] =
-        if (v.isEmpty) null else v.iterator.map(f.to(_)).toList.asJava
+      override def to(v: C[T])(cm: CaseMapper): ju.List[f.ToT] =
+        if (v.isEmpty) null else v.iterator.map(f.to(_)(cm)).toList.asJava
     }
 }
 

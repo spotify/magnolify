@@ -35,3 +35,15 @@ object ADT {
   case object Green extends Color
   case object Blue extends Color
 }
+
+object Product {
+  case class Artist(artistId: Int, artistName: String)
+  case class Track(
+    trackId: Int,
+    trackName: String,
+    artistValue: Artist,
+    genreList: List[String],
+    expValue: Boolean,
+    extra: Option[String]
+  )
+}
