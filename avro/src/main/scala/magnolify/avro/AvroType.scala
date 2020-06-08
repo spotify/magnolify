@@ -43,10 +43,11 @@ sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
 }
 
 object AvroType {
-  implicit def apply[T]: AvroType[T] = apply(identity)
+  implicit def apply[T: AvroField.Record]: AvroType[T] = apply(identity: CaseMapper)
 
-  def apply[T](g: CaseMapper)(implicit f: AvroField.Record[T]): AvroType[T] =
+  def apply[T: AvroField.Record](g: CaseMapper): AvroType[T] =
     new AvroType[T] {
+      val f = implicitly[AvroField.Record[T]]
       override val caseMapper: CaseMapper = g
       override protected val schemaString: String = f.schema(caseMapper).toString()
       override def from(v: GenericRecord): T = f.from(v)(caseMapper)
@@ -58,7 +59,7 @@ sealed trait AvroField[T] extends Serializable {
   type FromT
   type ToT
 
-  protected def schemaString(g: CaseMapper): String
+  protected def schemaString(cm: CaseMapper): String
   def schema(cm: CaseMapper): Schema = new Schema.Parser().parse(schemaString(cm))
   def defaultVal: Any
   def from(v: FromT)(cm: CaseMapper): T
