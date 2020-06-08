@@ -43,18 +43,15 @@ sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
 }
 
 object AvroType {
-  // For all the primitives
-  implicit def apply[T](implicit f: AvroField.Record[T]): AvroType[T] = new AvroType[T] {
-    override protected val schemaString: String = f.schema(identity).toString()
-    override def from(v: GenericRecord): T = f.from(v)(identity)
-    override def to(v: T): GenericRecord = f.to(v)(identity)
-  }
+  implicit def apply[T]: AvroType[T] = apply(identity)
 
-  implicit def apply[T](g: CaseMapper)(implicit f: AvroField.Record[T]): AvroType[T] = new AvroType[T] {
-    override protected val schemaString: String = f.schema(g).toString()
-    override def from(v: GenericRecord): T = f.from(v)(g)
-    override def to(v: T): GenericRecord = f.to(v)(g)
-  }
+  def apply[T](g: CaseMapper)(implicit f: AvroField.Record[T]): AvroType[T] =
+    new AvroType[T] {
+      override val caseMapper: CaseMapper = g
+      override protected val schemaString: String = f.schema(caseMapper).toString()
+      override def from(v: GenericRecord): T = f.from(v)(caseMapper)
+      override def to(v: T): GenericRecord = f.to(v)(caseMapper)
+    }
 }
 
 sealed trait AvroField[T] extends Serializable {
@@ -191,10 +188,12 @@ object AvroField {
     fc: FactoryCompat[T, C[T]]
   ): AvroField[C[T]] =
     new Aux[C[T], ju.List[f.FromT], GenericArray[f.ToT]] {
-      override protected def schemaString(cm: CaseMapper): String = Schema.createArray(f.schema(cm)).toString()
+      override protected def schemaString(cm: CaseMapper): String =
+        Schema.createArray(f.schema(cm)).toString()
       override def defaultVal: Any = ju.Collections.emptyList()
       override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] =
-        if (v == null) fc.newBuilder.result() else fc.build(v.asScala.iterator.map(p => f.from(p)(cm)))
+        if (v == null) fc.newBuilder.result()
+        else fc.build(v.asScala.iterator.map(p => f.from(p)(cm)))
       override def to(v: C[T])(cm: CaseMapper): GenericArray[f.ToT] =
         if (v.isEmpty) {
           null
@@ -205,7 +204,8 @@ object AvroField {
 
   implicit def afMap[T](implicit f: AvroField[T]): AvroField[Map[String, T]] =
     new Aux[Map[String, T], ju.Map[CharSequence, f.FromT], ju.Map[String, f.ToT]] {
-      override protected def schemaString(cm: CaseMapper): String = Schema.createMap(f.schema(cm)).toString()
+      override protected def schemaString(cm: CaseMapper): String =
+        Schema.createMap(f.schema(cm)).toString()
       override def defaultVal: Any = ju.Collections.emptyMap()
       override def from(v: ju.Map[CharSequence, f.FromT])(cm: CaseMapper): Map[String, T] =
         if (v == null) {

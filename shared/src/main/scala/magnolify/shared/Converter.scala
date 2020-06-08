@@ -17,6 +17,8 @@
 package magnolify.shared
 
 trait Converter[T, Reader, Writer] extends Serializable {
+  import Converter._
+  val caseMapper: CaseMapper = identity
   def from(v: Reader): T
   def to(v: T): Writer
 }
