@@ -32,7 +32,7 @@ object CaseMapper {
       def snakify(chars: List[Char]): List[Char] =  chars match {
         case '-' :: ls => '_' :: snakify(ls) // kebab-case => kebab_case 
         case '_' :: ls => '_' :: snakify(ls) // snake_case => snake_case
-        case c :: ls if(c.toUpper == c) => '_' :: (c.toLower :: snakify(ls)) // camelCase => camel_case 
+        case c :: ls if (c.toUpper == c) => '_' :: (c.toLower :: snakify(ls)) // camelCase => camel_case 
         case c :: ls => c :: snakify(ls)
         case a => a
       }
