@@ -17,24 +17,27 @@
 package magnolify.shared
 
 trait Converter[T, Reader, Writer] extends Serializable {
-  import Converter._
   val caseMapper: CaseMapper = identity
   def from(v: Reader): T
   def to(v: T): Writer
 }
 
-object Converter {
-  type CaseMapper = String => String
+trait CaseMapper extends Serializable {
+  def map(name: String): String
+}
 
-  def toSnakeCase: CaseMapper = value => {
-    def snakify(chars: List[Char]): List[Char] =  chars match {
-      case '-' :: ls => '_' :: snakify(ls) // kebab-case => kebab_case 
-      case '_' :: ls => '_' :: snakify(ls) // snake_case => snake_case
-      case c :: ls if(c.toUpper == c) => '_' :: (c.toLower :: snakify(ls)) // camelCase => camel_case 
-      case c :: ls => c :: snakify(ls)
-      case a => a
-    }
-    if (value.isEmpty()) value 
-    else (value.charAt(0).toLower :: snakify(value.substring(1).toList)).mkString
+object CaseMapper {
+  val snakeCaseMapper = new CaseMapper {
+    override def map(name: String): String = {
+      def snakify(chars: List[Char]): List[Char] =  chars match {
+        case '-' :: ls => '_' :: snakify(ls) // kebab-case => kebab_case 
+        case '_' :: ls => '_' :: snakify(ls) // snake_case => snake_case
+        case c :: ls if(c.toUpper == c) => '_' :: (c.toLower :: snakify(ls)) // camelCase => camel_case 
+        case c :: ls => c :: snakify(ls)
+        case a => a
+      }
+      if (name.isEmpty()) name 
+      else (name.charAt(0).toLower :: snakify(name.substring(1).toList)).mkString
+    } 
   }
 }

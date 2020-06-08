@@ -21,7 +21,7 @@ import java.{util => ju}
 
 import magnolia._
 import magnolify.shared.Converter
-import Converter._
+import magnolify.shared.CaseMapper
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
 import org.apache.avro.{JsonProperties, Schema}
@@ -89,9 +89,9 @@ object AvroField {
         false,
         caseClass.parameters.map { p =>
           new Schema.Field(
-            cm(p.label),
+            cm map p.label,
             p.typeclass.schema(cm),
-            getDoc(p.annotations, s"${caseClass.typeName.full}#${cm(p.label)}"),
+            getDoc(p.annotations, s"${caseClass.typeName.full}#${cm map p.label}"),
             p.typeclass.defaultVal
           )
         }.asJava
@@ -101,13 +101,13 @@ object AvroField {
     override def defaultVal: Any = null
 
     override def from(v: GenericRecord)(cm: CaseMapper): T =
-      caseClass.construct(p => p.typeclass.fromAny(v.get(cm(p.label)))(cm))
+      caseClass.construct(p => p.typeclass.fromAny(v.get(cm map p.label))(cm))
 
     override def to(v: T)(cm: CaseMapper): GenericRecord =
       caseClass.parameters
         .foldLeft(new GenericRecordBuilder(schema(cm))) { (b, p) =>
           val f = p.typeclass.to(p.dereference(v))(cm)
-          if (f == null) b else b.set(cm(p.label), f)
+          if (f == null) b else b.set(cm map p.label, f)
         }
         .build()
 
