@@ -16,7 +16,12 @@
  */
 package magnolify.shared
 
-trait Converter[T, Reader, Writer] extends Serializable {
+abstract class Converter[T, Reader, Writer] extends Serializable {
   def from(v: Reader): T
   def to(v: T): Writer
+}
+
+object Converter {
+  type CaseMapper = String => String
+
 }
