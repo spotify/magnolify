@@ -99,14 +99,14 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
     test[MapNested]
   }
 
-  // {
-  //   val at = ensureSerializable(AvroType[AvroDoc](identity))
-  //   val schema = at.schema
-  //   require(schema.getDoc == "Avro with doc")
-  //   val fields = schema.getFields.asScala
-  //   require(fields.find(_.name() == "s").exists(_.doc() == "string"))
-  //   require(fields.find(_.name() == "i").exists(_.doc() == "integers"))
-  // }
+  {
+    val at = ensureSerializable(AvroType[AvroDoc])
+    val schema = at.schema
+    require(schema.getDoc == "Avro with doc")
+    val fields = schema.getFields.asScala
+    require(fields.find(_.name() == "s").exists(_.doc() == "string"))
+    require(fields.find(_.name() == "i").exists(_.doc() == "integers"))
+  }
 
   {
     val at = ensureSerializable(AvroType[CustomDoc])
