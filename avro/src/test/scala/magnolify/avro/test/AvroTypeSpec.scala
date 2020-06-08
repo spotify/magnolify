@@ -133,7 +133,7 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
 
   {
     import magnolify.shared.CaseMapper._
-    implicit val afTrack = AvroType[Track](snakeCaseMapper)
+    implicit val afTrack = AvroType[Track](toSnakeCase)
     test[Track]
     val track =
       Track(1, "Scala Scala", Artist(123, "Martin"), List("a", "b", "c"), true, Option(null))

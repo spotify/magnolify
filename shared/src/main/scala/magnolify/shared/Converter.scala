@@ -27,7 +27,7 @@ trait CaseMapper extends Serializable {
 }
 
 object CaseMapper {
-  val snakeCaseMapper = new CaseMapper {
+  val toSnakeCase = new CaseMapper {
     override def map(name: String): String = {
       def snakify(chars: List[Char]): List[Char] =  chars match {
         case '-' :: ls => '_' :: snakify(ls) // kebab-case => kebab_case 
