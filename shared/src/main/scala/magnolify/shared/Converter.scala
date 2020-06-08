@@ -16,7 +16,7 @@
  */
 package magnolify.shared
 
-abstract class Converter[T, Reader, Writer] extends Serializable {
+trait Converter[T, Reader, Writer] extends Serializable {
   def from(v: Reader): T
   def to(v: T): Writer
 }
