@@ -29,15 +29,16 @@ trait CaseMapper extends Serializable {
 object CaseMapper {
   val toSnakeCase = new CaseMapper {
     override def map(name: String): String = {
-      def snakify(chars: List[Char]): List[Char] =  chars match {
-        case '-' :: ls => '_' :: snakify(ls) // kebab-case => kebab_case 
+      def snakify(chars: List[Char]): List[Char] = chars match {
+        case '-' :: ls => '_' :: snakify(ls) // kebab-case => kebab_case
         case '_' :: ls => '_' :: snakify(ls) // snake_case => snake_case
-        case c :: ls if (c.toUpper == c) => '_' :: (c.toLower :: snakify(ls)) // camelCase => camel_case 
+        case c :: ls if c.toUpper == c =>
+          '_' :: (c.toLower :: snakify(ls)) // camelCase => camel_case
         case c :: ls => c :: snakify(ls)
-        case a => a
+        case a       => a
       }
-      if (name.isEmpty()) name 
+      if (name.isEmpty()) name
       else (name.charAt(0).toLower :: snakify(name.substring(1).toList)).mkString
-    } 
+    }
   }
 }
