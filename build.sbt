@@ -25,7 +25,7 @@ val bigtableVersion = "1.13.0"
 val catsVersion = "2.1.1"
 val datastoreVersion = "1.6.3"
 val guavaVersion = "29.0-jre"
-val jacksonVersion = "2.11.0"
+val jacksonVersion = "2.11.1"
 val jodaTimeVersion = "2.10.6"
 val protobufVersion = "3.12.2"
 
