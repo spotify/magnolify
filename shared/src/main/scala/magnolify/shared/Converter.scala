@@ -37,7 +37,7 @@ object CaseMapper {
         case c :: ls => c :: snakify(ls)
         case a       => a
       }
-      if (name.isEmpty()) name
+      if (name.isEmpty) name
       else (name.charAt(0).toLower :: snakify(name.substring(1).toList)).mkString
     }
   }
