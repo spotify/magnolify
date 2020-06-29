@@ -146,8 +146,7 @@ lazy val shared: Project = project
     moduleName := "magnolify-shared",
     description := "Shared code for Magnolify",
     libraryDependencies ++= Seq(
-      "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test,
-      "com.google.guava" % "guava" % guavaVersion % Test
+      "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
     )
   )
 
