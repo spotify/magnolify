@@ -49,12 +49,6 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
     }
   }
 
-  private def roundTrip[T: Arbitrary: ClassTag](t: T)(implicit
-    at: TableRowType[T],
-    eqt: Eq[T]
-  ): Unit =
-    eqt.eqv(t, at.from(at.to(t)))
-
   test[Integers]
   test[Required]
   test[Nullable]
@@ -146,16 +140,6 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
     val outer =
       DefaultOuter(DefaultInner(3, Some(3), List(3, 3)), Some(DefaultInner(3, Some(3), List(3, 3))))
     require(ot(ot(outer)) == outer)
-  }
-
-  {
-    import magnolify.shared.CaseMapper._
-    import magnolify.test.Product._
-    implicit val trTrack = TableRowType[Track](toSnakeCase)
-    test[Track]
-    val track =
-      Track(1, "Scala Scala", Artist(123, "Martin"), List("a", "b", "c"), true, Option(null))
-    roundTrip(track)
   }
 }
 
