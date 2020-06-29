@@ -54,12 +54,6 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
     }
   }
 
-  private def roundTrip[T: Arbitrary: ClassTag](t: T)(implicit
-    at: AvroType[T],
-    eqt: Eq[T]
-  ): Unit =
-    eqt.eqv(t, at.from(at.to(t)))
-
   test[Integers]
   test[Required]
   test[Nullable]
@@ -129,16 +123,6 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
             """{"doc": "integers", "since": "2020-02-01"}"""
         )
     )
-  }
-
-  {
-    import magnolify.shared.CaseMapper._
-    import magnolify.test.Product._
-    implicit val afTrack = AvroType[Track](toSnakeCase)
-    test[Track]
-    val track =
-      Track(1, "Scala Scala", Artist(123, "Martin"), List("a", "b", "c"), true, Option(null))
-    roundTrip(track)
   }
 
   require(
