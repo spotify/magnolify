@@ -154,8 +154,8 @@ object TableRowField {
   //////////////////////////////////////////////////
 
   private def at[T](tpe: String)(f: Any => T)(g: T => Any): TableRowField[T] = new Generic[T] {
-    override protected def schemaString(cm: CaseMapper): String =
-      Schemas.toJson(new TableFieldSchema().setType(tpe).setMode("REQUIRED"))
+    private val _schemaString = Schemas.toJson(new TableFieldSchema().setType(tpe).setMode("REQUIRED"))
+    override protected def schemaString(cm: CaseMapper): String = _schemaString
     override def from(v: Any)(cm: CaseMapper): T = f(v)
     override def to(v: T)(cm: CaseMapper): Any = g(v)
   }

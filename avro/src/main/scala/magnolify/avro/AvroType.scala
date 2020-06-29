@@ -147,7 +147,8 @@ object AvroField {
     new AvroField[T] {
       override type FromT = From
       override type ToT = To
-      override protected def schemaString(cm: CaseMapper): String = Schema.create(tpe).toString()
+      private val _schemaString = Schema.create(tpe).toString()
+      override protected def schemaString(cm: CaseMapper): String = _schemaString
       override def defaultVal: Any = null
       override def from(v: FromT)(cm: CaseMapper): T = f(v)
       override def to(v: T)(cm: CaseMapper): ToT = g(v)
