@@ -147,8 +147,8 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
     )
 
     val record = at(LowerCamel.default)
-    require(fields.forall(record.hasField))
-    require(record.get("INNERFIELD").asInstanceOf[GenericRecord].hasField("INNERFIRST"))
+    require(fields.forall(record.get(_) != null))
+    require(record.get("INNERFIELD").asInstanceOf[GenericRecord].get("INNERFIRST") != null)
   }
 }
 
