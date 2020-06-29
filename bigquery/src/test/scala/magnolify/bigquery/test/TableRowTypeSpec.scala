@@ -27,6 +27,7 @@ import magnolify.bigquery._
 import magnolify.bigquery.unsafe._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
+import magnolify.shared.CaseMapper
 import magnolify.shims.JavaConverters._
 import magnolify.test.Simple._
 import magnolify.test._
@@ -140,6 +141,24 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
     val outer =
       DefaultOuter(DefaultInner(3, Some(3), List(3, 3)), Some(DefaultInner(3, Some(3), List(3, 3))))
     require(ot(ot(outer)) == outer)
+  }
+
+  {
+    implicit val at = TableRowType[LowerCamel](CaseMapper(_.toUpperCase))
+    test[LowerCamel]
+
+    val schema = at.schema
+    val fields = LowerCamel.fields.map(_.toUpperCase)
+    require(schema.getFields.asScala.map(_.getName) == fields)
+    require(
+      schema.getFields.asScala
+        .find(_.getName == "INNERFIELD")
+        .exists(_.getFields.asScala.exists(_.getName == "INNERFIRST"))
+    )
+
+    val record = at(LowerCamel.default)
+    require(record.keySet().asScala == fields.toSet)
+    require(record.get("INNERFIELD").asInstanceOf[TableRow].get("INNERFIRST") != null)
   }
 }
 

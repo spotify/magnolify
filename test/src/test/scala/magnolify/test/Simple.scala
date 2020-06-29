@@ -63,4 +63,12 @@ object Simple {
     implicit val showUri: Show[URI] = Show.fromToString
     implicit val showDuration: Show[Duration] = Show.fromToString
   }
+
+  case class LowerCamel(firstField: String, secondField: String, innerField: LowerCamelInner)
+  case class LowerCamelInner(innerFirst: String)
+
+  object LowerCamel {
+    val fields: Seq[String] = Seq("firstField", "secondField", "innerField")
+    val default: LowerCamel = LowerCamel("first", "second", LowerCamelInner("inner.first"))
+  }
 }

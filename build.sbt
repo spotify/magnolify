@@ -230,8 +230,7 @@ lazy val avro: Project = project
     moduleName := "magnolify-avro",
     description := "Magnolia add-on for Apache Avro",
     libraryDependencies ++= Seq(
-      "org.apache.avro" % "avro" % avroVersion % Provided,
-      "com.google.guava" % "guava" % guavaVersion % Test
+      "org.apache.avro" % "avro" % avroVersion % Provided
     )
   )
   .dependsOn(
@@ -250,8 +249,7 @@ lazy val bigquery: Project = project
     libraryDependencies ++= Seq(
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Provided,
       "joda-time" % "joda-time" % jodaTimeVersion % Provided,
-      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test,
-      "com.google.guava" % "guava" % guavaVersion % Test
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
     )
   )
   .dependsOn(
