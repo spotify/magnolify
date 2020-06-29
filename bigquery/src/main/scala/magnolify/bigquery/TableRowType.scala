@@ -45,7 +45,7 @@ sealed trait TableRowType[T] extends Converter[T, TableRow, TableRow] {
 }
 
 object TableRowType {
-  implicit def apply[T: TableRowField.Record]: TableRowType[T] = apply(identity: CaseMapper)
+  implicit def apply[T: TableRowField.Record]: TableRowType[T] = TableRowType(identity: CaseMapper)
 
   def apply[T](g: CaseMapper)(implicit f: TableRowField.Record[T]): TableRowType[T] =
     new TableRowType[T] {
