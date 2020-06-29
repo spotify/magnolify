@@ -43,7 +43,7 @@ sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
 }
 
 object AvroType {
-  implicit def apply[T: AvroField.Record]: AvroType[T] = apply(identity: CaseMapper)
+  implicit def apply[T: AvroField.Record]: AvroType[T] = AvroType(identity: CaseMapper)
 
   def apply[T](g: CaseMapper)(implicit f: AvroField.Record[T]): AvroType[T] =
     new AvroType[T] {
