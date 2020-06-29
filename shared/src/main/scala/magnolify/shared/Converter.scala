@@ -23,5 +23,9 @@ trait Converter[T, Reader, Writer] extends Serializable {
 }
 
 trait CaseMapper extends Serializable {
-  def map(name: String): String
+  def map(label: String): String
+}
+
+object CaseMapper {
+  def apply(f: String => String): CaseMapper = (label: String) => f(label)
 }
