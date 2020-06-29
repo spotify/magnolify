@@ -47,14 +47,12 @@ sealed trait TableRowType[T] extends Converter[T, TableRow, TableRow] {
 object TableRowType {
   implicit def apply[T: TableRowField.Record]: TableRowType[T] = apply(identity: CaseMapper)
 
-  def apply[T: TableRowField.Record](g: CaseMapper): TableRowType[T] =
+  def apply[T](g: CaseMapper)(implicit f: TableRowField.Record[T]): TableRowType[T] =
     new TableRowType[T] {
-      val f = implicitly[TableRowField.Record[T]]
-      override val caseMapper: CaseMapper = g
+      override protected val caseMapper: CaseMapper = g
       override protected val schemaString: String =
-        Schemas.toJson(new TableSchema().setFields(f.fieldSchema(caseMapper).getFields))
+        Schemas.toJson(new TableSchema().setFields(f.fieldSchema(g).getFields))
       override val description: String = f.fieldSchema(caseMapper).getDescription
-
       override def from(v: TableRow): T = f.from(v)(caseMapper)
       override def to(v: T): TableRow = f.to(v)(caseMapper)
     }
@@ -96,16 +94,16 @@ object TableRowField {
           .setFields(caseClass.parameters.map { p =>
             p.typeclass
               .fieldSchema(cm)
-              .setName(cm map p.label)
+              .setName(cm.map(p.label))
               .setDescription(
-                getDescription(p.annotations, s"${caseClass.typeName.full}#${cm map p.label}")
+                getDescription(p.annotations, s"${caseClass.typeName.full}#${cm.map(p.label)}")
               )
           }.asJava)
       )
 
     override def from(v: java.util.Map[String, AnyRef])(cm: CaseMapper): T =
       caseClass.construct { p =>
-        val f = v.get(cm map p.label)
+        val f = v.get(cm.map(p.label))
         if (f == null && p.default.isDefined) {
           p.default.get
         } else {
@@ -117,7 +115,7 @@ object TableRowField {
       caseClass.parameters.foldLeft(new TableRow) { (tr, p) =>
         val f = p.typeclass.to(p.dereference(v))(cm)
         if (f != null) {
-          tr.put(cm map p.label, f)
+          tr.put(cm.map(p.label), f)
         }
         tr
       }

@@ -45,10 +45,9 @@ sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
 object AvroType {
   implicit def apply[T: AvroField.Record]: AvroType[T] = apply(identity: CaseMapper)
 
-  def apply[T: AvroField.Record](g: CaseMapper): AvroType[T] =
+  def apply[T](g: CaseMapper)(implicit f: AvroField.Record[T]): AvroType[T] =
     new AvroType[T] {
-      val f = implicitly[AvroField.Record[T]]
-      override val caseMapper: CaseMapper = g
+      override protected val caseMapper: CaseMapper = g
       override protected val schemaString: String = f.schema(caseMapper).toString()
       override def from(v: GenericRecord): T = f.from(v)(caseMapper)
       override def to(v: T): GenericRecord = f.to(v)(caseMapper)
@@ -89,9 +88,9 @@ object AvroField {
         false,
         caseClass.parameters.map { p =>
           new Schema.Field(
-            cm map p.label,
+            cm.map(p.label),
             p.typeclass.schema(cm),
-            getDoc(p.annotations, s"${caseClass.typeName.full}#${cm map p.label}"),
+            getDoc(p.annotations, s"${caseClass.typeName.full}#${cm.map(p.label)}"),
             p.typeclass.defaultVal
           )
         }.asJava
@@ -101,13 +100,13 @@ object AvroField {
     override def defaultVal: Any = null
 
     override def from(v: GenericRecord)(cm: CaseMapper): T =
-      caseClass.construct(p => p.typeclass.fromAny(v.get(cm map p.label))(cm))
+      caseClass.construct(p => p.typeclass.fromAny(v.get(cm.map(p.label)))(cm))
 
     override def to(v: T)(cm: CaseMapper): GenericRecord =
       caseClass.parameters
         .foldLeft(new GenericRecordBuilder(schema(cm))) { (b, p) =>
           val f = p.typeclass.to(p.dereference(v))(cm)
-          if (f == null) b else b.set(cm map p.label, f)
+          if (f == null) b else b.set(cm.map(p.label), f)
         }
         .build()
 
