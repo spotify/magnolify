@@ -37,7 +37,7 @@ object EntityType {
 
   def apply[T](cm: CaseMapper)(implicit f: EntityField.Record[T]): EntityType[T] =
     new EntityType[T] {
-      override protected val caseMapper: CaseMapper = cm
+      private val caseMapper: CaseMapper = cm
       override def from(v: Entity): T = f.fromEntity(v)(caseMapper)
       override def to(v: T): Entity.Builder = f.toEntity(v)(caseMapper)
     }
