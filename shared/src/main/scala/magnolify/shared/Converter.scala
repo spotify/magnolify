@@ -16,9 +16,7 @@
  */
 package magnolify.shared
 
-import java.{util => ju}
-
-import scala.collection.mutable
+import java.util.UUID
 
 trait Converter[T, Reader, Writer] extends Serializable {
   protected val caseMapper: CaseMapper = CaseMapper.identity // TODO: remove the default
@@ -27,18 +25,18 @@ trait Converter[T, Reader, Writer] extends Serializable {
 }
 
 sealed trait CaseMapper extends Serializable {
-  val uuid: ju.UUID
+  val uuid: UUID
   def map(label: String): String
 }
 
 object CaseMapper {
   def apply(f: String => String): CaseMapper = new CaseMapper {
-    override val uuid: ju.UUID = ju.UUID.randomUUID()
+    override val uuid: UUID = UUID.randomUUID()
     override def map(label: String): String = f(label)
   }
 
   val identity: CaseMapper = new CaseMapper {
-    override val uuid: ju.UUID = ju.UUID.nameUUIDFromBytes(Array.emptyByteArray)
+    override val uuid: UUID = UUID.nameUUIDFromBytes(Array.emptyByteArray)
     override def map(label: String): String = label
   }
 }
