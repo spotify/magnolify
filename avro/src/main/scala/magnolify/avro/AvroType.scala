@@ -48,7 +48,7 @@ object AvroType {
 
   def apply[T](cm: CaseMapper)(implicit f: AvroField.Record[T]): AvroType[T] =
     new AvroType[T] {
-      override protected val caseMapper: CaseMapper = cm
+      private val caseMapper: CaseMapper = cm
       override protected val schemaString: String = f.schema(caseMapper).toString()
       override def from(v: GenericRecord): T = f.from(v)(caseMapper)
       override def to(v: T): GenericRecord = f.to(v)(caseMapper)

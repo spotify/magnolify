@@ -49,7 +49,7 @@ object TableRowType {
 
   def apply[T](cm: CaseMapper)(implicit f: TableRowField.Record[T]): TableRowType[T] =
     new TableRowType[T] {
-      override protected val caseMapper: CaseMapper = cm
+      private val caseMapper: CaseMapper = cm
       override protected val schemaString: String =
         Schemas.toJson(new TableSchema().setFields(f.fieldSchema(cm).getFields))
       override val description: String = f.fieldSchema(caseMapper).getDescription

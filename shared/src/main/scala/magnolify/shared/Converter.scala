@@ -19,7 +19,6 @@ package magnolify.shared
 import java.util.UUID
 
 trait Converter[T, Reader, Writer] extends Serializable {
-  protected val caseMapper: CaseMapper = CaseMapper.identity // TODO: remove the default
   def from(v: Reader): T
   def to(v: T): Writer
 }
