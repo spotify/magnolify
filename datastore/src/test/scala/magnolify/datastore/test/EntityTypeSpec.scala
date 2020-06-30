@@ -28,6 +28,8 @@ import magnolify.datastore._
 import magnolify.datastore.unsafe._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
+import magnolify.shared.CaseMapper
+import magnolify.shims.JavaConverters._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
@@ -93,6 +95,22 @@ object EntityTypeSpec extends MagnolifySpec("EntityType") {
     val outer =
       DefaultOuter(DefaultInner(3, Some(3), List(3, 3)), Some(DefaultInner(3, Some(3), List(3, 3))))
     require(ot(ot(outer)) == outer)
+  }
+
+  {
+    implicit val et = EntityType[LowerCamel](CaseMapper(_.toUpperCase))
+    test[LowerCamel]
+
+    val fields = LowerCamel.fields.map(_.toUpperCase)
+    val record = et(LowerCamel.default)
+    require(record.getPropertiesMap.keySet().asScala == fields.toSet)
+    require(
+      record
+        .getPropertiesOrThrow("INNERFIELD")
+        .getEntityValue
+        .getPropertiesMap
+        .containsKey("INNERFIRST")
+    )
   }
 }
 

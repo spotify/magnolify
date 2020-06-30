@@ -20,14 +20,16 @@ import java.nio.ByteBuffer
 import java.{util => ju}
 
 import magnolia._
-import magnolify.shared.Converter
+import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
-import org.apache.avro.{JsonProperties, Schema}
 import org.apache.avro.generic.{GenericArray, GenericData, GenericRecord, GenericRecordBuilder}
+import org.apache.avro.{JsonProperties, Schema}
 
 import scala.annotation.{implicitNotFound, StaticAnnotation}
+import scala.collection.concurrent
 import scala.language.experimental.macros
+import scala.language.implicitConversions
 
 class doc(doc: String) extends StaticAnnotation with Serializable {
   override def toString: String = doc
@@ -41,24 +43,31 @@ sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
 }
 
 object AvroType {
-  implicit def apply[T](implicit f: AvroField.Record[T]): AvroType[T] = new AvroType[T] {
-    override protected val schemaString: String = f.schema.toString()
-    override def from(v: GenericRecord): T = f.from(v)
-    override def to(v: T): GenericRecord = f.to(v)
-  }
+  implicit def apply[T: AvroField.Record]: AvroType[T] = AvroType(CaseMapper.identity)
+
+  def apply[T](cm: CaseMapper)(implicit f: AvroField.Record[T]): AvroType[T] =
+    new AvroType[T] {
+      private val caseMapper: CaseMapper = cm
+      override protected val schemaString: String = f.schema(caseMapper).toString()
+      override def from(v: GenericRecord): T = f.from(v)(caseMapper)
+      override def to(v: T): GenericRecord = f.to(v)(caseMapper)
+    }
 }
 
 sealed trait AvroField[T] extends Serializable {
   type FromT
   type ToT
 
-  protected val schemaString: String
-  def schema: Schema = new Schema.Parser().parse(schemaString)
+  @transient private lazy val schemaCache: concurrent.Map[ju.UUID, Schema] =
+    concurrent.TrieMap.empty
+  protected def schemaString(cm: CaseMapper): String
+  def schema(cm: CaseMapper): Schema =
+    schemaCache.getOrElseUpdate(cm.uuid, new Schema.Parser().parse(schemaString(cm)))
   def defaultVal: Any
-  def from(v: FromT): T
-  def to(v: T): ToT
+  def from(v: FromT)(cm: CaseMapper): T
+  def to(v: T)(cm: CaseMapper): ToT
 
-  def fromAny(v: Any): T = from(v.asInstanceOf[FromT])
+  def fromAny(v: Any)(cm: CaseMapper): T = from(v.asInstanceOf[FromT])(cm)
 }
 
 object AvroField {
@@ -74,7 +83,7 @@ object AvroField {
   type Typeclass[T] = AvroField[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    override protected val schemaString: String = Schema
+    override protected def schemaString(cm: CaseMapper): String = Schema
       .createRecord(
         caseClass.typeName.short,
         getDoc(caseClass.annotations, caseClass.typeName.full),
@@ -82,9 +91,9 @@ object AvroField {
         false,
         caseClass.parameters.map { p =>
           new Schema.Field(
-            p.label,
-            p.typeclass.schema,
-            getDoc(p.annotations, s"${caseClass.typeName.full}#${p.label}"),
+            cm.map(p.label),
+            p.typeclass.schema(cm),
+            getDoc(p.annotations, s"${caseClass.typeName.full}#${cm.map(p.label)}"),
             p.typeclass.defaultVal
           )
         }.asJava
@@ -93,14 +102,14 @@ object AvroField {
 
     override def defaultVal: Any = null
 
-    override def from(v: GenericRecord): T =
-      caseClass.construct(p => p.typeclass.fromAny(v.get(p.label)))
+    override def from(v: GenericRecord)(cm: CaseMapper): T =
+      caseClass.construct(p => p.typeclass.fromAny(v.get(cm.map(p.label)))(cm))
 
-    override def to(v: T): GenericRecord =
+    override def to(v: T)(cm: CaseMapper): GenericRecord =
       caseClass.parameters
-        .foldLeft(new GenericRecordBuilder(schema)) { (b, p) =>
-          val f = p.typeclass.to(p.dereference(v))
-          if (f == null) b else b.set(p.label, f)
+        .foldLeft(new GenericRecordBuilder(schema(cm))) { (b, p) =>
+          val f = p.typeclass.to(p.dereference(v))(cm)
+          if (f == null) b else b.set(cm.map(p.label), f)
         }
         .build()
 
@@ -128,10 +137,10 @@ object AvroField {
       new AvroField[U] {
         override type FromT = af.FromT
         override type ToT = af.ToT
-        override protected val schemaString: String = af.schema.toString()
+        override protected def schemaString(cm: CaseMapper): String = af.schema(cm).toString()
         override def defaultVal: Any = af.defaultVal
-        override def from(v: FromT): U = f(af.from(v))
-        override def to(v: U): ToT = af.to(g(v))
+        override def from(v: FromT)(cm: CaseMapper): U = f(af.from(v)(cm))
+        override def to(v: U)(cm: CaseMapper): ToT = af.to(g(v))(cm)
       }
   }
 
@@ -141,10 +150,10 @@ object AvroField {
     new AvroField[T] {
       override type FromT = From
       override type ToT = To
-      override protected val schemaString: String = Schema.create(tpe).toString()
+      override protected def schemaString(cm: CaseMapper): String = Schema.create(tpe).toString()
       override def defaultVal: Any = null
-      override def from(v: FromT): T = f(v)
-      override def to(v: T): ToT = g(v)
+      override def from(v: FromT)(cm: CaseMapper): T = f(v)
+      override def to(v: T)(cm: CaseMapper): ToT = g(v)
     }
 
   private def aux2[T, Repr](tpe: Schema.Type)(f: Repr => T)(g: T => Repr): AvroField[T] =
@@ -165,14 +174,14 @@ object AvroField {
 
   implicit def afOption[T](implicit f: AvroField[T]): AvroField[Option[T]] =
     new Aux[Option[T], f.FromT, f.ToT] {
-      override protected val schemaString: String =
-        Schema.createUnion(Schema.create(Schema.Type.NULL), f.schema).toString()
+      override protected def schemaString(cm: CaseMapper): String =
+        Schema.createUnion(Schema.create(Schema.Type.NULL), f.schema(cm)).toString()
       override def defaultVal: Any = JsonProperties.NULL_VALUE
-      override def from(v: f.FromT): Option[T] =
-        if (v == null) None else Some(f.from(v))
-      override def to(v: Option[T]): f.ToT = v match {
+      override def from(v: f.FromT)(cm: CaseMapper): Option[T] =
+        if (v == null) None else Some(f.from(v)(cm))
+      override def to(v: Option[T])(cm: CaseMapper): f.ToT = v match {
         case None    => null.asInstanceOf[f.ToT]
-        case Some(x) => f.to(x)
+        case Some(x) => f.to(x)(cm)
       }
     }
 
@@ -182,29 +191,32 @@ object AvroField {
     fc: FactoryCompat[T, C[T]]
   ): AvroField[C[T]] =
     new Aux[C[T], ju.List[f.FromT], GenericArray[f.ToT]] {
-      override protected val schemaString: String = Schema.createArray(f.schema).toString()
+      override protected def schemaString(cm: CaseMapper): String =
+        Schema.createArray(f.schema(cm)).toString()
       override def defaultVal: Any = ju.Collections.emptyList()
-      override def from(v: ju.List[f.FromT]): C[T] =
-        if (v == null) fc.newBuilder.result() else fc.build(v.asScala.iterator.map(f.from))
-      override def to(v: C[T]): GenericArray[f.ToT] =
+      override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] =
+        if (v == null) fc.newBuilder.result()
+        else fc.build(v.asScala.iterator.map(p => f.from(p)(cm)))
+      override def to(v: C[T])(cm: CaseMapper): GenericArray[f.ToT] =
         if (v.isEmpty) {
           null
         } else {
-          new GenericData.Array[f.ToT](schema, v.iterator.map(f.to(_)).toList.asJava)
+          new GenericData.Array[f.ToT](schema(cm), v.iterator.map(f.to(_)(cm)).toList.asJava)
         }
     }
 
   implicit def afMap[T](implicit f: AvroField[T]): AvroField[Map[String, T]] =
     new Aux[Map[String, T], ju.Map[CharSequence, f.FromT], ju.Map[String, f.ToT]] {
-      override protected val schemaString: String = Schema.createMap(f.schema).toString()
+      override protected def schemaString(cm: CaseMapper): String =
+        Schema.createMap(f.schema(cm)).toString()
       override def defaultVal: Any = ju.Collections.emptyMap()
-      override def from(v: ju.Map[CharSequence, f.FromT]): Map[String, T] =
+      override def from(v: ju.Map[CharSequence, f.FromT])(cm: CaseMapper): Map[String, T] =
         if (v == null) {
           Map.empty
         } else {
-          v.asScala.iterator.map(kv => (kv._1.toString, f.from(kv._2))).toMap
+          v.asScala.iterator.map(kv => (kv._1.toString, f.from(kv._2)(cm))).toMap
         }
-      override def to(v: Map[String, T]): ju.Map[String, f.ToT] =
-        if (v.isEmpty) null else v.iterator.map(kv => (kv._1, f.to(kv._2))).toMap.asJava
+      override def to(v: Map[String, T])(cm: CaseMapper): ju.Map[String, f.ToT] =
+        if (v.isEmpty) null else v.iterator.map(kv => (kv._1, f.to(kv._2)(cm))).toMap.asJava
     }
 }

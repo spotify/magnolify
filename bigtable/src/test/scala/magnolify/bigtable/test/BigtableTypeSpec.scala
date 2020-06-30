@@ -26,6 +26,7 @@ import com.google.protobuf.ByteString
 import magnolify.bigtable._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
+import magnolify.shared.CaseMapper
 import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
@@ -84,6 +85,17 @@ object BigtableTypeSpec extends MagnolifySpec("BigtableType") {
     val outer =
       DefaultOuter(DefaultInner(3, Some(3)), Some(DefaultInner(3, Some(3))))
     require(ot(BigtableType.mutationsToRow(ByteString.EMPTY, ot(outer, "cf")), "cf") == outer)
+  }
+
+  {
+    implicit val bt = BigtableType[LowerCamel](CaseMapper(_.toUpperCase))
+    test[LowerCamel]
+
+    val fields = LowerCamel.fields
+      .map(_.toUpperCase)
+      .map(l => if (l == "INNERFIELD") "INNERFIELD.INNERFIRST" else l)
+    val record = bt(LowerCamel.default, "cf")
+    require(record.map(_.getSetCell.getColumnQualifier.toStringUtf8) == fields)
   }
 }
 

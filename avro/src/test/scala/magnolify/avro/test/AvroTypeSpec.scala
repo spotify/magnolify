@@ -27,6 +27,7 @@ import magnolify.avro._
 import magnolify.avro.unsafe._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
+import magnolify.shared.CaseMapper
 import magnolify.shims.JavaConverters._
 import magnolify.test.Simple._
 import magnolify.test._
@@ -133,6 +134,22 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
     expectException[IllegalArgumentException](AvroType[DoubleFieldDoc]).getMessage ==
       "requirement failed: More than one @doc annotation: magnolify.avro.test.DoubleFieldDoc#i"
   )
+
+  {
+    implicit val at = AvroType[LowerCamel](CaseMapper(_.toUpperCase))
+    test[LowerCamel]
+
+    val schema = at.schema
+    val fields = LowerCamel.fields.map(_.toUpperCase)
+    require(schema.getFields.asScala.map(_.name()) == fields)
+    require(
+      schema.getField("INNERFIELD").schema().getFields.asScala.map(_.name()) == Seq("INNERFIRST")
+    )
+
+    val record = at(LowerCamel.default)
+    require(fields.forall(record.get(_) != null))
+    require(record.get("INNERFIELD").asInstanceOf[GenericRecord].get("INNERFIRST") != null)
+  }
 }
 
 case class Unsafe(b: Byte, c: Char, s: Short)

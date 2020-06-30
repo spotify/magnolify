@@ -20,7 +20,7 @@ import java.{lang => jl, util => ju}
 
 import com.google.protobuf.ByteString
 import magnolia._
-import magnolify.shared.Converter
+import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
 import org.tensorflow.example._
@@ -34,16 +34,20 @@ sealed trait ExampleType[T] extends Converter[T, Example, Example.Builder] {
 }
 
 object ExampleType {
-  implicit def apply[T](implicit f: ExampleField.Record[T]): ExampleType[T] = new ExampleType[T] {
-    override def from(v: Example): T = f.get(v.getFeatures, null)
-    override def to(v: T): Example.Builder =
-      Example.newBuilder().setFeatures(f.put(Features.newBuilder(), null, v))
-  }
+  implicit def apply[T: ExampleField.Record]: ExampleType[T] = ExampleType(CaseMapper.identity)
+
+  def apply[T](cm: CaseMapper)(implicit f: ExampleField.Record[T]): ExampleType[T] =
+    new ExampleType[T] {
+      private val caseMapper: CaseMapper = cm
+      override def from(v: Example): T = f.get(v.getFeatures, null)(caseMapper)
+      override def to(v: T): Example.Builder =
+        Example.newBuilder().setFeatures(f.put(Features.newBuilder(), null, v)(caseMapper))
+    }
 }
 
 sealed trait ExampleField[T] extends Serializable {
-  def get(f: Features, k: String): T
-  def put(f: Features.Builder, k: String, v: T): Features.Builder
+  def get(f: Features, k: String)(cm: CaseMapper): T
+  def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder
 }
 
 object ExampleField {
@@ -52,13 +56,13 @@ object ExampleField {
     def fromFeature(v: Feature): ju.List[T]
     def toFeature(v: Iterable[T]): Feature
 
-    override def get(f: Features, k: String): T = {
+    override def get(f: Features, k: String)(cm: CaseMapper): T = {
       val l = fromFeature(f.getFeatureOrDefault(k, null))
       require(l.size() == 1)
       l.get(0)
     }
 
-    override def put(f: Features.Builder, k: String, v: T): Features.Builder =
+    override def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder =
       f.putFeature(k, toFeature(Iterable(v)))
   }
 
@@ -72,12 +76,12 @@ object ExampleField {
     private def key(prefix: String, label: String): String =
       if (prefix == null) label else s"$prefix.$label"
 
-    override def get(f: Features, k: String): T =
-      caseClass.construct(p => p.typeclass.get(f, key(k, p.label)))
+    override def get(f: Features, k: String)(cm: CaseMapper): T =
+      caseClass.construct(p => p.typeclass.get(f, key(k, cm.map(p.label)))(cm))
 
-    override def put(f: Features.Builder, k: String, v: T): Features.Builder =
+    override def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder =
       caseClass.parameters.foldLeft(f) { (f, p) =>
-        p.typeclass.put(f, key(k, p.label), p.dereference(v))
+        p.typeclass.put(f, key(k, cm.map(p.label)), p.dereference(v))(cm)
         f
       }
   }
@@ -156,16 +160,18 @@ object ExampleField {
 
   implicit def efOption[T](implicit ef: ExampleField[T]): ExampleField[Option[T]] =
     new ExampleField[Option[T]] {
-      override def get(f: Features, k: String): Option[T] =
+      override def get(f: Features, k: String)(cm: CaseMapper): Option[T] =
         if (f.containsFeature(k) || f.getFeatureMap.keySet().asScala.exists(_.startsWith(s"$k."))) {
-          Some(ef.get(f, k))
+          Some(ef.get(f, k)(cm))
         } else {
           None
         }
 
-      override def put(f: Features.Builder, k: String, v: Option[T]): Features.Builder = v match {
+      override def put(f: Features.Builder, k: String, v: Option[T])(
+        cm: CaseMapper
+      ): Features.Builder = v match {
         case None    => f
-        case Some(x) => ef.put(f, k, x)
+        case Some(x) => ef.put(f, k, x)(cm)
       }
     }
 
@@ -174,10 +180,10 @@ object ExampleField {
     ti: C[T] => Iterable[T],
     fc: FactoryCompat[T, C[T]]
   ): ExampleField[C[T]] = new ExampleField[C[T]] {
-    override def get(f: Features, k: String): C[T] =
+    override def get(f: Features, k: String)(cm: CaseMapper): C[T] =
       fc.build(ef.fromFeature(f.getFeatureOrDefault(k, null)).asScala)
 
-    override def put(f: Features.Builder, k: String, v: C[T]): Features.Builder =
+    override def put(f: Features.Builder, k: String, v: C[T])(cm: CaseMapper): Features.Builder =
       if (v.isEmpty) f else f.putFeature(k, ef.toFeature(v))
   }
 }
