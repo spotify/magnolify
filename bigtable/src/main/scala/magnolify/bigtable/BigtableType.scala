@@ -22,7 +22,7 @@ import com.google.bigtable.v2.{Cell, Column, Family, Mutation, Row}
 import com.google.bigtable.v2.Mutation.SetCell
 import com.google.protobuf.ByteString
 import magnolia._
-import magnolify.shared.Converter
+import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.JavaConverters._
 
 import scala.annotation.implicitNotFound
@@ -46,10 +46,14 @@ sealed trait BigtableType[T] extends Converter[T, java.util.List[Column], Seq[Se
 }
 
 object BigtableType {
-  implicit def apply[T](implicit f: BigtableField[T]): BigtableType[T] = new BigtableType[T] {
-    override def from(xs: java.util.List[Column]): T = f.get(xs, null).get
-    override def to(v: T): Seq[SetCell.Builder] = f.put(null, v)
-  }
+  implicit def apply[T: BigtableField]: BigtableType[T] = BigtableType(CaseMapper.identity)
+
+  def apply[T](cm: CaseMapper)(implicit f: BigtableField[T]): BigtableType[T] =
+    new BigtableType[T] {
+      private val caseMapper: CaseMapper = cm
+      override def from(xs: java.util.List[Column]): T = f.get(xs, null)(cm).get
+      override def to(v: T): Seq[SetCell.Builder] = f.put(null, v)(cm)
+    }
 
   def mutationsToRow(key: ByteString, mutations: Seq[Mutation]): Row = {
     val families = mutations
@@ -114,8 +118,8 @@ private object Result {
 }
 
 sealed trait BigtableField[T] extends Serializable {
-  def get(xs: java.util.List[Column], k: String): Result[T]
-  def put(k: String, v: T): Seq[SetCell.Builder]
+  def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Result[T]
+  def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder]
 }
 
 object BigtableField {
@@ -126,12 +130,12 @@ object BigtableField {
     private def columnQualifier(k: String): ByteString =
       ByteString.copyFromUtf8(k)
 
-    override def get(xs: java.util.List[Column], k: String): Result[T] = {
+    override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Result[T] = {
       val v = Columns.find(xs, k)
       if (v == null) Result.None else Result.Column(fromByteString(v.getCells(0).getValue))
     }
 
-    override def put(k: String, v: T): Seq[SetCell.Builder] =
+    override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
       Seq(
         SetCell
           .newBuilder()
@@ -148,11 +152,11 @@ object BigtableField {
     private def key(prefix: String, label: String): String =
       if (prefix == null) label else s"$prefix.$label"
 
-    override def get(xs: java.util.List[Column], k: String): Result[T] = {
+    override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Result[T] = {
       var fallback = true
       val r = caseClass.construct { p =>
-        val cq = key(k, p.label)
-        (p.typeclass.get(xs, cq), p.default) match {
+        val cq = key(k, cm.map(p.label))
+        (p.typeclass.get(xs, cq)(cm), p.default) match {
           case (Result.Column(x), _) =>
             fallback = false
             x
@@ -167,8 +171,10 @@ object BigtableField {
       if (fallback) Result.Default(r) else Result.Column(r)
     }
 
-    override def put(k: String, v: T): Seq[SetCell.Builder] =
-      caseClass.parameters.flatMap(p => p.typeclass.put(key(k, p.label), p.dereference(v)))
+    override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
+      caseClass.parameters.flatMap(p =>
+        p.typeclass.put(key(k, cm.map(p.label)), p.dereference(v))(cm)
+      )
   }
 
   @implicitNotFound("Cannot derive BigtableField for sealed trait")
@@ -232,16 +238,16 @@ object BigtableField {
 
   implicit def btfOption[A](implicit btf: BigtableField[A]): BigtableField[Option[A]] =
     new BigtableField[Option[A]] {
-      override def get(xs: java.util.List[Column], k: String): Result[Option[A]] =
-        Columns.findNullable(xs, k).map(btf.get(_, k)) match {
+      override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Result[Option[A]] =
+        Columns.findNullable(xs, k).map(btf.get(_, k)(cm)) match {
           case Some(Result.Column(v))  => Result.Column(Some(v))
           case Some(Result.Default(v)) => Result.Default(Some(v))
           case Some(Result.None)       => Result.Default(None)
           case None                    => Result.Default(None)
         }
 
-      override def put(k: String, v: Option[A]): Seq[SetCell.Builder] =
-        v.toSeq.flatMap(btf.put(k, _))
+      override def put(k: String, v: Option[A])(cm: CaseMapper): Seq[SetCell.Builder] =
+        v.toSeq.flatMap(btf.put(k, _)(cm))
     }
 }
 

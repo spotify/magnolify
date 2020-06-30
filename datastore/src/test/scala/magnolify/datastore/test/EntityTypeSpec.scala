@@ -98,14 +98,19 @@ object EntityTypeSpec extends MagnolifySpec("EntityType") {
   }
 
   {
-    implicit val at = EntityType[LowerCamel](CaseMapper(_.toUpperCase))
+    implicit val et = EntityType[LowerCamel](CaseMapper(_.toUpperCase))
     test[LowerCamel]
 
     val fields = LowerCamel.fields.map(_.toUpperCase)
-
-    val record = at(LowerCamel.default)
+    val record = et(LowerCamel.default)
     require(record.getPropertiesMap.keySet().asScala == fields.toSet)
-    require(record.getPropertiesOrThrow("INNERFIELD").getEntityValue.getPropertiesMap.containsKey("INNERFIRST"))
+    require(
+      record
+        .getPropertiesOrThrow("INNERFIELD")
+        .getEntityValue
+        .getPropertiesMap
+        .containsKey("INNERFIRST")
+    )
   }
 }
 

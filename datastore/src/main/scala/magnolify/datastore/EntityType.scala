@@ -40,7 +40,7 @@ object EntityType {
       override protected val caseMapper: CaseMapper = cm
       override def from(v: Entity): T = f.fromEntity(v)(caseMapper)
       override def to(v: T): Entity.Builder = f.toEntity(v)(caseMapper)
-  }
+    }
 }
 
 sealed trait EntityField[T] extends Serializable {
@@ -54,7 +54,8 @@ object EntityField {
     def toEntity(v: T)(cm: CaseMapper): Entity.Builder
 
     override def from(v: Value)(cm: CaseMapper): T = fromEntity(v.getEntityValue)(cm)
-    override def to(v: T)(cm: CaseMapper): Value.Builder = Value.newBuilder().setEntityValue(toEntity(v)(cm))
+    override def to(v: T)(cm: CaseMapper): Value.Builder =
+      Value.newBuilder().setEntityValue(toEntity(v)(cm))
   }
 
   //////////////////////////////////////////////////
@@ -122,7 +123,8 @@ object EntityField {
 
   implicit def efOption[T](implicit f: EntityField[T]): EntityField[Option[T]] =
     new EntityField[Option[T]] {
-      override def from(v: Value)(cm: CaseMapper): Option[T] = if (v == null) None else Some(f.from(v)(cm))
+      override def from(v: Value)(cm: CaseMapper): Option[T] =
+        if (v == null) None else Some(f.from(v)(cm))
       override def to(v: Option[T])(cm: CaseMapper): Value.Builder = v match {
         case None    => null
         case Some(x) => f.to(x)(cm)

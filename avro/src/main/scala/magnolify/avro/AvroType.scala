@@ -20,12 +20,11 @@ import java.nio.ByteBuffer
 import java.{util => ju}
 
 import magnolia._
-import magnolify.shared.Converter
-import magnolify.shared.CaseMapper
+import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
-import org.apache.avro.{JsonProperties, Schema}
 import org.apache.avro.generic.{GenericArray, GenericData, GenericRecord, GenericRecordBuilder}
+import org.apache.avro.{JsonProperties, Schema}
 
 import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.collection.concurrent
@@ -59,8 +58,8 @@ sealed trait AvroField[T] extends Serializable {
   type FromT
   type ToT
 
-  protected def schemaString(cm: CaseMapper): String
   private val schemaCache: concurrent.Map[ju.UUID, Schema] = concurrent.TrieMap.empty
+  protected def schemaString(cm: CaseMapper): String
   def schema(cm: CaseMapper): Schema =
     schemaCache.getOrElseUpdate(cm.uuid, new Schema.Parser().parse(schemaString(cm)))
   def defaultVal: Any

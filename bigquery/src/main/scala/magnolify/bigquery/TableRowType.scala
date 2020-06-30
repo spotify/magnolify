@@ -23,14 +23,13 @@ import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.common.io.BaseEncoding
 import magnolia._
-import magnolify.shared.Converter
+import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
 
 import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.language.experimental.macros
 import scala.reflect.ClassTag
-import magnolify.shared.CaseMapper
 
 class description(description: String) extends StaticAnnotation with Serializable {
   override def toString: String = description

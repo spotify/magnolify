@@ -144,10 +144,10 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
   }
 
   {
-    implicit val at = TableRowType[LowerCamel](CaseMapper(_.toUpperCase))
+    implicit val trt = TableRowType[LowerCamel](CaseMapper(_.toUpperCase))
     test[LowerCamel]
 
-    val schema = at.schema
+    val schema = trt.schema
     val fields = LowerCamel.fields.map(_.toUpperCase)
     require(schema.getFields.asScala.map(_.getName) == fields)
     require(
@@ -156,7 +156,7 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
         .exists(_.getFields.asScala.exists(_.getName == "INNERFIRST"))
     )
 
-    val record = at(LowerCamel.default)
+    val record = trt(LowerCamel.default)
     require(record.keySet().asScala == fields.toSet)
     require(record.get("INNERFIELD").asInstanceOf[TableRow].get("INNERFIRST") != null)
   }

@@ -24,6 +24,8 @@ import cats.instances.all._
 import com.google.protobuf.ByteString
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
+import magnolify.shared.CaseMapper
+import magnolify.shims.JavaConverters._
 import magnolify.tensorflow._
 import magnolify.tensorflow.unsafe._
 import magnolify.test.Simple._
@@ -79,6 +81,17 @@ object ExampleTypeSpec extends MagnolifySpec("ExampleType") {
     implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
     implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
     test[ExampleTypes]
+  }
+
+  {
+    implicit val et = ExampleType[LowerCamel](CaseMapper(_.toUpperCase))
+    test[LowerCamel]
+
+    val fields = LowerCamel.fields
+      .map(_.toUpperCase)
+      .map(l => if (l == "INNERFIELD") "INNERFIELD.INNERFIRST" else l)
+    val record = et(LowerCamel.default)
+    require(record.getFeatures.getFeatureMap.keySet().asScala == fields.toSet)
   }
 }
 

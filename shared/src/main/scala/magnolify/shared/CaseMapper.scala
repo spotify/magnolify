@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Spotify AB.
+ * Copyright 2020 Spotify AB.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,21 @@
  */
 package magnolify.shared
 
-trait Converter[T, Reader, Writer] extends Serializable {
-  def from(v: Reader): T
-  def to(v: T): Writer
+import java.util.UUID
+
+sealed trait CaseMapper extends Serializable {
+  val uuid: UUID
+  def map(label: String): String
+}
+
+object CaseMapper {
+  def apply(f: String => String): CaseMapper = new CaseMapper {
+    override val uuid: UUID = UUID.randomUUID()
+    override def map(label: String): String = f(label)
+  }
+
+  val identity: CaseMapper = new CaseMapper {
+    override val uuid: UUID = UUID.nameUUIDFromBytes(Array.emptyByteArray)
+    override def map(label: String): String = label
+  }
 }
