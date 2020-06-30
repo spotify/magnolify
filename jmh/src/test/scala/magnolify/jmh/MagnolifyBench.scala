@@ -18,7 +18,9 @@ package magnolify.jmh
 
 import java.util.concurrent.TimeUnit
 
+import com.google.common.base.CaseFormat
 import magnolify.scalacheck.auto._
+import magnolify.shared.CaseMapper
 import magnolify.test.Simple._
 import org.scalacheck._
 import org.openjdk.jmh.annotations._
@@ -87,6 +89,12 @@ class AvroBench {
   @Benchmark def avroTo: GenericRecord = avroType.to(nested)
   @Benchmark def avroFrom: Nested = avroType.from(genericRecord)
   @Benchmark def avroSchmea: Schema = avroType.schema
+
+  private val avroTypeCase = AvroType[Nested](CaseMapper(CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_HYPHEN).convert))
+  private val genericRecordCase = avroTypeCase.to(nested)
+  @Benchmark def avroToCase: GenericRecord = avroTypeCase.to(nested)
+  @Benchmark def avroFromCase: Nested = avroTypeCase.from(genericRecordCase)
+  @Benchmark def avroSchmeaCase: Schema = avroTypeCase.schema
 }
 
 @BenchmarkMode(Array(Mode.AverageTime))
