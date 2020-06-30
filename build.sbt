@@ -331,7 +331,6 @@ lazy val jmh: Project = project
   .in(file("jmh"))
   .settings(
     commonSettings,
-    sourceDirectory in Jmh := (sourceDirectory in Test).value,
     classDirectory in Jmh := (classDirectory in Test).value,
     dependencyClasspath in Jmh := (dependencyClasspath in Test).value,
     // rewire tasks, so that 'jmh:run' automatically invokes 'jmh:compile'
