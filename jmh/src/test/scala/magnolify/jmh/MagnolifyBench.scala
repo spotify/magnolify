@@ -90,7 +90,9 @@ class AvroBench {
   @Benchmark def avroFrom: Nested = avroType.from(genericRecord)
   @Benchmark def avroSchmea: Schema = avroType.schema
 
-  private val avroTypeCase = AvroType[Nested](CaseMapper(CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_HYPHEN).convert))
+  private val avroTypeCase = AvroType[Nested](
+    CaseMapper(CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_HYPHEN).convert)
+  )
   private val genericRecordCase = avroTypeCase.to(nested)
   @Benchmark def avroToCase: GenericRecord = avroTypeCase.to(nested)
   @Benchmark def avroFromCase: Nested = avroTypeCase.from(genericRecordCase)

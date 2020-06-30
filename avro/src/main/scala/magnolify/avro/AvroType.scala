@@ -28,6 +28,7 @@ import org.apache.avro.{JsonProperties, Schema}
 import org.apache.avro.generic.{GenericArray, GenericData, GenericRecord, GenericRecordBuilder}
 
 import scala.annotation.{implicitNotFound, StaticAnnotation}
+import scala.collection.concurrent
 import scala.language.experimental.macros
 import scala.language.implicitConversions
 
@@ -43,7 +44,7 @@ sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
 }
 
 object AvroType {
-  implicit def apply[T: AvroField.Record]: AvroType[T] = AvroType(identity: CaseMapper)
+  implicit def apply[T: AvroField.Record]: AvroType[T] = AvroType(CaseMapper.identity)
 
   def apply[T](g: CaseMapper)(implicit f: AvroField.Record[T]): AvroType[T] =
     new AvroType[T] {
@@ -59,7 +60,9 @@ sealed trait AvroField[T] extends Serializable {
   type ToT
 
   protected def schemaString(cm: CaseMapper): String
-  def schema(cm: CaseMapper): Schema = new Schema.Parser().parse(schemaString(cm))
+  private val schemaCache: concurrent.Map[ju.UUID, Schema] = concurrent.TrieMap.empty
+  def schema(cm: CaseMapper): Schema =
+    schemaCache.getOrElseUpdate(cm.uuid, new Schema.Parser().parse(schemaString(cm)))
   def defaultVal: Any
   def from(v: FromT)(cm: CaseMapper): T
   def to(v: T)(cm: CaseMapper): ToT
@@ -147,8 +150,7 @@ object AvroField {
     new AvroField[T] {
       override type FromT = From
       override type ToT = To
-      private val _schemaString = Schema.create(tpe).toString()
-      override protected def schemaString(cm: CaseMapper): String = _schemaString
+      override protected def schemaString(cm: CaseMapper): String = Schema.create(tpe).toString()
       override def defaultVal: Any = null
       override def from(v: FromT)(cm: CaseMapper): T = f(v)
       override def to(v: T)(cm: CaseMapper): ToT = g(v)
