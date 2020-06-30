@@ -16,13 +16,16 @@
  */
 package magnolify.shared
 
+import java.util.UUID
+
 trait Converter[T, Reader, Writer] extends Serializable {
   protected val caseMapper: CaseMapper = identity
   def from(v: Reader): T
   def to(v: T): Writer
 }
 
-trait CaseMapper extends Serializable {
+abstract class CaseMapper extends Serializable {
+  val id: String = UUID.randomUUID().toString
   def map(label: String): String
 }
 
