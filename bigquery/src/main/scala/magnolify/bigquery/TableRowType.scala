@@ -47,11 +47,11 @@ sealed trait TableRowType[T] extends Converter[T, TableRow, TableRow] {
 object TableRowType {
   implicit def apply[T: TableRowField.Record]: TableRowType[T] = TableRowType(CaseMapper.identity)
 
-  def apply[T](g: CaseMapper)(implicit f: TableRowField.Record[T]): TableRowType[T] =
+  def apply[T](cm: CaseMapper)(implicit f: TableRowField.Record[T]): TableRowType[T] =
     new TableRowType[T] {
-      override protected val caseMapper: CaseMapper = g
+      override protected val caseMapper: CaseMapper = cm
       override protected val schemaString: String =
-        Schemas.toJson(new TableSchema().setFields(f.fieldSchema(g).getFields))
+        Schemas.toJson(new TableSchema().setFields(f.fieldSchema(cm).getFields))
       override val description: String = f.fieldSchema(caseMapper).getDescription
       override def from(v: TableRow): T = f.from(v)(caseMapper)
       override def to(v: T): TableRow = f.to(v)(caseMapper)

@@ -46,9 +46,9 @@ sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
 object AvroType {
   implicit def apply[T: AvroField.Record]: AvroType[T] = AvroType(CaseMapper.identity)
 
-  def apply[T](g: CaseMapper)(implicit f: AvroField.Record[T]): AvroType[T] =
+  def apply[T](cm: CaseMapper)(implicit f: AvroField.Record[T]): AvroType[T] =
     new AvroType[T] {
-      override protected val caseMapper: CaseMapper = g
+      override protected val caseMapper: CaseMapper = cm
       override protected val schemaString: String = f.schema(caseMapper).toString()
       override def from(v: GenericRecord): T = f.from(v)(caseMapper)
       override def to(v: T): GenericRecord = f.to(v)(caseMapper)
