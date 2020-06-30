@@ -58,7 +58,8 @@ sealed trait AvroField[T] extends Serializable {
   type FromT
   type ToT
 
-  private val schemaCache: concurrent.Map[ju.UUID, Schema] = concurrent.TrieMap.empty
+  @transient private lazy val schemaCache: concurrent.Map[ju.UUID, Schema] =
+    concurrent.TrieMap.empty
   protected def schemaString(cm: CaseMapper): String
   def schema(cm: CaseMapper): Schema =
     schemaCache.getOrElseUpdate(cm.uuid, new Schema.Parser().parse(schemaString(cm)))
