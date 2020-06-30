@@ -56,3 +56,13 @@ message CustomP3 {
 message BytesP3 {
     bytes b = 1;
 }
+
+message UpperCase {
+    string FIRSTFIELD = 1;
+    string SECONDFIELD = 2;
+    UpperCaseInner INNERFIELD = 3;
+}
+
+message UpperCaseInner {
+    string INNERFIRST = 1;
+}

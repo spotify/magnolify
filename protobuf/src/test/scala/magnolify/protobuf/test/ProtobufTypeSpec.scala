@@ -26,6 +26,7 @@ import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.protobuf._
 import magnolify.protobuf.unsafe._
+import magnolify.shared.CaseMapper
 import magnolify.shims.JavaConverters._
 import magnolify.test.Proto2._
 import magnolify.test.Proto3._
@@ -114,6 +115,11 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufType") {
       ProtobufField.from[Long](Duration.ofMillis)(_.toMillis)
     test[Custom, CustomP2]
     test[Custom, CustomP3]
+  }
+
+  {
+    implicit val pt = ProtobufType[LowerCamel, UpperCase](CaseMapper(_.toUpperCase))
+    test[LowerCamel, UpperCase]
   }
 }
 

@@ -23,7 +23,7 @@ import com.google.protobuf.Descriptors.FileDescriptor.Syntax
 import com.google.protobuf.Descriptors.{Descriptor, FieldDescriptor}
 import com.google.protobuf.{ByteString, Message}
 import magnolia._
-import magnolify.shared.Converter
+import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
 
@@ -59,7 +59,11 @@ object ProtobufOption {
 }
 
 object ProtobufType {
-  implicit def apply[T, MsgT <: Message](implicit
+  implicit def apply[T: ProtobufField.Record, MsgT <: Message: ClassTag](implicit
+    po: ProtobufOption
+  ): ProtobufType[T, MsgT] = ProtobufType(CaseMapper.identity)
+
+  def apply[T, MsgT <: Message](cm: CaseMapper)(implicit
     f: ProtobufField.Record[T],
     ct: ClassTag[MsgT],
     po: ProtobufOption
@@ -83,8 +87,9 @@ object ProtobufType {
         _newBuilder.invoke(null).asInstanceOf[Message.Builder]
       }
 
-      override def from(v: MsgT): T = f.from(v)
-      override def to(v: T): MsgT = f.to(v, newBuilder).asInstanceOf[MsgT]
+      private val caseMapper: CaseMapper = cm
+      override def from(v: MsgT): T = f.from(v)(caseMapper)
+      override def to(v: T): MsgT = f.to(v, newBuilder)(caseMapper).asInstanceOf[MsgT]
     }
 }
 
@@ -94,10 +99,10 @@ sealed trait ProtobufField[T] extends Serializable {
 
   val hasOptional: Boolean
 
-  def from(v: FromT): T
-  def to(v: T, b: Message.Builder): ToT
+  def from(v: FromT)(cm: CaseMapper): T
+  def to(v: T, b: Message.Builder)(cm: CaseMapper): ToT
 
-  def fromAny(v: Any): T = from(v.asInstanceOf[FromT])
+  def fromAny(v: Any)(cm: CaseMapper): T = from(v.asInstanceOf[FromT])(cm)
 }
 
 object ProtobufField {
@@ -116,21 +121,23 @@ object ProtobufField {
     // One Record[T] instance may be used for multiple Message types
     private val fieldsCache: concurrent.Map[String, Array[FieldDescriptor]] =
       concurrent.TrieMap.empty
-    private def getFields(descriptor: Descriptor): Array[FieldDescriptor] =
+    private def getFields(descriptor: Descriptor)(cm: CaseMapper): Array[FieldDescriptor] =
       fieldsCache.getOrElseUpdate(
         descriptor.getFullName, {
           val fields = new Array[FieldDescriptor](caseClass.parameters.size)
-          caseClass.parameters.foreach(p => fields(p.index) = descriptor.findFieldByName(p.label))
+          caseClass.parameters.foreach(p =>
+            fields(p.index) = descriptor.findFieldByName(cm.map(p.label))
+          )
           fields
         }
       )
 
     override val hasOptional: Boolean = caseClass.parameters.exists(_.typeclass.hasOptional)
 
-    override def from(v: Message): T = {
+    override def from(v: Message)(cm: CaseMapper): T = {
       val descriptor = v.getDescriptorForType
       val syntax = descriptor.getFile.getSyntax
-      val fields = getFields(descriptor)
+      val fields = getFields(descriptor)(cm)
 
       caseClass.construct { p =>
         val field = fields(p.index)
@@ -140,22 +147,22 @@ object ProtobufField {
         } else {
           v.getField(field)
         }
-        p.typeclass.fromAny(value)
+        p.typeclass.fromAny(value)(cm)
       }
     }
 
-    override def to(v: T, bu: Message.Builder): Message = {
-      val fields = getFields(bu.getDescriptorForType)
+    override def to(v: T, bu: Message.Builder)(cm: CaseMapper): Message = {
+      val fields = getFields(bu.getDescriptorForType)(cm)
 
       caseClass.parameters
         .foldLeft(bu) { (b, p) =>
           val field = fields(p.index)
           val value = if (field.getType == FieldDescriptor.Type.MESSAGE) {
             // nested records
-            p.typeclass.to(p.dereference(v), b.newBuilderForField(field))
+            p.typeclass.to(p.dereference(v), b.newBuilderForField(field))(cm)
           } else {
             // non-nested
-            p.typeclass.to(p.dereference(v), null)
+            p.typeclass.to(p.dereference(v), null)(cm)
           }
           if (value == null) b else b.setField(field, value)
         }
@@ -181,8 +188,8 @@ object ProtobufField {
         override type FromT = pf.FromT
         override type ToT = pf.ToT
         override val hasOptional: Boolean = pf.hasOptional
-        override def from(v: FromT): U = f(pf.from(v))
-        override def to(v: U, b: Message.Builder): ToT = pf.to(g(v), null)
+        override def from(v: FromT)(cm: CaseMapper): U = f(pf.from(v)(cm))
+        override def to(v: U, b: Message.Builder)(cm: CaseMapper): ToT = pf.to(g(v), null)(cm)
       }
   }
 
@@ -191,8 +198,8 @@ object ProtobufField {
       override type FromT = From
       override type ToT = To
       override val hasOptional: Boolean = false
-      override def from(v: FromT): T = f(v)
-      override def to(v: T, b: Message.Builder): ToT = g(v)
+      override def from(v: FromT)(cm: CaseMapper): T = f(v)
+      override def to(v: T, b: Message.Builder)(cm: CaseMapper): ToT = g(v)
     }
 
   private def aux2[T, Repr](f: Repr => T)(g: T => Repr): ProtobufField[T] =
@@ -212,10 +219,11 @@ object ProtobufField {
   implicit def pfOption[T](implicit f: ProtobufField[T]): ProtobufField[Option[T]] =
     new Aux[Option[T], f.FromT, f.ToT] {
       override val hasOptional: Boolean = true
-      override def from(v: f.FromT): Option[T] = if (v == null) None else Some(f.from(v))
-      override def to(v: Option[T], b: Message.Builder): f.ToT = v match {
+      override def from(v: f.FromT)(cm: CaseMapper): Option[T] =
+        if (v == null) None else Some(f.from(v)(cm))
+      override def to(v: Option[T], b: Message.Builder)(cm: CaseMapper): f.ToT = v match {
         case None    => null.asInstanceOf[f.ToT]
-        case Some(x) => f.to(x, b)
+        case Some(x) => f.to(x, b)(cm)
       }
     }
 
@@ -226,13 +234,13 @@ object ProtobufField {
   ): ProtobufField[C[T]] =
     new Aux[C[T], ju.List[f.FromT], ju.List[f.ToT]] {
       override val hasOptional: Boolean = false
-      override def from(v: ju.List[f.FromT]): C[T] =
+      override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] =
         if (v == null) {
           fc.newBuilder.result()
         } else {
-          fc.build(v.asScala.iterator.map(f.from))
+          fc.build(v.asScala.iterator.map(f.from(_)(cm)))
         }
-      override def to(v: C[T], b: Message.Builder): ju.List[f.ToT] =
-        if (v.isEmpty) null else v.iterator.map(f.to(_, b)).toList.asJava
+      override def to(v: C[T], b: Message.Builder)(cm: CaseMapper): ju.List[f.ToT] =
+        if (v.isEmpty) null else v.iterator.map(f.to(_, b)(cm)).toList.asJava
     }
 }
