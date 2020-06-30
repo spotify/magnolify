@@ -26,3 +26,16 @@ val copy = exampleType.from(exampleBuilder.build)
 `ExampleType` encodes each field in a `Feature` of the same name. It encodes nested fields by joining field names as `field_a.field_b.field_c`. Optional and repeated types are not supported in a nested field.
 
 Additional `ExampleField[T]` instances for `Byte`, `Char`, `Short`, `Int`, `Double`, `Boolean`, and `String` are available from `import magnolify.tensorflow.unsafe._`. These conversions are unsafe due to potential overflow and encoding errors.
+
+To use a different field case format in target records, add an optional `CaseMapper` argument to `ExampleType`. The following example maps `firstName` & `lastName` to `first_name` & `last_name`.
+
+```scala
+import magnolify.shared.CaseMapper
+import com.google.common.base.CaseFormat
+
+case class LowerCamel(firstName: String, lastName: String)
+
+val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_HYPHEN).convert _
+val exampleType = ExampleType[LowerCamel](CaseMapper(toSnakeCase))
+exampleType.to(LowerCamel("John", "Doe"))
+```

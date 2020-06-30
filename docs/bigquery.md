@@ -41,3 +41,16 @@ class myDesc(description: String, version: Int)
 @myDesc("My record", 2)
 case class Record(@myDesc("int field", 1) i: Int, @myDesc("string field", 2) s: String)
 ```
+
+To use a different field case format in target records, add an optional `CaseMapper` argument to `TableRowType`. The following example maps `firstName` & `lastName` to `first_name` & `last_name`.
+
+```scala
+import magnolify.shared.CaseMapper
+import com.google.common.base.CaseFormat
+
+case class LowerCamel(firstName: String, lastName: String)
+
+val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_HYPHEN).convert _
+val tableRowType = TableRowType[LowerCamel](CaseMapper(toSnakeCase))
+tableRowType.to(LowerCamel("John", "Doe"))
+```

@@ -40,3 +40,16 @@ class myDoc(doc: String, version: Int) extends doc(s"doc: $doc, version: $versio
 @myDoc("My record", 2)
 case class Record(@myDoc("int field", 1) i: Int, @myDoc("string field", 2) s: String)
 ```
+
+To use a different field case format in target records, add an optional `CaseMapper` argument to `AvroType`. The following example maps `firstName` & `lastName` to `first_name` & `last_name`.
+
+```scala
+import magnolify.shared.CaseMapper
+import com.google.common.base.CaseFormat
+
+case class LowerCamel(firstName: String, lastName: String)
+
+val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_HYPHEN).convert _
+val avroType = AvroType[LowerCamel](CaseMapper(toSnakeCase))
+avroType.to(LowerCamel("John", "Doe"))
+```

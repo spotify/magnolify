@@ -18,7 +18,20 @@ implicit val uriField = BigtableField.from[String](URI.create)(_.toString)
 val bigtableType = BigtableType[Outer]
 val mutations: Seq[Mutation] = bigtableType(record, "ColumnFamily")
 val row: Row = BigtableType.mutationsToRow(ByteString.copyFromUtf8("RowKey"), mutations)
-val copy: Outer = bigtableType.from(row, "ColumnFamily")
+val copy: Outer = bigtableType(row, "ColumnFamily")
 ```
 
 `BigtableType` encodes each field in a separate column qualifier of the same name. It encodes nested fields by joining field names as `field_a.field_b.field_c`. Repeated types are not supported.
+
+To use a different field case format in target records, add an optional `CaseMapper` argument to `BigtableType`. The following example maps `firstName` & `lastName` to `first_name` & `last_name`.
+
+```scala
+import magnolify.shared.CaseMapper
+import com.google.common.base.CaseFormat
+
+case class LowerCamel(firstName: String, lastName: String)
+
+val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_HYPHEN).convert _
+val bigtableType = BigtableType[LowerCamel](CaseMapper(toSnakeCase))
+bigtableType(LowerCamel("John", "Doe"), "cf")
+```
