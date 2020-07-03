@@ -98,6 +98,40 @@ object EntityTypeSpec extends MagnolifySpec("EntityType") {
   }
 
   {
+    val et = EntityType[EntityIndex]
+    val ei = EntityIndex("foo", "bar", "zoo")
+    require(et(et(ei)) == ei)
+
+    val record = et(EntityIndex("foo", "bar", "zoo"))
+
+    require(
+      record
+        .getPropertiesOrThrow("default")
+        .getExcludeFromIndexes
+        .equals(false)
+    )
+    require(
+      record
+        .getPropertiesOrThrow("excluded")
+        .getExcludeFromIndexes
+        .equals(true)
+    )
+    require(
+      record
+        .getPropertiesOrThrow("included")
+        .getExcludeFromIndexes
+        .equals(false)
+    )
+  }
+
+  require(
+    expectException[IllegalArgumentException](
+      EntityType[DoubleEntityIndex].apply(DoubleEntityIndex(0))
+    ).getMessage ==
+      "requirement failed: More than one excludeFromIndexes annotation: i"
+  )
+
+  {
     implicit val et = EntityType[LowerCamel](CaseMapper(_.toUpperCase))
     test[LowerCamel]
 
@@ -122,3 +156,11 @@ case class DefaultOuter(
   i: DefaultInner = DefaultInner(2, Some(2), List(2, 2)),
   o: Option[DefaultInner] = Some(DefaultInner(2, Some(2), List(2, 2)))
 )
+
+case class EntityIndex(
+  default: String,
+  @excludeFromIndexes(true) excluded: String,
+  @excludeFromIndexes(false) included: String
+)
+
+case class DoubleEntityIndex(@excludeFromIndexes(true) @excludeFromIndexes(false) i: Int)
