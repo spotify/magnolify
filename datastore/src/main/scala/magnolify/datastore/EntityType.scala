@@ -24,13 +24,15 @@ import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
 
-import scala.annotation.implicitNotFound
+import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.language.experimental.macros
 
 sealed trait EntityType[T] extends Converter[T, Entity, Entity.Builder] {
   def apply(v: Entity): T = from(v)
   def apply(v: T): Entity = to(v).build()
 }
+
+class excludeFromIndexes(val exclude: Boolean = true) extends StaticAnnotation with Serializable
 
 object EntityType {
   implicit def apply[T: EntityField.Record]: EntityType[T] = EntityType(CaseMapper.identity)
@@ -77,10 +79,20 @@ object EntityField {
       caseClass.parameters.foldLeft(Entity.newBuilder()) { (eb, p) =>
         val vb = p.typeclass.to(p.dereference(v))(cm)
         if (vb != null) {
-          eb.putProperties(cm.map(p.label), vb.build())
+          eb.putProperties(
+            cm.map(p.label),
+            vb.setExcludeFromIndexes(getExcludeFromIndexes(p.annotations, cm.map(p.label)))
+              .build()
+          )
         }
         eb
       }
+
+    private def getExcludeFromIndexes(annotations: Seq[Any], name: String): Boolean = {
+      val excludes = annotations.collect { case d: excludeFromIndexes => d.exclude }
+      require(excludes.size <= 1, s"More than one excludeFromIndexes annotation: $name")
+      excludes.headOption.getOrElse(false)
+    }
   }
 
   @implicitNotFound("Cannot derive EntityField for sealed trait")
