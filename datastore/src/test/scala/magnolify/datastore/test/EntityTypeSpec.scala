@@ -99,16 +99,21 @@ object EntityTypeSpec extends MagnolifySpec("EntityType") {
 
   {
     val et = EntityType[EntityIndex]
-    val ei = EntityIndex("foo", "bar", "zoo")
-    require(et(et(ei)) == ei)
-
-    val record = et(EntityIndex("foo", "bar", "zoo"))
+    val ei = EntityIndex("foo", "bar", "baz", "zoo")
+    val record = et(ei)
+    require(et(record) == ei)
 
     require(
       record
         .getPropertiesOrThrow("default")
         .getExcludeFromIndexes
         .equals(false)
+    )
+    require(
+      record
+        .getPropertiesOrThrow("excludedDefault")
+        .getExcludeFromIndexes
+        .equals(true)
     )
     require(
       record
@@ -159,6 +164,7 @@ case class DefaultOuter(
 
 case class EntityIndex(
   default: String,
+  @excludeFromIndexes excludedDefault: String,
   @excludeFromIndexes(true) excluded: String,
   @excludeFromIndexes(false) included: String
 )
