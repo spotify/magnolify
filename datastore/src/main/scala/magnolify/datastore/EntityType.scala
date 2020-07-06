@@ -65,6 +65,14 @@ object EntityField {
   type Typeclass[T] = EntityField[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
+    private val excludeFromIndexes: Array[Boolean] = {
+      val a = new Array[Boolean](caseClass.parameters.length)
+      caseClass.parameters.foreach { p =>
+        a(p.index) = getExcludeFromIndexes(p.annotations, s"${caseClass.typeName.full}#${p.label}")
+      }
+      a
+    }
+
     override def fromEntity(v: Entity)(cm: CaseMapper): T =
       caseClass.construct { p =>
         val f = v.getPropertiesOrDefault(cm.map(p.label), null)
@@ -81,7 +89,7 @@ object EntityField {
         if (vb != null) {
           eb.putProperties(
             cm.map(p.label),
-            vb.setExcludeFromIndexes(getExcludeFromIndexes(p.annotations, cm.map(p.label)))
+            vb.setExcludeFromIndexes(excludeFromIndexes(p.index))
               .build()
           )
         }

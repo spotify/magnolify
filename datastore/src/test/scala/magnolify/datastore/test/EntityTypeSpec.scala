@@ -133,7 +133,7 @@ object EntityTypeSpec extends MagnolifySpec("EntityType") {
     expectException[IllegalArgumentException](
       EntityType[DoubleEntityIndex].apply(DoubleEntityIndex(0))
     ).getMessage ==
-      "requirement failed: More than one excludeFromIndexes annotation: i"
+      "requirement failed: More than one excludeFromIndexes annotation: magnolify.datastore.test.DoubleEntityIndex#i"
   )
 
   {
