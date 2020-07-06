@@ -96,7 +96,7 @@ object TableRowField {
               .fieldSchema(cm)
               .setName(cm.map(p.label))
               .setDescription(
-                getDescription(p.annotations, s"${caseClass.typeName.full}#${cm.map(p.label)}")
+                getDescription(p.annotations, s"${caseClass.typeName.full}#${p.label}")
               )
           }.asJava)
       )

@@ -94,7 +94,7 @@ object AvroField {
           new Schema.Field(
             cm.map(p.label),
             p.typeclass.schema(cm),
-            getDoc(p.annotations, s"${caseClass.typeName.full}#${cm.map(p.label)}"),
+            getDoc(p.annotations, s"${caseClass.typeName.full}#${p.label}"),
             p.typeclass.defaultVal
           )
         }.asJava
