@@ -22,6 +22,12 @@ val copy: Outer = entityType.from(entityBuilder.build)
 
 Additional `EntityField[T]` instances for `Byte`, `Char`, `Short`, `Int`, and `Float` are available from `import magnolify.datastore.unsafe._`. These conversions are unsafe due to potential overflow.
 
+To exclude a property from indexes, annotate the field with `excludeFromIndexes` annotation.
+
+```scala
+case class Record(@excludeFromIndexes i: Int, @excludeFromIndexes(true) s: String)
+```
+
 To use a different field case format in target records, add an optional `CaseMapper` argument to `EntityType`. The following example maps `firstName` & `lastName` to `first_name` & `last_name`.
 
 ```scala
