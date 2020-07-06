@@ -36,8 +36,7 @@ class doc(doc: String) extends StaticAnnotation with Serializable {
 }
 
 sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
-  protected val schemaString: String
-  def schema: Schema = new Schema.Parser().parse(schemaString)
+  val schema: Schema
   def apply(r: GenericRecord): T = from(r)
   def apply(t: T): GenericRecord = to(t)
 }
@@ -45,13 +44,15 @@ sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
 object AvroType {
   implicit def apply[T: AvroField.Record]: AvroType[T] = AvroType(CaseMapper.identity)
 
-  def apply[T](cm: CaseMapper)(implicit f: AvroField.Record[T]): AvroType[T] =
+  def apply[T](cm: CaseMapper)(implicit f: AvroField.Record[T]): AvroType[T] = {
+    f.schema(cm) // fail fast on bad annotations
     new AvroType[T] {
       private val caseMapper: CaseMapper = cm
-      override protected val schemaString: String = f.schema(caseMapper).toString()
+      @transient override lazy val schema: Schema = f.schema(caseMapper)
       override def from(v: GenericRecord): T = f.from(v)(caseMapper)
       override def to(v: T): GenericRecord = f.to(v)(caseMapper)
     }
+  }
 }
 
 sealed trait AvroField[T] extends Serializable {

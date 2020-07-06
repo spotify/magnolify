@@ -36,9 +36,8 @@ class description(description: String) extends StaticAnnotation with Serializabl
 }
 
 sealed trait TableRowType[T] extends Converter[T, TableRow, TableRow] {
-  protected val schemaString: String
+  val schema: TableSchema
   val description: String
-  def schema: TableSchema = Schemas.fromJson[TableSchema](schemaString)
   def apply(v: TableRow): T = from(v)
   def apply(v: T): TableRow = to(v)
 }
@@ -46,15 +45,17 @@ sealed trait TableRowType[T] extends Converter[T, TableRow, TableRow] {
 object TableRowType {
   implicit def apply[T: TableRowField.Record]: TableRowType[T] = TableRowType(CaseMapper.identity)
 
-  def apply[T](cm: CaseMapper)(implicit f: TableRowField.Record[T]): TableRowType[T] =
+  def apply[T](cm: CaseMapper)(implicit f: TableRowField.Record[T]): TableRowType[T] = {
+    f.fieldSchema(cm) // fail fast on bad annotations
     new TableRowType[T] {
       private val caseMapper: CaseMapper = cm
-      override protected val schemaString: String =
-        Schemas.toJson(new TableSchema().setFields(f.fieldSchema(cm).getFields))
+      @transient override lazy val schema: TableSchema =
+        new TableSchema().setFields(f.fieldSchema(caseMapper).getFields)
       override val description: String = f.fieldSchema(caseMapper).getDescription
       override def from(v: TableRow): T = f.from(v)(caseMapper)
       override def to(v: T): TableRow = f.to(v)(caseMapper)
     }
+  }
 }
 
 sealed trait TableRowField[T] extends Serializable {
