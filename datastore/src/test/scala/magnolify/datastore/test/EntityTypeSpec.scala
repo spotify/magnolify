@@ -21,7 +21,7 @@ import java.time.{Duration, Instant}
 
 import cats._
 import cats.instances.all._
-import com.google.datastore.v1.Entity
+import com.google.datastore.v1.{Entity, Key}
 import com.google.datastore.v1.client.DatastoreHelper.makeValue
 import com.google.protobuf.ByteString
 import magnolify.datastore._
@@ -129,12 +129,70 @@ object EntityTypeSpec extends MagnolifySpec("EntityType") {
     )
   }
 
-  require(
-    expectException[IllegalArgumentException](
-      EntityType[DoubleEntityIndex].apply(DoubleEntityIndex(0))
-    ).getMessage ==
-      "requirement failed: More than one excludeFromIndexes annotation: magnolify.datastore.test.DoubleEntityIndex#i"
-  )
+  def testKey[T, K](
+    t: T,
+    project: String,
+    namespace: String,
+    kind: String,
+    p: Key.PathElement => Boolean
+  )(implicit et: EntityType[T]): Unit = {
+    val record = et(t)
+    require(record.getKey.getPartitionId.getProjectId == project)
+    require(record.getKey.getPartitionId.getNamespaceId == namespace)
+    require(record.getKey.getPathCount == 1)
+    require(record.getKey.getPath(0).getKind == kind)
+    require(p(record.getKey.getPath(0)))
+  }
+
+  {
+    val ns = "magnolify.datastore.test"
+    testKey(LongKey(123L), "", ns, "LongKey", _.getId == 123L)
+    testKey(StringKey("abc"), "", ns, "StringKey", _.getName == "abc")
+    testKey(InstantKey(Instant.ofEpochMilli(123L)), "", ns, "InstantKey", _.getId == 123L)
+    testKey(CustomKey(123L), "my-project", "com.spotify", "MyKind", _.getId == 123L)
+
+    testKey(IntKey(123), "", ns, "IntKey", _.getId == 123L)
+
+    implicit val efUri: EntityField[URI] = EntityField.from[String](URI.create)(_.toString)
+    testKey(UriKey(URI.create("spotify.com")), "", ns, "UriKey", _.getName == "spotify.com")
+
+    implicit val kfByteString: KeyField[ByteString] = KeyField.at[ByteString](_.toStringUtf8)
+    testKey(
+      ByteStringKey(ByteString.copyFromUtf8("abc")),
+      "",
+      ns,
+      "ByteStringKey",
+      _.getName == "abc"
+    )
+    implicit val kfByteArray: KeyField[Array[Byte]] = KeyField.at[Array[Byte]](new String(_))
+    testKey(ByteArrayKey("abc".getBytes), "", ns, "ByteArrayKey", _.getName == "abc")
+
+    implicit val kfRecord: KeyField[RecordKey] = KeyField.at[RecordKey](_.l)
+    testKey(NestedKey(RecordKey(123L, "abc")), "", ns, "NestedKey", _.getId == 123L)
+  }
+
+  {
+    require(
+      expectException[IllegalArgumentException](EntityType[DoubleKey]).getMessage ==
+        "requirement failed: More than one @key annotation: magnolify.datastore.test.DoubleKey#k"
+    )
+    require(
+      expectException[IllegalArgumentException](EntityType[MultiKey]).getMessage ==
+        "requirement failed: More than one field with @key annotation: magnolify.datastore.test.MultiKey#[k1, k2]"
+    )
+
+    require(
+      expectException[IllegalArgumentException](EntityType[NestedKey]).getMessage ==
+        "requirement failed: No KeyField[T] instance: magnolify.datastore.test.NestedKey#k"
+    )
+  }
+
+  {
+    require(
+      expectException[IllegalArgumentException](EntityType[DoubleEntityIndex]).getMessage ==
+        "requirement failed: More than one @excludeFromIndexes annotation: magnolify.datastore.test.DoubleEntityIndex#i"
+    )
+  }
 
   {
     implicit val et = EntityType[LowerCamel](CaseMapper(_.toUpperCase))
@@ -161,6 +219,19 @@ case class DefaultOuter(
   i: DefaultInner = DefaultInner(2, Some(2), List(2, 2)),
   o: Option[DefaultInner] = Some(DefaultInner(2, Some(2), List(2, 2)))
 )
+
+case class LongKey(@key k: Long)
+case class StringKey(@key k: String)
+case class InstantKey(@key k: Instant)
+case class CustomKey(@key("my-project", "com.spotify", "MyKind") k: Long)
+case class IntKey(@key k: Int)
+case class UriKey(@key k: URI)
+case class ByteStringKey(@key k: ByteString)
+case class ByteArrayKey(@key k: Array[Byte])
+case class DoubleKey(@key @key k: Long)
+case class MultiKey(@key k1: Long, @key k2: Long)
+case class RecordKey(l: Long, s: String)
+case class NestedKey(@key k: RecordKey)
 
 case class EntityIndex(
   default: String,

@@ -16,6 +16,8 @@
  */
 package magnolify.datastore
 
+import java.time.Instant
+
 import com.google.datastore.v1._
 import com.google.datastore.v1.client.DatastoreHelper.makeValue
 import com.google.protobuf.{ByteString, NullValue}
@@ -32,6 +34,9 @@ sealed trait EntityType[T] extends Converter[T, Entity, Entity.Builder] {
   def apply(v: T): Entity = to(v).build()
 }
 
+class key(val project: String = null, val namespace: String = null, val kind: String = null)
+    extends StaticAnnotation
+    with Serializable
 class excludeFromIndexes(val exclude: Boolean = true) extends StaticAnnotation with Serializable
 
 object EntityType {
@@ -45,7 +50,41 @@ object EntityType {
     }
 }
 
+sealed trait KeyField[T] extends Serializable { self =>
+  def setKey(b: Key.PathElement.Builder, key: T): Key.PathElement.Builder
+
+  def map[U](f: U => T): KeyField[U] = new KeyField[U] {
+    override def setKey(b: Key.PathElement.Builder, key: U): Key.PathElement.Builder =
+      self.setKey(b, f(key))
+  }
+}
+
+object KeyField {
+  implicit val longKeyField: KeyField[Long] = new KeyField[Long] {
+    override def setKey(b: Key.PathElement.Builder, key: Long): Key.PathElement.Builder =
+      b.setId(key)
+  }
+  implicit val stringKeyField: KeyField[String] = new KeyField[String] {
+    override def setKey(b: Key.PathElement.Builder, key: String): Key.PathElement.Builder =
+      b.setName(key)
+  }
+
+  def at[T]: FromWord[T] = new FromWord[T]
+
+  class FromWord[T] {
+    def apply[U](f: T => U)(implicit kf: KeyField[U]): KeyField[T] = kf.map(f)
+  }
+
+  class NotSupported[T] extends KeyField[T] {
+    override def setKey(b: Key.PathElement.Builder, key: T): Key.PathElement.Builder = ???
+    override def map[U](f: U => T): KeyField[U] = new NotSupported[U]
+  }
+
+  implicit def notSupportedKeyField[T]: KeyField[T] = new NotSupported[T]
+}
+
 sealed trait EntityField[T] extends Serializable {
+  val keyField: KeyField[T]
   def from(v: Value)(cm: CaseMapper): T
   def to(v: T)(cm: CaseMapper): Value.Builder
 }
@@ -64,7 +103,26 @@ object EntityField {
 
   type Typeclass[T] = EntityField[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
+  def combine[T: KeyField](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
+    private val (keyIndex, keyOpt): (Int, Option[key]) = {
+      val keys = caseClass.parameters
+        .map(p => p -> getKey(p.annotations, s"${caseClass.typeName.full}#${p.label}"))
+        .filter(_._2.isDefined)
+      require(
+        keys.size <= 1,
+        s"More than one field with @key annotation: ${caseClass.typeName.full}#[${keys.map(_._1.label).mkString(", ")}]"
+      )
+      keys.headOption match {
+        case None => (-1, None)
+        case Some((p, k)) =>
+          require(
+            !p.typeclass.keyField.isInstanceOf[KeyField.NotSupported[_]],
+            s"No KeyField[T] instance: ${caseClass.typeName.full}#${p.label}"
+          )
+          (p.index, k)
+      }
+    }
+
     private val excludeFromIndexes: Array[Boolean] = {
       val a = new Array[Boolean](caseClass.parameters.length)
       caseClass.parameters.foreach { p =>
@@ -72,6 +130,8 @@ object EntityField {
       }
       a
     }
+
+    override val keyField: KeyField[T] = implicitly[KeyField[T]]
 
     override def fromEntity(v: Entity)(cm: CaseMapper): T =
       caseClass.construct { p =>
@@ -85,7 +145,8 @@ object EntityField {
 
     override def toEntity(v: T)(cm: CaseMapper): Entity.Builder =
       caseClass.parameters.foldLeft(Entity.newBuilder()) { (eb, p) =>
-        val vb = p.typeclass.to(p.dereference(v))(cm)
+        val value = p.dereference(v)
+        val vb = p.typeclass.to(value)(cm)
         if (vb != null) {
           eb.putProperties(
             cm.map(p.label),
@@ -93,12 +154,38 @@ object EntityField {
               .build()
           )
         }
+        if (p.index == keyIndex) {
+          val k = keyOpt.get
+          val partitionId = {
+            val b = PartitionId.newBuilder()
+            if (k.project != null) {
+              b.setProjectId(k.project)
+            }
+            b.setNamespaceId(if (k.namespace != null) k.namespace else caseClass.typeName.owner)
+          }
+          val path = {
+            val b = Key.PathElement.newBuilder()
+            b.setKind(if (k.kind != null) k.kind else caseClass.typeName.short)
+            p.typeclass.keyField.setKey(b, value)
+          }
+          val kb = Key
+            .newBuilder()
+            .setPartitionId(partitionId)
+            .addPath(path)
+          eb.setKey(kb)
+        }
         eb
       }
 
+    private def getKey(annotations: Seq[Any], name: String): Option[key] = {
+      val keys = annotations.collect { case k: key => k }
+      require(keys.size <= 1, s"More than one @key annotation: $name")
+      keys.headOption
+    }
+
     private def getExcludeFromIndexes(annotations: Seq[Any], name: String): Boolean = {
-      val excludes = annotations.collect { case d: excludeFromIndexes => d.exclude }
-      require(excludes.size <= 1, s"More than one excludeFromIndexes annotation: $name")
+      val excludes = annotations.collect { case e: excludeFromIndexes => e.exclude }
+      require(excludes.size <= 1, s"More than one @excludeFromIndexes annotation: $name")
       excludes.headOption.getOrElse(false)
     }
   }
@@ -113,16 +200,19 @@ object EntityField {
 
   def apply[T](implicit f: EntityField[T]): EntityField[T] = f
 
-  def at[T](f: Value => T)(g: T => Value.Builder): EntityField[T] = new EntityField[T] {
-    override def from(v: Value)(cm: CaseMapper): T = f(v)
-    override def to(v: T)(cm: CaseMapper): Value.Builder = g(v)
-  }
+  def at[T](f: Value => T)(g: T => Value.Builder)(implicit kf: KeyField[T]): EntityField[T] =
+    new EntityField[T] {
+      override val keyField: KeyField[T] = kf
+      override def from(v: Value)(cm: CaseMapper): T = f(v)
+      override def to(v: T)(cm: CaseMapper): Value.Builder = g(v)
+    }
 
   def from[T]: FromWord[T] = new FromWord[T]
 
   class FromWord[T] {
     def apply[U](f: T => U)(g: U => T)(implicit ef: EntityField[T]): EntityField[U] =
       new EntityField[U] {
+        override val keyField: KeyField[U] = ef.keyField.map(g)
         override def from(v: Value)(cm: CaseMapper): U = f(ef.from(v)(cm))
         override def to(v: U)(cm: CaseMapper): Value.Builder = ef.to(g(v))(cm)
       }
@@ -130,19 +220,38 @@ object EntityField {
 
   //////////////////////////////////////////////////
 
-  implicit val efBool = at[Boolean](_.getBooleanValue)(makeValue)
+  // Entity key supports `Long` and `String` natively
   implicit val efLong = at[Long](_.getIntegerValue)(makeValue)
-  implicit val efDouble = at[Double](_.getDoubleValue)(makeValue)
   implicit val efString = at[String](_.getStringValue)(makeValue)
-  implicit val efByteString = at[ByteString](_.getBlobValue)(makeValue)
-  implicit val efByteArray =
-    at[Array[Byte]](_.getBlobValue.toByteArray)(v => makeValue(ByteString.copyFrom(v)))
-  implicit val efTimestamp = at(TimestampConverter.toInstant)(TimestampConverter.fromInstant)
-  implicit val efUnit =
+
+  // `Boolean`, `Double` and `Unit` should not be used as keys
+  implicit def efBool(implicit kf: KeyField[Boolean]) = at[Boolean](_.getBooleanValue)(makeValue)
+  implicit def efDouble(implicit kf: KeyField[Double]) = at[Double](_.getDoubleValue)(makeValue)
+  implicit def efUnit(implicit kf: KeyField[Unit]) =
     at[Unit](_ => ())(_ => Value.newBuilder().setNullValue(NullValue.NULL_VALUE))
+
+  // User must provide `KeyField[T]` instances for `ByteString` and `Array[Byte]`
+  implicit def efByteString(implicit kf: KeyField[ByteString]) =
+    at[ByteString](_.getBlobValue)(makeValue)
+  implicit def efByteArray(implicit kf: KeyField[Array[Byte]]) =
+    at[Array[Byte]](_.getBlobValue.toByteArray)(v => makeValue(ByteString.copyFrom(v)))
+
+  // Encode `Instant` key as `Long`
+  implicit val efTimestamp = {
+    implicit val kfInstant = KeyField.at[Instant](_.toEpochMilli)
+    at(TimestampConverter.toInstant)(TimestampConverter.fromInstant)
+  }
 
   implicit def efOption[T](implicit f: EntityField[T]): EntityField[Option[T]] =
     new EntityField[Option[T]] {
+      override val keyField: KeyField[Option[T]] = new KeyField[Option[T]] {
+        override def setKey(b: Key.PathElement.Builder, key: Option[T]): Key.PathElement.Builder =
+          key match {
+            case None    => b
+            case Some(k) => f.keyField.setKey(b, k)
+          }
+      }
+
       override def from(v: Value)(cm: CaseMapper): Option[T] =
         if (v == null) None else Some(f.from(v)(cm))
       override def to(v: Option[T])(cm: CaseMapper): Value.Builder = v match {
@@ -153,10 +262,12 @@ object EntityField {
 
   implicit def efIterable[T, C[_]](implicit
     f: EntityField[T],
+    kf: KeyField[C[T]],
     ti: C[T] => Iterable[T],
     fc: FactoryCompat[T, C[T]]
   ): EntityField[C[T]] =
     new EntityField[C[T]] {
+      override val keyField: KeyField[C[T]] = kf
       override def from(v: Value)(cm: CaseMapper): C[T] =
         if (v == null) {
           fc.newBuilder.result()
