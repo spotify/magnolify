@@ -5,18 +5,18 @@ matrix:
       jdk: openjdk8
     - scala: 2.12.11
       jdk: openjdk11
-    - scala: 2.13.2
+    - scala: 2.13.3
       jdk: openjdk8
-    - scala: 2.13.2
+    - scala: 2.13.3
       jdk: openjdk11
 
     - name: scalafmt
-      scala: 2.13.2
+      scala: 2.13.3
       jdk: openjdk11
       script: sbt ++$TRAVIS_SCALA_VERSION clean scalafmtSbtCheck scalafmtCheck test:scalafmtCheck
 
     - name: coverage
-      scala: 2.13.2
+      scala: 2.13.3
       jdk: openjdk11
       script: sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport coverageAggregate
       after_success: bash <(curl -s https://codecov.io/bash)
