@@ -1,9 +1,9 @@
 language: scala
 matrix:
   include:
-    - scala: 2.12.11
+    - scala: 2.12.12
       jdk: openjdk8
-    - scala: 2.12.11
+    - scala: 2.12.12
       jdk: openjdk11
     - scala: 2.13.3
       jdk: openjdk8
@@ -22,7 +22,7 @@ matrix:
       after_success: bash <(curl -s https://codecov.io/bash)
 
     - name: avro
-      scala: 2.13.1
+      scala: 2.13.3
       jdk: openjdk11
       script: sbt ++$TRAVIS_SCALA_VERSION -Davro.version=1.8.2 clean avro/test
 

@@ -35,23 +35,16 @@ val tensorflowVersion = "1.15.0"
 val commonSettings = Seq(
   organization := "com.spotify",
   scalaVersion := "2.13.3",
-  crossScalaVersions := Seq("2.12.11", "2.13.3"),
+  crossScalaVersions := Seq("2.12.12", "2.13.3"),
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
   scalacOptions ++= (scalaBinaryVersion.value match {
-    case "2.11" => Seq("-language:higherKinds")
     case "2.12" => Seq("-language:higherKinds")
     case "2.13" => Nil
   }),
-  libraryDependencies ++= {
-    if (scalaBinaryVersion.value == "2.11") {
-      Seq("me.lyh" %% "magnolia" % "0.10.1-jto")
-    } else {
-      Seq(
-        "com.propensive" %% "magnolia" % magnoliaVersion,
-        "org.scala-lang" % "scala-reflect" % scalaVersion.value
-      )
-    }
-  },
+  libraryDependencies ++= Seq(
+    "com.propensive" %% "magnolia" % magnoliaVersion,
+    "org.scala-lang" % "scala-reflect" % scalaVersion.value
+  ),
   // https://github.com/typelevel/scalacheck/pull/427#issuecomment-424330310
   // FIXME: workaround for Java serialization issues
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
