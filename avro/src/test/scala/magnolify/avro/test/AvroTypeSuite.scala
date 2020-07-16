@@ -38,7 +38,7 @@ import org.scalacheck._
 
 import scala.reflect._
 
-object AvroTypeSpec extends MagnolifySpec("AvroType") {
+class AvroTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit
     t: AvroType[T],
     eqt: Eq[T],
@@ -47,11 +47,13 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
     val tpe = ensureSerializable(t)
     // FIXME: test schema
     val copier = new Copier(tpe.schema)
-    property(className[T]) = Prop.forAll { t: T =>
-      val r = tpe(t)
-      val rCopy = copier(r)
-      val copy = tpe(rCopy)
-      Prop.all(eqt.eqv(t, copy), eqr.eqv(r, rCopy))
+    property(className[T]) {
+      Prop.forAll { t: T =>
+        val r = tpe(t)
+        val rCopy = copier(r)
+        val copy = tpe(rCopy)
+        Prop.all(eqt.eqv(t, copy), eqr.eqv(r, rCopy))
+      }
     }
   }
 
@@ -94,61 +96,50 @@ object AvroTypeSpec extends MagnolifySpec("AvroType") {
     test[MapNested]
   }
 
-  {
+  test("AvroDoc") {
     val at = ensureSerializable(AvroType[AvroDoc])
     val schema = at.schema
-    require(schema.getDoc == "Avro with doc")
+    assertEquals(schema.getDoc, "Avro with doc")
     val fields = schema.getFields.asScala
-    require(fields.find(_.name() == "s").exists(_.doc() == "string"))
-    require(fields.find(_.name() == "i").exists(_.doc() == "integers"))
+    assert(fields.find(_.name() == "s").exists(_.doc() == "string"))
+    assert(fields.find(_.name() == "i").exists(_.doc() == "integers"))
   }
 
-  {
+  test("CustomDoc") {
     val at = ensureSerializable(AvroType[CustomDoc])
     val schema = at.schema
-    require(schema.getDoc == """{"doc": "Avro with doc", "path": "/path/to/my/data"}""")
+    assertEquals(schema.getDoc, """{"doc": "Avro with doc", "path": "/path/to/my/data"}""")
     val fields = schema.getFields.asScala
-    require(
-      fields
-        .find(_.name() == "s")
-        .exists(
-          _.doc() ==
-            """{"doc": "string", "since": "2020-01-01"}"""
-        )
-    )
-    require(
-      fields
-        .find(_.name() == "i")
-        .exists(
-          _.doc() ==
-            """{"doc": "integers", "since": "2020-02-01"}"""
-        )
-    )
+    val ds = """{"doc": "string", "since": "2020-01-01"}"""
+    val di = """{"doc": "integers", "since": "2020-02-01"}"""
+    require(fields.find(_.name() == "s").exists(_.doc() == ds))
+    require(fields.find(_.name() == "i").exists(_.doc() == di))
   }
 
-  require(
-    expectException[IllegalArgumentException](AvroType[DoubleRecordDoc]).getMessage ==
-      "requirement failed: More than one @doc annotation: magnolify.avro.test.DoubleRecordDoc"
+  testFail(AvroType[DoubleRecordDoc])(
+    "More than one @doc annotation: magnolify.avro.test.DoubleRecordDoc"
   )
-  require(
-    expectException[IllegalArgumentException](AvroType[DoubleFieldDoc]).getMessage ==
-      "requirement failed: More than one @doc annotation: magnolify.avro.test.DoubleFieldDoc#i"
+  testFail(AvroType[DoubleFieldDoc])(
+    "More than one @doc annotation: magnolify.avro.test.DoubleFieldDoc#i"
   )
 
   {
-    implicit val at = AvroType[LowerCamel](CaseMapper(_.toUpperCase))
+    implicit val at: AvroType[LowerCamel] = AvroType[LowerCamel](CaseMapper(_.toUpperCase))
     test[LowerCamel]
 
-    val schema = at.schema
-    val fields = LowerCamel.fields.map(_.toUpperCase)
-    require(schema.getFields.asScala.map(_.name()) == fields)
-    require(
-      schema.getField("INNERFIELD").schema().getFields.asScala.map(_.name()) == Seq("INNERFIRST")
-    )
+    test("LowerCamel mapping") {
+      val schema = at.schema
+      val fields = LowerCamel.fields.map(_.toUpperCase)
+      assertEquals(schema.getFields.asScala.map(_.name()).toSeq, fields)
+      assertEquals(
+        schema.getField("INNERFIELD").schema().getFields.asScala.map(_.name()).toSeq,
+        Seq("INNERFIRST")
+      )
 
-    val record = at(LowerCamel.default)
-    require(fields.forall(record.get(_) != null))
-    require(record.get("INNERFIELD").asInstanceOf[GenericRecord].get("INNERFIRST") != null)
+      val record = at(LowerCamel.default)
+      assert(fields.forall(record.get(_) != null))
+      assert(record.get("INNERFIELD").asInstanceOf[GenericRecord].get("INNERFIRST") != null)
+    }
   }
 }
 
