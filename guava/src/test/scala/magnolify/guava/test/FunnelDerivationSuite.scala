@@ -32,7 +32,7 @@ import org.scalacheck._
 
 import scala.reflect._
 
-object FunnelDerivationSpec extends MagnolifySpec("FunnelDerivation") {
+class FunnelDerivationSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag: Funnel]: Unit =
     test[T, T](identity)
 
@@ -40,10 +40,14 @@ object FunnelDerivationSpec extends MagnolifySpec("FunnelDerivation") {
     val fnl = ensureSerializable(t)
     val name = className[T]
     val g = arb.arbitrary
-    property(s"$name.uniqueness") = Prop.forAll(Gen.listOfN(10, g)) { xs =>
-      xs.map(toBytes(_, fnl)).toSet.size == xs.map(f).toSet.size
+    property(s"$name.uniqueness") {
+      Prop.forAll(Gen.listOfN(10, g)) { xs =>
+        xs.map(toBytes(_, fnl)).toSet.size == xs.map(f).toSet.size
+      }
     }
-    property(s"$name.consistency") = Prop.forAll { x: T => toBytes(x, fnl) == toBytes(x, fnl) }
+    property(s"$name.consistency") {
+      Prop.forAll { x: T => toBytes(x, fnl) == toBytes(x, fnl) }
+    }
   }
 
   private def toBytes[T](x: T, fnl: Funnel[T]): List[Byte] = {

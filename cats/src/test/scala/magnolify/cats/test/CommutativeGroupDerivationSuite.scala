@@ -18,7 +18,7 @@ package magnolify.cats.test
 
 import cats._
 import cats.instances.all._
-import cats.kernel.CommutativeMonoid
+import cats.kernel.CommutativeGroup
 import cats.kernel.laws.discipline._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
@@ -27,15 +27,22 @@ import org.scalacheck._
 
 import scala.reflect._
 
-object CommutativeMonoidDerivationSpec extends MagnolifySpec("CommutativeMonoidDerivation") {
-  private def test[T: Arbitrary: ClassTag: Eq: CommutativeMonoid]: Unit = {
-    val cm = ensureSerializable(implicitly[CommutativeMonoid[T]])
-    include(CommutativeMonoidTests[T](cm).commutativeMonoid.all, className[T] + ".")
+class CommutativeGroupDerivationSuite extends MagnolifySuite {
+  private def test[T: Arbitrary: ClassTag: Eq: CommutativeGroup]: Unit = {
+    val cg = ensureSerializable(implicitly[CommutativeGroup[T]])
+    include(CommutativeGroupTests[T](cg).commutativeGroup.all, className[T] + ".")
   }
 
-  import Types.MiniInt
-  implicit val cmMiniInt: CommutativeMonoid[MiniInt] =
-    CommutativeMonoid.instance(MiniInt(0), (x, y) => MiniInt(x.i + y.i))
-  case class Record(i: Int, m: MiniInt)
+  import CommutativeGroupDerivationSuite._
   test[Record]
+}
+
+object CommutativeGroupDerivationSuite {
+  import Types.MiniInt
+  implicit val cgMiniInt: CommutativeGroup[MiniInt] = new CommutativeGroup[MiniInt] {
+    override def empty: MiniInt = MiniInt(0)
+    override def combine(x: MiniInt, y: MiniInt): MiniInt = MiniInt(x.i + y.i)
+    override def inverse(a: MiniInt): MiniInt = MiniInt(-a.i)
+  }
+  case class Record(i: Int, m: MiniInt)
 }

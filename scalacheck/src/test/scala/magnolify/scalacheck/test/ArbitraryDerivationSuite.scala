@@ -26,7 +26,7 @@ import org.scalacheck.rng.Seed
 
 import scala.reflect._
 
-object ArbitraryDerivationSpec extends MagnolifySpec("ArbitraryDerivation") {
+class ArbitraryDerivationSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag]: Unit = test[T, T](identity)
 
   private def test[T: ClassTag, U](f: T => U)(implicit t: Arbitrary[T]): Unit = {
@@ -34,14 +34,18 @@ object ArbitraryDerivationSpec extends MagnolifySpec("ArbitraryDerivation") {
     val name = className[T]
     val prms = Gen.Parameters.default
     // `forAll(Gen.listOfN(10, g))` fails for `Repeated` & `Collections` when size parameter <= 1
-    property(s"$name.uniqueness") = Prop.forAll { l: Long =>
-      val seed = Seed(l) // prevent Magnolia from deriving `Seed`
-      val xs = Gen.listOfN(10, g)(prms, seed).get
-      xs.iterator.map(f).toSet.size > 1
+    property(s"$name.uniqueness") {
+      Prop.forAll { l: Long =>
+        val seed = Seed(l) // prevent Magnolia from deriving `Seed`
+        val xs = Gen.listOfN(10, g)(prms, seed).get
+        xs.iterator.map(f).toSet.size > 1
+      }
     }
-    property(s"$name.consistency") = Prop.forAll { l: Long =>
-      val seed = Seed(l) // prevent Magnolia from deriving `Seed`
-      f(g(prms, seed).get) == f(g(prms, seed).get)
+    property(s"$name.consistency") {
+      Prop.forAll { l: Long =>
+        val seed = Seed(l) // prevent Magnolia from deriving `Seed`
+        f(g(prms, seed).get) == f(g(prms, seed).get)
+      }
     }
   }
 
@@ -60,8 +64,10 @@ object ArbitraryDerivationSpec extends MagnolifySpec("ArbitraryDerivation") {
   {
     implicit val arbInt: Arbitrary[Int] = Arbitrary(Gen.chooseNum(0, 100))
     implicit val arbLong: Arbitrary[Long] = Arbitrary(Gen.chooseNum(100, 10000))
-    property("implicits") = Prop.forAll { x: Integers =>
-      x.i >= 0 && x.i <= 100 && x.l >= 100 && x.l <= 10000
+    property("implicits") {
+      Prop.forAll { x: Integers =>
+        x.i >= 0 && x.i <= 100 && x.l >= 100 && x.l <= 10000
+      }
     }
   }
 

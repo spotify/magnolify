@@ -18,7 +18,7 @@ package magnolify.cats.test
 
 import cats._
 import cats.instances.all._
-import cats.kernel.CommutativeSemigroup
+import cats.kernel.Band
 import cats.kernel.laws.discipline._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
@@ -27,15 +27,18 @@ import org.scalacheck._
 
 import scala.reflect._
 
-object CommutativeSemigroupDerivationSpec extends MagnolifySpec("CommutativeSemigroupDerivation") {
-  private def test[T: Arbitrary: ClassTag: Eq: CommutativeSemigroup]: Unit = {
-    val csg = ensureSerializable(implicitly[CommutativeSemigroup[T]])
-    include(CommutativeSemigroupTests[T](csg).commutativeSemigroup.all, className[T] + ".")
+class BandDerivationSuite extends MagnolifySuite {
+  private def test[T: Arbitrary: ClassTag: Eq: Band]: Unit = {
+    val band = ensureSerializable(implicitly[Band[T]])
+    include(BandTests[T](band).band.all, className[T] + ".")
   }
 
-  import Types.MiniInt
-  implicit val csgMiniInt: CommutativeSemigroup[MiniInt] =
-    CommutativeSemigroup.instance((x, y) => MiniInt(x.i + y.i))
-  case class Record(i: Int, m: MiniInt)
+  import BandDerivationSuite._
   test[Record]
+}
+
+object BandDerivationSuite {
+  import Types.MiniSet
+  implicit val bMiniSet: Band[MiniSet] = Band.instance((x, y) => MiniSet(x.s ++ y.s))
+  case class Record(s: Set[Int], m: MiniSet)
 }

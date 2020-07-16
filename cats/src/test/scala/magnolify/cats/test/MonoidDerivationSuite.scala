@@ -30,16 +30,13 @@ import org.scalacheck._
 
 import scala.reflect._
 
-object MonoidDerivationSpec extends MagnolifySpec("MonoidDerivation") {
+class MonoidDerivationSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag: Eq: Monoid]: Unit = {
     val mon = ensureSerializable(implicitly[Monoid[T]])
     include(MonoidTests[T](mon).monoid.all, className[T] + ".")
   }
 
-  import Types.MiniInt
-  implicit val mMiniInt: Monoid[MiniInt] =
-    Monoid.instance(MiniInt(0), (x, y) => MiniInt(x.i + y.i))
-  case class Record(i: Int, m: MiniInt)
+  import MonoidDerivationSuite._
   test[Record]
 
   {
@@ -56,4 +53,11 @@ object MonoidDerivationSpec extends MagnolifySpec("MonoidDerivation") {
     implicit val mDuration: Monoid[Duration] = Monoid.instance(Duration.ZERO, _ plus _)
     test[Custom]
   }
+}
+
+object MonoidDerivationSuite {
+  import Types.MiniInt
+  implicit val mMiniInt: Monoid[MiniInt] =
+    Monoid.instance(MiniInt(0), (x, y) => MiniInt(x.i + y.i))
+  case class Record(i: Int, m: MiniInt)
 }

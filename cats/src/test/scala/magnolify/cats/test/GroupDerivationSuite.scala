@@ -21,37 +21,27 @@ import cats.instances.all._
 import cats.kernel.laws.discipline._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
-import magnolify.test.ADT._
-import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
 
 import scala.reflect._
 
-object EqDerivationSpec extends MagnolifySpec("EqDerivation") {
-  private def test[T: Arbitrary: ClassTag: Cogen: Eq]: Unit = {
-    val eq = ensureSerializable(implicitly[Eq[T]])
-    include(EqTests[T](eq).eqv.all, className[T] + ".")
+class GroupDerivationSuite extends MagnolifySuite {
+  private def test[T: Arbitrary: ClassTag: Eq: Group]: Unit = {
+    val grp = ensureSerializable(implicitly[Group[T]])
+    include(GroupTests[T](grp).group.all, className[T] + ".")
   }
 
-  test[Numbers]
-  test[Required]
-  test[Nullable]
-  test[Repeated]
-  test[Nested]
+  import GroupDerivationSuite._
+  test[Record]
+}
 
-  {
-    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
-    test[Collections]
+object GroupDerivationSuite {
+  import Types.MiniInt
+  implicit val gMiniInt: Group[MiniInt] = new Group[MiniInt] {
+    override def empty: MiniInt = MiniInt(0)
+    override def combine(x: MiniInt, y: MiniInt): MiniInt = MiniInt(x.i + y.i)
+    override def inverse(a: MiniInt): MiniInt = MiniInt(-a.i)
   }
-
-  {
-    import Custom._
-    test[Custom]
-  }
-
-  test[Node]
-  test[GNode[Int]]
-  test[Shape]
-  test[Color]
+  case class Record(i: Int, m: MiniInt)
 }

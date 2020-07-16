@@ -30,15 +30,13 @@ import org.scalacheck._
 
 import scala.reflect._
 
-object SemigroupDerivationSpec extends MagnolifySpec("SemigroupDerivation") {
+class SemigroupDerivationSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag: Eq: Semigroup]: Unit = {
     val sg = ensureSerializable(implicitly[Semigroup[T]])
     include(SemigroupTests[T](sg).semigroup.all, className[T] + ".")
   }
 
-  import Types.MiniInt
-  implicit val sgMiniInt: Semigroup[MiniInt] = Semigroup.instance((x, y) => MiniInt(x.i + y.i))
-  case class Record(i: Int, m: MiniInt)
+  import SemigroupDerivationSuite._
   test[Record]
 
   test[Integers]
@@ -58,4 +56,10 @@ object SemigroupDerivationSpec extends MagnolifySpec("SemigroupDerivation") {
     implicit val sgDuration: Semigroup[Duration] = Semigroup.instance(_ plus _)
     test[Custom]
   }
+}
+
+object SemigroupDerivationSuite {
+  import Types.MiniInt
+  implicit val sgMiniInt: Semigroup[MiniInt] = Semigroup.instance((x, y) => MiniInt(x.i + y.i))
+  case class Record(i: Int, m: MiniInt)
 }

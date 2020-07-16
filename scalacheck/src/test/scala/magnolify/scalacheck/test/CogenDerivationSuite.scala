@@ -25,7 +25,7 @@ import org.scalacheck.rng.Seed
 
 import scala.reflect._
 
-object CogenDerivationSpec extends MagnolifySpec("CogenDerivation") {
+class CogenDerivationSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag: Cogen]: Unit =
     test[T, T](identity)
 
@@ -33,13 +33,17 @@ object CogenDerivationSpec extends MagnolifySpec("CogenDerivation") {
     val co = ensureSerializable(t)
     val name = className[T]
     implicit val arbList: Arbitrary[List[T]] = Arbitrary(Gen.listOfN(10, arb.arbitrary))
-    property(s"$name.uniqueness") = Prop.forAll { (l: Long, xs: List[T]) =>
-      val seed = Seed(l) // prevent Magnolia from deriving `Seed`
-      xs.map(co.perturb(seed, _)).toSet.size == xs.map(f).toSet.size
+    property(s"$name.uniqueness") {
+      Prop.forAll { (l: Long, xs: List[T]) =>
+        val seed = Seed(l) // prevent Magnolia from deriving `Seed`
+        xs.map(co.perturb(seed, _)).toSet.size == xs.map(f).toSet.size
+      }
     }
-    property(s"$name.consistency") = Prop.forAll { (l: Long, x: T) =>
-      val seed = Seed(l) // prevent Magnolia from deriving `Seed`
-      co.perturb(seed, x) == co.perturb(seed, x)
+    property(s"$name.consistency") {
+      Prop.forAll { (l: Long, x: T) =>
+        val seed = Seed(l) // prevent Magnolia from deriving `Seed`
+        co.perturb(seed, x) == co.perturb(seed, x)
+      }
     }
   }
 

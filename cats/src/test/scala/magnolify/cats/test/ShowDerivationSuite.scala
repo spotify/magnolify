@@ -30,16 +30,18 @@ import cats.laws.discipline.arbitrary._
 import cats.laws.discipline.eq._
 import scala.reflect._
 
-object ShowDerivationSpec extends MagnolifySpec("ShowDerivation") {
+class ShowDerivationSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag: Cogen: Show]: Unit = {
     val show = ensureSerializable(implicitly[Show[T]])
     val name = className[T]
     include(ContravariantTests[Show].contravariant[MiniInt, Int, Boolean].all, s"$name.")
 
-    property(s"$name.fullName") = Prop.forAll { v: T =>
-      val fullName = v.getClass.getCanonicalName.stripSuffix("$")
-      val s = show.show(v)
-      s.startsWith(s"$fullName {") && s.endsWith("}")
+    property(s"$name.fullName") {
+      Prop.forAll { v: T =>
+        val fullName = v.getClass.getCanonicalName.stripSuffix("$")
+        val s = show.show(v)
+        s.startsWith(s"$fullName {") && s.endsWith("}")
+      }
     }
   }
 

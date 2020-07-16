@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Spotify AB.
+ * Copyright 2019 Spotify AB.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,23 +18,40 @@ package magnolify.cats.test
 
 import cats._
 import cats.instances.all._
-import cats.kernel.Band
 import cats.kernel.laws.discipline._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
+import magnolify.test.ADT._
+import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
 
 import scala.reflect._
 
-object BandDerivationSpec extends MagnolifySpec("BandSemigroupDerivation") {
-  private def test[T: Arbitrary: ClassTag: Eq: Band]: Unit = {
-    val band = ensureSerializable(implicitly[Band[T]])
-    include(BandTests[T](band).band.all, className[T] + ".")
+class EqDerivationSuite extends MagnolifySuite {
+  private def test[T: Arbitrary: ClassTag: Cogen: Eq]: Unit = {
+    val eq = ensureSerializable(implicitly[Eq[T]])
+    include(EqTests[T](eq).eqv.all, className[T] + ".")
   }
 
-  import Types.MiniSet
-  implicit val bMiniSet: Band[MiniSet] = Band.instance((x, y) => MiniSet(x.s ++ y.s))
-  case class Record(s: Set[Int], m: MiniSet)
-  test[Record]
+  test[Numbers]
+  test[Required]
+  test[Nullable]
+  test[Repeated]
+  test[Nested]
+
+  {
+    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
+    test[Collections]
+  }
+
+  {
+    import Custom._
+    test[Custom]
+  }
+
+  test[Node]
+  test[GNode[Int]]
+  test[Shape]
+  test[Color]
 }

@@ -28,14 +28,14 @@ import org.scalacheck._
 
 import scala.reflect._
 
-object HashDerivationSpec extends MagnolifySpec("HashDerivation") {
+class HashDerivationSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag: Cogen: Hash]: Unit = test()
 
   private def test[T: Arbitrary: ClassTag: Cogen: Hash](exclusions: String*): Unit = {
     val hash = ensureSerializable(implicitly[Hash[T]])
     val props = HashTests[T](hash).hash.props.filter(kv => !exclusions.contains(kv._1))
     for ((n, p) <- props) {
-      property(s"${className[T]}.$n") = p
+      property(s"${className[T]}.$n")(p)
     }
   }
 
