@@ -33,19 +33,22 @@ import org.scalacheck._
 
 import scala.reflect._
 
-object BigtableTypeSpec extends MagnolifySpec("BigtableType") {
+class BigtableTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit t: BigtableType[T], eq: Eq[T]): Unit = {
     val tpe = ensureSerializable(t)
-    property(className[T]) = Prop.forAll { t: T =>
-      val mutations = tpe(t, "cf")
-      val row = BigtableType.mutationsToRow(ByteString.EMPTY, mutations)
-      val copy = tpe(row, "cf")
-      val rowCopy = BigtableType.mutationsToRow(ByteString.EMPTY, BigtableType.rowToMutations(row))
+    property(className[T]) {
+      Prop.forAll { t: T =>
+        val mutations = tpe(t, "cf")
+        val row = BigtableType.mutationsToRow(ByteString.EMPTY, mutations)
+        val copy = tpe(row, "cf")
+        val rowCopy =
+          BigtableType.mutationsToRow(ByteString.EMPTY, BigtableType.rowToMutations(row))
 
-      Prop.all(
-        eq.eqv(t, copy),
-        row == rowCopy
-      )
+        Prop.all(
+          eq.eqv(t, copy),
+          row == rowCopy
+        )
+      }
     }
   }
 
@@ -68,34 +71,32 @@ object BigtableTypeSpec extends MagnolifySpec("BigtableType") {
       BigtableField.from[String](x => URI.create(x))(_.toString)
     implicit val btfDuration: BigtableField[Duration] =
       BigtableField.from[Long](Duration.ofMillis)(_.toMillis)
-
     test[Custom]
   }
 
-  {
-    val it = BigtableType[DefaultInner]
-    ensureSerializable(it)
-    require(it(Row.getDefaultInstance, "cf") == DefaultInner())
+  test("DefaultInner") {
+    val bt = ensureSerializable(BigtableType[DefaultInner])
+    assertEquals(bt(Row.getDefaultInstance, "cf"), DefaultInner())
     val inner = DefaultInner(2, Some(2))
-    require(it(BigtableType.mutationsToRow(ByteString.EMPTY, it(inner, "cf")), "cf") == inner)
-
-    val ot = BigtableType[DefaultOuter]
-    ensureSerializable(ot)
-    require(ot(Row.getDefaultInstance, "cf") == DefaultOuter())
-    val outer =
-      DefaultOuter(DefaultInner(3, Some(3)), Some(DefaultInner(3, Some(3))))
-    require(ot(BigtableType.mutationsToRow(ByteString.EMPTY, ot(outer, "cf")), "cf") == outer)
+    assertEquals(bt(BigtableType.mutationsToRow(ByteString.EMPTY, bt(inner, "cf")), "cf"), inner)
   }
 
-  {
-    implicit val bt = BigtableType[LowerCamel](CaseMapper(_.toUpperCase))
+  test("DefaultOuter") {
+    val bt = ensureSerializable(BigtableType[DefaultOuter])
+    assertEquals(bt(Row.getDefaultInstance, "cf"), DefaultOuter())
+    val outer = DefaultOuter(DefaultInner(3, Some(3)), Some(DefaultInner(3, Some(3))))
+    assertEquals(bt(BigtableType.mutationsToRow(ByteString.EMPTY, bt(outer, "cf")), "cf"), outer)
+  }
+
+  test("LowerCamel mapping") {
+    implicit val bt: BigtableType[LowerCamel] = BigtableType[LowerCamel](CaseMapper(_.toUpperCase))
     test[LowerCamel]
 
     val fields = LowerCamel.fields
       .map(_.toUpperCase)
       .map(l => if (l == "INNERFIELD") "INNERFIELD.INNERFIRST" else l)
     val record = bt(LowerCamel.default, "cf")
-    require(record.map(_.getSetCell.getColumnQualifier.toStringUtf8) == fields)
+    assertEquals(record.map(_.getSetCell.getColumnQualifier.toStringUtf8), fields)
   }
 }
 
