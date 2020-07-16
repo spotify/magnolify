@@ -36,17 +36,19 @@ import org.scalacheck._
 
 import scala.reflect._
 
-object ProtobufTypeSpec extends MagnolifySpec("ProtobufType") {
+class ProtobufTypeSuite extends MagnolifySuite {
   private def test[T: ClassTag: Arbitrary, U <: Message: ClassTag](implicit
     t: ProtobufType[T, U],
     eqt: Eq[T]
   ): Unit = {
     val tpe = ensureSerializable(t)
 
-    property(s"${className[T]}.${className[U]}") = Prop.forAll { t: T =>
-      val r = tpe(t)
-      val copy = tpe(r)
-      eqt.eqv(t, copy)
+    property(s"${className[T]}.${className[U]}") {
+      Prop.forAll { t: T =>
+        val r = tpe(t)
+        val copy = tpe(r)
+        eqt.eqv(t, copy)
+      }
     }
   }
 
@@ -58,15 +60,10 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufType") {
 
   // PROTO3 removes the notion of require vs optional fields.
   // By default `Option[T] are not supported`.
-  try {
-    test[Nullable, SingularP3]
-  } catch {
-    case e: IllegalArgumentException =>
-      require(
-        e.getMessage ==
-          "requirement failed: Option[T] support is PROTO2 only, " +
-            "`import magnolify.protobuf.unsafe.Proto3Option._` to enable PROTO3 support"
-      )
+  test("Fail PROTO3 Option[T]") {
+    val msg = "requirement failed: Option[T] support is PROTO2 only, " +
+      "`import magnolify.protobuf.unsafe.Proto3Option._` to enable PROTO3 support"
+    interceptMessage[IllegalArgumentException](msg)(ProtobufType[Nullable, SingularP3])
   }
 
   // Adding `import magnolify.protobuf.unsafe.Proto3Option._` enables PROTO3 `Option[T]` support.
@@ -118,7 +115,8 @@ object ProtobufTypeSpec extends MagnolifySpec("ProtobufType") {
   }
 
   {
-    implicit val pt = ProtobufType[LowerCamel, UpperCase](CaseMapper(_.toUpperCase))
+    implicit val pt: ProtobufType[LowerCamel, UpperCase] =
+      ProtobufType[LowerCamel, UpperCase](CaseMapper(_.toUpperCase))
     test[LowerCamel, UpperCase]
   }
 }
