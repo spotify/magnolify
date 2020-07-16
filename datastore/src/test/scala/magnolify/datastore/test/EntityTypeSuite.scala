@@ -36,13 +36,15 @@ import org.scalacheck._
 
 import scala.reflect._
 
-object EntityTypeSpec extends MagnolifySpec("EntityType") {
+class EntityTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit t: EntityType[T], eq: Eq[T]): Unit = {
     val tpe = ensureSerializable(t)
-    property(className[T]) = Prop.forAll { t: T =>
-      val r = tpe(t)
-      val copy = tpe(r)
-      eq.eqv(t, copy)
+    property(className[T]) {
+      Prop.forAll { t: T =>
+        val r = tpe(t)
+        val copy = tpe(r)
+        eq.eqv(t, copy)
+      }
     }
   }
 
@@ -84,77 +86,50 @@ object EntityTypeSpec extends MagnolifySpec("EntityType") {
     implicit val efUri: EntityField[URI] = EntityField.from[String](URI.create)(_.toString)
   }
 
-  {
-    val it = EntityType[DefaultInner]
-    require(it(Entity.getDefaultInstance) == DefaultInner())
+  test("DefaultInner") {
+    val et = ensureSerializable(EntityType[DefaultInner])
+    assertEquals(et(Entity.getDefaultInstance), DefaultInner())
     val inner = DefaultInner(2, Some(2), List(2, 2))
-    require(it(it(inner)) == inner)
+    assertEquals(et(et(inner)), inner)
+  }
 
-    val ot = EntityType[DefaultOuter]
-    require(ot(Entity.getDefaultInstance) == DefaultOuter())
+  test("DefaultOuter") {
+    val et = ensureSerializable(EntityType[DefaultOuter])
+    assertEquals(et(Entity.getDefaultInstance), DefaultOuter())
     val outer =
       DefaultOuter(DefaultInner(3, Some(3), List(3, 3)), Some(DefaultInner(3, Some(3), List(3, 3))))
-    require(ot(ot(outer)) == outer)
+    assertEquals(et(et(outer)), outer)
   }
 
-  {
-    val et = EntityType[EntityIndex]
-    val ei = EntityIndex("foo", "bar", "baz", "zoo")
-    val record = et(ei)
-    require(et(record) == ei)
-
-    require(
-      record
-        .getPropertiesOrThrow("default")
-        .getExcludeFromIndexes
-        .equals(false)
-    )
-    require(
-      record
-        .getPropertiesOrThrow("excludedDefault")
-        .getExcludeFromIndexes
-        .equals(true)
-    )
-    require(
-      record
-        .getPropertiesOrThrow("excluded")
-        .getExcludeFromIndexes
-        .equals(true)
-    )
-    require(
-      record
-        .getPropertiesOrThrow("included")
-        .getExcludeFromIndexes
-        .equals(false)
-    )
-  }
-
-  def testKey[T, K](
+  def testKey[T: ClassTag, K](
     t: T,
     project: String,
     namespace: String,
     kind: String,
-    p: Key.PathElement => Boolean
+    kf: Key.PathElement => K,
+    k: K
   )(implicit et: EntityType[T]): Unit = {
-    val record = et(t)
-    require(record.getKey.getPartitionId.getProjectId == project)
-    require(record.getKey.getPartitionId.getNamespaceId == namespace)
-    require(record.getKey.getPathCount == 1)
-    require(record.getKey.getPath(0).getKind == kind)
-    require(p(record.getKey.getPath(0)))
+    test(s"@key ${className[T]}") {
+      val record = et(t)
+      assertEquals(record.getKey.getPartitionId.getProjectId, project)
+      assertEquals(record.getKey.getPartitionId.getNamespaceId, namespace)
+      val path = record.getKey.getPathList.asScala.toSeq
+      assertEquals(path.map(_.getKind), Seq(kind))
+      assertEquals(path.map(kf), Seq(k))
+    }
   }
 
   {
     val ns = "magnolify.datastore.test"
-    testKey(LongKey(123L), "", ns, "LongKey", _.getId == 123L)
-    testKey(StringKey("abc"), "", ns, "StringKey", _.getName == "abc")
-    testKey(InstantKey(Instant.ofEpochMilli(123L)), "", ns, "InstantKey", _.getId == 123L)
-    testKey(CustomKey(123L), "my-project", "com.spotify", "MyKind", _.getId == 123L)
+    testKey(LongKey(123L), "", ns, "LongKey", _.getId, 123L)
+    testKey(StringKey("abc"), "", ns, "StringKey", _.getName, "abc")
+    testKey(InstantKey(Instant.ofEpochMilli(123L)), "", ns, "InstantKey", _.getId, 123L)
+    testKey(CustomKey(123L), "my-project", "com.spotify", "MyKind", _.getId, 123L)
 
-    testKey(IntKey(123), "", ns, "IntKey", _.getId == 123L)
+    testKey(IntKey(123), "", ns, "IntKey", _.getId, 123L)
 
     implicit val efUri: EntityField[URI] = EntityField.from[String](URI.create)(_.toString)
-    testKey(UriKey(URI.create("spotify.com")), "", ns, "UriKey", _.getName == "spotify.com")
+    testKey(UriKey(URI.create("spotify.com")), "", ns, "UriKey", _.getName, "spotify.com")
 
     implicit val kfByteString: KeyField[ByteString] = KeyField.at[ByteString](_.toStringUtf8)
     testKey(
@@ -162,52 +137,54 @@ object EntityTypeSpec extends MagnolifySpec("EntityType") {
       "",
       ns,
       "ByteStringKey",
-      _.getName == "abc"
+      _.getName,
+      "abc"
     )
     implicit val kfByteArray: KeyField[Array[Byte]] = KeyField.at[Array[Byte]](new String(_))
-    testKey(ByteArrayKey("abc".getBytes), "", ns, "ByteArrayKey", _.getName == "abc")
-
+    testKey(ByteArrayKey("abc".getBytes), "", ns, "ByteArrayKey", _.getName, "abc")
     implicit val kfRecord: KeyField[RecordKey] = KeyField.at[RecordKey](_.l)
-    testKey(NestedKey(RecordKey(123L, "abc")), "", ns, "NestedKey", _.getId == 123L)
+    testKey(NestedKey(RecordKey(123L, "abc")), "", ns, "NestedKey", _.getId, 123L)
   }
 
-  {
-    require(
-      expectException[IllegalArgumentException](EntityType[DoubleKey]).getMessage ==
-        "requirement failed: More than one @key annotation: magnolify.datastore.test.DoubleKey#k"
-    )
-    require(
-      expectException[IllegalArgumentException](EntityType[MultiKey]).getMessage ==
-        "requirement failed: More than one field with @key annotation: magnolify.datastore.test.MultiKey#[k1, k2]"
-    )
+  test("@excludeFromIndexes") {
+    val et = EntityType[EntityIndex]
+    val ei = EntityIndex("foo", "bar", "baz", "zoo")
+    val record = et(ei)
+    assertEquals(et(record), ei)
 
-    require(
-      expectException[IllegalArgumentException](EntityType[NestedKey]).getMessage ==
-        "requirement failed: No KeyField[T] instance: magnolify.datastore.test.NestedKey#k"
-    )
+    assert(!record.getPropertiesOrThrow("default").getExcludeFromIndexes)
+    assert(record.getPropertiesOrThrow("excludedDefault").getExcludeFromIndexes)
+    assert(record.getPropertiesOrThrow("excluded").getExcludeFromIndexes)
+    assert(!record.getPropertiesOrThrow("included").getExcludeFromIndexes)
   }
 
-  {
-    require(
-      expectException[IllegalArgumentException](EntityType[DoubleEntityIndex]).getMessage ==
-        "requirement failed: More than one @excludeFromIndexes annotation: magnolify.datastore.test.DoubleEntityIndex#i"
-    )
-  }
+  testFail(EntityType[DoubleKey])(
+    "More than one @key annotation: magnolify.datastore.test.DoubleKey#k"
+  )
+  testFail(EntityType[MultiKey])(
+    "More than one field with @key annotation: magnolify.datastore.test.MultiKey#[k1, k2]"
+  )
+  testFail(EntityType[NestedKey])("No KeyField[T] instance: magnolify.datastore.test.NestedKey#k")
+  testFail(EntityType[DoubleEntityIndex])(
+    "More than one @excludeFromIndexes annotation: magnolify.datastore.test.DoubleEntityIndex#i"
+  )
 
   {
-    implicit val et = EntityType[LowerCamel](CaseMapper(_.toUpperCase))
+    implicit val et: EntityType[LowerCamel] = EntityType[LowerCamel](CaseMapper(_.toUpperCase))
     test[LowerCamel]
 
-    val fields = LowerCamel.fields.map(_.toUpperCase)
-    val record = et(LowerCamel.default)
-    require(record.getPropertiesMap.keySet().asScala == fields.toSet)
-    require(
-      record
-        .getPropertiesOrThrow("INNERFIELD")
-        .getEntityValue
-        .getPropertiesMap
-        .containsKey("INNERFIRST")
-    )
+    test("LowerCamel mapping") {
+      val fields = LowerCamel.fields.map(_.toUpperCase)
+      val record = et(LowerCamel.default)
+      assertEquals(record.getPropertiesMap.keySet().asScala.toSet, fields.toSet)
+      assert(
+        record
+          .getPropertiesOrThrow("INNERFIELD")
+          .getEntityValue
+          .getPropertiesMap
+          .containsKey("INNERFIRST")
+      )
+    }
   }
 }
 
