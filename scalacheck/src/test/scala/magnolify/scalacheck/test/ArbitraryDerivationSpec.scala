@@ -30,9 +30,8 @@ object ArbitraryDerivationSpec extends MagnolifySpec("ArbitraryDerivation") {
   private def test[T: Arbitrary: ClassTag]: Unit = test[T, T](identity)
 
   private def test[T: ClassTag, U](f: T => U)(implicit t: Arbitrary[T]): Unit = {
-    val arb = ensureSerializable(t)
+    val g = ensureSerializable(t).arbitrary
     val name = className[T]
-    val g = arb.arbitrary
     val prms = Gen.Parameters.default
     // `forAll(Gen.listOfN(10, g))` fails for `Repeated` & `Collections` when size parameter <= 1
     property(s"$name.uniqueness") = Prop.forAll { l: Long =>

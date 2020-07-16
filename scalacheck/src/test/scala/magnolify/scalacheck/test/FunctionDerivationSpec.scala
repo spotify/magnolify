@@ -25,16 +25,18 @@ import org.scalacheck._
 import scala.reflect._
 
 object FunctionDerivationSpec extends MagnolifySpec("FunctionDerivation") {
-  private def test[A: Arbitrary: ClassTag, B: ClassTag](implicit t: Arbitrary[A => B]): Unit = {
-    val arb = ensureSerializable(t)
+  private def test[A: ClassTag, B: ClassTag](implicit
+    t: Arbitrary[A => B],
+    arbA: Arbitrary[A]
+  ): Unit = {
+    val gf = ensureSerializable(t).arbitrary
+    val ga = arbA.arbitrary
     val name = s"${className[A]}.${className[B]}"
-    property(s"$name.consistency") = Prop.forAll((f: A => B, a: A) => f(a) == f(a))
-    implicit def arbList[T](implicit arb: Arbitrary[T]): Arbitrary[List[T]] =
-      Arbitrary(Gen.listOfN(100, arb.arbitrary))
-    property(s"$name.functions") = Prop.forAll { (fs: List[A => B], a: A) =>
-      fs.map(_(a)).toSet.size > 1
-    }
-    property(s"$name.inputs") = Prop.forAll((f: A => B, as: List[A]) => as.map(f).toSet.size > 1)
+    property(s"$name.consistency") = Prop.forAll(gf, ga)((f, a) => f(a) == f(a))
+    def genList[T](g: Gen[T]): Gen[List[T]] = Gen.listOfN(100, g)
+    property(s"$name.functions") =
+      Prop.forAll(genList(gf), ga)((fs, a) => fs.map(_(a)).toSet.size > 1)
+    property(s"$name.inputs") = Prop.forAll(gf, genList(ga))((f, as) => as.map(f).toSet.size > 1)
   }
 
   test[Numbers, Numbers]
