@@ -16,18 +16,21 @@
  */
 package magnolify.shims
 
+import magnolify.test._
 import org.scalacheck._
 
 import scala.reflect._
 
-object ShimsSpec extends Properties("Shims") {
+class ShimsSuite extends MagnolifySuite {
   private def test[C[_]](implicit
     ct: ClassTag[C[Int]],
     ti: C[Int] => Iterable[Int],
     fc: FactoryCompat[Int, C[Int]]
   ): Unit = {
     val name = ct.runtimeClass.getSimpleName
-    property(name) = Prop.forAll { xs: List[Int] => fc.build(xs).toList == xs }
+    property(name) {
+      Prop.forAll { xs: List[Int] => fc.build(xs).toList == xs }
+    }
   }
 
   test[Array]
