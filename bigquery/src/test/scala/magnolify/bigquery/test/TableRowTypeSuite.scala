@@ -36,17 +36,19 @@ import org.scalacheck._
 
 import scala.reflect._
 
-object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
+class TableRowTypeSuite extends MagnolifySuite {
   private val mapper = new ObjectMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
   private def test[T: Arbitrary: ClassTag](implicit t: TableRowType[T], eq: Eq[T]): Unit = {
     val tpe = ensureSerializable(t)
     // FIXME: test schema
     tpe.schema
-    property(className[T]) = Prop.forAll { t: T =>
-      val r = tpe(t)
-      val copy1 = tpe(r)
-      val copy2 = tpe(mapper.readValue(mapper.writeValueAsString(r), classOf[TableRow]))
-      Prop.all(eq.eqv(t, copy1), eq.eqv(t, copy2))
+    property(className[T]) {
+      Prop.forAll { t: T =>
+        val r = tpe(t)
+        val copy1 = tpe(r)
+        val copy2 = tpe(mapper.readValue(mapper.writeValueAsString(r), classOf[TableRow]))
+        Prop.all(eq.eqv(t, copy1), eq.eqv(t, copy2))
+      }
     }
   }
 
@@ -89,76 +91,66 @@ object TableRowTypeSpec extends MagnolifySpec("TableRowType") {
     test[BigQueryTypes]
   }
 
-  {
+  test("TableRowDesc") {
     val trt = ensureSerializable(TableRowType[TableRowDesc])
     val schema = trt.schema
-    require(trt.description == "TableRow with description")
+    assertEquals(trt.description, "TableRow with description")
     val fields = schema.getFields.asScala
-    require(fields.find(_.getName == "s").exists(_.getDescription == "string"))
-    require(fields.find(_.getName == "i").exists(_.getDescription == "integers"))
+    assert(fields.find(_.getName == "s").exists(_.getDescription == "string"))
+    assert(fields.find(_.getName == "i").exists(_.getDescription == "integers"))
   }
 
-  {
+  test("CustomDesc") {
     val trt = ensureSerializable(TableRowType[CustomDesc])
     val schema = trt.schema
-    require(trt.description == "my-project:my-dataset.my-table")
+    assertEquals(trt.description, "my-project:my-dataset.my-table")
     val fields = schema.getFields.asScala
-    require(
-      fields
-        .find(_.getName == "s")
-        .exists(
-          _.getDescription ==
-            """{"description": "string", "since": "2020-01-01"}"""
-        )
-    )
-    require(
-      fields
-        .find(_.getName == "i")
-        .exists(
-          _.getDescription ==
-            """{"description": "integers", "since": "2020-02-01"}"""
-        )
-    )
+    val ds = """{"description": "string", "since": "2020-01-01"}"""
+    val di = """{"description": "integers", "since": "2020-02-01"}"""
+    assert(fields.find(_.getName == "s").exists(_.getDescription == ds))
+    assert(fields.find(_.getName == "i").exists(_.getDescription == di))
   }
 
-  require(
-    expectException[IllegalArgumentException](TableRowType[DoubleRecordDesc]).getMessage ==
-      "requirement failed: More than one @description annotation: magnolify.bigquery.test.DoubleRecordDesc"
+  testFail(TableRowType[DoubleRecordDesc])(
+    "More than one @description annotation: magnolify.bigquery.test.DoubleRecordDesc"
   )
-  require(
-    expectException[IllegalArgumentException](TableRowType[DoubleFieldDesc]).getMessage ==
-      "requirement failed: More than one @description annotation: magnolify.bigquery.test.DoubleFieldDesc#i"
+  testFail(TableRowType[DoubleFieldDesc])(
+    "More than one @description annotation: magnolify.bigquery.test.DoubleFieldDesc#i"
   )
 
-  {
-    val it = TableRowType[DefaultInner]
-    require(it(new TableRow) == DefaultInner())
+  test("DefaultInner") {
+    val trt = ensureSerializable(TableRowType[DefaultInner])
+    assertEquals(trt(new TableRow), DefaultInner())
     val inner = DefaultInner(2, Some(2), List(2, 2))
-    require(it(it(inner)) == inner)
+    assertEquals(trt(trt(inner)), inner)
+  }
 
-    val ot = TableRowType[DefaultOuter]
-    require(ot(new TableRow) == DefaultOuter())
+  test("DefaultOuter") {
+    val trt = ensureSerializable(TableRowType[DefaultOuter])
+    assertEquals(trt(new TableRow), DefaultOuter())
     val outer =
       DefaultOuter(DefaultInner(3, Some(3), List(3, 3)), Some(DefaultInner(3, Some(3), List(3, 3))))
-    require(ot(ot(outer)) == outer)
+    assertEquals(trt(trt(outer)), outer)
   }
 
   {
     implicit val trt = TableRowType[LowerCamel](CaseMapper(_.toUpperCase))
     test[LowerCamel]
 
-    val schema = trt.schema
-    val fields = LowerCamel.fields.map(_.toUpperCase)
-    require(schema.getFields.asScala.map(_.getName) == fields)
-    require(
-      schema.getFields.asScala
-        .find(_.getName == "INNERFIELD")
-        .exists(_.getFields.asScala.exists(_.getName == "INNERFIRST"))
-    )
+    test("LowerCamel mapping") {
+      val schema = trt.schema
+      val fields = LowerCamel.fields.map(_.toUpperCase)
+      assertEquals(schema.getFields.asScala.map(_.getName).toSeq, fields)
+      assert(
+        schema.getFields.asScala
+          .find(_.getName == "INNERFIELD")
+          .exists(_.getFields.asScala.exists(_.getName == "INNERFIRST"))
+      )
 
-    val record = trt(LowerCamel.default)
-    require(record.keySet().asScala == fields.toSet)
-    require(record.get("INNERFIELD").asInstanceOf[TableRow].get("INNERFIRST") != null)
+      val record = trt(LowerCamel.default)
+      assertEquals(record.keySet().asScala.toSet, fields.toSet)
+      assert(record.get("INNERFIELD").asInstanceOf[TableRow].get("INNERFIRST") != null)
+    }
   }
 }
 
