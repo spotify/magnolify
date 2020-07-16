@@ -27,8 +27,8 @@ val datastoreVersion = "1.6.3"
 val guavaVersion = "29.0-jre"
 val jacksonVersion = "2.11.1"
 val jodaTimeVersion = "2.10.6"
+val munitVersion = "0.7.9"
 val protobufVersion = "3.12.2"
-
 val scalacheckVersion = "1.14.3"
 val tensorflowVersion = "1.15.0"
 
@@ -45,6 +45,7 @@ val commonSettings = Seq(
     "com.propensive" %% "magnolia" % magnoliaVersion,
     "org.scala-lang" % "scala-reflect" % scalaVersion.value
   ),
+  testFrameworks += new TestFramework("munit.Framework"),
   // https://github.com/typelevel/scalacheck/pull/427#issuecomment-424330310
   // FIXME: workaround for Java serialization issues
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
@@ -149,7 +150,7 @@ lazy val test: Project = project
   .settings(
     commonSettings ++ noPublishSettings,
     libraryDependencies ++= Seq(
-      "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test,
+      "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion % Test
     ),
     protobufRunProtoc in ProtobufConfig := (args =>

@@ -18,11 +18,28 @@ package magnolify.test
 
 import java.io._
 
+import munit.Location
 import org.scalacheck._
 
 import scala.reflect._
 
-abstract class MagnolifySpec(name: String) extends Properties(name) {
+trait MagnolifySuite extends munit.ScalaCheckSuite {
+  override def property(name: String)(body: => Prop)(implicit loc: Location): Unit =
+    super.property("Prop: " + name)(body)
+
+  def include(ps: Properties, prefix: String): Unit =
+    for ((n, p) <- ps.properties) {
+      property(prefix + n)(p)
+    }
+
+  override def test(name: String)(body: => Any)(implicit loc: Location): Unit =
+    super.test("Test: " + name)(body)
+
+  def testFail[F[_], T: ClassTag](body: => F[T])(msg: String)(implicit loc: Location): Unit =
+    super.test("Fail: " + className[T]) {
+      interceptMessage[IllegalArgumentException]("requirement failed: " + msg)(body)
+    }
+
   def className[T: ClassTag]: String = classTag[T].runtimeClass.getSimpleName
 
   private def serializeToByteArray(value: Serializable): Array[Byte] = {
@@ -39,29 +56,4 @@ abstract class MagnolifySpec(name: String) extends Properties(name) {
 
   def ensureSerializable[T <: Serializable](value: T): T =
     deserializeFromByteArray(serializeToByteArray(value)).asInstanceOf[T]
-
-  def expectException[T <: Throwable](expr: => Any)(implicit ct: ClassTag[T]): T = {
-    val cls = ct.runtimeClass
-    val caught =
-      try {
-        expr
-        None
-      } catch {
-        case e: Throwable =>
-          if (cls.isAssignableFrom(e.getClass)) {
-            Some(e.asInstanceOf[T])
-          } else {
-            throw new IllegalArgumentException(
-              s"Expected exception ${cls.getCanonicalName}, actual: $e"
-            )
-          }
-      }
-    caught match {
-      case Some(e) => e
-      case None =>
-        throw new IllegalArgumentException(s"Expected exception ${cls.getCanonicalName}, got none")
-    }
-  }
 }
-
-private class TestException(msg: String) extends Exception(msg)
