@@ -29,15 +29,13 @@ import scala.reflect._
 
 object CommutativeMonoidDerivationSpec extends MagnolifySpec("CommutativeMonoidDerivation") {
   private def test[T: Arbitrary: ClassTag: Eq: CommutativeMonoid]: Unit = {
-    ensureSerializable(implicitly[CommutativeMonoid[T]])
-    include(CommutativeMonoidTests[T].commutativeMonoid.all, className[T] + ".")
+    val cm = ensureSerializable(implicitly[CommutativeMonoid[T]])
+    include(CommutativeMonoidTests[T](cm).commutativeMonoid.all, className[T] + ".")
   }
 
   import Types.MiniInt
-  implicit val cmMiniInt: CommutativeMonoid[MiniInt] = new CommutativeMonoid[MiniInt] {
-    override def empty: MiniInt = MiniInt(0)
-    override def combine(x: MiniInt, y: MiniInt): MiniInt = MiniInt(x.i + y.i)
-  }
+  implicit val cmMiniInt: CommutativeMonoid[MiniInt] =
+    CommutativeMonoid.instance(MiniInt(0), (x, y) => MiniInt(x.i + y.i))
   case class Record(i: Int, m: MiniInt)
   test[Record]
 }

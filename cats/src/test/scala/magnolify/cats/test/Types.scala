@@ -21,7 +21,7 @@ import cats.instances.all._
 import org.scalacheck.Arbitrary
 
 object Types {
-  class MiniInt(val i: Int)
+  class MiniInt(val i: Int) extends Serializable
 
   object MiniInt {
     def apply(i: Int): MiniInt = new MiniInt(i)

@@ -32,8 +32,8 @@ import scala.reflect._
 
 object SemigroupDerivationSpec extends MagnolifySpec("SemigroupDerivation") {
   private def test[T: Arbitrary: ClassTag: Eq: Semigroup]: Unit = {
-    ensureSerializable(implicitly[Semigroup[T]])
-    include(SemigroupTests[T].semigroup.all, className[T] + ".")
+    val sg = ensureSerializable(implicitly[Semigroup[T]])
+    include(SemigroupTests[T](sg).semigroup.all, className[T] + ".")
   }
 
   import Types.MiniInt
@@ -48,8 +48,7 @@ object SemigroupDerivationSpec extends MagnolifySpec("SemigroupDerivation") {
     test[Required]
     test[Nullable]
     test[Repeated]
-    // FIXME: breaks 2.1.1: ambiguous implicit values catsKernelStdMonoidForString vs genGroup
-    // test[Nested]
+    test[Nested]
   }
 
   {

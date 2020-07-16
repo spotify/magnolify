@@ -29,14 +29,13 @@ import scala.reflect._
 
 object CommutativeSemigroupDerivationSpec extends MagnolifySpec("CommutativeSemigroupDerivation") {
   private def test[T: Arbitrary: ClassTag: Eq: CommutativeSemigroup]: Unit = {
-    ensureSerializable(implicitly[CommutativeSemigroup[T]])
-    include(CommutativeSemigroupTests[T].commutativeSemigroup.all, className[T] + ".")
+    val csg = ensureSerializable(implicitly[CommutativeSemigroup[T]])
+    include(CommutativeSemigroupTests[T](csg).commutativeSemigroup.all, className[T] + ".")
   }
 
   import Types.MiniInt
-  implicit val csgMiniInt: CommutativeSemigroup[MiniInt] = new CommutativeSemigroup[MiniInt] {
-    override def combine(x: MiniInt, y: MiniInt): MiniInt = MiniInt(x.i + y.i)
-  }
+  implicit val csgMiniInt: CommutativeSemigroup[MiniInt] =
+    CommutativeSemigroup.instance((x, y) => MiniInt(x.i + y.i))
   case class Record(i: Int, m: MiniInt)
   test[Record]
 }

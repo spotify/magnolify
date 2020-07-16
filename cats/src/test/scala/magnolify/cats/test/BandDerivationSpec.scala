@@ -29,14 +29,12 @@ import scala.reflect._
 
 object BandDerivationSpec extends MagnolifySpec("BandSemigroupDerivation") {
   private def test[T: Arbitrary: ClassTag: Eq: Band]: Unit = {
-    ensureSerializable(implicitly[Band[T]])
-    include(BandTests[T].band.all, className[T] + ".")
+    val band = ensureSerializable(implicitly[Band[T]])
+    include(BandTests[T](band).band.all, className[T] + ".")
   }
 
   import Types.MiniSet
-  implicit val bMiniSet: Band[MiniSet] = new Band[MiniSet] {
-    override def combine(x: MiniSet, y: MiniSet): MiniSet = MiniSet(x.s ++ y.s)
-  }
+  implicit val bMiniSet: Band[MiniSet] = Band.instance((x, y) => MiniSet(x.s ++ y.s))
   case class Record(s: Set[Int], m: MiniSet)
   test[Record]
 }

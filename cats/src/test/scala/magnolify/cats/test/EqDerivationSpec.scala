@@ -30,8 +30,8 @@ import scala.reflect._
 
 object EqDerivationSpec extends MagnolifySpec("EqDerivation") {
   private def test[T: Arbitrary: ClassTag: Cogen: Eq]: Unit = {
-    ensureSerializable(implicitly[Eq[T]])
-    include(EqTests[T].eqv.all, className[T] + ".")
+    val eq = ensureSerializable(implicitly[Eq[T]])
+    include(EqTests[T](eq).eqv.all, className[T] + ".")
   }
 
   test[Numbers]

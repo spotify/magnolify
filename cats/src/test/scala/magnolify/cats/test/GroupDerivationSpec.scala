@@ -28,8 +28,8 @@ import scala.reflect._
 
 object GroupDerivationSpec extends MagnolifySpec("GroupDerivation") {
   private def test[T: Arbitrary: ClassTag: Eq: Group]: Unit = {
-    ensureSerializable(implicitly[Group[T]])
-    include(GroupTests[T].group.all, className[T] + ".")
+    val grp = ensureSerializable(implicitly[Group[T]])
+    include(GroupTests[T](grp).group.all, className[T] + ".")
   }
 
   import Types.MiniInt

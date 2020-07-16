@@ -32,15 +32,13 @@ import scala.reflect._
 
 object MonoidDerivationSpec extends MagnolifySpec("MonoidDerivation") {
   private def test[T: Arbitrary: ClassTag: Eq: Monoid]: Unit = {
-    ensureSerializable(implicitly[Monoid[T]])
-    include(MonoidTests[T].monoid.all, className[T] + ".")
+    val mon = ensureSerializable(implicitly[Monoid[T]])
+    include(MonoidTests[T](mon).monoid.all, className[T] + ".")
   }
 
   import Types.MiniInt
-  implicit val mMiniInt: Monoid[MiniInt] = new Monoid[MiniInt] {
-    override def empty: MiniInt = MiniInt(0)
-    override def combine(x: MiniInt, y: MiniInt): MiniInt = MiniInt(x.i + y.i)
-  }
+  implicit val mMiniInt: Monoid[MiniInt] =
+    Monoid.instance(MiniInt(0), (x, y) => MiniInt(x.i + y.i))
   case class Record(i: Int, m: MiniInt)
   test[Record]
 
@@ -49,8 +47,7 @@ object MonoidDerivationSpec extends MagnolifySpec("MonoidDerivation") {
     test[Required]
     test[Nullable]
     test[Repeated]
-    // FIXME: breaks 2.1.1: ambiguous implicit values catsKernelStdMonoidForString vs genGroup
-    // test[Nested]
+    test[Nested]
   }
   {
     import Custom._

@@ -29,8 +29,8 @@ import scala.reflect._
 
 object CommutativeGroupDerivationSpec extends MagnolifySpec("CommutativeGroupDerivation") {
   private def test[T: Arbitrary: ClassTag: Eq: CommutativeGroup]: Unit = {
-    ensureSerializable(implicitly[CommutativeGroup[T]])
-    include(CommutativeGroupTests[T].commutativeGroup.all, className[T] + ".")
+    val cg = ensureSerializable(implicitly[CommutativeGroup[T]])
+    include(CommutativeGroupTests[T](cg).commutativeGroup.all, className[T] + ".")
   }
 
   import Types.MiniInt
