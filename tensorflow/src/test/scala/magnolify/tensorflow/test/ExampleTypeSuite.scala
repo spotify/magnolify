@@ -34,13 +34,15 @@ import org.scalacheck._
 
 import scala.reflect._
 
-object ExampleTypeSpec extends MagnolifySpec("ExampleType") {
+class ExampleTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit t: ExampleType[T], eq: Eq[T]): Unit = {
     val tpe = ensureSerializable(t)
-    property(className[T]) = Prop.forAll { t: T =>
-      val r = tpe(t)
-      val copy = tpe(r)
-      eq.eqv(t, copy)
+    property(className[T]) {
+      Prop.forAll { t: T =>
+        val r = tpe(t)
+        val copy = tpe(r)
+        eq.eqv(t, copy)
+      }
     }
   }
 
@@ -71,7 +73,6 @@ object ExampleTypeSpec extends MagnolifySpec("ExampleType") {
       )
     implicit val efDuration: ExampleField.Primitive[Duration] =
       ExampleField.from[Long](Duration.ofMillis)(_.toMillis)
-
     test[Custom]
   }
 
@@ -84,14 +85,16 @@ object ExampleTypeSpec extends MagnolifySpec("ExampleType") {
   }
 
   {
-    implicit val et = ExampleType[LowerCamel](CaseMapper(_.toUpperCase))
+    implicit val et: ExampleType[LowerCamel] = ExampleType[LowerCamel](CaseMapper(_.toUpperCase))
     test[LowerCamel]
 
-    val fields = LowerCamel.fields
-      .map(_.toUpperCase)
-      .map(l => if (l == "INNERFIELD") "INNERFIELD.INNERFIRST" else l)
-    val record = et(LowerCamel.default)
-    require(record.getFeatures.getFeatureMap.keySet().asScala == fields.toSet)
+    test("LowerCamel mapping") {
+      val fields = LowerCamel.fields
+        .map(_.toUpperCase)
+        .map(l => if (l == "INNERFIELD") "INNERFIELD.INNERFIRST" else l)
+      val record = et(LowerCamel.default)
+      assertEquals(record.getFeatures.getFeatureMap.keySet().asScala.toSet, fields.toSet)
+    }
   }
 }
 
