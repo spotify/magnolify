@@ -21,7 +21,6 @@ import java.{time => jt}
 
 import cats._
 import cats.instances.all._
-import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
 import com.google.api.services.bigquery.model.TableRow
 import magnolify.bigquery._
 import magnolify.bigquery.unsafe._
@@ -34,24 +33,7 @@ import magnolify.test._
 import org.joda.time._
 import org.scalacheck._
 
-import scala.reflect._
-
-class TableRowTypeSuite extends MagnolifySuite {
-  private val mapper = new ObjectMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-  private def test[T: Arbitrary: ClassTag](implicit t: TableRowType[T], eq: Eq[T]): Unit = {
-    val tpe = ensureSerializable(t)
-    // FIXME: test schema
-    tpe.schema
-    property(className[T]) {
-      Prop.forAll { t: T =>
-        val r = tpe(t)
-        val copy1 = tpe(r)
-        val copy2 = tpe(mapper.readValue(mapper.writeValueAsString(r), classOf[TableRow]))
-        Prop.all(eq.eqv(t, copy1), eq.eqv(t, copy2))
-      }
-    }
-  }
-
+class TableRowTypeSuite extends TableRowBaseSuite {
   test[Integers]
 
   {

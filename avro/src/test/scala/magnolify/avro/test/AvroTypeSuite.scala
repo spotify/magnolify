@@ -16,7 +16,6 @@
  */
 package magnolify.avro.test
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.net.URI
 import java.nio.ByteBuffer
 import java.time.format.DateTimeFormatter
@@ -45,24 +44,7 @@ import org.scalacheck._
 
 import scala.reflect._
 
-class AvroTypeSuite extends MagnolifySuite {
-  private def test[T: Arbitrary: ClassTag](implicit
-    t: AvroType[T],
-    eqt: Eq[T],
-    eqr: Eq[GenericRecord] = Eq.instance(_ == _)
-  ): Unit = {
-    val tpe = ensureSerializable(t)
-    // FIXME: test schema
-    val copier = new Copier(tpe.schema)
-    property(className[T]) {
-      Prop.forAll { t: T =>
-        val r = tpe(t)
-        val rCopy = copier(r)
-        val copy = tpe(rCopy)
-        Prop.all(eqt.eqv(t, copy), eqr.eqv(r, rCopy))
-      }
-    }
-  }
+class AvroTypeSuite extends AvroBaseSuite {
 
   test[Integers]
   test[Floats]
