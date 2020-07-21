@@ -317,7 +317,8 @@ lazy val refined = (project in file("refined"))
       "eu.timepit" %% "refined" % "0.9.15",
       "eu.timepit" %% "refined-scalacheck" % "0.9.15" % Test,
       "org.apache.avro" % "avro" % avroVersion % Provided,
-      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Provided
+      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Provided,
+      "joda-time" % "joda-time" % jodaTimeVersion % Test
     )
   )
   .dependsOn(

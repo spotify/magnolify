@@ -47,6 +47,7 @@ trait AvroBaseSuite extends MagnolifySuite {
       }
     }
   }
+
   class Copier(private val schema: Schema) {
     private val encoder = EncoderFactory.get
     private val decoder = DecoderFactory.get

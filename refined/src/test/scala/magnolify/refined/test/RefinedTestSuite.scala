@@ -25,11 +25,30 @@ import magnolify.refined._
 import eu.timepit.refined.scalacheck.string._
 import eu.timepit.refined.scalacheck.numeric._
 
+object TestUtils {
+  import eu.timepit.refined._
+  import eu.timepit.refined.api._
+  import eu.timepit.refined.boolean._
+  import eu.timepit.refined.numeric._
+  import eu.timepit.refined.string._
+
+  type LessThanHundred = Positive And Not[Greater[W.`100`.T]]
+  type Age = Int Refined LessThanHundred
+  type StartWithS = String Refined StartsWith[W.`"S"`.T]
+
+  type Count = Long Refined Positive
+  type Word = String Refined Trimmed
+
+  case class Person(name: StartWithS, age: Age)
+  case class WordCount(string: Word, count: Count)
+}
+
 class RefinedAvroSuite extends AvroBaseSuite {
+  import TestUtils._
   test[Person]
 }
 
-//class RefinedTableRowSuite extends TableRowBaseSuite {
-//  test[Person]
-//}
-
+class RefinedTableRowSuite extends TableRowBaseSuite {
+  import TestUtils._
+  test[WordCount]
+}
