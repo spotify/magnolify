@@ -24,6 +24,7 @@ import magnolify.scalacheck.auto._
 import magnolify.refined._
 import eu.timepit.refined.scalacheck.string._
 import eu.timepit.refined.scalacheck.numeric._
+import magnolify.refined.test.TestUtils.WordCount
 
 object TestUtils {
   import eu.timepit.refined._
@@ -40,7 +41,7 @@ object TestUtils {
   type Word = String Refined Trimmed
 
   case class Person(name: StartWithS, age: Age)
-  case class WordCount(string: Word, count: Count)
+  case class WordCount(word: Word, count: Count)
 }
 
 class RefinedAvroSuite extends AvroBaseSuite {
@@ -51,4 +52,33 @@ class RefinedAvroSuite extends AvroBaseSuite {
 class RefinedTableRowSuite extends TableRowBaseSuite {
   import TestUtils._
   test[WordCount]
+}
+
+// All the failure test case goes here.
+class RefinedValidateSuite extends munit.FunSuite {
+  import magnolify.avro.AvroType
+  import magnolify.refined.test.TestUtils.Person
+  import org.apache.avro.generic.{GenericRecord, GenericRecordBuilder}
+  import magnolify.bigquery.TableRowType
+  import com.google.api.services.bigquery.model.TableRow
+
+  test("Refined Avro: Fail on invalid values".fail) {
+    val personAT = AvroType[Person]
+    val badData: GenericRecord = new GenericRecordBuilder(personAT.schema)
+      .set("name", "Scio")
+      .set("age", -10)
+      .build()
+
+    personAT.from(badData)
+  }
+
+  test("Refined BQ: Fail on invalid values.".fail) {
+    val wcTR = TableRowType[WordCount]
+    val badData = new TableRow()
+      .set("word", "A Word")
+      .set("count", -30)
+
+    wcTR.from(badData)
+  }
+
 }
