@@ -324,6 +324,7 @@ lazy val refined = (project in file("refined"))
   .dependsOn(
     avro % "compile->test;test->test",
     bigquery % "compile->test;test->test",
+    bigtable % "compile->test;test->test",
     scalacheck % Test,
     cats % Test,
     test % "test->test"

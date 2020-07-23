@@ -16,10 +16,11 @@
  */
 package magnolify
 
+import eu.timepit.refined.api.{RefType, Validate}
+
 package object refined extends RefinedAvro with RefinedBigQuery
 
 trait RefinedAvro {
-  import eu.timepit.refined.api.{RefType, Validate}
   import magnolify.avro._
 
   implicit def refAvroT[F[_, _], T, P](implicit
@@ -39,7 +40,6 @@ trait RefinedAvro {
 }
 
 trait RefinedBigQuery {
-  import eu.timepit.refined.api.{RefType, Validate}
   import magnolify.bigquery.TableRowField
 
   implicit def refBqT[F[_, _], T, P](implicit
@@ -54,5 +54,25 @@ trait RefinedBigQuery {
       else
         throw new RuntimeException(s"Refined predication failed: ${v.showExpr(t)}")
     }(rt.unwrap)
+
+}
+
+trait RefinedBigTable {
+  import magnolify.bigtable.BigtableField
+  import magnolify.bigtable.BigtableField.Primitive
+
+  implicit def refBT[F[_, _], T, P](implicit
+    btc: Primitive[T],
+    rt: RefType[F],
+    v: Validate[T, P]
+  ): BigtableField[F[T, P]] = {
+    BigtableField.from[T] { t: T =>
+      val res = v.validate(t)
+      if (res.isPassed)
+        rt.unsafeWrap[T, P](t)
+      else
+        throw new RuntimeException(s"Refined predication failed: ${v.showExpr(t)}")
+    }(rt.unwrap)
+  }
 
 }
