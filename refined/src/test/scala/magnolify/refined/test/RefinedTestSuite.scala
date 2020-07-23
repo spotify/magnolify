@@ -16,14 +16,19 @@
  */
 package magnolify.refined.test
 
+import java.nio.ByteBuffer
+
 import magnolify.avro.test._
 import magnolify.bigquery.test._
+import magnolify.bigtable.test._
 import cats.implicits._
-import magnolify.cats.auto._
-import magnolify.scalacheck.auto._
-import magnolify.refined._
 import eu.timepit.refined.scalacheck.string._
 import eu.timepit.refined.scalacheck.numeric._
+import eu.timepit.refined.scalacheck.char._
+import eu.timepit.refined.char.{Digit, UpperCase}
+import magnolify.refined._
+import magnolify.cats.auto._
+import magnolify.scalacheck.auto._
 import magnolify.refined.test.TestUtils.WordCount
 
 object TestUtils {
@@ -42,6 +47,12 @@ object TestUtils {
 
   case class Person(name: StartWithS, age: Age)
   case class WordCount(word: Word, count: Count)
+
+  case class BigtableRefExample(
+    c: Char Refined UpperCase,
+    i: Int Refined Positive,
+    o: Option[Char Refined Digit]
+  )
 }
 
 class RefinedAvroSuite extends AvroBaseSuite {
@@ -52,6 +63,11 @@ class RefinedAvroSuite extends AvroBaseSuite {
 class RefinedTableRowSuite extends TableRowBaseSuite {
   import TestUtils._
   test[WordCount]
+}
+
+class RefinedBigtableSuite extends BigtableBaseSuite {
+  import TestUtils._
+  test[BigtableRefExample]
 }
 
 // All the failure test case goes here.

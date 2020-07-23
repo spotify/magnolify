@@ -30,7 +30,7 @@ import magnolify.test.MagnolifySuite
 
 trait AvroBaseSuite extends MagnolifySuite {
 
-  def test[T: Arbitrary: ClassTag](implicit
+  private[magnolify] def test[T: Arbitrary: ClassTag](implicit
     t: AvroType[T],
     eqt: Eq[T],
     eqr: Eq[GenericRecord] = Eq.instance(_ == _)

@@ -27,7 +27,7 @@ import scala.reflect.ClassTag
 
 trait TableRowBaseSuite extends MagnolifySuite {
   private val mapper = new ObjectMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-  def test[T: Arbitrary: ClassTag](implicit t: TableRowType[T], eq: Eq[T]): Unit = {
+  private[magnolify] def test[T: Arbitrary: ClassTag](implicit t: TableRowType[T], eq: Eq[T]): Unit = {
     val tpe = ensureSerializable(t)
     // FIXME: test schema
     tpe.schema

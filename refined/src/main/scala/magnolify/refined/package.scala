@@ -18,28 +18,33 @@ package magnolify
 
 import eu.timepit.refined.api.{RefType, Validate}
 
-package object refined extends RefinedAvro with RefinedBigQuery
+package object refined extends RefinedAvro with RefinedBigQuery with RefinedBigTable
 
-trait RefinedAvro {
+trait RefinedBase extends Serializable {
+  def wrap[F[_, _], T, P](t: T)(implicit rt: RefType[F], v: Validate[T, P]): F[T, P] = {
+    val res = v.validate(t)
+    if (res.isPassed)
+      rt.unsafeWrap[T, P](t)
+    else
+      throw new RuntimeException(
+        s"Refined predicate Failed: ${v.showExpr(t)}"
+      )
+  }
+}
+
+trait RefinedAvro extends RefinedBase {
   import magnolify.avro._
+  import eu.timepit.refined.api.{RefType, Validate}
 
   implicit def refAvroT[F[_, _], T, P](implicit
     af: AvroField[T],
     rt: RefType[F],
     v: Validate[T, P]
   ): AvroField[F[T, P]] =
-    AvroField.from[T] { t =>
-      val res = v.validate(t)
-      if (res.isPassed)
-        rt.unsafeWrap[T, P](t)
-      else
-        throw new RuntimeException(
-          s"Refined predicate Failed: ${v.showExpr(t)}"
-        )
-    }(rt.unwrap)
+    AvroField.from[T](wrap[F, T, P])(rt.unwrap)
 }
 
-trait RefinedBigQuery {
+trait RefinedBigQuery extends RefinedBase {
   import magnolify.bigquery.TableRowField
 
   implicit def refBqT[F[_, _], T, P](implicit
@@ -47,17 +52,11 @@ trait RefinedBigQuery {
     rt: RefType[F],
     v: Validate[T, P]
   ): TableRowField[F[T, P]] =
-    TableRowField.from[T] { t: T =>
-      val res = v.validate(t)
-      if (res.isPassed)
-        rt.unsafeWrap[T, P](t)
-      else
-        throw new RuntimeException(s"Refined predication failed: ${v.showExpr(t)}")
-    }(rt.unwrap)
+    TableRowField.from[T](wrap[F, T, P])(rt.unwrap)
 
 }
 
-trait RefinedBigTable {
+trait RefinedBigTable extends RefinedBase {
   import magnolify.bigtable.BigtableField
   import magnolify.bigtable.BigtableField.Primitive
 
@@ -65,14 +64,7 @@ trait RefinedBigTable {
     btc: Primitive[T],
     rt: RefType[F],
     v: Validate[T, P]
-  ): BigtableField[F[T, P]] = {
-    BigtableField.from[T] { t: T =>
-      val res = v.validate(t)
-      if (res.isPassed)
-        rt.unsafeWrap[T, P](t)
-      else
-        throw new RuntimeException(s"Refined predication failed: ${v.showExpr(t)}")
-    }(rt.unwrap)
-  }
+  ): BigtableField[F[T, P]] =
+    BigtableField.from[T](wrap[F, T, P])(rt.unwrap)
 
 }
