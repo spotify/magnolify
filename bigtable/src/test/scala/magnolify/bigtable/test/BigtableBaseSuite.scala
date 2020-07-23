@@ -9,7 +9,10 @@ import org.scalacheck.{Arbitrary, Prop}
 import scala.reflect.ClassTag
 
 trait BigtableBaseSuite extends MagnolifySuite {
-  private[magnolify] def test[T: Arbitrary: ClassTag](implicit t: BigtableType[T], eq: Eq[T]): Unit = {
+  private[magnolify] def test[T: Arbitrary: ClassTag](implicit
+    t: BigtableType[T],
+    eq: Eq[T]
+  ): Unit = {
     val tpe = ensureSerializable(t)
     property(className[T]) {
       Prop.forAll { t: T =>
