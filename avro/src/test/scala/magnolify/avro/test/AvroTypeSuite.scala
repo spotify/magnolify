@@ -144,7 +144,7 @@ class AvroTypeSuite extends MagnolifySuite {
 }
 
 case class Unsafe(b: Byte, c: Char, s: Short)
-case class AvroTypes(bs: Array[Byte])
+case class AvroTypes(bs: Array[Byte], u: Unit)
 case class MapPrimitive(m: Map[String, Int])
 case class MapNested(m: Map[String, Nested])
 

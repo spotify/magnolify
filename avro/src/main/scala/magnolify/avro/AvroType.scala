@@ -172,6 +172,8 @@ object AvroField {
   )(ByteBuffer.wrap)
   implicit val afString =
     aux[String, CharSequence, String](Schema.Type.STRING)(_.toString)(identity)
+  implicit val afUnit =
+    aux2[Unit, JsonProperties.Null](Schema.Type.NULL)(_ => ())(_ => JsonProperties.NULL_VALUE)
 
   implicit def afOption[T](implicit f: AvroField[T]): AvroField[Option[T]] =
     new Aux[Option[T], f.FromT, f.ToT] {
