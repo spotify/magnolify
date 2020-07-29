@@ -28,7 +28,7 @@ val guavaVersion = "29.0-jre"
 val jacksonVersion = "2.11.1"
 val jodaTimeVersion = "2.10.6"
 val munitVersion = "0.7.10"
-val protobufVersion = "3.12.2"
+val protobufVersion = "3.12.4"
 val scalacheckVersion = "1.14.3"
 val tensorflowVersion = "1.15.0"
 
