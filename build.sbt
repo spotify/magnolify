@@ -153,7 +153,7 @@ lazy val test: Project = project
       "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion % Test
     ),
-    protobufRunProtoc in ProtobufConfig := (args =>
+    ProtobufConfig / protobufRunProtoc := (args =>
       com.github.os72.protocjar.Protoc.runProtoc(args.toArray)
     )
   )
@@ -325,12 +325,12 @@ lazy val jmh: Project = project
   .in(file("jmh"))
   .settings(
     commonSettings,
-    classDirectory in Jmh := (classDirectory in Test).value,
-    dependencyClasspath in Jmh := (dependencyClasspath in Test).value,
+    Jmh / classDirectory := (Test / classDirectory).value,
+    Jmh / dependencyClasspath := (Test / dependencyClasspath).value,
     // rewire tasks, so that 'jmh:run' automatically invokes 'jmh:compile'
     // (otherwise a clean 'jmh:run' would fail)
-    compile in Jmh := (compile in Jmh).dependsOn(compile in Test).value,
-    run in Jmh := (run in Jmh).dependsOn(compile in Jmh).evaluated,
+    Jmh / compile := (Jmh / compile).dependsOn(Test / compile).value,
+    Jmh / run := (Jmh / run).dependsOn(Jmh / compile).evaluated,
     libraryDependencies ++= Seq(
       "org.apache.avro" % "avro" % avroVersion % Test,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
