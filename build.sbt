@@ -334,7 +334,7 @@ lazy val jmh: Project = project
     libraryDependencies ++= Seq(
       "org.apache.avro" % "avro" % avroVersion % Test,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
-      "com.google.cloud" % "google-cloud-bigtable" % bigtableVersion % Test,
+      "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Test,
       "joda-time" % "joda-time" % jodaTimeVersion % Test,
       "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
       "org.tensorflow" % "proto" % tensorflowVersion % Test
