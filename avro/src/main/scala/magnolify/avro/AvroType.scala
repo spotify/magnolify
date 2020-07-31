@@ -162,6 +162,7 @@ object AvroField {
 
   private def id[T](tpe: Schema.Type): AvroField[T] = aux[T, T, T](tpe)(identity)(identity)
 
+  // FIXME: support logical types
   implicit val afBoolean = id[Boolean](Schema.Type.BOOLEAN)
   implicit val afInt = id[Int](Schema.Type.INT)
   implicit val afLong = id[Long](Schema.Type.LONG)
