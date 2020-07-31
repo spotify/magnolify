@@ -16,16 +16,16 @@ message NumbersP2 {
     required double d = 4;
 }
 
-message NullableP2 {
-    optional bool b = 1;
-    optional string s = 2;
-    optional int32 i = 3;
-}
-
 message RequiredP2 {
     required bool b = 1;
     required string s = 2;
     required int32 i = 3;
+}
+
+message NullableP2 {
+    optional bool b = 1;
+    optional string s = 2;
+    optional int32 i = 3;
 }
 
 message RepeatedP2 {
