@@ -18,6 +18,7 @@ package magnolify.cats.semiauto
 
 import cats.Semigroup
 import magnolia._
+import magnolify.shims._
 
 import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
@@ -80,7 +81,7 @@ private object SemigroupMethods {
             result(i) = p.typeclass.combineAllOption(it.iterator.map(p.dereference)).get
             i += 1
           }
-          Some(caseClass.rawConstruct(result))
+          Some(caseClass.rawConstruct(unsafeWrapArray(result)))
         case xs =>
           xs.reduceOption(combineImpl)
       }

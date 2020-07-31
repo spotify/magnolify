@@ -18,6 +18,7 @@ package magnolify.cats.semiauto
 
 import cats.Monoid
 import magnolia._
+import magnolify.shims._
 
 import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
@@ -84,7 +85,7 @@ private object MonoidMethods {
             result(i) = p.typeclass.combineAll(it.iterator.map(p.dereference))
             i += 1
           }
-          caseClass.rawConstruct(result)
+          caseClass.rawConstruct(unsafeWrapArray(result))
         case xs => xs.foldLeft(emptyImpl())(combineImpl)
       }
   }

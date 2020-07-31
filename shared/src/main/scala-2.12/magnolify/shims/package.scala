@@ -84,6 +84,8 @@ package object shims {
 
   val JavaConverters = scala.collection.JavaConverters
 
+  def unsafeWrapArray(a: Array[Any]): Seq[Any] = mutable.WrappedArray.make(a)
+
   object MurmurHash3Compat {
     def seed(data: Int): Int = MurmurHash3.productSeed
   }
