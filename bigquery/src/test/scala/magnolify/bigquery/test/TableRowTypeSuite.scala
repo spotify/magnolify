@@ -77,18 +77,31 @@ class TableRowTypeSuite extends MagnolifySuite {
     implicit val arbInstant: Arbitrary[Instant] =
       Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Instant.ofEpochMilli(_)))
     implicit val arbDate: Arbitrary[LocalDate] =
-      Arbitrary(arbInstant.arbitrary.map(i => new LocalDate(i.getMillis)))
+      Arbitrary(arbInstant.arbitrary.map(new LocalDate(_)))
     implicit val arbTime: Arbitrary[LocalTime] =
-      Arbitrary(arbInstant.arbitrary.map(i => new LocalTime(i.getMillis)))
+      Arbitrary(arbInstant.arbitrary.map(new LocalTime(_)))
     implicit val arbDateTime: Arbitrary[LocalDateTime] =
-      Arbitrary(arbInstant.arbitrary.map(i => new LocalDateTime(i.getMillis)))
+      Arbitrary(arbInstant.arbitrary.map(new LocalDateTime(_)))
     implicit val arbBigDecimal: Arbitrary[BigDecimal] =
-      Arbitrary(Gen.choose(0, Int.MaxValue).map(BigDecimal(_)))
+      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(BigDecimal(_)))
     implicit val eqInstant: Eq[Instant] = Eq.by(_.getMillis)
     implicit val eqDate: Eq[LocalDate] = Eq.instance((x, y) => (x compareTo y) == 0)
     implicit val eqTime: Eq[LocalTime] = Eq.instance((x, y) => (x compareTo y) == 0)
     implicit val eqDateTime: Eq[LocalDateTime] = Eq.instance((x, y) => (x compareTo y) == 0)
     test[BigQueryTypes]
+  }
+
+  test("BigDecimal") {
+    val at: TableRowType[BigDec] = TableRowType[BigDec]
+    val msg1 = "requirement failed: " +
+      "Cannot encode BigDecimal 1234567890123456789012345678901234567890: precision 40 > 38"
+    interceptMessage[IllegalArgumentException](msg1) {
+      at(BigDec(BigDecimal("1234567890123456789012345678901234567890")))
+    }
+    val msg2 = "requirement failed: Cannot encode BigDecimal 3.14159265358979323846: scale 20 > 9"
+    interceptMessage[IllegalArgumentException](msg2) {
+      at(BigDec(BigDecimal("3.14159265358979323846")))
+    }
   }
 
   test("TableRowDesc") {
@@ -156,6 +169,7 @@ class TableRowTypeSuite extends MagnolifySuite {
 
 case class Unsafe(b: Byte, c: Char, s: Short, i: Int, _f: Float)
 case class BigQueryTypes(i: Instant, d: LocalDate, t: LocalTime, dt: LocalDateTime, bd: BigDecimal)
+case class BigDec(bd: BigDecimal)
 
 @description("TableRow with description")
 case class TableRowDesc(@description("string") s: String, @description("integers") i: Integers)

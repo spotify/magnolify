@@ -19,7 +19,8 @@ package magnolify.avro.test
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.net.URI
 import java.time.format.DateTimeFormatter
-import java.time.{Duration, LocalDate}
+import java.time.{Duration, Instant, LocalDate, LocalDateTime, LocalTime, ZoneOffset}
+import java.util.UUID
 
 import cats._
 import cats.instances.all._
@@ -72,8 +73,8 @@ class AvroTypeSuite extends MagnolifySuite {
 
   {
     import Custom._
-    implicit val trfUri: AvroField[URI] = AvroField.from[String](URI.create)(_.toString)
-    implicit val trfDuration: AvroField[Duration] =
+    implicit val afUri: AvroField[URI] = AvroField.from[String](URI.create)(_.toString)
+    implicit val afDuration: AvroField[Duration] =
       AvroField.from[Long](Duration.ofMillis)(_.toMillis)
     test[Custom]
   }
@@ -141,6 +142,54 @@ class AvroTypeSuite extends MagnolifySuite {
       assert(record.get("INNERFIELD").asInstanceOf[GenericRecord].get("INNERFIRST") != null)
     }
   }
+
+  {
+    implicit val arbBigDecimal: Arbitrary[BigDecimal] =
+      Arbitrary(Gen.chooseNum(0L, Long.MaxValue).map(BigDecimal(_, 0)))
+    implicit val arbInstant: Arbitrary[Instant] =
+      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Instant.ofEpochMilli(_)))
+    implicit val arbDate: Arbitrary[LocalDate] =
+      Arbitrary(arbInstant.arbitrary.map(_.atZone(ZoneOffset.UTC).toLocalDate))
+    implicit val arbTime: Arbitrary[LocalTime] =
+      Arbitrary(arbInstant.arbitrary.map(_.atZone(ZoneOffset.UTC).toLocalTime))
+    implicit val arbDateTime: Arbitrary[LocalDateTime] =
+      Arbitrary(arbInstant.arbitrary.map(_.atZone(ZoneOffset.UTC).toLocalDateTime))
+    implicit val eqInstant: Eq[Instant] = Eq.by(_.toEpochMilli)
+    implicit val eqDate: Eq[LocalDate] = Eq.by(_.toEpochDay)
+    implicit val eqTime: Eq[LocalTime] = Eq.by(_.toNanoOfDay)
+    implicit val eqDateTime: Eq[LocalDateTime] = Eq.by(_.toEpochSecond(ZoneOffset.UTC))
+
+    {
+      import LogicalType.Micros._
+      implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
+      test[Logical1]
+    }
+
+    {
+      import LogicalType.Millis._
+      implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
+      test[Logical2]
+    }
+
+    {
+      import LogicalType.BigQuery._
+      test[BigQuery]
+    }
+  }
+
+  test("BigDecimal") {
+    import LogicalType.BigQuery._
+    val at: AvroType[BigDec] = AvroType[BigDec]
+    val msg = "requirement failed: " +
+      "Cannot encode BigDecimal 1234567890123456789012345678901234567890: " +
+      "precision 49 > 38 after set scale from 0 to 9"
+    interceptMessage[IllegalArgumentException](msg) {
+      at(BigDec(BigDecimal("1234567890123456789012345678901234567890")))
+    }
+    interceptMessage[ArithmeticException]("Rounding necessary") {
+      at(BigDec(BigDecimal("3.14159265358979323846")))
+    }
+  }
 }
 
 case class Unsafe(b: Byte, c: Char, s: Short)
@@ -168,6 +217,32 @@ case class CustomDoc(
 @doc("doc2")
 case class DoubleRecordDoc(i: Int)
 case class DoubleFieldDoc(@doc("doc1") @doc("doc2") i: Int)
+
+case class Logical1(
+  bd: BigDecimal,
+  u: UUID,
+  i: Instant,
+  d: LocalDate,
+  t: LocalTime,
+  dt: LocalDateTime
+)
+case class Logical2(
+  bd: BigDecimal,
+  u: UUID,
+  i: Instant,
+  d: LocalDate,
+  t: LocalTime,
+  dt: LocalDateTime
+)
+case class BigQuery(
+  bd: BigDecimal,
+  u: UUID,
+  i: Instant,
+  d: LocalDate,
+  t: LocalTime,
+  dt: LocalDateTime
+)
+case class BigDec(bd: BigDecimal)
 
 private class Copier(private val schema: Schema) {
   private val encoder = EncoderFactory.get

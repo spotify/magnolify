@@ -17,6 +17,9 @@
 package magnolify.avro
 
 import java.nio.ByteBuffer
+import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
+import java.time._
+import java.util.UUID
 import java.{util => ju}
 
 import magnolia._
@@ -24,7 +27,7 @@ import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
 import org.apache.avro.generic.{GenericArray, GenericData, GenericRecord, GenericRecordBuilder}
-import org.apache.avro.{JsonProperties, Schema}
+import org.apache.avro.{JsonProperties, LogicalTypes, Schema}
 
 import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.collection.concurrent
@@ -99,7 +102,7 @@ object AvroField {
           )
         }.asJava
       )
-      .toString()
+      .toString
 
     override def defaultVal: Any = null
 
@@ -138,7 +141,7 @@ object AvroField {
       new AvroField[U] {
         override type FromT = af.FromT
         override type ToT = af.ToT
-        override protected def schemaString(cm: CaseMapper): String = af.schema(cm).toString()
+        override protected def schemaString(cm: CaseMapper): String = af.schema(cm).toString
         override def defaultVal: Any = af.defaultVal
         override def from(v: FromT)(cm: CaseMapper): U = f(af.from(v)(cm))
         override def to(v: U)(cm: CaseMapper): ToT = af.to(g(v))(cm)
@@ -151,7 +154,7 @@ object AvroField {
     new AvroField[T] {
       override type FromT = From
       override type ToT = To
-      override protected def schemaString(cm: CaseMapper): String = Schema.create(tpe).toString()
+      override protected def schemaString(cm: CaseMapper): String = Schema.create(tpe).toString
       override def defaultVal: Any = null
       override def from(v: FromT)(cm: CaseMapper): T = f(v)
       override def to(v: T)(cm: CaseMapper): ToT = g(v)
@@ -162,7 +165,6 @@ object AvroField {
 
   private def id[T](tpe: Schema.Type): AvroField[T] = aux[T, T, T](tpe)(identity)(identity)
 
-  // FIXME: support logical types
   implicit val afBoolean = id[Boolean](Schema.Type.BOOLEAN)
   implicit val afInt = id[Int](Schema.Type.INT)
   implicit val afLong = id[Long](Schema.Type.LONG)
@@ -179,7 +181,7 @@ object AvroField {
   implicit def afOption[T](implicit f: AvroField[T]): AvroField[Option[T]] =
     new Aux[Option[T], f.FromT, f.ToT] {
       override protected def schemaString(cm: CaseMapper): String =
-        Schema.createUnion(Schema.create(Schema.Type.NULL), f.schema(cm)).toString()
+        Schema.createUnion(Schema.create(Schema.Type.NULL), f.schema(cm)).toString
       override def defaultVal: Any = JsonProperties.NULL_VALUE
       override def from(v: f.FromT)(cm: CaseMapper): Option[T] =
         if (v == null) None else Some(f.from(v)(cm))
@@ -196,7 +198,7 @@ object AvroField {
   ): AvroField[C[T]] =
     new Aux[C[T], ju.List[f.FromT], GenericArray[f.ToT]] {
       override protected def schemaString(cm: CaseMapper): String =
-        Schema.createArray(f.schema(cm)).toString()
+        Schema.createArray(f.schema(cm)).toString
       override def defaultVal: Any = ju.Collections.emptyList()
       override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] =
         if (v == null) fc.newBuilder.result()
@@ -212,7 +214,7 @@ object AvroField {
   implicit def afMap[T](implicit f: AvroField[T]): AvroField[Map[String, T]] =
     new Aux[Map[String, T], ju.Map[CharSequence, f.FromT], ju.Map[String, f.ToT]] {
       override protected def schemaString(cm: CaseMapper): String =
-        Schema.createMap(f.schema(cm)).toString()
+        Schema.createMap(f.schema(cm)).toString
       override def defaultVal: Any = ju.Collections.emptyMap()
       override def from(v: ju.Map[CharSequence, f.FromT])(cm: CaseMapper): Map[String, T] =
         if (v == null) {
@@ -223,4 +225,145 @@ object AvroField {
       override def to(v: Map[String, T])(cm: CaseMapper): ju.Map[String, f.ToT] =
         if (v.isEmpty) null else v.iterator.map(kv => (kv._1, f.to(kv._2)(cm))).toMap.asJava
     }
+
+  //////////////////////////////////////////////////
+
+  def logicalType[T](lt: LogicalType): LogicalTypeWord[T] = new LogicalTypeWord[T](lt)
+
+  class LogicalTypeWord[T](val lt: LogicalType) extends Serializable {
+    def apply[U](f: T => U)(g: U => T)(implicit af: AvroField[T]): AvroField[U] = {
+      new AvroField[U] {
+        override type FromT = af.FromT
+        override type ToT = af.ToT
+        override protected def schemaString(cm: CaseMapper): String = {
+          // `LogicalType#addToSchema` mutates `Schema`, make a copy first
+          val schema = new Schema.Parser().parse(af.schema(cm).toString)
+          lt.get.addToSchema(schema)
+          schema.toString
+        }
+        override def defaultVal: Any = af.defaultVal
+        override def from(v: FromT)(cm: CaseMapper): U = f(af.from(v)(cm))
+        override def to(v: U)(cm: CaseMapper): ToT = af.to(g(v))(cm)
+      }
+    }
+  }
+
+  // https://avro.apache.org/docs/1.8.2/spec.html#Logical+Types
+  // Precision and scale are not encoded in the `BigDecimal` type and must be specified
+  def bigDecimal(precision: Int, scale: Int = 0): AvroField[BigDecimal] =
+    logicalType[Array[Byte]](LogicalType.Decimal(precision, scale))(ba =>
+      BigDecimal(BigInt(ba), scale)
+    ) { bd =>
+      val scaled = bd.setScale(scale)
+      require(
+        scaled.precision <= precision,
+        s"Cannot encode BigDecimal $bd: precision ${scaled.precision} > $precision" +
+          (if (bd.scale == scaled.scale) {
+             ""
+           } else {
+             s" after set scale from ${bd.scale} to ${scaled.scale}"
+           })
+      )
+      scaled.bigDecimal.unscaledValue().toByteArray
+    }
+
+  implicit val afUuid: AvroField[UUID] =
+    logicalType[String](LogicalType.UUID)(UUID.fromString)(_.toString)
+  implicit val afDate: AvroField[LocalDate] =
+    logicalType[Int](LogicalType.Date)(LocalDate.ofEpochDay(_))(_.toEpochDay.toInt)
+}
+
+sealed class LogicalType(avro: () => org.apache.avro.LogicalType) extends Serializable {
+  def this(name: String) = this(() => new org.apache.avro.LogicalType(name))
+  def get: org.apache.avro.LogicalType = avro()
+}
+
+object LogicalType {
+  def apply(name: String): LogicalType = new LogicalType(name)
+
+  case class Decimal(precision: Int, scale: Int = 0)
+      extends LogicalType(() => LogicalTypes.decimal(precision, scale))
+  case object UUID extends LogicalType(() => LogicalTypes.uuid())
+
+  // Map to `Instant`
+  case object TimestampMicros extends LogicalType(() => LogicalTypes.timestampMicros())
+  case object TimestampMillis extends LogicalType(() => LogicalTypes.timestampMillis())
+
+  // Map to `LocalDate`
+  case object Date extends LogicalType(() => LogicalTypes.date())
+
+  // Map to `LocalTime`
+  case object TimeMicros extends LogicalType(() => LogicalTypes.timeMicros())
+  case object TimeMillis extends LogicalType(() => LogicalTypes.timeMillis())
+
+  // Map to `LocalDateTime`
+  // `LogicalTypes.localTimestampMicros` and `LogicalTypes.localTimestampMillis` are Avro 1.10.0+.
+  case object LocalTimestampMicros extends LogicalType("local-timestamp-micros")
+  case object LocalTimestampMillis extends LogicalType("local-timestamp-millis")
+
+  object Micros {
+    implicit val afTimestampMicros: AvroField[Instant] =
+      AvroField.logicalType[Long](LogicalType.TimestampMicros)(us =>
+        Instant.ofEpochMilli(us / 1000)
+      )(_.toEpochMilli * 1000)
+
+    implicit val afTimeMicros: AvroField[LocalTime] =
+      AvroField.logicalType[Long](LogicalType.TimeMicros)(us => LocalTime.ofNanoOfDay(us * 1000))(
+        _.toNanoOfDay / 1000
+      )
+
+    implicit val afLocalTimestampMicros: AvroField[LocalDateTime] =
+      AvroField.logicalType[Long](LogicalType.LocalTimestampMicros)(us =>
+        LocalDateTime.ofInstant(Instant.ofEpochMilli(us / 1000), ZoneOffset.UTC)
+      )(_.toInstant(ZoneOffset.UTC).toEpochMilli * 1000)
+  }
+
+  object Millis {
+    implicit val afTimestampMillis: AvroField[Instant] =
+      AvroField.logicalType[Long](LogicalType.TimestampMillis)(Instant.ofEpochMilli)(_.toEpochMilli)
+
+    implicit val afTimeMillis: AvroField[LocalTime] =
+      AvroField.logicalType[Int](LogicalType.TimeMillis)(ms =>
+        LocalTime.ofNanoOfDay(ms * 1000000L)
+      )(t => (t.toNanoOfDay / 1000000).toInt)
+
+    implicit val afLocalTimestampMillis: AvroField[LocalDateTime] =
+      AvroField.logicalType[Long](LogicalType.LocalTimestampMillis)(ms =>
+        LocalDateTime.ofInstant(Instant.ofEpochMilli(ms), ZoneOffset.UTC)
+      )(_.toInstant(ZoneOffset.UTC).toEpochMilli)
+  }
+
+  object BigQuery {
+    // NUMERIC
+    // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
+    implicit val afBigQueryNumeric: AvroField[BigDecimal] = AvroField.bigDecimal(38, 9)
+
+    // TIMESTAMP
+    implicit val afBigQueryTimestamp: AvroField[Instant] = Micros.afTimestampMicros
+
+    // DATE: `AvroField.afDate`
+
+    // TIME
+    implicit val afBigQueryTime: AvroField[LocalTime] = Micros.afTimeMicros
+
+    // DATETIME -> sqlType: DATETIME
+    implicit val afBigQueryDatetime: AvroField[LocalDateTime] =
+      AvroField.logicalType[String](LogicalType("datetime"))(s =>
+        LocalDateTime.from(datetimeParser.parse(s))
+      )(datetimePrinter.format)
+
+    // DATETIME
+    // YYYY-[M]M-[D]D[ [H]H:[M]M:[S]S[.DDDDDD]]
+    private val datetimePrinter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")
+    private val datetimeParser = new DateTimeFormatterBuilder()
+      .append(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+      .appendOptional(
+        new DateTimeFormatterBuilder()
+          .append(DateTimeFormatter.ofPattern(" HH:mm:ss"))
+          .appendOptional(DateTimeFormatter.ofPattern(".SSSSSS"))
+          .toFormatter
+      )
+      .toFormatter
+      .withZone(ZoneOffset.UTC)
+  }
 }

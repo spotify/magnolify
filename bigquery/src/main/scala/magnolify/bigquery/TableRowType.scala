@@ -217,3 +217,19 @@ private object Schemas {
   def fromJson[T <: GenericJson](schemaString: String)(implicit ct: ClassTag[T]): T =
     jsonFactory.fromString(schemaString, ct.runtimeClass).asInstanceOf[T]
 }
+
+private object NumericConverter {
+  // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
+  private val MaxPrecision = 38
+  private val MaxScale = 9
+
+  def toBigDecimal(v: Any): BigDecimal = BigDecimal(v.toString)
+  def fromBigDecimal(v: BigDecimal): Any = {
+    require(
+      v.precision <= MaxPrecision,
+      s"Cannot encode BigDecimal $v: precision ${v.precision} > $MaxPrecision"
+    )
+    require(v.scale <= MaxScale, s"Cannot encode BigDecimal $v: scale ${v.scale} > $MaxScale")
+    v.toString()
+  }
+}
