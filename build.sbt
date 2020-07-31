@@ -20,14 +20,18 @@ description := "A collection of Magnolia add-on modules"
 val magnoliaVersion = "0.17.0"
 
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.10.0")
+val bigqueryStorageVersion = "1.2.1"
 val bigqueryVersion = "v2-rev20201007-1.30.10"
 val bigtableVersion = "1.16.2"
 val catsVersion = "2.2.0"
+val circeVersion = "0.13.0"
 val datastoreVersion = "1.6.3"
 val guavaVersion = "30.0-jre"
 val hadoopVersion = "3.2.1"
 val jacksonVersion = "2.11.3"
 val munitVersion = "0.7.14"
+val oauthVersion = "0.21.1"
+val paigesVersion = "0.3.1"
 val parquetVersion = "1.11.0"
 val protobufVersion = "3.13.0"
 val scalacheckVersion = "1.14.3"
@@ -122,6 +126,8 @@ lazy val root: Project = project
     shared,
     scalacheck,
     cats,
+    codegen,
+    codegenTest,
     guava,
     avro,
     bigquery,
@@ -185,6 +191,95 @@ lazy val cats: Project = project
   )
   .dependsOn(
     shared,
+    scalacheck % Test,
+    test % "test->test"
+  )
+
+lazy val codegen: Project = project
+  .in(file("codegen"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-codegen",
+    description := "Magnolia add-on for code generation",
+    libraryDependencies ++= Seq(
+      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
+      "com.google.auth" % "google-auth-library-oauth2-http" % oauthVersion,
+      "com.google.cloud" % "google-cloud-bigquerystorage" % bigqueryStorageVersion,
+      "com.google.guava" % "guava" % guavaVersion,
+      "com.google.protobuf" % "protobuf-java" % protobufVersion,
+      "io.circe" %% "circe-generic" % circeVersion,
+      "io.circe" %% "circe-generic-extras" % circeVersion,
+      "io.circe" %% "circe-yaml" % circeVersion,
+      "org.apache.avro" % "avro" % avroVersion,
+      "org.typelevel" %% "paiges-core" % paigesVersion,
+      "org.scalameta" %% "munit" % munitVersion % Test
+    )
+  )
+  .dependsOn(
+    shared
+  )
+
+lazy val codegenFixtures = taskKey[(Seq[File], Seq[File])]("codegen fixutres")
+
+lazy val codegenTest: Project = project
+  .in(file("codegen-test"))
+  .settings(
+    commonSettings ++ noPublishSettings,
+    moduleName := "magnolify-codegen-test",
+    description := "Magnolia add-on for code generation - tests",
+    libraryDependencies ++= Seq(
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion
+    ),
+    /*
+    `Fixtures` generates Scala and schema files for testing:
+    - Load original case classes in `src/main/scala`, e.g. `magnolify.codegen.avro.Required`
+    - Derive `AvroType[Required]` and corresponding schema
+    - Generate test case classes in `target/{scalaBinaryVersion}/src_managed/test`
+    - Generate schemas in `target/{scalaBinaryVersion}/resource_managed/test`
+    - Exclude `Compile / classDirectory`, i.e. `target/{scalaBinaryVersion}/classes` since
+      generated test case classes are duplicates of the originals
+    - We do not produce schema dynamically for Protobuf and test generated code with ScalaCheck
+     */
+    codegenFixtures := Def.taskDyn {
+      val srcDir = (Test / sourceManaged).value
+      val rsrcDir = (Test / resourceManaged).value
+      srcDir.delete()
+      rsrcDir.delete()
+      Def.task {
+        (runMain in Compile).toTask(s" magnolify.codegen.Fixtures $srcDir $rsrcDir").value
+        val srcs = srcDir ** "*.scala"
+        val rsrcs = rsrcDir ** "*.json"
+        (srcs.get(), rsrcs.get())
+      }
+    }.value,
+    Test / sourceGenerators += codegenFixtures.taskValue.map(_._1),
+    Test / resourceGenerators += codegenFixtures.taskValue.map(_._2),
+    Test / internalDependencyClasspath := Def.taskDyn {
+      val exclude = (Compile / classDirectory).value
+      Def.task {
+        (Test / internalDependencyClasspath).map { cp =>
+          cp.filter(_.data != exclude): Keys.Classpath
+        }.value
+      }
+    }.value
+  )
+  .dependsOn(
+    avro,
+    bigquery,
+    protobuf,
+    codegen,
+    scalacheck,
+    test % "compile,test->test"
+  )
+
+lazy val diffy: Project = project
+  .in(file("diffy"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-diffy",
+    description := "Magnolia add-on for diffing data"
+  )
+  .dependsOn(
     scalacheck % Test,
     test % "test->test"
   )
