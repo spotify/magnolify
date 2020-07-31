@@ -112,8 +112,8 @@ class AvroTypeSuite extends MagnolifySuite {
     val fields = schema.getFields.asScala
     val ds = """{"doc": "string", "since": "2020-01-01"}"""
     val di = """{"doc": "integers", "since": "2020-02-01"}"""
-    require(fields.find(_.name() == "s").exists(_.doc() == ds))
-    require(fields.find(_.name() == "i").exists(_.doc() == di))
+    assert(fields.find(_.name() == "s").exists(_.doc() == ds))
+    assert(fields.find(_.name() == "i").exists(_.doc() == di))
   }
 
   testFail(AvroType[DoubleRecordDoc])(
