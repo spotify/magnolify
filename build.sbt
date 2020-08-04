@@ -25,8 +25,10 @@ val bigtableVersion = "1.16.2"
 val catsVersion = "2.2.0"
 val datastoreVersion = "1.6.3"
 val guavaVersion = "30.0-jre"
+val hadoopVersion = "3.2.1"
 val jacksonVersion = "2.11.3"
 val munitVersion = "0.7.14"
+val parquetVersion = "1.11.0"
 val protobufVersion = "3.13.0"
 val scalacheckVersion = "1.14.3"
 val tensorflowVersion = "1.15.0"
@@ -125,6 +127,7 @@ lazy val root: Project = project
     bigquery,
     bigtable,
     datastore,
+    parquet,
     protobuf,
     tensorflow,
     test
@@ -262,6 +265,24 @@ lazy val datastore: Project = project
     description := "Magnolia add-on for Google Cloud Datastore",
     libraryDependencies ++= Seq(
       "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Provided
+    )
+  )
+  .dependsOn(
+    shared,
+    cats % Test,
+    scalacheck % Test,
+    test % "test->test"
+  )
+
+lazy val parquet: Project = project
+  .in(file("parquet"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-parquet",
+    description := "Magnolia add-on for Apache Parquet",
+    libraryDependencies ++= Seq(
+      "org.apache.parquet" % "parquet-hadoop" % parquetVersion % Provided,
+      "org.apache.hadoop" % "hadoop-client" % hadoopVersion % Provided
     )
   )
   .dependsOn(
