@@ -46,7 +46,7 @@ sealed trait BigtableType[T] extends Converter[T, java.util.List[Column], Seq[Se
 }
 
 object BigtableType {
-  implicit def apply[T: BigtableField]: BigtableType[T] = BigtableType(CaseMapper.identity)
+  implicit def apply[T: BigtableField.Record]: BigtableType[T] = BigtableType(CaseMapper.identity)
 
   def apply[T](cm: CaseMapper)(implicit f: BigtableField[T]): BigtableType[T] =
     new BigtableType[T] {
@@ -123,6 +123,8 @@ sealed trait BigtableField[T] extends Serializable {
 }
 
 object BigtableField {
+  trait Record[T] extends BigtableField[T]
+
   trait Primitive[T] extends BigtableField[T] {
     def fromByteString(v: ByteString): T
     def toByteString(v: T): ByteString
@@ -148,7 +150,7 @@ object BigtableField {
 
   type Typeclass[T] = BigtableField[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): BigtableField[T] = new BigtableField[T] {
+  def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
     private def key(prefix: String, label: String): String =
       if (prefix == null) label else s"$prefix.$label"
 
@@ -179,9 +181,9 @@ object BigtableField {
 
   @implicitNotFound("Cannot derive BigtableField for sealed trait")
   private sealed trait Dispatchable[T]
-  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): BigtableField[T] = ???
+  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
 
-  implicit def gen[T]: BigtableField[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
 
   def apply[T](implicit f: BigtableField[T]): BigtableField[T] = f
 
