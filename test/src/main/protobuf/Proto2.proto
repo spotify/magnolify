@@ -9,11 +9,9 @@ message IntegersP2 {
     required int64 l = 2;
 }
 
-message NumbersP2 {
-    required int32 i = 1;
-    required int64 l = 2;
-    required float f = 3;
-    required double d = 4;
+message FloatsP2 {
+    required float f = 1;
+    required double d = 2;
 }
 
 message RequiredP2 {

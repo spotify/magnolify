@@ -9,11 +9,9 @@ message IntegersP3 {
     int64 l = 2;
 }
 
-message NumbersP3 {
-    int32 i = 1;
-    int64 l = 2;
-    float f = 3;
-    double d = 4;
+message FloatsP3 {
+    float f = 1;
+    double d = 2;
 }
 
 message SingularP3 {
@@ -57,12 +55,12 @@ message BytesP3 {
     bytes b = 1;
 }
 
-message UpperCase {
+message UpperCaseP3 {
     string FIRSTFIELD = 1;
     string SECONDFIELD = 2;
-    UpperCaseInner INNERFIELD = 3;
+    UpperCaseInnerP3 INNERFIELD = 3;
 }
 
-message UpperCaseInner {
+message UpperCaseInnerP3 {
     string INNERFIRST = 1;
 }

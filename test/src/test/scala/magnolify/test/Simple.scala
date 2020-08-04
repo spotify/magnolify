@@ -25,6 +25,7 @@ import cats.instances.all._
 
 object Simple {
   case class Integers(i: Int, l: Long)
+  case class Floats(f: Float, d: Double)
   case class Numbers(i: Int, l: Long, f: Float, d: Double, bi: BigInt, bd: BigDecimal)
   case class Required(b: Boolean, i: Int, s: String)
   case class Nullable(b: Option[Boolean], i: Option[Int], s: Option[String])

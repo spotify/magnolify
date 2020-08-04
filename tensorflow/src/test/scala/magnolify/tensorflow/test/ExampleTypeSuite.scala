@@ -46,18 +46,17 @@ class ExampleTypeSuite extends MagnolifySuite {
     }
   }
 
+  // workaround for Double to Float precision loss
+  implicit val arbDouble: Arbitrary[Double] =
+    Arbitrary(Arbitrary.arbFloat.arbitrary.map(_.toDouble))
+
   test[Integers]
+  test[Floats]
   test[Required]
   test[Nullable]
   test[Repeated]
   test[ExampleNested]
-
-  {
-    // workaround for Double to Float precision loss
-    implicit val arbDouble: Arbitrary[Double] =
-      Arbitrary(Arbitrary.arbFloat.arbitrary.map(_.toDouble))
-    test[Unsafe]
-  }
+  test[Unsafe]
 
   {
     import Collections._

@@ -54,6 +54,8 @@ class ProtobufTypeSuite extends MagnolifySuite {
 
   test[Integers, IntegersP2]
   test[Integers, IntegersP3]
+  test[Floats, FloatsP2]
+  test[Floats, FloatsP3]
   test[Required, RequiredP2]
   test[Required, SingularP3]
   test[Nullable, NullableP2]
@@ -115,9 +117,9 @@ class ProtobufTypeSuite extends MagnolifySuite {
   }
 
   {
-    implicit val pt: ProtobufType[LowerCamel, UpperCase] =
-      ProtobufType[LowerCamel, UpperCase](CaseMapper(_.toUpperCase))
-    test[LowerCamel, UpperCase]
+    implicit val pt: ProtobufType[LowerCamel, UpperCaseP3] =
+      ProtobufType[LowerCamel, UpperCaseP3](CaseMapper(_.toUpperCase))
+    test[LowerCamel, UpperCaseP3]
   }
 }
 

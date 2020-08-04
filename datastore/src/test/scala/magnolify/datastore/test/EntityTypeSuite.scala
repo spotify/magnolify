@@ -49,6 +49,7 @@ class EntityTypeSuite extends MagnolifySuite {
   }
 
   test[Integers]
+  test[Floats]
   test[Required]
   test[Nullable]
   test[Repeated]

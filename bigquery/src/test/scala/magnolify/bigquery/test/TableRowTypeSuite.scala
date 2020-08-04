@@ -53,6 +53,13 @@ class TableRowTypeSuite extends MagnolifySuite {
   }
 
   test[Integers]
+
+  {
+    // `TableRow` reserves field `f`
+    implicit val trt = TableRowType[Floats](CaseMapper(s => if (s == "f") "float" else s))
+    test[Floats]
+  }
+
   test[Required]
   test[Nullable]
   test[Repeated]
