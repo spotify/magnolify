@@ -161,25 +161,25 @@ class AvroTypeSuite extends MagnolifySuite {
     implicit val eqDateTime: Eq[LocalDateTime] = Eq.by(_.toEpochSecond(ZoneOffset.UTC))
 
     {
-      import LogicalType.Micros._
+      import magnolify.avro.logical.micros._
       implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
       test[Logical1]
     }
 
     {
-      import LogicalType.Millis._
+      import magnolify.avro.logical.millis._
       implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
       test[Logical2]
     }
 
     {
-      import LogicalType.BigQuery._
+      import magnolify.avro.logical.bigquery._
       test[BigQuery]
     }
   }
 
   test("BigDecimal") {
-    import LogicalType.BigQuery._
+    import magnolify.avro.logical.bigquery._
     val at: AvroType[BigDec] = AvroType[BigDec]
     val msg = "requirement failed: " +
       "Cannot encode BigDecimal 1234567890123456789012345678901234567890: " +

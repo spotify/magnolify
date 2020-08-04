@@ -20,7 +20,7 @@ import java.io.File
 import java.time._
 
 import magnolify.avro._
-import magnolify.avro.LogicalType.BigQuery._
+import magnolify.avro.logical.bigquery._
 import org.apache.avro.file.DataFileWriter
 import org.apache.avro.generic.{GenericDatumWriter, GenericRecord}
 
