@@ -48,11 +48,11 @@ sealed trait BigtableType[T] extends Converter[T, java.util.List[Column], Seq[Se
 object BigtableType {
   implicit def apply[T: BigtableField.Record]: BigtableType[T] = BigtableType(CaseMapper.identity)
 
-  def apply[T](cm: CaseMapper)(implicit f: BigtableField[T]): BigtableType[T] =
+  def apply[T](cm: CaseMapper)(implicit f: BigtableField.Record[T]): BigtableType[T] =
     new BigtableType[T] {
       private val caseMapper: CaseMapper = cm
-      override def from(xs: java.util.List[Column]): T = f.get(xs, null)(cm).get
-      override def to(v: T): Seq[SetCell.Builder] = f.put(null, v)(cm)
+      override def from(xs: java.util.List[Column]): T = f.get(xs, null)(caseMapper).get
+      override def to(v: T): Seq[SetCell.Builder] = f.put(null, v)(caseMapper)
     }
 
   def mutationsToRow(key: ByteString, mutations: Seq[Mutation]): Row = {
@@ -123,14 +123,13 @@ sealed trait BigtableField[T] extends Serializable {
 }
 
 object BigtableField {
-  trait Record[T] extends BigtableField[T]
+  sealed trait Record[T] extends BigtableField[T]
 
-  trait Primitive[T] extends BigtableField[T] {
+  sealed trait Primitive[T] extends BigtableField[T] {
     def fromByteString(v: ByteString): T
     def toByteString(v: T): ByteString
 
-    private def columnQualifier(k: String): ByteString =
-      ByteString.copyFromUtf8(k)
+    private def columnQualifier(k: String): ByteString = ByteString.copyFromUtf8(k)
 
     override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Result[T] = {
       val v = Columns.find(xs, k)

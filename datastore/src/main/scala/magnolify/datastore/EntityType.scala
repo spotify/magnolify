@@ -90,7 +90,7 @@ sealed trait EntityField[T] extends Serializable {
 }
 
 object EntityField {
-  trait Record[T] extends EntityField[T] {
+  sealed trait Record[T] extends EntityField[T] {
     def fromEntity(v: Entity)(cm: CaseMapper): T
     def toEntity(v: T)(cm: CaseMapper): Entity.Builder
 

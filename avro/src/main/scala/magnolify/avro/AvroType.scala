@@ -75,12 +75,12 @@ sealed trait AvroField[T] extends Serializable {
 }
 
 object AvroField {
-  trait Aux[T, From, To] extends AvroField[T] {
+  sealed trait Aux[T, From, To] extends AvroField[T] {
     override type FromT = From
     override type ToT = To
   }
 
-  trait Record[T] extends Aux[T, GenericRecord, GenericRecord]
+  sealed trait Record[T] extends Aux[T, GenericRecord, GenericRecord]
 
   //////////////////////////////////////////////////
 

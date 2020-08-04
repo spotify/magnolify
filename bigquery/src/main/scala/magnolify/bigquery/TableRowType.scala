@@ -72,13 +72,13 @@ sealed trait TableRowField[T] extends Serializable {
 }
 
 object TableRowField {
-  trait Aux[T, From, To] extends TableRowField[T] {
+  sealed trait Aux[T, From, To] extends TableRowField[T] {
     override type FromT = From
     override type ToT = To
   }
 
-  trait Generic[T] extends Aux[T, Any, Any]
-  trait Record[T] extends Aux[T, java.util.Map[String, AnyRef], TableRow]
+  sealed trait Generic[T] extends Aux[T, Any, Any]
+  sealed trait Record[T] extends Aux[T, java.util.Map[String, AnyRef], TableRow]
 
   //////////////////////////////////////////////////
 

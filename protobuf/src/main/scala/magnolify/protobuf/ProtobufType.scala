@@ -106,12 +106,12 @@ sealed trait ProtobufField[T] extends Serializable {
 }
 
 object ProtobufField {
-  trait Aux[T, From, To] extends ProtobufField[T] {
+  sealed trait Aux[T, From, To] extends ProtobufField[T] {
     override type FromT = From
     override type ToT = To
   }
 
-  trait Record[T] extends Aux[T, Message, Message]
+  sealed trait Record[T] extends Aux[T, Message, Message]
 
   //////////////////////////////////////////////////
 
