@@ -18,6 +18,7 @@ package magnolify.avro.test
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.net.URI
+import java.nio.ByteBuffer
 import java.time.format.DateTimeFormatter
 import java.time.{Duration, Instant, LocalDate, LocalDateTime, LocalTime, ZoneOffset}
 import java.util.UUID
@@ -33,7 +34,12 @@ import magnolify.shims.JavaConverters._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.apache.avro.Schema
-import org.apache.avro.generic.{GenericDatumReader, GenericDatumWriter, GenericRecord}
+import org.apache.avro.generic.{
+  GenericDatumReader,
+  GenericDatumWriter,
+  GenericRecord,
+  GenericRecordBuilder
+}
 import org.apache.avro.io.{DecoderFactory, EncoderFactory}
 import org.scalacheck._
 
@@ -181,12 +187,23 @@ class AvroTypeSuite extends MagnolifySuite {
   test("BigDecimal") {
     import magnolify.avro.logical.bigquery._
     val at: AvroType[BigDec] = AvroType[BigDec]
-    val msg = "requirement failed: " +
-      "Cannot encode BigDecimal 1234567890123456789012345678901234567890: " +
-      "precision 49 > 38 after set scale from 0 to 9"
-    interceptMessage[IllegalArgumentException](msg) {
-      at(BigDec(BigDecimal("1234567890123456789012345678901234567890")))
+
+    val bigInt = "1234567890123456789012345678901234567890"
+    val msg1 = "requirement failed: " +
+      s"Cannot encode BigDecimal $bigInt: precision 49 > 38 after set scale from 0 to 9"
+    interceptMessage[IllegalArgumentException](msg1) {
+      at(BigDec(BigDecimal(bigInt)))
     }
+
+    val msg2 = "requirement failed: " +
+      s"Cannot decode BigDecimal ${BigDecimal(BigInt(bigInt), 9)}: precision 40 > 38"
+    val record = new GenericRecordBuilder(at.schema)
+      .set("bd", ByteBuffer.wrap(BigDecimal(bigInt).underlying().unscaledValue().toByteArray))
+      .build()
+    interceptMessage[IllegalArgumentException](msg2) {
+      at(record)
+    }
+
     interceptMessage[ArithmeticException]("Rounding necessary") {
       at(BigDec(BigDecimal("3.14159265358979323846")))
     }

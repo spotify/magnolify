@@ -22,7 +22,7 @@ import java.util.UUID
 import java.{util => ju}
 
 import magnolia._
-import magnolify.shared.{CaseMapper, Converter}
+import magnolify.shared._
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
 import org.apache.avro.generic.{GenericArray, GenericData, GenericRecord, GenericRecordBuilder}
@@ -250,21 +250,9 @@ object AvroField {
   // https://avro.apache.org/docs/1.8.2/spec.html#Logical+Types
   // Precision and scale are not encoded in the `BigDecimal` type and must be specified
   def bigDecimal(precision: Int, scale: Int = 0): AvroField[BigDecimal] =
-    logicalType[Array[Byte]](LogicalTypes.decimal(precision, scale))(ba =>
-      BigDecimal(BigInt(ba), scale)
-    ) { bd =>
-      val scaled = bd.setScale(scale)
-      require(
-        scaled.precision <= precision,
-        s"Cannot encode BigDecimal $bd: precision ${scaled.precision} > $precision" +
-          (if (bd.scale == scaled.scale) {
-             ""
-           } else {
-             s" after set scale from ${bd.scale} to ${scaled.scale}"
-           })
-      )
-      scaled.bigDecimal.unscaledValue().toByteArray
-    }
+    logicalType[Array[Byte]](LogicalTypes.decimal(precision, scale))(
+      Decimal.fromBytes(_, precision, scale)
+    )(Decimal.toBytes(_, precision, scale))
 
   implicit val afUuid: AvroField[UUID] =
     logicalType[String](LogicalTypes.uuid())(UUID.fromString)(_.toString)
