@@ -273,28 +273,28 @@ object AvroField {
     logicalType[Int](LogicalType.Date)(LocalDate.ofEpochDay(_))(_.toEpochDay.toInt)
 }
 
-sealed class LogicalType(avro: () => org.apache.avro.LogicalType) extends Serializable {
-  def this(name: String) = this(() => new org.apache.avro.LogicalType(name))
-  def get: org.apache.avro.LogicalType = avro()
+sealed class LogicalType(avro: => org.apache.avro.LogicalType) extends Serializable {
+  def this(name: String) = this(new org.apache.avro.LogicalType(name))
+  def get: org.apache.avro.LogicalType = avro
 }
 
 object LogicalType {
   def apply(name: String): LogicalType = new LogicalType(name)
 
   case class Decimal(precision: Int, scale: Int = 0)
-      extends LogicalType(() => LogicalTypes.decimal(precision, scale))
-  case object UUID extends LogicalType(() => LogicalTypes.uuid())
+      extends LogicalType(LogicalTypes.decimal(precision, scale))
+  case object UUID extends LogicalType(LogicalTypes.uuid())
 
   // Map to `Instant`
-  case object TimestampMicros extends LogicalType(() => LogicalTypes.timestampMicros())
-  case object TimestampMillis extends LogicalType(() => LogicalTypes.timestampMillis())
+  case object TimestampMicros extends LogicalType(LogicalTypes.timestampMicros())
+  case object TimestampMillis extends LogicalType(LogicalTypes.timestampMillis())
 
   // Map to `LocalDate`
-  case object Date extends LogicalType(() => LogicalTypes.date())
+  case object Date extends LogicalType(LogicalTypes.date())
 
   // Map to `LocalTime`
-  case object TimeMicros extends LogicalType(() => LogicalTypes.timeMicros())
-  case object TimeMillis extends LogicalType(() => LogicalTypes.timeMillis())
+  case object TimeMicros extends LogicalType(LogicalTypes.timeMicros())
+  case object TimeMillis extends LogicalType(LogicalTypes.timeMillis())
 
   // Map to `LocalDateTime`
   // `LogicalTypes.localTimestampMicros` and `LogicalTypes.localTimestampMillis` are Avro 1.10.0+.
