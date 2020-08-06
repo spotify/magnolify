@@ -26,7 +26,7 @@ import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.protobuf._
 import magnolify.protobuf.unsafe._
-import magnolify.shared.CaseMapper
+import magnolify.shared.{CaseMapper, EnumType}
 import magnolify.shims.JavaConverters._
 import magnolify.test.Proto2._
 import magnolify.test.Proto3._
@@ -103,6 +103,20 @@ class ProtobufTypeSuite extends MagnolifySuite {
     test[MoreCollections, MoreCollectionP2]
     test[Collections, CollectionP3]
     test[MoreCollections, MoreCollectionP3]
+  }
+
+  {
+    import Enums._
+    implicit val efJavaEnum2 = ProtobufField.enum[JavaEnums.Color, EnumsP2.JavaEnums]
+    implicit val efScalaEnum2 = ProtobufField.enum[ScalaEnums.Color.Type, EnumsP2.ScalaEnums]
+    test[Enums, EnumsP2]
+  }
+
+  {
+    import Enums._
+    implicit val efJavaEnum3 = ProtobufField.enum[JavaEnums.Color, EnumsP3.JavaEnums]
+    implicit val efScalaEnum3 = ProtobufField.enum[ScalaEnums.Color.Type, EnumsP3.ScalaEnums]
+    test[Enums, EnumsP3]
   }
 
   {

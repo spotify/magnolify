@@ -16,10 +16,13 @@
  */
 package magnolify.bigquery
 
+import magnolify.shared.EnumType
+
 package object unsafe {
   implicit val trfByte = TableRowField.from[Long](_.toByte)(_.toLong)
   implicit val trfChar = TableRowField.from[Long](_.toChar)(_.toLong)
   implicit val trfShort = TableRowField.from[Long](_.toShort)(_.toLong)
   implicit val trfInt = TableRowField.from[Long](_.toInt)(_.toLong)
   implicit val trfFloat = TableRowField.from[Double](_.toFloat)(_.toDouble)
+  implicit def trfEnum[T](implicit et: EnumType[T]) = TableRowField.from[String](et.from)(et.to)
 }

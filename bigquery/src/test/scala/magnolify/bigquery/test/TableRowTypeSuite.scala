@@ -73,6 +73,11 @@ class TableRowTypeSuite extends MagnolifySuite {
   }
 
   {
+    import Enums._
+    test[Enums]
+  }
+
+  {
     import Custom._
     implicit val trfUri: TableRowField[URI] = TableRowField.from[String](URI.create)(_.toString)
     implicit val trfDuration: TableRowField[jt.Duration] =

@@ -25,7 +25,14 @@ import magnolia._
 import magnolify.shared._
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
-import org.apache.avro.generic.{GenericArray, GenericData, GenericRecord, GenericRecordBuilder}
+import org.apache.avro.generic.GenericData.EnumSymbol
+import org.apache.avro.generic.{
+  GenericArray,
+  GenericContainer,
+  GenericData,
+  GenericRecord,
+  GenericRecordBuilder
+}
 import org.apache.avro.{JsonProperties, LogicalType, LogicalTypes, Schema}
 
 import scala.annotation.{implicitNotFound, StaticAnnotation}
@@ -176,6 +183,20 @@ object AvroField {
     aux[String, CharSequence, String](Schema.Type.STRING)(_.toString)(identity)
   implicit val afUnit =
     aux2[Unit, JsonProperties.Null](Schema.Type.NULL)(_ => ())(_ => JsonProperties.NULL_VALUE)
+
+  implicit def afEnum[T](implicit et: EnumType[T]) =
+    new AvroField[T] {
+      // Avro 1.9+ added a type parameter for `GenericEnumSymbol`, breaking 1.8 compatibility
+      override type FromT = GenericContainer
+      override type ToT = EnumSymbol
+
+      override protected def schemaString(cm: CaseMapper): String =
+        Schema.createEnum(et.name, null, et.namespace, et.values.asJava).toString
+
+      override def defaultVal: Any = null
+      override def from(v: FromT)(cm: CaseMapper): T = et.from(v.toString)
+      override def to(v: T)(cm: CaseMapper): ToT = new GenericData.EnumSymbol(schema(cm), v)
+    }
 
   implicit def afOption[T](implicit f: AvroField[T]): AvroField[Option[T]] =
     new Aux[Option[T], f.FromT, f.ToT] {

@@ -53,6 +53,21 @@ message MoreCollectionP2 {
     repeated int32 is = 3;
 }
 
+message EnumsP2 {
+    enum JavaEnums {
+        RED = 0;
+        GREEN = 1;
+        BLUE = 2;
+    }
+    enum ScalaEnums {
+        Red = 0;
+        Green = 1;
+        Blue = 2;
+    }
+    required JavaEnums j = 1;
+    required ScalaEnums s = 2;
+}
+
 message CustomP2 {
     required string u = 1;
     required int64 d = 2;
