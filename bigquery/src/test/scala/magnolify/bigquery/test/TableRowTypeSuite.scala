@@ -92,9 +92,10 @@ class TableRowTypeSuite extends MagnolifySuite {
     implicit val arbBigDecimal: Arbitrary[BigDecimal] =
       Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(BigDecimal(_)))
     implicit val eqInstant: Eq[Instant] = Eq.by(_.getMillis)
-    implicit val eqDate: Eq[LocalDate] = Eq.instance((x, y) => (x compareTo y) == 0)
-    implicit val eqTime: Eq[LocalTime] = Eq.instance((x, y) => (x compareTo y) == 0)
-    implicit val eqDateTime: Eq[LocalDateTime] = Eq.instance((x, y) => (x compareTo y) == 0)
+    implicit val eqDate: Eq[LocalDate] = Eq.by(_.getDayOfYear)
+    implicit val eqTime: Eq[LocalTime] = Eq.by(_.getMillisOfDay)
+    implicit val eqDateTime: Eq[LocalDateTime] =
+      Eq.by(dt => dt.getDayOfYear * DateTimeConstants.MILLIS_PER_DAY + dt.getMillisOfDay)
     test[BigQueryTypes]
   }
 

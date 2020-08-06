@@ -73,12 +73,10 @@ class ProtobufTypeSuite extends MagnolifySuite {
   // Hence `None` round trips back as `Some(false/0/"")`.
   {
     import magnolify.protobuf.unsafe.Proto3Option._
-    val eq = Eq.instance[Nullable] { (x, y) =>
-      x.b.getOrElse(false) == y.b.getOrElse(false) &&
-      x.i.getOrElse(0) == y.i.getOrElse(0) &&
-      x.s.getOrElse("") == y.s.getOrElse("")
+    val eq: Eq[Nullable] = Eq.by { x =>
+      Required(x.b.getOrElse(false), x.i.getOrElse(0), x.s.getOrElse(""))
     }
-    val arb = implicitly[Arbitrary[Nullable]]
+    val arb: Arbitrary[Nullable] = implicitly[Arbitrary[Nullable]]
     test(classTag[Nullable], arb, classTag[SingularP3], ProtobufType[Nullable, SingularP3], eq)
   }
 
