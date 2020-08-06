@@ -14,15 +14,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package magnolify.datastore
+package magnolify.test;
 
-import magnolify.shared.EnumType
-
-package object unsafe {
-  implicit val efByte = EntityField.from[Long](_.toByte)(_.toLong)
-  implicit val efChar = EntityField.from[Long](_.toChar)(_.toLong)
-  implicit val efShort = EntityField.from[Long](_.toShort)(_.toLong)
-  implicit val efInt = EntityField.from[Long](_.toInt)(_.toLong)
-  implicit val efFloat = EntityField.from[Double](_.toFloat)(_.toDouble)
-  implicit def efEnum[T](implicit et: EnumType[T]) = EntityField.from[String](et.from)(et.to)
+public class JavaEnums {
+  @JavaAnnotation("Java Annotation")
+  public enum Color {
+    RED, GREEN, BLUE
+  }
 }

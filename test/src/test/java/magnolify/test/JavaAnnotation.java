@@ -14,15 +14,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package magnolify.datastore
+package magnolify.test;
 
-import magnolify.shared.EnumType
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-package object unsafe {
-  implicit val efByte = EntityField.from[Long](_.toByte)(_.toLong)
-  implicit val efChar = EntityField.from[Long](_.toChar)(_.toLong)
-  implicit val efShort = EntityField.from[Long](_.toShort)(_.toLong)
-  implicit val efInt = EntityField.from[Long](_.toInt)(_.toLong)
-  implicit val efFloat = EntityField.from[Double](_.toFloat)(_.toDouble)
-  implicit def efEnum[T](implicit et: EnumType[T]) = EntityField.from[String](et.from)(et.to)
+import static java.lang.annotation.ElementType.*;
+
+@Target({TYPE, FIELD, METHOD, PARAMETER, CONSTRUCTOR, LOCAL_VARIABLE})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface JavaAnnotation {
+  String value();
 }

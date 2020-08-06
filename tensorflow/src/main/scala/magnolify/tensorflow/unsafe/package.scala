@@ -17,6 +17,7 @@
 package magnolify.tensorflow
 
 import com.google.protobuf.ByteString
+import magnolify.shared.EnumType
 
 package object unsafe {
   implicit val efByte = ExampleField.from[Long](_.toByte)(_.toLong)
@@ -26,4 +27,8 @@ package object unsafe {
   implicit val efDouble = ExampleField.from[Float](_.toDouble)(_.toFloat)
   implicit val efBool = ExampleField.from[Long](_ == 1)(x => if (x) 1 else 0)
   implicit val efString = ExampleField.from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
+  implicit def efEnum[T](implicit et: EnumType[T]) =
+    ExampleField.from[ByteString](bs => et.from(bs.toStringUtf8))(v =>
+      ByteString.copyFromUtf8(v.toString)
+    )
 }

@@ -63,6 +63,11 @@ class EntityTypeSuite extends MagnolifySuite {
   }
 
   {
+    import Enums._
+    test[Enums]
+  }
+
+  {
     import Custom._
     implicit val efUri: EntityField[URI] = EntityField.from[String](URI.create)(_.toString)
     implicit val efDuration: EntityField[Duration] =
