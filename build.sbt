@@ -121,8 +121,6 @@ lazy val root: Project = project
     shared,
     scalacheck,
     cats,
-    // FIXME: implement these
-    // diffy,
     guava,
     avro,
     bigquery,
@@ -185,18 +183,6 @@ lazy val cats: Project = project
   )
   .dependsOn(
     shared,
-    scalacheck % Test,
-    test % "test->test"
-  )
-
-lazy val diffy: Project = project
-  .in(file("diffy"))
-  .settings(
-    commonSettings,
-    moduleName := "magnolify-diffy",
-    description := "Magnolia add-on for diffing data"
-  )
-  .dependsOn(
     scalacheck % Test,
     test % "test->test"
   )
