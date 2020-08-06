@@ -31,6 +31,7 @@ import magnolify.tensorflow.unsafe._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
+import org.tensorflow.example.Example
 
 import scala.reflect._
 
@@ -83,6 +84,21 @@ class ExampleTypeSuite extends MagnolifySuite {
     test[ExampleTypes]
   }
 
+  test("DefaultInner") {
+    val et = ensureSerializable(ExampleType[DefaultInner])
+    assertEquals(et(Example.getDefaultInstance), DefaultInner())
+    val inner = DefaultInner(2, Some(2), List(2, 2))
+    assertEquals(et(et(inner)), inner)
+  }
+
+  test("DefaultOuter") {
+    val et = ensureSerializable(ExampleType[DefaultOuter])
+    assertEquals(et(Example.getDefaultInstance), DefaultOuter())
+    val outer =
+      DefaultOuter(DefaultInner(3, Some(3), List(3, 3)), Some(DefaultInner(3, Some(3), List(3, 3))))
+    assertEquals(et(et(outer)), outer)
+  }
+
   {
     implicit val et: ExampleType[LowerCamel] = ExampleType[LowerCamel](CaseMapper(_.toUpperCase))
     test[LowerCamel]
@@ -100,5 +116,11 @@ class ExampleTypeSuite extends MagnolifySuite {
 // Option[T] and Seq[T] not supported
 case class ExampleNested(b: Boolean, i: Int, s: String, r: Required, o: Option[Required])
 case class ExampleTypes(f: Float, bs: ByteString, ba: Array[Byte])
+
+case class DefaultInner(i: Int = 1, o: Option[Int] = Some(1), l: List[Int] = List(1, 1))
+case class DefaultOuter(
+  i: DefaultInner = DefaultInner(2, Some(2), List(2, 2)),
+  o: Option[DefaultInner] = Some(DefaultInner(2, Some(2), List(2, 2)))
+)
 
 case class Unsafe(b: Byte, c: Char, s: Short, i: Int, d: Double, bool: Boolean, str: String)
