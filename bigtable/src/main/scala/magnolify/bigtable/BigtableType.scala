@@ -198,6 +198,7 @@ object BigtableField {
   }
   implicit val btfByteArray = from[ByteString](_.toByteArray)(ByteString.copyFrom)
   implicit val btfString = from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
+  implicit def btfEnum[T](implicit et: EnumType[T]) = from[String](et.from)(et.to)
 
   implicit val btfBigInt =
     from[ByteString](bs => BigInt(bs.toByteArray))(bi => ByteString.copyFrom(bi.toByteArray))

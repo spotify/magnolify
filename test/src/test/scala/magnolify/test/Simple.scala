@@ -23,6 +23,8 @@ import org.scalacheck._
 import cats._
 import cats.instances.all._
 
+import scala.annotation.StaticAnnotation
+
 object Simple {
   case class Integers(i: Int, l: Long)
   case class Floats(f: Float, d: Double)
@@ -40,7 +42,11 @@ object Simple {
   )
   case class Collections(a: Array[Int], l: List[Int], v: Vector[Int])
   case class MoreCollections(i: Iterable[Int], s: Seq[Int], is: IndexedSeq[Int])
+  case class Enums(j: JavaEnums.Color, s: ScalaEnums.Color.Type)
   case class Custom(u: URI, d: Duration)
+
+  case class LowerCamel(firstField: String, secondField: String, innerField: LowerCamelInner)
+  case class LowerCamelInner(innerFirst: String)
 
   object Collections {
     implicit def eqIterable[T, C[_]](implicit eq: Eq[T], tt: C[T] => Iterable[T]): Eq[C[T]] =
@@ -49,6 +55,24 @@ object Simple {
         val ys = y.toList
         xs.size == ys.size && (x.iterator zip y.iterator).forall((eq.eqv _).tupled)
       }
+  }
+
+  object ScalaEnums {
+    @JavaAnnotation("Java Annotation")
+    @ScalaAnnotation("Scala Annotation")
+    object Color extends Enumeration {
+      type Type = Value
+      val Red, Green, Blue = Value
+    }
+  }
+
+  class ScalaAnnotation(val value: String) extends StaticAnnotation
+
+  object Enums {
+    implicit val arbScalaEnum: Arbitrary[ScalaEnums.Color.Type] =
+      Arbitrary(Gen.oneOf(ScalaEnums.Color.values))
+    implicit val eqJavaEnum: Eq[JavaEnums.Color] = Eq.by(_.name())
+    implicit val eqScalaEnum: Eq[ScalaEnums.Color.Type] = Eq.by(_.toString)
   }
 
   object Custom {
@@ -64,9 +88,6 @@ object Simple {
     implicit val showUri: Show[URI] = Show.fromToString
     implicit val showDuration: Show[Duration] = Show.fromToString
   }
-
-  case class LowerCamel(firstField: String, secondField: String, innerField: LowerCamelInner)
-  case class LowerCamelInner(innerFirst: String)
 
   object LowerCamel {
     val fields: Seq[String] = Seq("firstField", "secondField", "innerField")

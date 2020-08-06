@@ -66,6 +66,11 @@ class ExampleTypeSuite extends MagnolifySuite {
   }
 
   {
+    import Enums._
+    test[Enums]
+  }
+
+  {
     import Custom._
     implicit val efUri: ExampleField.Primitive[URI] =
       ExampleField.from[ByteString](x => URI.create(x.toStringUtf8))(x =>

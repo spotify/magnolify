@@ -79,6 +79,11 @@ class AvroTypeSuite extends MagnolifySuite {
   }
 
   {
+    import Enums._
+    test[Enums]
+  }
+
+  {
     import Custom._
     implicit val afUri: AvroField[URI] = AvroField.from[String](URI.create)(_.toString)
     implicit val afDuration: AvroField[Duration] =

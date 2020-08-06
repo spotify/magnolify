@@ -58,11 +58,8 @@ class BigtableTypeSuite extends MagnolifySuite {
   test[BigtableNested]
 
   {
-    implicit val arbByteString: Arbitrary[ByteString] =
-      Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
-    implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
-    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
-    test[BigtableTypes]
+    import Enums._
+    test[Enums]
   }
 
   {
@@ -72,6 +69,14 @@ class BigtableTypeSuite extends MagnolifySuite {
     implicit val btfDuration: BigtableField[Duration] =
       BigtableField.from[Long](Duration.ofMillis)(_.toMillis)
     test[Custom]
+  }
+
+  {
+    implicit val arbByteString: Arbitrary[ByteString] =
+      Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
+    implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
+    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
+    test[BigtableTypes]
   }
 
   test("DefaultInner") {

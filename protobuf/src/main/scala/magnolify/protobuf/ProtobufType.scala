@@ -20,10 +20,10 @@ import java.lang.reflect.Method
 import java.{util => ju}
 
 import com.google.protobuf.Descriptors.FileDescriptor.Syntax
-import com.google.protobuf.Descriptors.{Descriptor, FieldDescriptor}
-import com.google.protobuf.{ByteString, Message}
+import com.google.protobuf.Descriptors.{Descriptor, EnumValueDescriptor, FieldDescriptor}
+import com.google.protobuf.{ByteString, Descriptors, Message, ProtocolMessageEnum}
 import magnolia._
-import magnolify.shared.{CaseMapper, Converter}
+import magnolify.shared._
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
 
@@ -211,6 +211,19 @@ object ProtobufField {
   implicit val pfString = id[String]
   implicit val pfByteString = id[ByteString]
   implicit val pfByteArray = aux2[Array[Byte], ByteString](_.toByteArray)(ByteString.copyFrom)
+
+  def enum[T, E <: Enum[E] with ProtocolMessageEnum](implicit
+    et: EnumType[T],
+    ct: ClassTag[E]
+  ): ProtobufField[T] = {
+    val map = ct.runtimeClass
+      .getMethod("values")
+      .invoke(null)
+      .asInstanceOf[Array[E]]
+      .map(e => e.name() -> e)
+      .toMap
+    aux2[T, EnumValueDescriptor](e => et.from(e.getName))(e => map(et.to(e)).getValueDescriptor)
+  }
 
   implicit def pfOption[T](implicit f: ProtobufField[T]): ProtobufField[Option[T]] =
     new Aux[Option[T], f.FromT, f.ToT] {
