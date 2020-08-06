@@ -184,9 +184,7 @@ object ProtobufField {
 
   class FromWord[T] {
     def apply[U](f: T => U)(g: U => T)(implicit pf: ProtobufField[T]): ProtobufField[U] =
-      new ProtobufField[U] {
-        override type FromT = pf.FromT
-        override type ToT = pf.ToT
+      new Aux[U, pf.FromT, pf.ToT] {
         override val hasOptional: Boolean = pf.hasOptional
         override def from(v: FromT)(cm: CaseMapper): U = f(pf.from(v)(cm))
         override def to(v: U, b: Message.Builder)(cm: CaseMapper): ToT = pf.to(g(v), null)(cm)
@@ -194,9 +192,7 @@ object ProtobufField {
   }
 
   private def aux[T, From, To](f: From => T)(g: T => To): ProtobufField[T] =
-    new ProtobufField[T] {
-      override type FromT = From
-      override type ToT = To
+    new Aux[T, From, To] {
       override val hasOptional: Boolean = false
       override def from(v: FromT)(cm: CaseMapper): T = f(v)
       override def to(v: T, b: Message.Builder)(cm: CaseMapper): ToT = g(v)
