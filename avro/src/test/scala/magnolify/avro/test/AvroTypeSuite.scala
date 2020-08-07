@@ -34,7 +34,12 @@ import magnolify.shims.JavaConverters._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.apache.avro.Schema
-import org.apache.avro.generic.{GenericDatumReader, GenericDatumWriter, GenericRecord, GenericRecordBuilder}
+import org.apache.avro.generic.{
+  GenericDatumReader,
+  GenericDatumWriter,
+  GenericRecord,
+  GenericRecordBuilder
+}
 import org.apache.avro.io.{DecoderFactory, EncoderFactory}
 import org.scalacheck._
 
