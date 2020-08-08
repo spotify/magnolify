@@ -22,7 +22,7 @@ import com.google.bigtable.v2.{Cell, Column, Family, Mutation, Row}
 import com.google.bigtable.v2.Mutation.SetCell
 import com.google.protobuf.ByteString
 import magnolia._
-import magnolify.shared.{CaseMapper, Converter}
+import magnolify.shared._
 import magnolify.shims.JavaConverters._
 
 import scala.annotation.implicitNotFound
@@ -98,27 +98,8 @@ object BigtableType {
       .build()
 }
 
-sealed trait Result[+T] {
-  def get: T = this match {
-    case Result.Column(v)  => v
-    case Result.Default(v) => v
-    case Result.None       => throw new NoSuchElementException
-  }
-}
-
-private object Result {
-  // value from column bytes
-  case class Column[T](value: T) extends Result[T]
-
-  // value from case class default
-  case class Default[T](value: T) extends Result[T]
-
-  // value not found
-  case object None extends Result[Nothing]
-}
-
 sealed trait BigtableField[T] extends Serializable {
-  def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Result[T]
+  def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T]
   def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder]
 }
 
@@ -131,9 +112,9 @@ object BigtableField {
 
     private def columnQualifier(k: String): ByteString = ByteString.copyFromUtf8(k)
 
-    override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Result[T] = {
+    override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T] = {
       val v = Columns.find(xs, k)
-      if (v == null) Result.None else Result.Column(fromByteString(v.getCells(0).getValue))
+      if (v == null) Value.None else Value.Some(fromByteString(v.getCells(0).getValue))
     }
 
     override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
@@ -153,23 +134,18 @@ object BigtableField {
     private def key(prefix: String, label: String): String =
       if (prefix == null) label else s"$prefix.$label"
 
-    override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Result[T] = {
+    override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T] = {
       var fallback = true
       val r = caseClass.construct { p =>
         val cq = key(k, cm.map(p.label))
-        (p.typeclass.get(xs, cq)(cm), p.default) match {
-          case (Result.Column(x), _) =>
-            fallback = false
-            x
-          case (Result.Default(_), Some(x)) => x
-          case (Result.Default(x), None)    => x
-          case (Result.None, Some(x))       => x
-          case _ =>
-            throw new IllegalArgumentException(s"Column qualifier not found: $cq")
+        val v = p.typeclass.get(xs, cq)(cm)
+        if (v.isSome) {
+          fallback = false
         }
+        v.getOrElse(p.default)
       }
       // result is default if all fields are default
-      if (fallback) Result.Default(r) else Result.Column(r)
+      if (fallback) Value.Default(r) else Value.Some(r)
     }
 
     override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
@@ -239,13 +215,8 @@ object BigtableField {
 
   implicit def btfOption[A](implicit btf: BigtableField[A]): BigtableField[Option[A]] =
     new BigtableField[Option[A]] {
-      override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Result[Option[A]] =
-        Columns.findNullable(xs, k).map(btf.get(_, k)(cm)) match {
-          case Some(Result.Column(v))  => Result.Column(Some(v))
-          case Some(Result.Default(v)) => Result.Default(Some(v))
-          case Some(Result.None)       => Result.Default(None)
-          case None                    => Result.Default(None)
-        }
+      override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[Option[A]] =
+        Columns.findNullable(xs, k).map(btf.get(_, k)(cm).toOption).getOrElse(Value.Default(None))
 
       override def put(k: String, v: Option[A])(cm: CaseMapper): Seq[SetCell.Builder] =
         v.toSeq.flatMap(btf.put(k, _)(cm))

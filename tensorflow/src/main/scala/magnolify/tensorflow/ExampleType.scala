@@ -20,7 +20,7 @@ import java.{lang => jl, util => ju}
 
 import com.google.protobuf.ByteString
 import magnolia._
-import magnolify.shared.{CaseMapper, Converter}
+import magnolify.shared._
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
 import org.tensorflow.example._
@@ -45,27 +45,8 @@ object ExampleType {
     }
 }
 
-sealed trait Result[+T] {
-  def get: T = this match {
-    case Result.Feature(v) => v
-    case Result.Default(v) => v
-    case Result.None       => throw new NoSuchElementException
-  }
-}
-
-private object Result {
-  // value from `Feature`
-  case class Feature[T](value: T) extends Result[T]
-
-  // value from case class default
-  case class Default[T](value: T) extends Result[T]
-
-  // value not found
-  case object None extends Result[Nothing]
-}
-
 sealed trait ExampleField[T] extends Serializable {
-  def get(f: Features, k: String)(cm: CaseMapper): Result[T]
+  def get(f: Features, k: String)(cm: CaseMapper): Value[T]
   def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder
 }
 
@@ -75,14 +56,14 @@ object ExampleField {
     def fromFeature(v: Feature): ju.List[T]
     def toFeature(v: Iterable[T]): Feature
 
-    override def get(f: Features, k: String)(cm: CaseMapper): Result[T] = {
+    override def get(f: Features, k: String)(cm: CaseMapper): Value[T] = {
       val feature = f.getFeatureOrDefault(k, null)
       if (feature == null) {
-        Result.None
+        Value.None
       } else {
         val l = fromFeature(feature)
         require(l.size() == 1)
-        Result.Feature(l.get(0))
+        Value.Some(l.get(0))
       }
     }
 
@@ -100,23 +81,18 @@ object ExampleField {
     private def key(prefix: String, label: String): String =
       if (prefix == null) label else s"$prefix.$label"
 
-    override def get(f: Features, k: String)(cm: CaseMapper): Result[T] = {
+    override def get(f: Features, k: String)(cm: CaseMapper): Value[T] = {
       var fallback = true
       val r = caseClass.construct { p =>
         val fk = key(k, cm.map(p.label))
-        (p.typeclass.get(f, fk)(cm), p.default) match {
-          case (Result.Feature(x), _) =>
-            fallback = false
-            x
-          case (Result.Default(_), Some(x)) => x
-          case (Result.Default(x), None)    => x
-          case (Result.None, Some(x))       => x
-          case _ =>
-            throw new IllegalArgumentException(s"Feature not found: $fk")
+        val v = p.typeclass.get(f, fk)(cm)
+        if (v.isSome) {
+          fallback = false
         }
+        v.getOrElse(p.default)
       }
       // result is default if all fields are default
-      if (fallback) Result.Default(r) else Result.Feature(r)
+      if (fallback) Value.Default(r) else Value.Some(r)
     }
 
     override def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder =
@@ -200,15 +176,11 @@ object ExampleField {
 
   implicit def efOption[T](implicit ef: ExampleField[T]): ExampleField[Option[T]] =
     new ExampleField[Option[T]] {
-      override def get(f: Features, k: String)(cm: CaseMapper): Result[Option[T]] =
+      override def get(f: Features, k: String)(cm: CaseMapper): Value[Option[T]] =
         if (f.containsFeature(k) || f.getFeatureMap.keySet().asScala.exists(_.startsWith(s"$k."))) {
-          ef.get(f, k)(cm) match {
-            case Result.Feature(x) => Result.Feature(Some(x))
-            case Result.Default(x) => Result.Default(Some(x))
-            case Result.None       => Result.Default(None)
-          }
+          ef.get(f, k)(cm).toOption
         } else {
-          Result.Default(None)
+          Value.Default(None)
         }
 
       override def put(f: Features.Builder, k: String, v: Option[T])(
@@ -224,10 +196,10 @@ object ExampleField {
     ti: C[T] => Iterable[T],
     fc: FactoryCompat[T, C[T]]
   ): ExampleField[C[T]] = new ExampleField[C[T]] {
-    override def get(f: Features, k: String)(cm: CaseMapper): Result[C[T]] = {
+    override def get(f: Features, k: String)(cm: CaseMapper): Value[C[T]] = {
       val v = f.getFeatureOrDefault(k, null)
-      if (v == null) Result.Default(fc.build(Nil))
-      else Result.Feature(fc.build(ef.fromFeature(v).asScala))
+      if (v == null) Value.Default(fc.build(Nil))
+      else Value.Some(fc.build(ef.fromFeature(v).asScala))
     }
 
     override def put(f: Features.Builder, k: String, v: C[T])(cm: CaseMapper): Features.Builder =
