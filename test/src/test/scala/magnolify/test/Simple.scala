@@ -66,7 +66,7 @@ object Simple {
     }
   }
 
-  class ScalaAnnotation(val value: String) extends StaticAnnotation
+  class ScalaAnnotation(val value: String) extends StaticAnnotation with Serializable
 
   object Enums {
     implicit val arbScalaEnum: Arbitrary[ScalaEnums.Color.Type] =

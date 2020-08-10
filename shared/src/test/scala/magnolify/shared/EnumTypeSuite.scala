@@ -19,20 +19,26 @@ package magnolify.shared
 import magnolify.test._
 import magnolify.test.Simple._
 
-class EnumTypeSuite extends munit.FunSuite {
+class EnumTypeSuite extends MagnolifySuite {
   test("JavaEnums") {
-    val et = implicitly[EnumType[JavaEnums.Color]]
+    val et = ensureSerializable(implicitly[EnumType[JavaEnums.Color]])
     assertEquals(et.name, "Color")
     assertEquals(et.namespace, "magnolify.test.JavaEnums")
     assertEquals(et.from("RED"), JavaEnums.Color.RED)
     assertEquals(et.to(JavaEnums.Color.RED), "RED")
+    val ja = et.annotations.collect { case a: JavaAnnotation => a.value() }
+    assertEquals(ja, List("Java Annotation"))
   }
 
   test("ScalaEnums") {
-    val et = implicitly[EnumType[ScalaEnums.Color.Type]]
+    val et = ensureSerializable(implicitly[EnumType[ScalaEnums.Color.Type]])
     assertEquals(et.name, "Type")
     assertEquals(et.namespace, "magnolify.test.Simple.ScalaEnums.Color")
     assertEquals(et.from("Red"), ScalaEnums.Color.Red)
     assertEquals(et.to(ScalaEnums.Color.Red), "Red")
+    val ja = et.annotations.collect { case a: JavaAnnotation => a.value() }
+    val sa = et.annotations.collect { case a: ScalaAnnotation => a.value }
+    assertEquals(ja, List("Java Annotation"))
+    assertEquals(sa, List("Scala Annotation"))
   }
 }
