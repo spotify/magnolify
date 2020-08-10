@@ -136,6 +136,11 @@ class AvroTypeSuite extends MagnolifySuite {
     "More than one @doc annotation: magnolify.avro.test.DoubleFieldDoc#i"
   )
 
+  test("EnumDoc") {
+    val at = ensureSerializable(AvroType[EnumDoc])
+    assertEquals(at.schema.getField("p").schema().getDoc, "Avro enum")
+  }
+
   {
     implicit val at: AvroType[LowerCamel] = AvroType[LowerCamel](CaseMapper(_.toUpperCase))
     test[LowerCamel]
@@ -240,6 +245,13 @@ case class CustomDoc(
 @doc("doc2")
 case class DoubleRecordDoc(i: Int)
 case class DoubleFieldDoc(@doc("doc1") @doc("doc2") i: Int)
+
+@doc("Avro enum")
+object Pet extends Enumeration {
+  type Type = Value
+  val Cat, Dog = Value
+}
+case class EnumDoc(p: Pet.Type)
 
 case class Logical1(
   bd: BigDecimal,

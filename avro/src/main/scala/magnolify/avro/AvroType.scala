@@ -122,12 +122,12 @@ object AvroField {
           if (f == null) b else b.set(cm.map(p.label), f)
         }
         .build()
+  }
 
-    private def getDoc(annotations: Seq[Any], name: String): String = {
-      val docs = annotations.collect { case d: doc => d.toString }
-      require(docs.size <= 1, s"More than one @doc annotation: $name")
-      docs.headOption.orNull
-    }
+  private def getDoc(annotations: Seq[Any], name: String): String = {
+    val docs = annotations.collect { case d: doc => d.toString }
+    require(docs.size <= 1, s"More than one @doc annotation: $name")
+    docs.headOption.orNull
   }
 
   @implicitNotFound("Cannot derive AvroField for sealed trait")
@@ -190,8 +190,10 @@ object AvroField {
       override type FromT = GenericContainer
       override type ToT = EnumSymbol
 
-      override protected def schemaString(cm: CaseMapper): String =
-        Schema.createEnum(et.name, null, et.namespace, et.values.asJava).toString
+      override protected def schemaString(cm: CaseMapper): String = {
+        val doc = getDoc(et.annotations, s"Enum ${et.namespace}.${et.name}")
+        Schema.createEnum(et.name, doc, et.namespace, et.values.asJava).toString
+      }
 
       override def defaultVal: Any = null
       override def from(v: FromT)(cm: CaseMapper): T = et.from(v.toString)
