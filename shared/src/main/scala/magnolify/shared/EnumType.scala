@@ -16,53 +16,79 @@
  */
 package magnolify.shared
 
+import scala.language.experimental.macros
 import scala.reflect.ClassTag
-import scala.reflect.runtime.universe._
+import scala.reflect.macros._
 
 sealed trait EnumType[T] extends Serializable {
   val name: String
   val namespace: String
   val values: List[String]
+  val annotations: List[Any]
   def from(v: String): T
   def to(v: T): String
 }
 
 object EnumType {
-  // FIXME: support case mapper and annotations
-  implicit def javaEnumType[T <: Enum[T]](implicit ct: ClassTag[T]): EnumType[T] =
-    new EnumType[T] {
-      private val cls: Class[_] = ct.runtimeClass
-      private val map: Map[String, T] = cls
-        .getMethod("values")
-        .invoke(null)
-        .asInstanceOf[Array[T]]
-        .iterator
-        .map(v => v.name() -> v)
-        .toMap
+  // FIXME: support case mapper
+  def apply[T](
+    _name: String,
+    _namespace: String,
+    _values: List[String],
+    _annotations: List[Any],
+    f: String => T,
+    g: T => String
+  ): EnumType[T] = new EnumType[T] {
+    override val name: String = _name
+    override val namespace: String = _namespace
+    override val values: List[String] = _values
+    override val annotations: List[Any] = _annotations
+    override def from(v: String): T = f(v)
+    override def to(v: T): String = g(v)
+  }
 
-      override val name: String = cls.getSimpleName
-      override val namespace: String = cls.getCanonicalName.replaceFirst(s".$name$$", "")
-      override val values: List[String] = map.values.map(_.name()).toList
-      override def from(v: String): T = map(v)
-      override def to(v: T): String = v.name()
-    }
+  implicit def javaEnumType[T <: Enum[T]](implicit ct: ClassTag[T]): EnumType[T] = {
+    val cls: Class[_] = ct.runtimeClass
+    val n = cls.getSimpleName
+    val ns = cls.getCanonicalName.replaceFirst(s".$n$$", "")
+    val map: Map[String, T] = cls
+      .getMethod("values")
+      .invoke(null)
+      .asInstanceOf[Array[T]]
+      .iterator
+      .map(v => v.name() -> v)
+      .toMap
+    EnumType(n, ns, map.keys.toList, cls.getAnnotations.toList, map(_), _.name())
+  }
 
-  implicit def scalaEnumType[T <: Enumeration#Value](implicit tt: TypeTag[T]): EnumType[T] = {
-    val ref = tt.tpe.asInstanceOf[TypeRef]
+  implicit def scalaEnumType[T <: Enumeration#Value]: EnumType[T] = macro scalaEnumTypeImpl[T]
+
+  def scalaEnumTypeImpl[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
+    import c.universe._
+    val wtt = weakTypeTag[T]
+    val ref = wtt.tpe.asInstanceOf[TypeRef]
     val n = ref.sym.name.toString // `type $Name = Value`
     val ns = ref.pre.typeSymbol.asClass.fullName // `object Namespace extends Enumeration`
-    val enum = runtimeMirror(getClass.getClassLoader)
-      .runtimeClass(ref.pre)
-      .getField("MODULE$")
-      .get(null)
-      .asInstanceOf[Enumeration]
+    val map = q"${ref.pre.termSymbol}.values.map(x => x.toString -> x).toMap"
 
-    new EnumType[T] {
-      override val name: String = n
-      override val namespace: String = ns
-      override val values: List[String] = enum.values.map(_.toString).toList
-      override def from(v: String): T = enum.withName(v).asInstanceOf[T]
-      override def to(v: T): String = v.toString
+    // Scala 2.12 & 2.13 macros seem to handle annotations differently
+    // Scala annotation works in both but Java annotations only works in 2.13
+    val saType = typeOf[scala.annotation.StaticAnnotation]
+    val jaType = typeOf[java.lang.annotation.Annotation]
+    val trees = ref.pre.typeSymbol.annotations.collect {
+      case t if t.tree.tpe <:< saType && !(t.tree.tpe <:< jaType) =>
+        // FIXME `t.tree` should work but somehow crashes the compiler
+        val q"new $n(..$args)" = t.tree
+        q"new $n(..$args)"
     }
+
+    // Get Java annotations via reflection
+    val j = q"classOf[${ref.pre.typeSymbol.asClass}].getAnnotations.toList"
+    val annotations = q"_root_.scala.List(..$trees) ++ $j"
+
+    q"""
+        _root_.magnolify.shared.EnumType[$wtt](
+          $n, $ns, $map.keys.toList, $annotations, $map.apply(_), _.toString)
+     """
   }
 }
