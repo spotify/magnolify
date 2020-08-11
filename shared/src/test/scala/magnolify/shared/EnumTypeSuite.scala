@@ -41,4 +41,18 @@ class EnumTypeSuite extends MagnolifySuite {
     assertEquals(ja, List("Java Annotation"))
     assertEquals(sa, List("Scala Annotation"))
   }
+
+  test("JavaEnums CaseMapper") {
+    val et = ensureSerializable(EnumType[JavaEnums.Color].map(CaseMapper(_.toLowerCase)))
+    assertEquals(et.values.toSet, JavaEnums.Color.values().map(_.name().toLowerCase).toSet)
+    assertEquals(et.from("red"), JavaEnums.Color.RED)
+    assertEquals(et.to(JavaEnums.Color.RED), "red")
+  }
+
+  test("ScalaEnums CaseMapper") {
+    val et = ensureSerializable(EnumType[ScalaEnums.Color.Type].map(CaseMapper(_.toLowerCase)))
+    assertEquals(et.values.toSet, ScalaEnums.Color.values.map(_.toString.toLowerCase).toSet)
+    assertEquals(et.from("red"), ScalaEnums.Color.Red)
+    assertEquals(et.to(ScalaEnums.Color.Red), "red")
+  }
 }
