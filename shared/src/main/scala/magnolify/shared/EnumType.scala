@@ -20,18 +20,25 @@ import scala.language.experimental.macros
 import scala.reflect.ClassTag
 import scala.reflect.macros._
 
-sealed trait EnumType[T] extends Serializable {
+sealed trait EnumType[T] extends Serializable { self =>
   val name: String
   val namespace: String
   val values: List[String]
   val annotations: List[Any]
   def from(v: String): T
   def to(v: T): String
+
+  def map(cm: CaseMapper): EnumType[T] = {
+    val m1 = values.map(v => cm.map(v) -> self.from(v)).toMap
+    val m2 = values.map(v => self.from(v) -> cm.map(v)).toMap
+    EnumType.create(name, namespace, values.map(cm.map), annotations, m1(_), m2(_))
+  }
 }
 
 object EnumType {
-  // FIXME: support case mapper
-  def apply[T](
+  def apply[T](implicit et: EnumType[T]): EnumType[T] = et
+
+  def create[T](
     _name: String,
     _namespace: String,
     _values: List[String],
@@ -58,7 +65,7 @@ object EnumType {
       .iterator
       .map(v => v.name() -> v)
       .toMap
-    EnumType(n, ns, map.keys.toList, cls.getAnnotations.toList, map(_), _.name())
+    EnumType.create(n, ns, map.keys.toList, cls.getAnnotations.toList, map(_), _.name())
   }
 
   implicit def scalaEnumType[T <: Enumeration#Value]: EnumType[T] = macro scalaEnumTypeImpl[T]
@@ -87,7 +94,7 @@ object EnumType {
     val annotations = q"_root_.scala.List(..$trees) ++ $j"
 
     q"""
-        _root_.magnolify.shared.EnumType[$wtt](
+        _root_.magnolify.shared.EnumType.create[$wtt](
           $n, $ns, $map.keys.toList, $annotations, $map.apply(_), _.toString)
      """
   }
