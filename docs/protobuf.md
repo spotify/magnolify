@@ -36,3 +36,22 @@ val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_HYPHEN).co
 val protobufType = ProtobufType[LowerCamel, LowerHyphenProto](CaseMapper(toSnakeCase))
 protobufType.to(LowerCamel("John", "Doe"))
 ```
+
+Java `enum` and Scala `Enumeration` types map to Protobuf enums. They support `CaseMapper` too.
+
+```scala
+object Color extends Enumeration {
+  type Type = Value
+  val Red, Green, Blue = Value
+}
+
+// Protobuf
+// enum ColorProto {
+//   RED = 0;
+//   GREEN = 1;
+//   BLUE = 2;
+// }
+import magnolify.shared._
+implicit val enumType = EnumType[Color.Type].map(CaseMapper(_.toUpperCase))
+implicit val efEnum = ProtobufField.enum[Color.Type, ColorProto]
+```
