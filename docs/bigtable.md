@@ -35,3 +35,16 @@ val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_HYPHEN).co
 val bigtableType = BigtableType[LowerCamel](CaseMapper(toSnakeCase))
 bigtableType(LowerCamel("John", "Doe"), "cf")
 ```
+
+Java `enum` and Scala `Enumeration` types are encoded as strings and support `CaseMapper` too.
+
+```scala
+object Color extends Enumeration {
+  type Type = Value
+  val Red, Green, Blue = Value
+}
+
+import magnolify.shared._
+// Encode as ["red", "green", "blue"]
+implicit val enumType = EnumType[Color.Type].map(CaseMapper(_.toLowerCase))
+```

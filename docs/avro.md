@@ -53,3 +53,16 @@ val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_HYPHEN).co
 val avroType = AvroType[LowerCamel](CaseMapper(toSnakeCase))
 avroType.to(LowerCamel("John", "Doe"))
 ```
+Java `enum` and Scala `Enumeration` types map to Avro enums. They support `@doc` annotations and `CaseMapper` too.
+
+```scala
+@doc("Colors")
+object Color extends Enumeration {
+  type Type = Value
+  val Red, Green, Blue = Value
+}
+
+import magnolify.shared._
+// Encode as ["red", "green", "blue"]
+implicit val enumType = EnumType[Color.Type].map(CaseMapper(_.toLowerCase))
+```
