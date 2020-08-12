@@ -66,3 +66,13 @@ import magnolify.shared._
 // Encode as ["red", "green", "blue"]
 implicit val enumType = EnumType[Color.Type].map(CaseMapper(_.toLowerCase))
 ```
+
+Avro `decimal` and `uuid` logical type maps to `BigDecimal` and `java.util.UUID`. Additionally `decimal` requires `precision` and optional `scale` parameter.
+
+```scala
+implicit val afBigDecimal = AvroField.bigDecimal(20, 4)
+```
+
+Among the date/time types, `date` maps to `java.time.LocalDate`. The other types, `timestamp`, `time` and `local-timestamp`, map to `Instant`, `LocalTime` and `LocalDateTime` in either micro or milliseconds precision with `import magnolify.avro.logical.micros._` or `import magnolify.avro.logical.micros._`.
+
+Map logical types to BigQuery compatible Avro with `import magnolify.avro.logical.bigquery._`.
