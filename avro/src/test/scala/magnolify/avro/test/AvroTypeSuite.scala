@@ -136,6 +136,52 @@ class AvroTypeSuite extends MagnolifySuite {
     "More than one @doc annotation: magnolify.avro.test.DoubleFieldDoc#i"
   )
 
+  test("DefaultInner") {
+    import magnolify.avro.logical.bigquery._
+    val at = ensureSerializable(AvroType[DefaultInner])
+    assertEquals(at(new GenericRecordBuilder(at.schema).build()), DefaultInner())
+    val inner = DefaultInner(
+      2,
+      Some(2),
+      List(2, 2),
+      Map("b" -> 2),
+      JavaEnums.Color.GREEN,
+      ScalaEnums.Color.Green,
+      BigDecimal(222.222),
+      UUID.fromString("22223333-abcd-abcd-abcd-222233334444"),
+      Instant.ofEpochSecond(22334455L),
+      LocalDate.ofEpochDay(2233),
+      LocalTime.of(2, 3, 4),
+      LocalDateTime.of(2002, 3, 4, 5, 6, 7)
+    )
+    assertEquals(at(at(inner)), inner)
+  }
+
+  test("DefaultOuter") {
+    import magnolify.avro.logical.bigquery._
+    val at = ensureSerializable(AvroType[DefaultOuter])
+    assertEquals(at(new GenericRecordBuilder(at.schema).build()), DefaultOuter())
+    val inner = DefaultInner(
+      3,
+      Some(3),
+      List(3, 3),
+      Map("c" -> 3),
+      JavaEnums.Color.BLUE,
+      ScalaEnums.Color.Blue,
+      BigDecimal(333.333),
+      UUID.fromString("33334444-abcd-abcd-abcd-333344445555"),
+      Instant.ofEpochSecond(33445566L),
+      LocalDate.ofEpochDay(3344),
+      LocalTime.of(3, 4, 5),
+      LocalDateTime.of(2003, 4, 5, 6, 7, 8)
+    )
+    val outer = DefaultOuter(inner, Some(inner))
+    assertEquals(at(at(outer)), outer)
+  }
+  testFail(AvroType[SomeDefault])(
+    "Option[T] can only default to None"
+  )
+
   test("EnumDoc") {
     val at = ensureSerializable(AvroType[EnumDoc])
     assertEquals(at.schema.getField("p").schema().getDoc, "Avro enum")
@@ -245,6 +291,39 @@ case class CustomDoc(
 @doc("doc2")
 case class DoubleRecordDoc(i: Int)
 case class DoubleFieldDoc(@doc("doc1") @doc("doc2") i: Int)
+
+case class DefaultInner(
+  i: Int = 1,
+  o: Option[Int] = None,
+  l: List[Int] = List(1, 1),
+  m: Map[String, Int] = Map("a" -> 1),
+  je: JavaEnums.Color = JavaEnums.Color.RED,
+  se: ScalaEnums.Color.Type = ScalaEnums.Color.Red,
+  bd: BigDecimal = BigDecimal(111.111),
+  u: UUID = UUID.fromString("11112222-abcd-abcd-abcd-111122223333"),
+  ts: Instant = Instant.ofEpochSecond(11223344),
+  d: LocalDate = LocalDate.ofEpochDay(1122),
+  t: LocalTime = LocalTime.of(1, 2, 3),
+  dt: LocalDateTime = LocalDateTime.of(2001, 2, 3, 4, 5, 6)
+)
+case class DefaultOuter(
+  i: DefaultInner = DefaultInner(
+    2,
+    None,
+    List(2, 2),
+    Map("b" -> 2),
+    JavaEnums.Color.GREEN,
+    ScalaEnums.Color.Green,
+    BigDecimal(222.222),
+    UUID.fromString("22223333-abcd-abcd-abcd-222233334444"),
+    Instant.ofEpochSecond(22334455L),
+    LocalDate.ofEpochDay(2233),
+    LocalTime.of(2, 3, 4),
+    LocalDateTime.of(2002, 3, 4, 5, 6, 7)
+  ),
+  o: Option[DefaultInner] = None
+)
+case class SomeDefault(o: Option[Int] = Some(1))
 
 @doc("Avro enum")
 object Pet extends Enumeration {
