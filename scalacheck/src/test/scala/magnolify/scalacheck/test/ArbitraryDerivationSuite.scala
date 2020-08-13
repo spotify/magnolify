@@ -35,8 +35,7 @@ class ArbitraryDerivationSuite extends MagnolifySuite {
     val prms = Gen.Parameters.default
     // `forAll(Gen.listOfN(10, g))` fails for `Repeated` & `Collections` when size parameter <= 1
     property(s"$name.uniqueness") {
-      Prop.forAll { l: Long =>
-        val seed = Seed(l) // prevent Magnolia from deriving `Seed`
+      Prop.forAll { seed: Seed =>
         val xs = Gen.listOfN(10, g)(prms, seed).get
         xs.iterator.map(f).toSet.size > 1
       }
@@ -91,4 +90,10 @@ class ArbitraryDerivationSuite extends MagnolifySuite {
 
   test[Shape]
   test[Color]
+
+  property("Seed") {
+    Prop.forAll { seed: Seed =>
+      seed.next != seed
+    }
+  }
 }

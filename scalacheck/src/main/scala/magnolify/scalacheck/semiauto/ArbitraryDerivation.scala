@@ -18,6 +18,7 @@ package magnolify.scalacheck.semiauto
 
 import magnolia._
 import magnolify.shims.Monadic
+import org.scalacheck.rng.Seed
 import org.scalacheck.{Arbitrary, Gen}
 
 import scala.language.experimental.macros
@@ -36,14 +37,20 @@ object ArbitraryDerivation {
   }
 
   def dispatch[T: Fallback](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = Arbitrary {
-    Gen.sized { size =>
-      if (size > 0) {
-        Gen.resize(
-          size - 1,
-          Gen.oneOf(sealedTrait.subtypes.map(_.typeclass.arbitrary)).flatMap(identity)
-        )
-      } else {
-        implicitly[Fallback[T]].get
+    if (sealedTrait.typeName.full == classOf[Seed].getCanonicalName) {
+      // Prevent derivation of invalid seed via `Seed.apply(0, 0, 0, 0)`
+      // https://github.com/typelevel/scalacheck/pull/674
+      Arbitrary.arbLong.arbitrary.map(Seed(_)).asInstanceOf[Gen[T]]
+    } else {
+      Gen.sized { size =>
+        if (size > 0) {
+          Gen.resize(
+            size - 1,
+            Gen.oneOf(sealedTrait.subtypes.map(_.typeclass.arbitrary)).flatMap(identity)
+          )
+        } else {
+          implicitly[Fallback[T]].get
+        }
       }
     }
   }
