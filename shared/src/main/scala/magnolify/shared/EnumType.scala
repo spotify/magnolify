@@ -37,6 +37,7 @@ sealed trait EnumType[T] extends Serializable { self =>
 
 object EnumType {
   def apply[T](implicit et: EnumType[T]): EnumType[T] = et
+  def apply[T](cm: CaseMapper)(implicit et: EnumType[T]): EnumType[T] = et.map(cm)
 
   def create[T](
     _name: String,

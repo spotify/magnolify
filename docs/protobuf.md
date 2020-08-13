@@ -52,6 +52,6 @@ object Color extends Enumeration {
 //   BLUE = 2;
 // }
 import magnolify.shared._
-implicit val enumType = EnumType[Color.Type].map(CaseMapper(_.toUpperCase))
+implicit val enumType = EnumType[Color.Type](CaseMapper(_.toUpperCase))
 implicit val efEnum = ProtobufField.enum[Color.Type, ColorProto]
 ```

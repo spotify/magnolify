@@ -46,5 +46,5 @@ object Color extends Enumeration {
 
 import magnolify.shared._
 // Encode as ["red", "green", "blue"]
-implicit val enumType = EnumType[Color.Type].map(CaseMapper(_.toLowerCase))
+implicit val enumType = EnumType[Color.Type](CaseMapper(_.toLowerCase))
 ```
