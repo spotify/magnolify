@@ -69,14 +69,15 @@ object ProtobufType {
     po: ProtobufOption
   ): ProtobufType[T, MsgT] =
     new ProtobufType[T, MsgT] {
-      if (f.hasOptional) {
-        val syntax = ct.runtimeClass
+      {
+        val descriptor = ct.runtimeClass
           .getMethod("getDescriptor")
           .invoke(null)
           .asInstanceOf[Descriptor]
-          .getFile
-          .getSyntax
-        po.check(f, syntax)
+        if (f.hasOptional) {
+          po.check(f, descriptor.getFile.getSyntax)
+        }
+        f.checkDefaults(descriptor)(cm)
       }
 
       @transient private var _newBuilder: Method = _
@@ -98,6 +99,8 @@ sealed trait ProtobufField[T] extends Serializable {
   type ToT
 
   val hasOptional: Boolean
+  val default: Option[T]
+  def checkDefaults(descriptor: Descriptor)(cm: CaseMapper): Unit = ()
 
   def from(v: FromT)(cm: CaseMapper): T
   def to(v: T, b: Message.Builder)(cm: CaseMapper): ToT
@@ -119,8 +122,9 @@ object ProtobufField {
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
     // One Record[T] instance may be used for multiple Message types
-    private val fieldsCache: concurrent.Map[String, Array[FieldDescriptor]] =
+    @transient private lazy val fieldsCache: concurrent.Map[String, Array[FieldDescriptor]] =
       concurrent.TrieMap.empty
+
     private def getFields(descriptor: Descriptor)(cm: CaseMapper): Array[FieldDescriptor] =
       fieldsCache.getOrElseUpdate(
         descriptor.getFullName, {
@@ -133,6 +137,28 @@ object ProtobufField {
       )
 
     override val hasOptional: Boolean = caseClass.parameters.exists(_.typeclass.hasOptional)
+    override val default: Option[T] = None
+    override def checkDefaults(descriptor: Descriptor)(cm: CaseMapper): Unit = {
+      val syntax = descriptor.getFile.getSyntax
+      val fields = getFields(descriptor)(cm)
+      caseClass.parameters.foreach { p =>
+        val field = fields(p.index)
+        val protoDefault = if (syntax == Syntax.PROTO2 && field.hasDefaultValue) {
+          Some(p.typeclass.fromAny(field.getDefaultValue)(cm))
+        } else {
+          p.typeclass.default
+        }
+        p.default.foreach { d =>
+          require(
+            protoDefault.contains(d),
+            s"Default mismatch ${caseClass.typeName.full}#${p.label}: $d != ${protoDefault.orNull}"
+          )
+        }
+        if (field.getType == FieldDescriptor.Type.MESSAGE) {
+          p.typeclass.checkDefaults(field.getMessageType)(cm)
+        }
+      }
+    }
 
     override def from(v: Message)(cm: CaseMapper): T = {
       val descriptor = v.getDescriptorForType
@@ -186,31 +212,34 @@ object ProtobufField {
     def apply[U](f: T => U)(g: U => T)(implicit pf: ProtobufField[T]): ProtobufField[U] =
       new Aux[U, pf.FromT, pf.ToT] {
         override val hasOptional: Boolean = pf.hasOptional
+        override val default: Option[U] = pf.default.map(f)
         override def from(v: FromT)(cm: CaseMapper): U = f(pf.from(v)(cm))
         override def to(v: U, b: Message.Builder)(cm: CaseMapper): ToT = pf.to(g(v), null)(cm)
       }
   }
 
-  private def aux[T, From, To](f: From => T)(g: T => To): ProtobufField[T] =
+  private def aux[T, From, To](_default: T)(f: From => T)(g: T => To): ProtobufField[T] =
     new Aux[T, From, To] {
       override val hasOptional: Boolean = false
+      override val default: Option[T] = Some(_default)
       override def from(v: FromT)(cm: CaseMapper): T = f(v)
       override def to(v: T, b: Message.Builder)(cm: CaseMapper): ToT = g(v)
     }
 
-  private def aux2[T, Repr](f: Repr => T)(g: T => Repr): ProtobufField[T] =
-    aux[T, Repr, Repr](f)(g)
+  private def aux2[T, Repr](_default: T)(f: Repr => T)(g: T => Repr): ProtobufField[T] =
+    aux[T, Repr, Repr](_default)(f)(g)
 
-  private def id[T]: ProtobufField[T] = aux[T, T, T](identity)(identity)
+  private def id[T](_default: T): ProtobufField[T] = aux[T, T, T](_default)(identity)(identity)
 
-  implicit val pfBoolean = id[Boolean]
-  implicit val pfInt = id[Int]
-  implicit val pfLong = id[Long]
-  implicit val pfFloat = id[Float]
-  implicit val pfDouble = id[Double]
-  implicit val pfString = id[String]
-  implicit val pfByteString = id[ByteString]
-  implicit val pfByteArray = aux2[Array[Byte], ByteString](_.toByteArray)(ByteString.copyFrom)
+  implicit val pfBoolean = id[Boolean](false)
+  implicit val pfInt = id[Int](0)
+  implicit val pfLong = id[Long](0L)
+  implicit val pfFloat = id[Float](0.0f)
+  implicit val pfDouble = id[Double](0.0)
+  implicit val pfString = id[String]("")
+  implicit val pfByteString = id[ByteString](ByteString.EMPTY)
+  implicit val pfByteArray =
+    aux2[Array[Byte], ByteString](Array.emptyByteArray)(_.toByteArray)(ByteString.copyFrom)
 
   def enum[T, E <: Enum[E] with ProtocolMessageEnum](implicit
     et: EnumType[T],
@@ -222,12 +251,19 @@ object ProtobufField {
       .asInstanceOf[Array[E]]
       .map(e => e.name() -> e)
       .toMap
-    aux2[T, EnumValueDescriptor](e => et.from(e.getName))(e => map(et.to(e)).getValueDescriptor)
+    val default = et.from(map.find(_._2.getNumber == 0).get._1)
+    aux2[T, EnumValueDescriptor](default)(e => et.from(e.getName))(e =>
+      map(et.to(e)).getValueDescriptor
+    )
   }
 
   implicit def pfOption[T](implicit f: ProtobufField[T]): ProtobufField[Option[T]] =
     new Aux[Option[T], f.FromT, f.ToT] {
       override val hasOptional: Boolean = true
+      override val default: Option[Option[T]] = f.default match {
+        case Some(v) => Some(Some(v))
+        case None    => None
+      }
       override def from(v: f.FromT)(cm: CaseMapper): Option[T] =
         if (v == null) None else Some(f.from(v)(cm))
       override def to(v: Option[T], b: Message.Builder)(cm: CaseMapper): f.ToT = v match {
@@ -243,6 +279,7 @@ object ProtobufField {
   ): ProtobufField[C[T]] =
     new Aux[C[T], ju.List[f.FromT], ju.List[f.ToT]] {
       override val hasOptional: Boolean = false
+      override val default: Option[C[T]] = Some(fc.build(Nil))
       override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] =
         if (v == null) {
           fc.newBuilder.result()

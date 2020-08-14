@@ -76,3 +76,27 @@ message CustomP2 {
 message BytesP2 {
     required bytes b = 1;
 }
+
+message DefaultRequiredP2 {
+    required int32 i = 1 [default = 123];
+    required int64 l = 2 [default = 456];
+    required float f = 3 [default = 1.23];
+    required double d = 4 [default = 4.56];
+    required bool b = 5 [default = true];
+    required string s = 6 [default = "abc"];
+    required bytes bs = 7 [default = "def"];
+    required EnumsP2.JavaEnums je = 8 [default = GREEN];
+    required EnumsP2.ScalaEnums se = 9 [default = Green];
+}
+
+message DefaultNullableP2 {
+    optional int32 i = 1 [default = 123];
+    optional int64 l = 2 [default = 456];
+    optional float f = 3 [default = 1.23];
+    optional double d = 4 [default = 4.56];
+    optional bool b = 5 [default = true];
+    optional string s = 6 [default = "abc"];
+    optional bytes bs = 7 [default = "def"];
+    optional EnumsP2.JavaEnums je = 8 [default = GREEN];
+    optional EnumsP2.ScalaEnums se = 9 [default = Green];
+}
