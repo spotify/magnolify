@@ -42,6 +42,17 @@ class EnumTypeSuite extends MagnolifySuite {
     assertEquals(sa, List("Scala Annotation"))
   }
 
+  test("ADT") {
+    val et = ensureSerializable(implicitly[EnumType[ADT.Color]])
+    assertEquals(et.name, "Color")
+    assertEquals(et.namespace, "magnolify.test.ADT")
+    assertEquals(et.from("Red"), ADT.Red)
+    assertEquals(et.to(ADT.Red), "Red")
+    // Magnolia does not capture Java annotations
+    val as = et.annotations.collect { case a: ScalaAnnotation => a.value }
+    assertEquals(as, List("Color", "Red"))
+  }
+
   test("JavaEnums CaseMapper") {
     val et = ensureSerializable(EnumType[JavaEnums.Color](CaseMapper(_.toLowerCase)))
     assertEquals(et.values.toSet, JavaEnums.Color.values().map(_.name().toLowerCase).toSet)
@@ -51,8 +62,15 @@ class EnumTypeSuite extends MagnolifySuite {
 
   test("ScalaEnums CaseMapper") {
     val et = ensureSerializable(EnumType[ScalaEnums.Color.Type](CaseMapper(_.toLowerCase)))
-    assertEquals(et.values.toSet, ScalaEnums.Color.values.map(_.toString.toLowerCase).toSet)
+    assertEquals(et.values.toSet, ScalaEnums.Color.values.map(_.toString.toLowerCase))
     assertEquals(et.from("red"), ScalaEnums.Color.Red)
     assertEquals(et.to(ScalaEnums.Color.Red), "red")
+  }
+
+  test("ADT CaseMapper") {
+    val et = ensureSerializable(EnumType[ADT.Color](CaseMapper(_.toLowerCase)))
+    assertEquals(et.values.toSet, Set("red", "green", "blue"))
+    assertEquals(et.from("red"), ADT.Red)
+    assertEquals(et.to(ADT.Red), "red")
   }
 }

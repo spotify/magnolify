@@ -58,7 +58,8 @@ message EnumsP3 {
         Blue = 2;
     }
     JavaEnums j = 1;
-    ScalaEnums s = 2;
+    ScalaEnums s = 2; // Enumeration
+    ScalaEnums a = 3; // ADT
 }
 
 message CustomP3 {

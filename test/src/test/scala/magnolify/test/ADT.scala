@@ -16,6 +16,8 @@
  */
 package magnolify.test
 
+import magnolify.test.Simple.ScalaAnnotation
+
 object ADT {
   sealed trait Node
   case class Leaf(value: Int) extends Node
@@ -30,7 +32,9 @@ object ADT {
   case class Point(x: Int, y: Int) extends Shape
   case class Circle(r: Int) extends Shape
 
+  @ScalaAnnotation("Color")
   sealed trait Color
+  @ScalaAnnotation("Red")
   case object Red extends Color
   case object Green extends Color
   case object Blue extends Color

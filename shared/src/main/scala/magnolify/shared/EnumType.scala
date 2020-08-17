@@ -16,6 +16,8 @@
  */
 package magnolify.shared
 
+import magnolia._
+
 import scala.language.experimental.macros
 import scala.reflect.ClassTag
 import scala.reflect.macros._
@@ -55,6 +57,9 @@ object EnumType {
     override def to(v: T): String = g(v)
   }
 
+  //////////////////////////////////////////////////
+
+  // Java `enum`
   implicit def javaEnumType[T <: Enum[T]](implicit ct: ClassTag[T]): EnumType[T] = {
     val cls: Class[_] = ct.runtimeClass
     val n = cls.getSimpleName
@@ -69,6 +74,9 @@ object EnumType {
     EnumType.create(n, ns, map.keys.toList, cls.getAnnotations.toList, map(_), _.name())
   }
 
+  //////////////////////////////////////////////////
+
+  // Scala `Enumeration`
   implicit def scalaEnumType[T <: Enumeration#Value]: EnumType[T] = macro scalaEnumTypeImpl[T]
 
   def scalaEnumTypeImpl[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
@@ -98,5 +106,43 @@ object EnumType {
         _root_.magnolify.shared.EnumType.create[$wtt](
           $n, $ns, $map.keys.toList, $annotations, $map.apply(_), _.toString)
      """
+  }
+
+  //////////////////////////////////////////////////
+
+  // Scala ADT
+  implicit def gen[T]: Typeclass[T] = macro Magnolia.gen[T]
+
+  type Typeclass[T] = EnumType[T]
+
+  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+    require(caseClass.isObject, s"Cannot derive EnumType[T] for case class ${caseClass.typeName}")
+    val n = caseClass.typeName.short
+    val ns = caseClass.typeName.owner
+    EnumType.create(
+      n,
+      ns,
+      List(n),
+      caseClass.annotations.toList,
+      _ => caseClass.rawConstruct(Nil),
+      _ => n
+    )
+  }
+
+  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = {
+    val n = sealedTrait.typeName.short
+    val ns = sealedTrait.typeName.owner
+    val subs = sealedTrait.subtypes.map(_.typeclass)
+    val values = subs.flatMap(_.values).toList
+    val m = subs.map(s => s.name -> s.from(s.name)).toMap
+    val annotations = (sealedTrait.annotations ++ subs.flatMap(_.annotations)).toList
+    EnumType.create(
+      n,
+      ns,
+      values,
+      annotations,
+      m(_),
+      t => sealedTrait.dispatch(t)(_.typeclass.name)
+    )
   }
 }

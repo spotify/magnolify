@@ -65,7 +65,8 @@ message EnumsP2 {
         Blue = 2;
     }
     required JavaEnums j = 1;
-    required ScalaEnums s = 2;
+    required ScalaEnums s = 2; // Enumeration
+    required ScalaEnums a = 3; // ADT
 }
 
 message CustomP2 {
@@ -86,7 +87,8 @@ message DefaultRequiredP2 {
     required string s = 6 [default = "abc"];
     required bytes bs = 7 [default = "def"];
     required EnumsP2.JavaEnums je = 8 [default = GREEN];
-    required EnumsP2.ScalaEnums se = 9 [default = Green];
+    required EnumsP2.ScalaEnums se = 9 [default = Green]; // Enumeration
+    required EnumsP2.ScalaEnums ae = 10 [default = Green]; // ADT
 }
 
 message DefaultNullableP2 {
@@ -98,5 +100,6 @@ message DefaultNullableP2 {
     optional string s = 6 [default = "abc"];
     optional bytes bs = 7 [default = "def"];
     optional EnumsP2.JavaEnums je = 8 [default = GREEN];
-    optional EnumsP2.ScalaEnums se = 9 [default = Green];
+    optional EnumsP2.ScalaEnums se = 9 [default = Green]; // Enumeration
+    optional EnumsP2.ScalaEnums ae = 10 [default = Green]; // ADT
 }

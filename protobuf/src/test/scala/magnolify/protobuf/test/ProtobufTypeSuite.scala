@@ -26,7 +26,7 @@ import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.protobuf._
 import magnolify.protobuf.unsafe._
-import magnolify.shared.{CaseMapper, EnumType}
+import magnolify.shared.CaseMapper
 import magnolify.shims.JavaConverters._
 import magnolify.test.Proto2._
 import magnolify.test.Proto3._
@@ -107,15 +107,13 @@ class ProtobufTypeSuite extends MagnolifySuite {
 
   {
     import Enums._
-    implicit val efJavaEnum2 = ProtobufField.enum[JavaEnums.Color, EnumsP2.JavaEnums]
-    implicit val efScalaEnum2 = ProtobufField.enum[ScalaEnums.Color.Type, EnumsP2.ScalaEnums]
+    import Proto2Enums._
     test[Enums, EnumsP2]
   }
 
   {
     import Enums._
-    implicit val efJavaEnum3 = ProtobufField.enum[JavaEnums.Color, EnumsP3.JavaEnums]
-    implicit val efScalaEnum3 = ProtobufField.enum[ScalaEnums.Color.Type, EnumsP3.ScalaEnums]
+    import Proto3Enums._
     test[Enums, EnumsP3]
   }
 
@@ -139,15 +137,20 @@ class ProtobufTypeSuite extends MagnolifySuite {
       Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
     implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
     import Enums._
-    implicit val efJavaEnum2 = ProtobufField.enum[JavaEnums.Color, EnumsP2.JavaEnums]
-    implicit val efScalaEnum2 = ProtobufField.enum[ScalaEnums.Color.Type, EnumsP2.ScalaEnums]
-    test[DefaultsRequired2, DefaultRequiredP2]
-    test[DefaultsNullable2, DefaultNullableP2]
 
-    test[DefaultIntegers3, IntegersP3]
-    test[DefaultFloats3, FloatsP3]
-    test[DefaultRequired3, SingularP3]
-    test[DefaultEnums3, EnumsP3]
+    {
+      import Proto2Enums._
+      test[DefaultsRequired2, DefaultRequiredP2]
+      test[DefaultsNullable2, DefaultNullableP2]
+    }
+
+    {
+      import Proto3Enums._
+      test[DefaultIntegers3, IntegersP3]
+      test[DefaultFloats3, FloatsP3]
+      test[DefaultRequired3, SingularP3]
+      test[DefaultEnums3, EnumsP3]
+    }
   }
 
   {
@@ -162,8 +165,7 @@ class ProtobufTypeSuite extends MagnolifySuite {
 
   {
     import Enums._
-    implicit val efJavaEnum2 = ProtobufField.enum[JavaEnums.Color, EnumsP2.JavaEnums]
-    implicit val efScalaEnum2 = ProtobufField.enum[ScalaEnums.Color.Type, EnumsP2.ScalaEnums]
+    import Proto2Enums._
     type F[T] = ProtobufType[T, _]
     testFail[F, DefaultMismatch2](ProtobufType[DefaultMismatch2, DefaultRequiredP2])(
       "Default mismatch magnolify.protobuf.test.DefaultMismatch2#i: 321 != 123"
@@ -172,6 +174,26 @@ class ProtobufTypeSuite extends MagnolifySuite {
       "Default mismatch magnolify.protobuf.test.DefaultMismatch3#i: 321 != 0"
     )
   }
+}
+
+object Proto2Enums {
+  // FIXME: for some reasons these implicits fail to resolve without explicit types
+  implicit val efJavaEnum2: ProtobufField[JavaEnums.Color] =
+    ProtobufField.enum[JavaEnums.Color, EnumsP2.JavaEnums]
+  implicit val efScalaEnum2: ProtobufField[ScalaEnums.Color.Type] =
+    ProtobufField.enum[ScalaEnums.Color.Type, EnumsP2.ScalaEnums]
+  implicit val efAdtEnum2: ProtobufField[ADT.Color] =
+    ProtobufField.enum[ADT.Color, EnumsP2.ScalaEnums]
+}
+
+object Proto3Enums {
+  // FIXME: for some reasons these implicits fail to resolve without explicit types
+  implicit val efJavaEnum3: ProtobufField[JavaEnums.Color] =
+    ProtobufField.enum[JavaEnums.Color, EnumsP3.JavaEnums]
+  implicit val efScalaEnum3: ProtobufField[ScalaEnums.Color.Type] =
+    ProtobufField.enum[ScalaEnums.Color.Type, EnumsP3.ScalaEnums]
+  implicit val efAdtEnum3: ProtobufField[ADT.Color] =
+    ProtobufField.enum[ADT.Color, EnumsP3.ScalaEnums]
 }
 
 case class UnsafeByte(i: Byte, l: Long)
@@ -196,7 +218,8 @@ case class DefaultsRequired2(
   s: String = "abc",
   bs: ByteString = ByteString.copyFromUtf8("def"),
   je: JavaEnums.Color = JavaEnums.Color.GREEN,
-  se: ScalaEnums.Color.Type = ScalaEnums.Color.Green
+  se: ScalaEnums.Color.Type = ScalaEnums.Color.Green,
+  ae: ADT.Color = ADT.Green
 )
 
 case class DefaultsNullable2(
@@ -208,7 +231,8 @@ case class DefaultsNullable2(
   s: Option[String] = Some("abc"),
   bs: Option[ByteString] = Some(ByteString.copyFromUtf8("def")),
   je: Option[JavaEnums.Color] = Some(JavaEnums.Color.GREEN),
-  se: Option[ScalaEnums.Color.Type] = Some(ScalaEnums.Color.Green)
+  se: Option[ScalaEnums.Color.Type] = Some(ScalaEnums.Color.Green),
+  ae: Option[ADT.Color] = Some(ADT.Green)
 )
 
 case class DefaultIntegers3(i: Int = 0, l: Long = 0)
@@ -221,7 +245,8 @@ case class DefaultNullable3(
 )
 case class DefaultEnums3(
   j: JavaEnums.Color = JavaEnums.Color.RED,
-  s: ScalaEnums.Color.Type = ScalaEnums.Color.Red
+  s: ScalaEnums.Color.Type = ScalaEnums.Color.Red,
+  a: ADT.Color = ADT.Red
 )
 
 case class DefaultMismatch2(
@@ -233,6 +258,7 @@ case class DefaultMismatch2(
   s: String = "abc",
   bs: ByteString = ByteString.copyFromUtf8("def"),
   je: JavaEnums.Color = JavaEnums.Color.GREEN,
-  se: ScalaEnums.Color.Type = ScalaEnums.Color.Green
+  se: ScalaEnums.Color.Type = ScalaEnums.Color.Green,
+  ae: ADT.Color = ADT.Green
 )
 case class DefaultMismatch3(i: Int = 321, l: Long = 0)
