@@ -17,7 +17,7 @@
 name := "magnolify"
 description := "A collection of Magnolia add-on modules"
 
-val magnoliaVersion = "0.16.0"
+val magnoliaVersion = "0.17.0"
 
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.10.0")
 val bigqueryVersion = "v2-rev20200805-1.30.10"
