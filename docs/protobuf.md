@@ -20,6 +20,26 @@ val proto: MyProto = protobufType.to(record)
 val copy: Outer = protobufType.from(proto)
 ```
 
+Enum like types map to Protobuf enums. See [enums.md](https://github.com/spotify/magnolify/tree/master/docs/enums.md) for more details. An implicit instance from Java or Scala type to Protobuf enum must be provided.
+
+```scala
+// Scala enum
+object Color extends Enumeration {
+  type Type = Value
+  val Red, Green, Blue = Value
+}
+
+// Protobuf enum
+// enum ColorProto {
+//   RED = 0;
+//   GREEN = 1;
+//   BLUE = 2;
+// }
+
+import magnolify.shared._
+implicit val efEnum = ProtobufField.enum[Color.Type, ColorProto]
+```
+
 Additional `ProtobufField[T]` instances for `Byte`, `Char`, and `Short` are available from `import magnolify.protobuf.unsafe._`. These conversions are unsafe due to potential overflow.
 
 By default nullable type `Option[T]` is not supported when `MsgT` is compiled with Protobuf 3 syntax. This is because Protobuf 3 does not offer a way to check if a field was set, and instead returns `0`, `""`, `false`, etc. when it was not. You can enable Protobuf 3 support for `Option[T]` by adding `import magnolify.protobuf.unsafe.Proto3Option._`. However with this, Scala `None`s will become `0/""/false` in Protobuf and come back as `Some(0/""/false)`.
@@ -35,23 +55,4 @@ case class LowerCamel(firstName: String, lastName: String)
 val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_HYPHEN).convert _
 val protobufType = ProtobufType[LowerCamel, LowerHyphenProto](CaseMapper(toSnakeCase))
 protobufType.to(LowerCamel("John", "Doe"))
-```
-
-Java `enum` and Scala `Enumeration` types map to Protobuf enums. They support `CaseMapper` too.
-
-```scala
-object Color extends Enumeration {
-  type Type = Value
-  val Red, Green, Blue = Value
-}
-
-// Protobuf
-// enum ColorProto {
-//   RED = 0;
-//   GREEN = 1;
-//   BLUE = 2;
-// }
-import magnolify.shared._
-implicit val enumType = EnumType[Color.Type](CaseMapper(_.toUpperCase))
-implicit val efEnum = ProtobufField.enum[Color.Type, ColorProto]
 ```

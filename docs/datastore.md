@@ -20,7 +20,7 @@ val entityBuilder: Entity.Builder = entityType.to(record)
 val copy: Outer = entityType.from(entityBuilder.build)
 ```
 
-Additional `EntityField[T]` instances for `Byte`, `Char`, `Short`, `Int`, `Float`, Java `Enum` and Scala `Enumeration` are available from `import magnolify.datastore.unsafe._`. These conversions are unsafe due to potential overflow or encoding errors.
+Additional `EntityField[T]` instances for `Byte`, `Char`, `Short`, `Int`, `Float`, and enum-like types are available from `import magnolify.datastore.unsafe._`. These conversions are unsafe due to potential overflow or encoding errors. Enum like types map to strings. See [enums.md](https://github.com/spotify/magnolify/tree/master/docs/enums.md) for more details.
 
 To set a field as key, annotate the field with `key` annotation.
 
@@ -58,17 +58,4 @@ case class LowerCamel(firstName: String, lastName: String)
 val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_HYPHEN).convert _
 val entityType = EntityType[LowerCamel](CaseMapper(toSnakeCase))
 entityType.to(LowerCamel("John", "Doe"))
-```
-
-`CaseMapper` supports enums too.
-
-```scala
-object Color extends Enumeration {
-  type Type = Value
-  val Red, Green, Blue = Value
-}
-
-import magnolify.shared._
-// Encode as ["red", "green", "blue"]
-implicit val enumType = EnumType[Color.Type](CaseMapper(_.toLowerCase))
 ```

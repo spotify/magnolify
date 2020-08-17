@@ -23,13 +23,19 @@ val copy: Outer = avroType.from(genericRecord)
 avroType.schema
 ```
 
-Additional `AvroField[T]` instances for `Byte`, `Char`, and `Short` are available from `import magnolify.avro.unsafe._`. These conversions are unsafe due to potential overflow.
+Enum-like types map to Avro enums. See [enums.md](https://github.com/spotify/magnolify/tree/master/docs/enums.md) for more details. Additional `AvroField[T]` instances for `Byte`, `Char`, and `Short` are available from `import magnolify.avro.unsafe._`. These conversions are unsafe due to potential overflow.
 
 To populate Avro type and field `doc`s, annotate the case class and its fields with the `@doc` annotation.
 
 ```scala
 @doc("My record")
 case class Record(@doc("int field") i: Int, @doc("string field") s: String)
+
+@doc("My enum")
+object Color extends Enumeration {
+  type Type = Value
+  value Red, Gree, Blue = Value
+}
 ```
 
 The `@doc` annotation can also be extended to support custom format.
@@ -52,19 +58,6 @@ case class LowerCamel(firstName: String, lastName: String)
 val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_HYPHEN).convert _
 val avroType = AvroType[LowerCamel](CaseMapper(toSnakeCase))
 avroType.to(LowerCamel("John", "Doe"))
-```
-Java `enum` and Scala `Enumeration` types map to Avro enums. They support `@doc` annotations and `CaseMapper` too.
-
-```scala
-@doc("Colors")
-object Color extends Enumeration {
-  type Type = Value
-  val Red, Green, Blue = Value
-}
-
-import magnolify.shared._
-// Encode as ["red", "green", "blue"]
-implicit val enumType = EnumType[Color.Type](CaseMapper(_.toLowerCase))
 ```
 
 Avro `decimal` and `uuid` logical type maps to `BigDecimal` and `java.util.UUID`. Additionally `decimal` requires `precision` and optional `scale` parameter.

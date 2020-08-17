@@ -23,7 +23,7 @@ val copy: Outer = tableRowType.from(tableRow)
 tableRowType.schema
 ```
 
-Additional `TableRowField[T]` instances for `Byte`, `Char`, `Short`, `Int`, `Float`, Java `Enum` and Scala `Enumeration` are available from `import magnolify.bigquery.unsafe._`. These conversions are unsafe due to potential overflow or encoding errors.
+Additional `TableRowField[T]` instances for `Byte`, `Char`, `Short`, `Int`, `Float`, and enum-like types are available from `import magnolify.bigquery.unsafe._`. These conversions are unsafe due to potential overflow or encoding errors. See [enums.md](https://github.com/spotify/magnolify/tree/master/docs/enums.md) for more details.
 
 To populate BigQuery table and field `description`s, annotate the case class and its fields with the `@description` annotation.
 
@@ -53,17 +53,4 @@ case class LowerCamel(firstName: String, lastName: String)
 val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_HYPHEN).convert _
 val tableRowType = TableRowType[LowerCamel](CaseMapper(toSnakeCase))
 tableRowType.to(LowerCamel("John", "Doe"))
-```
-
-`CaseMapper` supports enums too.
-
-```scala
-object Color extends Enumeration {
-  type Type = Value
-  val Red, Green, Blue = Value
-}
-
-import magnolify.shared._
-// Encode as ["red", "green", "blue"]
-implicit val enumType = EnumType[Color.Type](CaseMapper(_.toLowerCase))
 ```
