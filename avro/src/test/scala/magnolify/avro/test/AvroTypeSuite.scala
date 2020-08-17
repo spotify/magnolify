@@ -20,7 +20,7 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.net.URI
 import java.nio.ByteBuffer
 import java.time.format.DateTimeFormatter
-import java.time.{Duration, Instant, LocalDate, LocalDateTime, LocalTime, ZoneOffset}
+import java.time.{Duration, Instant, LocalDate, LocalDateTime, LocalTime}
 import java.util.UUID
 
 import cats._
@@ -31,6 +31,7 @@ import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
 import magnolify.shims.JavaConverters._
 import magnolify.test.Simple._
+import magnolify.test.Time.Java8._
 import magnolify.test._
 import org.apache.avro.Schema
 import org.apache.avro.generic.{
@@ -106,6 +107,30 @@ class AvroTypeSuite extends MagnolifySuite {
     implicit val eqMapPrimitive: Eq[GenericRecord] = Eq.instance((x, y) => f(x) == f(y))
     test[MapPrimitive]
     test[MapNested]
+  }
+
+  test[Logical]
+
+  {
+    implicit val arbBigDecimal: Arbitrary[BigDecimal] =
+      Arbitrary(Gen.chooseNum(0L, Long.MaxValue).map(BigDecimal(_, 0)))
+
+    {
+      import magnolify.avro.logical.micros._
+      implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
+      test[LogicalMicros]
+    }
+
+    {
+      import magnolify.avro.logical.millis._
+      implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
+      test[LogicalMillis]
+    }
+
+    {
+      import magnolify.avro.logical.bigquery._
+      test[LogicalBigQuery]
+    }
   }
 
   test("AvroDoc") {
@@ -206,40 +231,6 @@ class AvroTypeSuite extends MagnolifySuite {
     }
   }
 
-  {
-    implicit val arbBigDecimal: Arbitrary[BigDecimal] =
-      Arbitrary(Gen.chooseNum(0L, Long.MaxValue).map(BigDecimal(_, 0)))
-    implicit val arbInstant: Arbitrary[Instant] =
-      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Instant.ofEpochMilli(_)))
-    implicit val arbDate: Arbitrary[LocalDate] =
-      Arbitrary(arbInstant.arbitrary.map(_.atZone(ZoneOffset.UTC).toLocalDate))
-    implicit val arbTime: Arbitrary[LocalTime] =
-      Arbitrary(arbInstant.arbitrary.map(_.atZone(ZoneOffset.UTC).toLocalTime))
-    implicit val arbDateTime: Arbitrary[LocalDateTime] =
-      Arbitrary(arbInstant.arbitrary.map(_.atZone(ZoneOffset.UTC).toLocalDateTime))
-    implicit val eqInstant: Eq[Instant] = Eq.by(_.toEpochMilli)
-    implicit val eqDate: Eq[LocalDate] = Eq.by(_.toEpochDay)
-    implicit val eqTime: Eq[LocalTime] = Eq.by(_.toNanoOfDay)
-    implicit val eqDateTime: Eq[LocalDateTime] = Eq.by(_.toEpochSecond(ZoneOffset.UTC))
-
-    {
-      import magnolify.avro.logical.micros._
-      implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
-      test[Logical1]
-    }
-
-    {
-      import magnolify.avro.logical.millis._
-      implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
-      test[Logical2]
-    }
-
-    {
-      import magnolify.avro.logical.bigquery._
-      test[BigQuery]
-    }
-  }
-
   test("BigDecimal") {
     import magnolify.avro.logical.bigquery._
     val at: AvroType[BigDec] = AvroType[BigDec]
@@ -267,9 +258,15 @@ class AvroTypeSuite extends MagnolifySuite {
 }
 
 case class Unsafe(b: Byte, c: Char, s: Short)
-case class AvroTypes(bs: Array[Byte], u: Unit)
+case class AvroTypes(ba: Array[Byte], u: Unit)
 case class MapPrimitive(m: Map[String, Int])
 case class MapNested(m: Map[String, Nested])
+
+case class Logical(u: UUID, d: LocalDate)
+case class LogicalMicros(bd: BigDecimal, i: Instant, t: LocalTime, dt: LocalDateTime)
+case class LogicalMillis(bd: BigDecimal, i: Instant, t: LocalTime, dt: LocalDateTime)
+case class LogicalBigQuery(bd: BigDecimal, i: Instant, t: LocalTime, dt: LocalDateTime)
+case class BigDec(bd: BigDecimal)
 
 @doc("Avro with doc")
 case class AvroDoc(@doc("string") s: String, @doc("integers") i: Integers)
@@ -331,32 +328,6 @@ object Pet extends Enumeration {
   val Cat, Dog = Value
 }
 case class EnumDoc(p: Pet.Type)
-
-case class Logical1(
-  bd: BigDecimal,
-  u: UUID,
-  i: Instant,
-  d: LocalDate,
-  t: LocalTime,
-  dt: LocalDateTime
-)
-case class Logical2(
-  bd: BigDecimal,
-  u: UUID,
-  i: Instant,
-  d: LocalDate,
-  t: LocalTime,
-  dt: LocalDateTime
-)
-case class BigQuery(
-  bd: BigDecimal,
-  u: UUID,
-  i: Instant,
-  d: LocalDate,
-  t: LocalTime,
-  dt: LocalDateTime
-)
-case class BigDec(bd: BigDecimal)
 
 private class Copier(private val schema: Schema) {
   private val encoder = EncoderFactory.get

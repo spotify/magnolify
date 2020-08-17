@@ -30,6 +30,7 @@ import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
 import magnolify.shims.JavaConverters._
 import magnolify.test.Simple._
+import magnolify.test.Time.Java8._
 import magnolify.test._
 import org.scalacheck._
 
@@ -75,11 +76,8 @@ class EntityTypeSuite extends MagnolifySuite {
   }
 
   {
-    implicit val arbInstant: Arbitrary[Instant] =
-      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Instant.ofEpochMilli(_)))
     implicit val arbByteString: Arbitrary[ByteString] =
       Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
-    implicit val eqInstant: Eq[Instant] = Eq.by(_.toEpochMilli)
     implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
     implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
     test[DatastoreTypes]

@@ -204,7 +204,7 @@ object AvroField {
     override def to(v: Array[Byte])(cm: CaseMapper): ByteBuffer = ByteBuffer.wrap(v)
   }
 
-  implicit def afEnum[T](implicit et: EnumType[T]) =
+  implicit def afEnum[T](implicit et: EnumType[T]): AvroField[T] =
     new AvroField[T] {
       // Avro 1.9+ added a type parameter for `GenericEnumSymbol`, breaking 1.8 compatibility
       override type FromT = GenericContainer
