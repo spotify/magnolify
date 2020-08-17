@@ -29,6 +29,7 @@ import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
 import magnolify.shims.JavaConverters._
 import magnolify.test.Simple._
+import magnolify.test.Time.Joda._
 import magnolify.test._
 import org.joda.time._
 import org.scalacheck._
@@ -85,21 +86,9 @@ class TableRowTypeSuite extends MagnolifySuite {
   }
 
   {
-    implicit val arbInstant: Arbitrary[Instant] =
-      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Instant.ofEpochMilli(_)))
-    implicit val arbDate: Arbitrary[LocalDate] =
-      Arbitrary(arbInstant.arbitrary.map(new LocalDate(_)))
-    implicit val arbTime: Arbitrary[LocalTime] =
-      Arbitrary(arbInstant.arbitrary.map(new LocalTime(_)))
-    implicit val arbDateTime: Arbitrary[LocalDateTime] =
-      Arbitrary(arbInstant.arbitrary.map(new LocalDateTime(_)))
+
     implicit val arbBigDecimal: Arbitrary[BigDecimal] =
       Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(BigDecimal(_)))
-    implicit val eqInstant: Eq[Instant] = Eq.by(_.getMillis)
-    implicit val eqDate: Eq[LocalDate] = Eq.by(_.getDayOfYear)
-    implicit val eqTime: Eq[LocalTime] = Eq.by(_.getMillisOfDay)
-    implicit val eqDateTime: Eq[LocalDateTime] =
-      Eq.by(dt => dt.getDayOfYear * DateTimeConstants.MILLIS_PER_DAY + dt.getMillisOfDay)
     test[BigQueryTypes]
   }
 

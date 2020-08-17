@@ -148,6 +148,7 @@ lazy val test: Project = project
   .settings(
     commonSettings ++ noPublishSettings,
     libraryDependencies ++= Seq(
+      "joda-time" % "joda-time" % jodaTimeVersion % Test,
       "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion % Test
     ),
