@@ -20,7 +20,6 @@ import java.net.URI
 import java.time.{Duration, Instant}
 
 import cats._
-import cats.instances.all._
 import com.google.datastore.v1.{Entity, Key}
 import com.google.datastore.v1.client.DatastoreHelper.makeValue
 import com.google.protobuf.ByteString

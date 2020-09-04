@@ -24,7 +24,6 @@ import java.time.{Duration, Instant, LocalDate, LocalDateTime, LocalTime, ZoneOf
 import java.util.UUID
 
 import cats._
-import cats.instances.all._
 import magnolify.avro._
 import magnolify.avro.unsafe._
 import magnolify.cats.auto._

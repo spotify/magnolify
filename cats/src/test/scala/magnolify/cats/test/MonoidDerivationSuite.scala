@@ -20,7 +20,6 @@ import java.net.URI
 import java.time.Duration
 
 import cats._
-import cats.instances.all._
 import cats.kernel.laws.discipline._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._

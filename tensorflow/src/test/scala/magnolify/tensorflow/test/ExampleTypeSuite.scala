@@ -20,7 +20,6 @@ import java.net.URI
 import java.time.Duration
 
 import cats._
-import cats.instances.all._
 import com.google.protobuf.ByteString
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
