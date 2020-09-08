@@ -17,7 +17,6 @@
 package magnolify.cats.test
 
 import cats._
-import cats.instances.all._
 import cats.kernel.{Band, CommutativeGroup, CommutativeMonoid, CommutativeSemigroup}
 import magnolify.test.Simple._
 

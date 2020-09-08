@@ -20,7 +20,6 @@ import java.net.URI
 import java.{time => jt}
 
 import cats._
-import cats.instances.all._
 import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
 import com.google.api.services.bigquery.model.TableRow
 import magnolify.bigquery._

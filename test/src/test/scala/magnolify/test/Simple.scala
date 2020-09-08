@@ -21,7 +21,6 @@ import java.time.Duration
 
 import org.scalacheck._
 import cats._
-import cats.instances.all._
 
 import scala.annotation.StaticAnnotation
 
