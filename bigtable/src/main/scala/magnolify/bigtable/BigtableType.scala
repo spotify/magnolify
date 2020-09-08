@@ -59,23 +59,22 @@ object BigtableType {
     val families = mutations
       .map(_.getSetCell)
       .groupBy(_.getFamilyName)
-      .map {
-        case (familyName, setCells) =>
-          val columns = setCells
-            .sortBy(_.getColumnQualifier.toStringUtf8)
-            .map { setCell =>
-              Column
-                .newBuilder()
-                .setQualifier(setCell.getColumnQualifier)
-                .addCells(
-                  Cell
-                    .newBuilder()
-                    .setValue(setCell.getValue)
-                    .setTimestampMicros(setCell.getTimestampMicros)
-                )
-                .build()
-            }
-          Family.newBuilder().setName(familyName).addAllColumns(columns.asJava).build()
+      .map { case (familyName, setCells) =>
+        val columns = setCells
+          .sortBy(_.getColumnQualifier.toStringUtf8)
+          .map { setCell =>
+            Column
+              .newBuilder()
+              .setQualifier(setCell.getColumnQualifier)
+              .addCells(
+                Cell
+                  .newBuilder()
+                  .setValue(setCell.getValue)
+                  .setTimestampMicros(setCell.getTimestampMicros)
+              )
+              .build()
+          }
+        Family.newBuilder().setName(familyName).addAllColumns(columns.asJava).build()
       }
     Row.newBuilder().setKey(key).addAllFamilies(families.asJava).build()
   }
