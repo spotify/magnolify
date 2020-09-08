@@ -17,7 +17,6 @@
 package magnolify.cats.test
 
 import cats._
-import cats.instances.all._
 import cats.kernel.CommutativeGroup
 import cats.kernel.laws.discipline._
 import magnolify.cats.auto._

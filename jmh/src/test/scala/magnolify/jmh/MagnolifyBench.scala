@@ -45,7 +45,6 @@ class ScalaCheckBench {
 @State(Scope.Thread)
 class CatsBench {
   import cats._
-  import cats.instances.all._
   import magnolify.cats.semiauto._
   import MagnolifyBench._
   private val integers = implicitly[Arbitrary[Integers]].arbitrary(prms, seed).get

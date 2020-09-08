@@ -17,7 +17,6 @@
 package magnolify.cats.test
 
 import cats.Eq
-import cats.instances.all._
 import org.scalacheck.Arbitrary
 
 object Types {

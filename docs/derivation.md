@@ -12,7 +12,6 @@ case class Outer(inner: Inner)
 // Cats Semigroup
 import magnolify.cats.auto._
 import cats._
-import cats.instances.all._ // implicit instances for Semigroup[Int], etc.
 
 val sg: Semigroup[Outer] = implicitly[Semigroup[Outer]]
 sg.combine(Outer(Inner(1, "hello, ")), Outer(Inner(100, "world!")))
@@ -36,7 +35,6 @@ val bf: BloomFilter[Outer] = BloomFilter.create[Outer](fnl, 1000)
 Some [Algebird](https://github.com/twitter/algebird) instances extend those from Cats and can be derived as well.
 
 ```scala
-import cats.instances.all._
 import magnolify.cats.auto._
 import com.twitter.{algebird => a}
 
@@ -52,7 +50,6 @@ Semi-automatic derivation needs to be called explicitly.
 ```scala
 import magnolify.cats.semiauto._
 import cats._
-import cats.instances.all._
 
 val eq: Eq[Outer] = EqDerivation[Outer]
 val hash: Hash[Outer] = HashDerivation[Outer]
