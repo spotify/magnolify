@@ -38,16 +38,17 @@ class HashDerivationSuite extends MagnolifySuite {
     }
   }
 
-  // Long.## != Long.hashCode
-  test[Integers]("same as universal hash")
+  // Long.## != Long.hashCode for negative values
+  test[Integers]("same as scala hashing", "same as universal hash")
   test[Required]
   test[Nullable]
   test[Repeated]
   test[Nested]
 
   {
-    implicit val hash: Hash[Array[Int]] = Hash.by(_.toList)
-    test[Collections]("same as scala hashing", "same as universal hash")
+    // Use `scala.util.hashing.Hashing[T]` for `Array[Int]`, equivalent to `x.##` and `x.hashCode`
+    implicit val hash: Hash[Array[Int]] = Hash.fromHashing[Array[Int]]
+    test[Collections]
   }
 
   {

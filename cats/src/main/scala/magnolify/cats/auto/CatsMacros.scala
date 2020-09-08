@@ -85,11 +85,18 @@ private object CatsMacros {
   }
 }
 
-trait LowPriorityImplicits
+trait LowPriorityImplicits extends LowPriorityImplicits1 {
+  // workaround for ambiguous implicit values with cats
+  implicit def catsKernelStdHashForList[A: Hash]: Hash[List[A]] =
+    new ListHash[A]
+  implicit def catsKernelStdHashForOption[A: Hash]: Hash[Option[A]] =
+    new OptionHash[A]
+}
+
+trait LowPriorityImplicits1
     extends LowPriorityGenCommmutativeGroup
     with LowPriorityGenHash
     with LowPriorityGenShow {
-  // workaround for ambiguous implicit values with cats
   implicit def catsKernelStdOrderForList[A: Order]: Order[List[A]] =
     new ListOrder[A]
   implicit def catsKernelStdPartialOrderForList[A: PartialOrder]: PartialOrder[List[A]] =
