@@ -31,7 +31,7 @@ import com.google.common.base.CaseFormat
 
 case class LowerCamel(firstName: String, lastName: String)
 
-val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_HYPHEN).convert _
+val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_UNDERSCORE).convert _
 val bigtableType = BigtableType[LowerCamel](CaseMapper(toSnakeCase))
 bigtableType(LowerCamel("John", "Doe"), "cf")
 ```
