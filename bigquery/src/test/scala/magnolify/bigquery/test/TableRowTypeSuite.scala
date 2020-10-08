@@ -17,7 +17,8 @@
 package magnolify.bigquery.test
 
 import java.net.URI
-import java.{time => jt}
+import java.time._
+import java.time.format.DateTimeFormatter
 
 import cats._
 import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
@@ -29,9 +30,8 @@ import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
 import magnolify.shims.JavaConverters._
 import magnolify.test.Simple._
-import magnolify.test.Time.Joda._
+import magnolify.test.Time.Java8._
 import magnolify.test._
-import org.joda.time._
 import org.scalacheck._
 
 import scala.reflect._
@@ -80,8 +80,8 @@ class TableRowTypeSuite extends MagnolifySuite {
   {
     import Custom._
     implicit val trfUri: TableRowField[URI] = TableRowField.from[String](URI.create)(_.toString)
-    implicit val trfDuration: TableRowField[jt.Duration] =
-      TableRowField.from[Long](jt.Duration.ofMillis)(_.toMillis)
+    implicit val trfDuration: TableRowField[Duration] =
+      TableRowField.from[Long](Duration.ofMillis)(_.toMillis)
     test[Custom]
   }
 
@@ -180,7 +180,9 @@ class tableDesc(projectId: String, datasetId: String, tableId: String)
 
 class fieldDesc(description: String, since: LocalDate)
     extends description(
-      s"""{"description": "$description", "since": "${since.toString("YYYY-MM-dd")}"}"""
+      s"""{"description": "$description", "since": "${since.format(
+        DateTimeFormatter.ofPattern("YYYY-MM-dd")
+      )}"}"""
     )
 
 @tableDesc("my-project", "my-dataset", "my-table")

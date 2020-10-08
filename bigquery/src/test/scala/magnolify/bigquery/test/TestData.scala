@@ -17,10 +17,10 @@
 package magnolify.bigquery.test
 
 import java.io.File
+import java.time._
 
 import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
 import magnolify.bigquery._
-import org.joda.time._
 
 // Test BigQuery data types, to be used with scripts/bigquery-test.sh
 object TestData {
@@ -37,9 +37,9 @@ object TestData {
 
     // 2020-08-01 01:23:45
     val ts = Instant.ofEpochSecond(1596245025)
-    val date = new LocalDate(ts)
-    val time = new LocalTime(ts)
-    val dt = new LocalDateTime(ts)
+    val date = LocalDate.from(ts)
+    val time = LocalTime.from(ts)
+    val dt = LocalDateTime.from(ts)
     val r = Record(BigDecimal(123.456), ts, date, time, dt)
     write("tablerow1.json", t(r))
     // precision > 38

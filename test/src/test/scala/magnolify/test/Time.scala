@@ -41,23 +41,4 @@ object Time {
     implicit val eqLocalDateTime: Eq[LocalDateTime] = Eq.by(_.toEpochSecond(ZoneOffset.UTC))
     implicit val eqOffsetTime: Eq[OffsetTime] = Eq.by(_.toLocalTime.toNanoOfDay)
   }
-
-  object Joda {
-    import org.joda.time._
-
-    implicit val arbInstant: Arbitrary[Instant] =
-      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Instant.ofEpochMilli(_)))
-    implicit val arbLocalDate: Arbitrary[LocalDate] =
-      Arbitrary(arbInstant.arbitrary.map(new LocalDate(_)))
-    implicit val arbLocalTime: Arbitrary[LocalTime] =
-      Arbitrary(arbInstant.arbitrary.map(new LocalTime(_)))
-    implicit val arbLocalDateTime: Arbitrary[LocalDateTime] =
-      Arbitrary(arbInstant.arbitrary.map(new LocalDateTime(_)))
-
-    implicit val eqInstant: Eq[Instant] = Eq.by(_.getMillis)
-    implicit val eqLocalDate: Eq[LocalDate] = Eq.by(_.getDayOfYear)
-    implicit val eqLocalTime: Eq[LocalTime] = Eq.by(_.getMillisOfDay)
-    implicit val eqLocalDateTime: Eq[LocalDateTime] =
-      Eq.by(dt => dt.getDayOfYear * DateTimeConstants.MILLIS_PER_DAY + dt.getMillisOfDay)
-  }
 }
