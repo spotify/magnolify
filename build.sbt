@@ -26,7 +26,6 @@ val catsVersion = "2.2.0"
 val datastoreVersion = "1.6.3"
 val guavaVersion = "29.0-jre"
 val jacksonVersion = "2.11.3"
-val jodaTimeVersion = "2.10.6"
 val munitVersion = "0.7.13"
 val protobufVersion = "3.13.0"
 val scalacheckVersion = "1.14.3"
@@ -148,7 +147,6 @@ lazy val test: Project = project
   .settings(
     commonSettings ++ noPublishSettings,
     libraryDependencies ++= Seq(
-      "joda-time" % "joda-time" % jodaTimeVersion % Test,
       "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion % Test
     ),
@@ -229,7 +227,6 @@ lazy val bigquery: Project = project
     description := "Magnolia add-on for Google Cloud BigQuery",
     libraryDependencies ++= Seq(
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Provided,
-      "joda-time" % "joda-time" % jodaTimeVersion % Provided,
       "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
     )
   )
@@ -322,7 +319,6 @@ lazy val jmh: Project = project
       "org.apache.avro" % "avro" % avroVersion % Test,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
       "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Test,
-      "joda-time" % "joda-time" % jodaTimeVersion % Test,
       "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
       "org.tensorflow" % "proto" % tensorflowVersion % Test
     )
