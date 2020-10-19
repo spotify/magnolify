@@ -28,6 +28,7 @@ val guavaVersion = "30.0-jre"
 val jacksonVersion = "2.11.3"
 val munitVersion = "0.7.14"
 val protobufVersion = "3.13.0"
+val refinedVersion = "0.9.17"
 val scalacheckVersion = "1.14.3"
 val tensorflowVersion = "1.15.0"
 
@@ -199,6 +200,32 @@ lazy val guava: Project = project
   .dependsOn(
     shared,
     scalacheck % Test,
+    test % "test->test"
+  )
+
+lazy val refined: Project = project
+  .in(file("refined"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-refined",
+    description := "Magnolia add-on for Refined",
+    libraryDependencies ++= Seq(
+      "eu.timepit" %% "refined" % refinedVersion % Provided,
+      "org.scalameta" %% "munit" % munitVersion % Test,
+      "org.apache.avro" % "avro" % avroVersion % Test,
+      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
+      "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Test,
+      "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
+      "org.tensorflow" % "proto" % tensorflowVersion % Test
+    )
+  )
+  .dependsOn(
+    avro % Provided,
+    bigquery % Provided,
+    bigtable % Provided,
+    datastore % Provided,
+    protobuf % Provided,
+    tensorflow % Provided,
     test % "test->test"
   )
 
