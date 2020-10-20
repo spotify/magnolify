@@ -32,12 +32,12 @@ object RefinedSuite {
   type Country = String Refined MatchesRegex[W.`"[A-Z]{2}"`.T]
 
   case class Record(
-                     uuid: UUID,
-                     pct: Percent,
-                     prob: Probability,
-                     url: Option[URL],
-                     countries: List[Country]
-                   )
+    uuid: UUID,
+    pct: Percent,
+    prob: Probability,
+    url: Option[URL],
+    countries: List[Country]
+  )
 
   case class BigtableRecord(uuid: UUID, pct: Percent, prob: Probability, url: Option[URL])
 
@@ -52,7 +52,13 @@ object RefinedSuite {
 class RefinedSuite extends MagnolifySuite {
   import RefinedSuite._
 
-  private val record = Record("1234abcd-abba-dead-beef-9876543210ab", 42, 0.25, Some("https://www.spotify.com"), List("US", "UK"))
+  private val record = Record(
+    "1234abcd-abba-dead-beef-9876543210ab",
+    42,
+    0.25,
+    Some("https://www.spotify.com"),
+    List("US", "UK")
+  )
   private val errMsg = "Url predicate failed: no protocol: foo"
 
   test("AvroType") {
@@ -93,8 +99,7 @@ class RefinedSuite extends MagnolifySuite {
     val badMutations = mutations.map { m =>
       m.getSetCell.getColumnQualifier.toStringUtf8 match {
         case "url" =>
-          m
-            .toBuilder
+          m.toBuilder
             .setSetCell(m.getSetCell.toBuilder.setValue(ByteString.copyFromUtf8("foo")))
             .build()
         case _ => m
@@ -127,11 +132,13 @@ class RefinedSuite extends MagnolifySuite {
     assertEquals(tpe1(tpe1(required)), required)
 
     val tpe2 = ensureSerializable(ProtobufType[ProtoNullable, SingularP3])
-    val nullable = ProtoNullable(Some(true), Some(record.pct), Some(unsafeRefine(record.url.get.value)))
+    val nullable =
+      ProtoNullable(Some(true), Some(record.pct), Some(unsafeRefine(record.url.get.value)))
     assertEquals(tpe2(tpe2(nullable)), nullable)
 
     val tpe3 = ensureSerializable(ProtobufType[ProtoRepeated, RepeatedP3])
-    val repeated = ProtoRepeated(List(true), List(record.pct), List(unsafeRefine("US"), unsafeRefine("UK")))
+    val repeated =
+      ProtoRepeated(List(true), List(record.pct), List(unsafeRefine("US"), unsafeRefine("UK")))
     assertEquals(tpe3(tpe3(repeated)), repeated)
 
     val bad = SingularP3.newBuilder().setB(true).setI(42).setS("foo").build()
@@ -152,15 +159,14 @@ class RefinedSuite extends MagnolifySuite {
     val good = tpe(record)
     assertEquals(tpe(good), record)
 
-    val badFeatures = good
-      .getFeatures
-      .toBuilder
+    val badFeatures = good.getFeatures.toBuilder
       .putFeature(
         "url",
         Feature
           .newBuilder()
           .setBytesList(BytesList.newBuilder().addValue(ByteString.copyFromUtf8("foo")))
-          .build())
+          .build()
+      )
       .build()
     val bad = good.toBuilder.setFeatures(badFeatures).build()
     interceptMessage[IllegalArgumentException](errMsg)(tpe(bad))

@@ -29,34 +29,44 @@ import scala.language.implicitConversions
 
 package object refined {
   object avro {
-    implicit def refinedAvro[T: AvroField, P](implicit v: Validate[T, P]): AvroField[Refined[T, P]] =
+    implicit def refinedAvro[T: AvroField, P](implicit
+      v: Validate[T, P]
+    ): AvroField[Refined[T, P]] =
       AvroField.from[T](unsafeRefine[T, P])(_.value)
   }
 
   object bigquery {
-    implicit def refinedTableRow[T: TableRowField, P](implicit v: Validate[T, P]): TableRowField[Refined[T, P]] =
+    implicit def refinedTableRow[T: TableRowField, P](implicit
+      v: Validate[T, P]
+    ): TableRowField[Refined[T, P]] =
       TableRowField.from[T](unsafeRefine[T, P])(_.value)
   }
 
   object bigtable {
-    implicit def refinedBigtable[T: BigtableField.Primitive, P](implicit v: Validate[T, P])
-      : BigtableField.Primitive[Refined[T, P]] =
+    implicit def refinedBigtable[T: BigtableField.Primitive, P](implicit
+      v: Validate[T, P]
+    ): BigtableField.Primitive[Refined[T, P]] =
       BigtableField.from[T](unsafeRefine[T, P])(_.value)
   }
 
   object datastore {
-    implicit def refinedEntity[T: EntityField, P](implicit v: Validate[T, P]): EntityField[Refined[T, P]] =
+    implicit def refinedEntity[T: EntityField, P](implicit
+      v: Validate[T, P]
+    ): EntityField[Refined[T, P]] =
       EntityField.from[T](unsafeRefine[T, P])(_.value)
   }
 
   object protobuf {
-    implicit def refinedProtobuf[T: ProtobufField, P](implicit v: Validate[T, P]): ProtobufField[Refined[T, P]] =
+    implicit def refinedProtobuf[T: ProtobufField, P](implicit
+      v: Validate[T, P]
+    ): ProtobufField[Refined[T, P]] =
       ProtobufField.from[T](unsafeRefine[T, P])(_.value)
   }
 
   object tensorflow {
-    implicit def refinedExample[T: ExampleField.Primitive, P](implicit v: Validate[T, P])
-      : ExampleField.Primitive[Refined[T, P]] =
+    implicit def refinedExample[T: ExampleField.Primitive, P](implicit
+      v: Validate[T, P]
+    ): ExampleField.Primitive[Refined[T, P]] =
       ExampleField.from[T](unsafeRefine[T, P])(_.value)
   }
 
