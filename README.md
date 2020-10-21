@@ -24,6 +24,7 @@ This library includes the following modules.
   - [`Cogen[T]`](https://github.com/typelevel/scalacheck/blob/master/src/main/scala/org/scalacheck/Cogen.scala)
 - `magnolify-guava` - type class derivation for [Guava](https://guava.dev)
   - [`Funnel[T]`](https://guava.dev/releases/snapshot-jre/api/docs/com/google/common/hash/Funnel.html)
+- `magnolify-refined` - support for simple refinement types from [Refined](https://github.com/fthomas/refined).
 
 - `magnolify-avro` - conversion between Scala types and [Apache Avro](https://github.com/apache/avro) `GenericRecord`
 - `magnolify-bigquery` - conversion between Scala types and [Google Cloud BigQuery](https://cloud.google.com/bigquery/) `TableRow`
@@ -41,7 +42,7 @@ See [avro.md](https://github.com/spotify/magnolify/tree/master/docs/avro.md)
 [bigtable.md](https://github.com/spotify/magnolify/tree/master/docs/bigtable.md)
 [datastore.md](https://github.com/spotify/magnolify/tree/master/docs/datastore.md)
 [protobuf.md](https://github.com/spotify/magnolify/tree/master/docs/protobuf.md)
-[tensorflow.md](https://github.com/spotify/magnolify/tree/master/docs/tensorflow.md) for data type conversions for these libraries.
+[tensorflow.md](https://github.com/spotify/magnolify/tree/master/docs/tensorflow.md) for data type conversions for these libraries. Also see [enums.md](https://github.com/spotify/magnolify/tree/master/docs/enums.md) for enum types and [refined.md](https://github.com/spotify/magnolify/tree/master/docs/derivation.md) for refinement types support.
 
 # License
 
