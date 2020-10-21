@@ -32,44 +32,41 @@ package object refined {
     implicit def refinedAvro[T: AvroField, P](implicit
       v: Validate[T, P]
     ): AvroField[Refined[T, P]] =
-      AvroField.from[T](unsafeRefine[T, P])(_.value)
+      AvroField.from[T](refineV[P].unsafeFrom(_))(_.value)
   }
 
   object bigquery {
     implicit def refinedTableRow[T: TableRowField, P](implicit
       v: Validate[T, P]
     ): TableRowField[Refined[T, P]] =
-      TableRowField.from[T](unsafeRefine[T, P])(_.value)
+      TableRowField.from[T](refineV[P].unsafeFrom(_))(_.value)
   }
 
   object bigtable {
     implicit def refinedBigtable[T: BigtableField.Primitive, P](implicit
       v: Validate[T, P]
     ): BigtableField.Primitive[Refined[T, P]] =
-      BigtableField.from[T](unsafeRefine[T, P])(_.value)
+      BigtableField.from[T](refineV[P].unsafeFrom(_))(_.value)
   }
 
   object datastore {
     implicit def refinedEntity[T: EntityField, P](implicit
       v: Validate[T, P]
     ): EntityField[Refined[T, P]] =
-      EntityField.from[T](unsafeRefine[T, P])(_.value)
+      EntityField.from[T](refineV[P].unsafeFrom(_))(_.value)
   }
 
   object protobuf {
     implicit def refinedProtobuf[T: ProtobufField, P](implicit
       v: Validate[T, P]
     ): ProtobufField[Refined[T, P]] =
-      ProtobufField.from[T](unsafeRefine[T, P])(_.value)
+      ProtobufField.from[T](refineV[P].unsafeFrom(_))(_.value)
   }
 
   object tensorflow {
     implicit def refinedExample[T: ExampleField.Primitive, P](implicit
       v: Validate[T, P]
     ): ExampleField.Primitive[Refined[T, P]] =
-      ExampleField.from[T](unsafeRefine[T, P])(_.value)
+      ExampleField.from[T](refineV[P].unsafeFrom(_))(_.value)
   }
-
-  def unsafeRefine[T, P](t: T)(implicit v: Validate[T, P]): Refined[T, P] =
-    refineV[P].unsafeFrom(t)
 }
