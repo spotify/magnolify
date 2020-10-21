@@ -216,6 +216,7 @@ lazy val refined: Project = project
     moduleName := "magnolify-refined",
     description := "Magnolia add-on for Refined",
     libraryDependencies ++= Seq(
+      "com.google.guava" % "guava" % guavaVersion % Provided,
       "eu.timepit" %% "refined" % refinedVersion % Provided,
       "org.scalameta" %% "munit" % munitVersion % Test,
       "org.apache.avro" % "avro" % avroVersion % Test,
@@ -226,6 +227,7 @@ lazy val refined: Project = project
     )
   )
   .dependsOn(
+    guava % "provided,test->test",
     avro % Provided,
     bigquery % Provided,
     bigtable % Provided,

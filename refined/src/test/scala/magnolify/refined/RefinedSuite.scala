@@ -22,6 +22,7 @@ import eu.timepit.refined.auto._
 import eu.timepit.refined.boolean._
 import eu.timepit.refined.numeric._
 import eu.timepit.refined.string._
+import magnolify.guava.test.BytesSink
 import magnolify.test._
 
 object RefinedSuite {
@@ -38,6 +39,14 @@ object RefinedSuite {
     url: Option[URL],
     countries: List[Country]
   )
+
+  case class FunnelRecordRefined(
+    uuid: UUID,
+    pct: Percent,
+    url: Option[URL],
+    countries: List[Country]
+  )
+  case class FunnelRecord(uuid: String, pct: Int, url: Option[String], countries: List[String])
 
   case class BigtableRecord(uuid: UUID, pct: Percent, prob: Probability, url: Option[URL])
 
@@ -60,6 +69,27 @@ class RefinedSuite extends MagnolifySuite {
     List("US", "UK")
   )
   private val errMsg = "Url predicate failed: no protocol: foo"
+
+  test("Guava") {
+    import magnolify.guava.auto._
+    import magnolify.refined.guava._
+    val f1 = ensureSerializable(FunnelDerivation[FunnelRecordRefined])
+    val f2 = ensureSerializable(FunnelDerivation[FunnelRecord])
+
+    val r1 = FunnelRecordRefined(record.uuid, record.pct, record.url, record.countries)
+    val r2 = FunnelRecord(
+      record.uuid.value,
+      record.pct.value,
+      record.url.map(_.value),
+      record.countries.map(_.value)
+    )
+
+    val s1 = new BytesSink
+    val s2 = new BytesSink
+    f1.funnel(r1, s1)
+    f2.funnel(r2, s2)
+    assertEquals(s1.toBytes.toList, s2.toBytes.toList)
+  }
 
   test("AvroType") {
     import magnolify.avro._
@@ -138,7 +168,11 @@ class RefinedSuite extends MagnolifySuite {
 
     val tpe3 = ensureSerializable(ProtobufType[ProtoRepeated, RepeatedP3])
     val repeated =
-      ProtoRepeated(List(true), List(record.pct), List(refineV.unsafeFrom("US"), refineV.unsafeFrom("UK")))
+      ProtoRepeated(
+        List(true),
+        List(record.pct),
+        List(refineV.unsafeFrom("US"), refineV.unsafeFrom("UK"))
+      )
     assertEquals(tpe3(tpe3(repeated)), repeated)
 
     val bad = SingularP3.newBuilder().setB(true).setI(42).setS("foo").build()
