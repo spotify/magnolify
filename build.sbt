@@ -21,7 +21,7 @@ val magnoliaVersion = "0.17.0"
 
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.10.0")
 val bigqueryVersion = "v2-rev20201007-1.30.10"
-val bigtableVersion = "1.16.2"
+val bigtableVersion = "1.17.0"
 val catsVersion = "2.2.0"
 val datastoreVersion = "1.6.3"
 val guavaVersion = "30.0-jre"
