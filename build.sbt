@@ -20,16 +20,16 @@ description := "A collection of Magnolia add-on modules"
 val magnoliaVersion = "0.17.0"
 
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.10.0")
-val bigqueryVersion = "v2-rev20201015-1.30.10"
-val bigtableVersion = "1.17.0"
+val bigqueryVersion = "v2-rev20201022-1.30.10"
+val bigtableVersion = "1.17.1"
 val catsVersion = "2.2.0"
 val datastoreVersion = "1.6.3"
 val guavaVersion = "30.0-jre"
 val jacksonVersion = "2.11.3"
-val munitVersion = "0.7.14"
+val munitVersion = "0.7.16"
 val protobufVersion = "3.13.0"
 val refinedVersion = "0.9.17"
-val scalacheckVersion = "1.14.3"
+val scalacheckVersion = "1.15.0"
 val tensorflowVersion = "1.15.0"
 
 val commonSettings = Seq(
