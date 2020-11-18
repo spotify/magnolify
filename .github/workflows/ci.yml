@@ -9,7 +9,7 @@ jobs:
       - name: Cache sbt
         uses: coursier/cache-action@v3
       - name: Java 11 setup
-        uses: olafurpg/setup-scala@v7
+        uses: olafurpg/setup-scala@v10
         with:
           java-version: 11
       - run: sbt scalafmtCheckAll scalafmtSbtCheck
@@ -21,7 +21,7 @@ jobs:
       - name: Cache sbt
         uses: coursier/cache-action@v3
       - name: Java ${{matrix.java}} setup
-        uses: olafurpg/setup-scala@v7
+        uses: olafurpg/setup-scala@v10
         with:
           java-version: ${{matrix.java}}
       - run: sbt "++${{matrix.scala}} test"
@@ -41,7 +41,7 @@ jobs:
       - name: Cache sbt
         uses: coursier/cache-action@v3
       - name: Java 11 setup
-        uses: olafurpg/setup-scala@v7
+        uses: olafurpg/setup-scala@v10
         with:
           java-version: 11
       - run: sbt -Davro.version=1.8.2 test
@@ -53,7 +53,7 @@ jobs:
       - name: Cache sbt
         uses: coursier/cache-action@v3
       - name: Java 11 setup
-        uses: olafurpg/setup-scala@v7
+        uses: olafurpg/setup-scala@v10
         with:
           java-version: 11
       - run: |
