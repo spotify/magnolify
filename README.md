@@ -46,6 +46,6 @@ See [avro.md](https://github.com/spotify/magnolify/tree/master/docs/avro.md)
 
 # License
 
-Copyright 2019 Spotify AB.
+Copyright 2019-2021 Spotify AB.
 
 Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/LICENSE-2.0
