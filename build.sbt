@@ -29,7 +29,7 @@ val jacksonVersion = "2.12.0"
 val munitVersion = "0.7.20"
 val protobufVersion = "3.14.0"
 val refinedVersion = "0.9.17"
-val scalacheckVersion = "1.15.1"
+val scalacheckVersion = "1.15.2"
 val tensorflowVersion = "1.15.0"
 
 val commonSettings = Seq(
