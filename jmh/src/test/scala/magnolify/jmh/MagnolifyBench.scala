@@ -153,7 +153,7 @@ class ExampleBench {
   import com.google.protobuf.ByteString
   import magnolify.tensorflow._
   import magnolify.tensorflow.unsafe._
-  import org.tensorflow.example.Example
+  import org.tensorflow.proto.example.Example
   import MagnolifyBench._
   private val exampleType = ExampleType[ExampleNested]
   private val exampleNested = implicitly[Arbitrary[ExampleNested]].arbitrary(prms, seed).get

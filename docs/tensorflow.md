@@ -11,7 +11,7 @@ val record = Outer(Inner(1L, "hello", URI.create("https://www.spotify.com")))
 
 import magnolify.tensorflow._
 import com.google.protobuf.ByteString
-import org.tensorflow.example.{Example, Example.Builder}
+import org.tensorflow.proto.example.{Example, Example.Builder}
 
 // Encode custom type String/URI as ByteString
 implicit val stringField = ExampleField.from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)

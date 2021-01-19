@@ -30,7 +30,7 @@ import magnolify.tensorflow.unsafe._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
-import org.tensorflow.example.Example
+import org.tensorflow.proto.example.Example
 
 import scala.reflect._
 

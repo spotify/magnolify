@@ -187,8 +187,8 @@ class RefinedSuite extends MagnolifySuite {
     import magnolify.tensorflow.unsafe._
     import magnolify.refined.tensorflow._
     import com.google.protobuf.ByteString
-    import org.tensorflow.example.Feature
-    import org.tensorflow.example.BytesList
+    import org.tensorflow.proto.example.Feature
+    import org.tensorflow.proto.example.BytesList
     val tpe = ensureSerializable(ExampleType[Record])
     val good = tpe(record)
     assertEquals(tpe(good), record)
