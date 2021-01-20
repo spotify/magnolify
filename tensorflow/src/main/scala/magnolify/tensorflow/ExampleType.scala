@@ -23,7 +23,7 @@ import magnolia._
 import magnolify.shared._
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
-import org.tensorflow.example._
+import org.tensorflow.proto.example._
 
 import scala.annotation.implicitNotFound
 import scala.language.experimental.macros

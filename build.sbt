@@ -30,7 +30,7 @@ val munitVersion = "0.7.20"
 val protobufVersion = "3.14.0"
 val refinedVersion = "0.9.17"
 val scalacheckVersion = "1.15.2"
-val tensorflowVersion = "1.15.0"
+val tensorflowVersion = "0.2.0"
 
 val commonSettings = Seq(
   organization := "com.spotify",
@@ -223,7 +223,7 @@ lazy val refined: Project = project
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
       "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Test,
       "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
-      "org.tensorflow" % "proto" % tensorflowVersion % Test
+      "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Test
     )
   )
   .dependsOn(
@@ -330,7 +330,7 @@ lazy val tensorflow: Project = project
     moduleName := "magnolify-tensorflow",
     description := "Magnolia add-on for TensorFlow",
     libraryDependencies ++= Seq(
-      "org.tensorflow" % "proto" % tensorflowVersion % Provided
+      "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Provided
     )
   )
   .dependsOn(
@@ -355,7 +355,7 @@ lazy val jmh: Project = project
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
       "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Test,
       "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
-      "org.tensorflow" % "proto" % tensorflowVersion % Test
+      "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Test
     )
   )
   .dependsOn(
