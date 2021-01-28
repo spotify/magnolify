@@ -18,7 +18,6 @@ package magnolify.avro
 
 import java.nio.ByteBuffer
 import java.time._
-import java.util.UUID
 import java.{util => ju}
 
 import magnolia._
@@ -302,8 +301,8 @@ object AvroField {
       Decimal.fromBytes(_, precision, scale)
     )(Decimal.toBytes(_, precision, scale))
 
-  implicit val afUuid: AvroField[UUID] =
-    logicalType[String](LogicalTypes.uuid())(UUID.fromString)(_.toString)
+  implicit val afUuid: AvroField[ju.UUID] =
+    logicalType[String](LogicalTypes.uuid())(ju.UUID.fromString)(_.toString)
   implicit val afDate: AvroField[LocalDate] =
     logicalType[Int](LogicalTypes.date())(LocalDate.ofEpochDay(_))(_.toEpochDay.toInt)
 }
