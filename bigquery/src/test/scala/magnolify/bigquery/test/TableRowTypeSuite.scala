@@ -30,7 +30,7 @@ import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
 import magnolify.shims.JavaConverters._
 import magnolify.test.Simple._
-import magnolify.test.Time.Java8._
+import magnolify.test.Time._
 import magnolify.test._
 import org.scalacheck._
 

@@ -16,29 +16,27 @@
  */
 package magnolify.test
 
+import java.time._
+
 import cats._
 import cats.instances.all._
 import org.scalacheck._
 
 object Time {
-  object Java8 {
-    import java.time._
+  implicit val arbInstant: Arbitrary[Instant] =
+    Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Instant.ofEpochMilli(_)))
+  implicit val arbLocalDate: Arbitrary[LocalDate] =
+    Arbitrary(Gen.chooseNum(0L, 365L * 100).map(LocalDate.ofEpochDay))
+  implicit val arbLocalTime: Arbitrary[LocalTime] =
+    Arbitrary(arbInstant.arbitrary.map(_.atZone(ZoneOffset.UTC).toLocalTime))
+  implicit val arbLocalDateTime: Arbitrary[LocalDateTime] =
+    Arbitrary(arbInstant.arbitrary.map(_.atZone(ZoneOffset.UTC).toLocalDateTime))
+  implicit val arbOffsetTime: Arbitrary[OffsetTime] =
+    Arbitrary(arbInstant.arbitrary.map(_.atOffset(ZoneOffset.UTC).toOffsetTime))
 
-    implicit val arbInstant: Arbitrary[Instant] =
-      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Instant.ofEpochMilli(_)))
-    implicit val arbLocalDate: Arbitrary[LocalDate] =
-      Arbitrary(Gen.chooseNum(0L, 365L * 100).map(LocalDate.ofEpochDay))
-    implicit val arbLocalTime: Arbitrary[LocalTime] =
-      Arbitrary(arbInstant.arbitrary.map(_.atZone(ZoneOffset.UTC).toLocalTime))
-    implicit val arbLocalDateTime: Arbitrary[LocalDateTime] =
-      Arbitrary(arbInstant.arbitrary.map(_.atZone(ZoneOffset.UTC).toLocalDateTime))
-    implicit val arbOffsetTime: Arbitrary[OffsetTime] =
-      Arbitrary(arbInstant.arbitrary.map(_.atOffset(ZoneOffset.UTC).toOffsetTime))
-
-    implicit val eqInstant: Eq[Instant] = Eq.by(_.toEpochMilli)
-    implicit val eqLocalDate: Eq[LocalDate] = Eq.by(_.toEpochDay)
-    implicit val eqLocalTime: Eq[LocalTime] = Eq.by(_.toNanoOfDay)
-    implicit val eqLocalDateTime: Eq[LocalDateTime] = Eq.by(_.toEpochSecond(ZoneOffset.UTC))
-    implicit val eqOffsetTime: Eq[OffsetTime] = Eq.by(_.toLocalTime.toNanoOfDay)
-  }
+  implicit val eqInstant: Eq[Instant] = Eq.by(_.toEpochMilli)
+  implicit val eqLocalDate: Eq[LocalDate] = Eq.by(_.toEpochDay)
+  implicit val eqLocalTime: Eq[LocalTime] = Eq.by(_.toNanoOfDay)
+  implicit val eqLocalDateTime: Eq[LocalDateTime] = Eq.by(_.toEpochSecond(ZoneOffset.UTC))
+  implicit val eqOffsetTime: Eq[OffsetTime] = Eq.by(_.toLocalTime.toNanoOfDay)
 }
