@@ -17,6 +17,7 @@
 package magnolify.bigtable
 
 import java.nio.ByteBuffer
+import java.util.UUID
 
 import com.google.bigtable.v2.{Cell, Column, Family, Mutation, Row}
 import com.google.bigtable.v2.Mutation.SetCell
@@ -190,6 +191,10 @@ object BigtableField {
   implicit val btfFloat = primitive[Float](java.lang.Float.BYTES)(_.getFloat)(_.putFloat(_))
   implicit val btfDouble = primitive[Double](java.lang.Double.BYTES)(_.getDouble)(_.putDouble(_))
   implicit val btfBoolean = from[Byte](_ == 1)(if (_) 1 else 0)
+  implicit val btfUUID = primitive[UUID](16)(bb => new UUID(bb.getLong, bb.getLong)) { (bb, uuid) =>
+    bb.putLong(uuid.getMostSignificantBits)
+    bb.putLong(uuid.getLeastSignificantBits)
+  }
 
   implicit val btfByteString = new Primitive[ByteString] {
     override def fromByteString(v: ByteString): ByteString = v

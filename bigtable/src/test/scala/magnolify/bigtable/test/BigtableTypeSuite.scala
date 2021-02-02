@@ -18,6 +18,7 @@ package magnolify.bigtable.test
 
 import java.net.URI
 import java.time.Duration
+import java.util.UUID
 
 import cats._
 import com.google.bigtable.v2.Row
@@ -107,7 +108,7 @@ class BigtableTypeSuite extends MagnolifySuite {
 // Collections are not supported
 case class BigtableNested(b: Boolean, i: Int, s: String, r: Required, o: Option[Required])
 
-case class BigtableTypes(b: Byte, c: Char, s: Short, bs: ByteString, ba: Array[Byte])
+case class BigtableTypes(b: Byte, c: Char, s: Short, bs: ByteString, ba: Array[Byte], uu: UUID)
 
 // Collections are not supported
 case class DefaultInner(i: Int = 1, o: Option[Int] = Some(1))
