@@ -17,6 +17,8 @@
 package magnolify.bigtable
 
 import java.nio.ByteBuffer
+import java.util.UUID
+
 import com.google.bigtable.v2.{Cell, Column, Family, Mutation, Row}
 import com.google.bigtable.v2.Mutation.SetCell
 import com.google.protobuf.ByteString
@@ -24,7 +26,6 @@ import magnolia._
 import magnolify.shared._
 import magnolify.shims.JavaConverters._
 
-import java.util.UUID
 import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
 

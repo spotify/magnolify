@@ -18,6 +18,8 @@ package magnolify.bigtable.test
 
 import java.net.URI
 import java.time.Duration
+import java.util.UUID
+
 import cats._
 import com.google.bigtable.v2.Row
 import com.google.protobuf.ByteString
@@ -29,7 +31,6 @@ import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
 
-import java.util.UUID
 import scala.reflect._
 
 class BigtableTypeSuite extends MagnolifySuite {
