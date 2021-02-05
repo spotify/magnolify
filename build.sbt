@@ -25,8 +25,10 @@ val bigtableVersion = "1.19.2"
 val catsVersion = "2.3.1"
 val datastoreVersion = "1.6.3"
 val guavaVersion = "30.1-jre"
+val hadoopVersion = "3.2.1"
 val jacksonVersion = "2.12.1"
 val munitVersion = "0.7.21"
+val parquetVersion = "1.11.0"
 val protobufVersion = "3.14.0"
 val refinedVersion = "0.9.17"
 val scalacheckVersion = "1.15.2"
@@ -132,6 +134,7 @@ lazy val root: Project = project
     bigquery,
     bigtable,
     datastore,
+    parquet,
     protobuf,
     tensorflow,
     test
@@ -301,6 +304,26 @@ lazy val datastore: Project = project
   )
   .dependsOn(
     shared,
+    cats % Test,
+    scalacheck % Test,
+    test % "test->test"
+  )
+
+lazy val parquet: Project = project
+  .in(file("parquet"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-parquet",
+    description := "Magnolia add-on for Apache Parquet",
+    libraryDependencies ++= Seq(
+      "org.apache.parquet" % "parquet-hadoop" % parquetVersion % Provided,
+      "org.apache.hadoop" % "hadoop-client" % hadoopVersion % Provided,
+      "org.apache.parquet" % "parquet-avro" % parquetVersion % Test
+    )
+  )
+  .dependsOn(
+    shared,
+    avro % Test,
     cats % Test,
     scalacheck % Test,
     test % "test->test"

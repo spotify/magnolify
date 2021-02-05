@@ -39,4 +39,15 @@ object Decimal {
     )
     scaled.bigDecimal.unscaledValue().toByteArray
   }
+
+  // See `org.apache.avro.Conversions.DecimalConversions.toFixed`
+  def toFixed(bd: BigDecimal, precision: Int, scale: Int, length: Int): Array[Byte] = {
+    val ba = toBytes(bd, precision, scale)
+    val pad = (if (bd.signum < 0) 0xff else 0x00).toByte
+    val fixed = new Array[Byte](length)
+    val offset = length - ba.length
+    java.util.Arrays.fill(fixed, 0, offset, pad)
+    Array.copy(ba, 0, fixed, offset, length - offset)
+    fixed
+  }
 }
