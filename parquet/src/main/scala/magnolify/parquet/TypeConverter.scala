@@ -41,7 +41,7 @@ private object TypeConverter {
       if (!isRepeated) buffer.clear()
       buffer += value
     }
-    def map[U](f: T => U): TypeConverter[U] = new TypeConverter.Primitive[U] {
+    def map[U](f: T => U): TypeConverter[U] = new Primitive[U] {
       override def get: U = f(self.get)
       override def isPrimitive: Boolean = self.isPrimitive
 

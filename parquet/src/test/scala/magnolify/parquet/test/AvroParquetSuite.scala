@@ -120,7 +120,6 @@ class AvroParquetSuite extends MagnolifySuite {
   {
     import Collections._
     import magnolify.parquet.ParquetArray.AvroCompat._
-
     test[Collections]
     test[MoreCollections]
   }
