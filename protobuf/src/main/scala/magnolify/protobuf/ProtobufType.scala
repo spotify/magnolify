@@ -21,7 +21,7 @@ import java.{util => ju}
 
 import com.google.protobuf.Descriptors.FileDescriptor.Syntax
 import com.google.protobuf.Descriptors.{Descriptor, EnumValueDescriptor, FieldDescriptor}
-import com.google.protobuf.{ByteString, Descriptors, Message, ProtocolMessageEnum}
+import com.google.protobuf.{ByteString, Message, ProtocolMessageEnum}
 import magnolia._
 import magnolify.shared._
 import magnolify.shims.FactoryCompat

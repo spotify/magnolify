@@ -294,7 +294,7 @@ object AvroField {
       }
   }
 
-  // https://avro.apache.org/docs/1.8.2/spec.html#Logical+Types
+  // https://avro.apache.org/docs/current/spec.html#Logical+Types
   // Precision and scale are not encoded in the `BigDecimal` type and must be specified
   def bigDecimal(precision: Int, scale: Int = 0): AvroField[BigDecimal] =
     logicalType[Array[Byte]](LogicalTypes.decimal(precision, scale))(
