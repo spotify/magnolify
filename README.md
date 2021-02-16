@@ -43,7 +43,7 @@ See [avro.md](https://github.com/spotify/magnolify/tree/master/docs/avro.md)
 [bigtable.md](https://github.com/spotify/magnolify/tree/master/docs/bigtable.md)
 [datastore.md](https://github.com/spotify/magnolify/tree/master/docs/datastore.md)
 [protobuf.md](https://github.com/spotify/magnolify/tree/master/docs/protobuf.md)
-[tensorflow.md](https://github.com/spotify/magnolify/tree/master/docs/tensorflow.md) for data type conversions for these libraries. See [parquet.md](https://github.com/spotify/magnolify/tree/master/docs/parquet.md) for Parquet IO support. Also see [enums.md](https://github.com/spotify/magnolify/tree/master/docs/enums.md) for enum types and [refined.md](https://github.com/spotify/magnolify/tree/master/docs/derivation.md) for refinement types support.
+[tensorflow.md](https://github.com/spotify/magnolify/tree/master/docs/tensorflow.md) for data type conversions for these libraries. See [parquet.md](https://github.com/spotify/magnolify/tree/master/docs/parquet.md) for Parquet IO support. Also see [enums.md](https://github.com/spotify/magnolify/tree/master/docs/enums.md) for enum types and [refined.md](https://github.com/spotify/magnolify/tree/master/docs/derivation.md) for refinement types support. Finally see [mapping.md](https://github.com/spotify/magnolify/blob/master/docs/mapping.md) for a mapping table of Scala types supported by conversion and IO modules.
 
 # License
 
