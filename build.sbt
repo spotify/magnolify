@@ -31,7 +31,7 @@ val munitVersion = "0.7.21"
 val parquetVersion = "1.11.1"
 val protobufVersion = "3.14.0"
 val refinedVersion = "0.9.17"
-val scalacheckVersion = "1.15.2"
+val scalacheckVersion = "1.15.3"
 val tensorflowVersion = "0.2.0"
 
 val commonSettings = Seq(
