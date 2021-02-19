@@ -73,7 +73,8 @@ class ProjectionPredicateSuite extends MagnolifySuite {
 
   {
     testProjection[ProjectionSubset](t => ProjectionSubset(t.b1, t.i1, t.s1))
-    testProjection[ProjectionOrdering](t => ProjectionOrdering(t.s1, t.i1, t.b1))
+    testProjection[ProjectionOrdering1](t => ProjectionOrdering1(t.s1, t.i1, t.b1))
+    testProjection[ProjectionOrdering2](t => ProjectionOrdering2(t.b2, t.b1, t.i2, t.i1))
     testProjection[ProjectionRepetition](t => ProjectionRepetition(Some(t.s1), t.o.toList, t.r))
     testProjection[ProjectionLogical](t => ProjectionLogical(t.i.toEpochMilli))
   }
@@ -184,6 +185,7 @@ case class Wide(
   i: Instant
 )
 case class ProjectionSubset(b1: Boolean, i1: Int, s1: String)
-case class ProjectionOrdering(s1: String, i1: Int, b1: Boolean)
+case class ProjectionOrdering1(s1: String, i1: Int, b1: Boolean)
+case class ProjectionOrdering2(b2: Boolean, b1: Boolean, i2: Int, i1: Int)
 case class ProjectionRepetition(s1: Option[String], o: List[Int], r: List[Int])
 case class ProjectionLogical(i: Long)
