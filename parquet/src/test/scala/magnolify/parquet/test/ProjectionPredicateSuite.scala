@@ -150,6 +150,26 @@ class ProjectionPredicateSuite extends MagnolifySuite {
     val eSubset2 = eMulti.map(t => ProjectionSubset(t.b1, t.i1, t.s1))
     testPredicate[ProjectionSubset]("subset2", pSubset2, eSubset2)
   }
+
+  private def testBadPredicate(name: String, predicate: FilterPredicate): Unit =
+    test(s"BadPredicate.$name") {
+      val pt = ParquetType[Wide]
+      val in = new TestInputFile(bytes)
+      val reader = pt.readBuilder(in).withFilter(FilterCompat.get(predicate)).build()
+      intercept[IllegalArgumentException](reader.read())
+    }
+
+  {
+    // FIXME: Parquet does not validate non-existent fields
+    // val badName = FilterApi.eq(FilterApi.intColumn("i3"), jl.Integer.valueOf(0))
+    // testBadPredicate[Wide]("name", badName)
+
+    val badType = FilterApi.eq(FilterApi.intColumn("b1"), jl.Integer.valueOf(0))
+    testBadPredicate("type", badType)
+
+    val badRepetition = FilterApi.eq(FilterApi.intColumn("r"), jl.Integer.valueOf(0))
+    testBadPredicate("repetition", badRepetition)
+  }
 }
 
 case class Wide(
