@@ -118,14 +118,12 @@ object ParquetType {
       keyValueMetaData: java.util.Map[String, String],
       fileSchema: MessageType,
       readContext: hadoop.ReadSupport.ReadContext
-    ): RecordMaterializer[T] = {
-      parquetType.schema
+    ): RecordMaterializer[T] =
       new RecordMaterializer[T] {
         private val root = parquetType.newConverter
         override def getCurrentRecord: T = root.get
         override def getRootConverter: GroupConverter = root.asGroupConverter()
       }
-    }
   }
 
   class WriteSupport[T](private var parquetType: ParquetType[T]) extends hadoop.WriteSupport[T] {
