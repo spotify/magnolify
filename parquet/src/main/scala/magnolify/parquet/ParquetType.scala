@@ -110,6 +110,7 @@ object ParquetType {
         parquetType = SerializationUtils.fromBase64(context.getConfiguration.get(ReadTypeKey))
       }
       val requestedSchema = Schema.message(parquetType.schema)
+      context.getFileSchema.checkContains(requestedSchema)
       new hadoop.ReadSupport.ReadContext(requestedSchema, java.util.Collections.emptyMap())
     }
 
