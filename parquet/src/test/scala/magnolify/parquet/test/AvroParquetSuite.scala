@@ -36,6 +36,7 @@ import org.apache.parquet.avro.{
   AvroParquetReader,
   AvroParquetWriter,
   AvroReadSupport,
+  AvroSchemaConverter,
   GenericDataSupplier
 }
 import org.scalacheck._
@@ -85,6 +86,14 @@ class AvroParquetSuite extends MagnolifySuite {
         reader.close()
         Prop.all(eq.eqv(t, at(copy)), next == null)
       }
+    }
+
+    test(s"$name.schema") {
+      val converter = new AvroSchemaConverter()
+      val avro = converter.convert(at.schema)
+      val parquet = pt.schema
+      parquet.checkContains(avro)
+      avro.checkContains(parquet)
     }
   }
 

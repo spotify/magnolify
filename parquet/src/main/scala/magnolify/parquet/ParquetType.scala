@@ -53,7 +53,7 @@ object ParquetArray {
 sealed trait ParquetType[T] extends Serializable { self =>
   import ParquetType._
 
-  def schema: Type
+  def schema: MessageType
 
   def setupInput(job: Job): Unit = {
     job.setInputFormatClass(classOf[ParquetInputFormat[T]])
@@ -83,7 +83,7 @@ object ParquetType {
 
   def apply[T](cm: CaseMapper)(implicit f: ParquetField.Record[T]): ParquetType[T] =
     new ParquetType[T] {
-      override def schema: Type = f.schema(cm)
+      override def schema: MessageType = Schema.message(f.schema(cm))
       override def write(c: RecordConsumer, v: T): Unit = f.write(c, v)(cm)
       override def newConverter: TypeConverter[T] = f.newConverter
     }
