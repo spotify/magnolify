@@ -20,17 +20,12 @@ import java.nio.{ByteBuffer, ByteOrder}
 import java.time.LocalDate
 import java.util.UUID
 import magnolia._
+import magnolify.parquet.ParquetArray.{AvroCompat, AvroCompatNew}
 import magnolify.shared.{Converter => _, _}
 import magnolify.shims._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.mapreduce.Job
-import org.apache.parquet.hadoop.{
-  ParquetInputFormat,
-  ParquetOutputFormat,
-  ParquetReader,
-  ParquetWriter,
-  api => hadoop
-}
+import org.apache.parquet.hadoop.{ParquetInputFormat, ParquetOutputFormat, ParquetReader, ParquetWriter, api => hadoop}
 import org.apache.parquet.io.api._
 import org.apache.parquet.io.{InputFile, OutputFile, ParquetDecodingException}
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
@@ -47,6 +42,10 @@ object ParquetArray {
 
   object AvroCompat {
     implicit case object avroCompat extends ParquetArray
+  }
+
+  object AvroCompatNew {
+    implicit case object avroCompatNew extends ParquetArray
   }
 }
 
@@ -336,38 +335,58 @@ object ParquetField {
     fc: FactoryCompat[T, C[T]],
     pa: ParquetArray
   ): ParquetField[C[T]] = {
-    val isAvro = pa match {
-      case ParquetArray.default               => false
-      case ParquetArray.AvroCompat.avroCompat => true
+    val (isAvro, oldAvro) = pa match {
+      case ParquetArray.default               => (false, true)
+      case ParquetArray.AvroCompat.avroCompat => (true, true)
+      case ParquetArray.AvroCompatNew.avroCompatNew => (true, false)
     }
 
     new ParquetField[C[T]] {
-      private val avroArrayField = "array"
-
       override def schema(cm: CaseMapper): Type = {
-        val repeatedSchema = Schema.setRepetition(t.schema(cm), Repetition.REPEATED)
-        if (isAvro) {
-          Types
-            .requiredGroup()
-            .addField(Schema.rename(repeatedSchema, avroArrayField))
-            .as(LogicalTypeAnnotation.listType())
-            .named(t.schema(cm).getName)
-        } else {
-          repeatedSchema
+        val schema = t.schema(cm)
+        pa match {
+          case ParquetArray.default =>
+            Schema.setRepetition(schema, Repetition.REPEATED)
+          case AvroCompat.avroCompat =>
+            val repeatedSchema = Schema.setRepetition(schema, Repetition.REPEATED)
+            Types
+              .requiredGroup()
+              .addField(Schema.rename(repeatedSchema, "array"))
+              .as(LogicalTypeAnnotation.listType())
+              .named(schema.getName)
+          case AvroCompatNew.avroCompatNew =>
+            val list = Types.repeatedGroup()
+              .addField(Schema.rename(schema, "element"))
+              .named("list")
+            Types
+              .requiredGroup()
+              .addField(list)
+              .as(LogicalTypeAnnotation.listType())
+              .named(schema.getName)
         }
       }
 
       override protected val isGroup: Boolean = isAvro
       override protected def isEmpty(v: C[T]): Boolean = v.isEmpty
 
-      override def write(c: RecordConsumer, v: C[T])(cm: CaseMapper): Unit =
-        if (isAvro) {
-          c.startField(avroArrayField, 0)
-          v.foreach(t.writeGroup(c, _)(cm))
-          c.endField(avroArrayField, 0)
-        } else {
-          v.foreach(t.writeGroup(c, _)(cm))
+      override def write(c: RecordConsumer, v: C[T])(cm: CaseMapper): Unit = {
+        pa match {
+          case ParquetArray.default =>
+            v.foreach(t.writeGroup(c, _)(cm))
+          case AvroCompat.avroCompat =>
+            c.startField("array", 0)
+            v.foreach(t.writeGroup(c, _)(cm))
+            c.endField("array", 0)
+          case AvroCompatNew.avroCompatNew =>
+            c.startField("list", 0)
+            v.foreach { x: T =>
+              c.startField("element", 0)
+              t.writeGroup(c, x)(cm)
+              c.endField("element", 0)
+            }
+            c.endField("list", 0)
         }
+      }
 
       override def newConverter: TypeConverter[C[T]] = {
         val buffered = t.newConverter.asInstanceOf[TypeConverter.Buffered[T]]
@@ -379,17 +398,34 @@ object ParquetField {
             v
           }
         }
-        if (isAvro) {
-          new GroupConverter with TypeConverter.Buffered[C[T]] {
-            override def getConverter(fieldIndex: Int): Converter = {
-              require(fieldIndex == 0, "Avro array field index != 0")
-              arrayConverter
+        pa match {
+          case ParquetArray.default =>
+            arrayConverter
+          case AvroCompat.avroCompat =>
+            new GroupConverter with TypeConverter.Buffered[C[T]] {
+              override def getConverter(fieldIndex: Int): Converter = {
+                require(fieldIndex == 0, "Avro array field index != 0")
+                arrayConverter
+              }
+              override def start(): Unit = ()
+              override def end(): Unit = buffer += arrayConverter.get
             }
-            override def start(): Unit = ()
-            override def end(): Unit = buffer += arrayConverter.get
-          }
-        } else {
-          arrayConverter
+          case AvroCompatNew.avroCompatNew =>
+            new GroupConverter with TypeConverter.Buffered[C[T]] {
+              override def getConverter(fieldIndex: Int): Converter = {
+                require(fieldIndex == 0, "Avro list field index != 0")
+                new GroupConverter {
+                  override def getConverter(fieldIndex: Int): Converter = {
+                    require(fieldIndex == 0, "Avro element field index != 0")
+                    arrayConverter
+                  }
+                  override def start(): Unit = ()
+                  override def end(): Unit = ()
+                }
+              }
+              override def start(): Unit = ()
+              override def end(): Unit = buffer += arrayConverter.get
+            }
         }
       }
     }

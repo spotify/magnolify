@@ -17,11 +17,11 @@
 package magnolify.parquet.test
 
 import java.time._
-
 import cats._
 import magnolify.cats.auto._
 import magnolify.avro._
 import magnolify.avro.unsafe._
+import magnolify.parquet.ParquetArray.{AvroCompat, AvroCompatNew}
 import magnolify.parquet._
 import magnolify.parquet.unsafe._
 import magnolify.scalacheck.auto._
@@ -32,13 +32,8 @@ import magnolify.test.Time._
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.hadoop.conf.Configuration
-import org.apache.parquet.avro.{
-  AvroParquetReader,
-  AvroParquetWriter,
-  AvroReadSupport,
-  AvroSchemaConverter,
-  GenericDataSupplier
-}
+import org.apache.parquet.avro.{AvroParquetReader, AvroParquetWriter, AvroReadSupport, AvroSchemaConverter, AvroWriteSupport, GenericDataSupplier}
+import org.apache.parquet.hadoop.ParquetFileReader
 import org.scalacheck._
 
 import scala.reflect.ClassTag
@@ -47,7 +42,8 @@ class AvroParquetSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit
     at: AvroType[T],
     pt: ParquetType[T],
-    eq: Eq[T]
+    eq: Eq[T],
+    pa: ParquetArray
   ): Unit = {
     val name = className[T]
 
@@ -56,11 +52,23 @@ class AvroParquetSuite extends MagnolifySuite {
         val r = at(t)
 
         val out = new TestOutputFile
-        val writer = AvroParquetWriter.builder[GenericRecord](out).withSchema(at.schema).build()
+        val conf = new Configuration()
+        pa match {
+          case ParquetArray.default =>
+          case AvroCompat.avroCompat =>
+            conf.setBoolean(AvroWriteSupport.WRITE_OLD_LIST_STRUCTURE, true)
+          case AvroCompatNew.avroCompatNew =>
+            conf.setBoolean(AvroWriteSupport.WRITE_OLD_LIST_STRUCTURE, false)
+        }
+        val writer = AvroParquetWriter.builder[GenericRecord](out)
+          .withSchema(at.schema)
+          .withConf(conf)
+          .build()
         writer.write(r)
         writer.close()
 
         val in = new TestInputFile(out.getBytes)
+        println(ParquetFileReader.open(in).getFileMetaData.getSchema)
         val reader = pt.readBuilder(in).build()
         val copy = reader.read()
         val next = reader.read()
@@ -77,6 +85,7 @@ class AvroParquetSuite extends MagnolifySuite {
         writer.close()
 
         val in = new TestInputFile(out.getBytes)
+//        println(ParquetFileReader.open(in).getFileMetaData.getSchema)
         val conf = new Configuration()
         AvroReadSupport.setAvroDataSupplier(conf, classOf[GenericDataSupplier])
         val reader = AvroParquetReader.builder[GenericRecord](in).withConf(conf).build()
@@ -84,6 +93,8 @@ class AvroParquetSuite extends MagnolifySuite {
         val copy = reader.read()
         val next = reader.read()
         reader.close()
+        println(t)
+        println(copy)
         Prop.all(eq.eqv(t, at(copy)), next == null)
       }
     }
@@ -97,59 +108,65 @@ class AvroParquetSuite extends MagnolifySuite {
     }
   }
 
-  test[Integers]
-  test[Floats]
-  test[Required]
-  test[Nullable]
+//  test[Integers]
+//  test[Floats]
+//  test[Required]
+//  test[Nullable]
+
+//  {
+//    import magnolify.parquet.ParquetArray.AvroCompat._
+//    test[Repeated]
+//    test[Nested]
+//  }
 
   {
-    import magnolify.parquet.ParquetArray.AvroCompat._
+    import magnolify.parquet.ParquetArray.AvroCompatNew._
     test[Repeated]
-    test[Nested]
+//    test[Nested]
   }
 
-  test[Unsafe]
-
-  {
-    import Collections._
-    import magnolify.parquet.ParquetArray.AvroCompat._
-    test[Collections]
-    test[MoreCollections]
-  }
-
-  {
-    import Enums._
-    test[Enums]
-  }
-
-  {
-    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
-    test[ParquetTypes]
-  }
-
-  {
-    import magnolify.avro.logical.bigquery._
-    // Precision = number of digits, so 5 means -99999 to 99999
-    val nines = math.pow(10, 38).toLong - 1
-    implicit val arbBigDecimal: Arbitrary[BigDecimal] =
-      Arbitrary(Gen.choose(-nines, nines).map(BigDecimal(_)))
-    implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimalBinary(38, 9)
-    test[DecimalBinary]
-  }
-
-  test[AvroParquetLogical]
-
-  {
-    import magnolify.avro.logical.millis._
-    import magnolify.parquet.logical.millis._
-    test[AvroParquetTimeMillis]
-  }
-
-  {
-    import magnolify.avro.logical.micros._
-    import magnolify.parquet.logical.micros._
-    test[AvroParquetTimeMicros]
-  }
+//  test[Unsafe]
+//
+//  {
+//    import Collections._
+//    import magnolify.parquet.ParquetArray.AvroCompat._
+//    test[Collections]
+//    test[MoreCollections]
+//  }
+//
+//  {
+//    import Enums._
+//    test[Enums]
+//  }
+//
+//  {
+//    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
+//    test[ParquetTypes]
+//  }
+//
+//  {
+//    import magnolify.avro.logical.bigquery._
+//    // Precision = number of digits, so 5 means -99999 to 99999
+//    val nines = math.pow(10, 38).toLong - 1
+//    implicit val arbBigDecimal: Arbitrary[BigDecimal] =
+//      Arbitrary(Gen.choose(-nines, nines).map(BigDecimal(_)))
+//    implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimalBinary(38, 9)
+//    test[DecimalBinary]
+//  }
+//
+//  test[AvroParquetLogical]
+//
+//  {
+//    import magnolify.avro.logical.millis._
+//    import magnolify.parquet.logical.millis._
+//    test[AvroParquetTimeMillis]
+//  }
+//
+//  {
+//    import magnolify.avro.logical.micros._
+//    import magnolify.parquet.logical.micros._
+//    test[AvroParquetTimeMicros]
+//  }
 }
 
 case class AvroParquetLogical(d: LocalDate)
