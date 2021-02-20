@@ -36,6 +36,7 @@ private object Schema {
         .getFields
         .asScala
         .foldLeft(Types.buildGroup(schema.getRepetition))(_.addField(_))
+        .as(schema.getLogicalTypeAnnotation)
         .named(name)
     }
   }
