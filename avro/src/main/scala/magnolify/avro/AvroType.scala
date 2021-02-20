@@ -206,7 +206,8 @@ object AvroField {
   implicit def afEnum[T](implicit et: EnumType[T]): AvroField[T] =
     new AvroField[T] {
       // Avro 1.9+ added a type parameter for `GenericEnumSymbol`, breaking 1.8 compatibility
-      override type FromT = GenericContainer
+      // Some reader, i.e. `AvroParquetReader` reads enums as `Utf8`
+      override type FromT = AnyRef
       override type ToT = EnumSymbol
 
       override protected def schemaString(cm: CaseMapper): String = {
