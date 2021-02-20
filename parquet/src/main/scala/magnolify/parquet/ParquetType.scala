@@ -350,6 +350,7 @@ object ParquetField {
           Types
             .requiredGroup()
             .addField(Schema.rename(repeatedSchema, avroArrayField))
+            .as(LogicalTypeAnnotation.listType())
             .named(t.schema(cm).getName)
         } else {
           repeatedSchema
