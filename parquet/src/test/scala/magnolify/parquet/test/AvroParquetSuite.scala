@@ -32,7 +32,12 @@ import magnolify.test.Time._
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.hadoop.conf.Configuration
-import org.apache.parquet.avro.{AvroParquetReader, AvroParquetWriter, AvroReadSupport}
+import org.apache.parquet.avro.{
+  AvroParquetReader,
+  AvroParquetWriter,
+  AvroReadSupport,
+  GenericDataSupplier
+}
 import org.scalacheck._
 
 import scala.reflect.ClassTag
@@ -44,8 +49,6 @@ class AvroParquetSuite extends MagnolifySuite {
     eq: Eq[T]
   ): Unit = {
     val name = className[T]
-    val conf = new Configuration()
-    AvroReadSupport.setAvroReadSchema(conf, shade(at.schema))
 
     property(s"$name.avro2parquet") {
       Prop.forAll { t: T =>
@@ -73,6 +76,8 @@ class AvroParquetSuite extends MagnolifySuite {
         writer.close()
 
         val in = new TestInputFile(out.getBytes)
+        val conf = new Configuration()
+        AvroReadSupport.setAvroDataSupplier(conf, classOf[GenericDataSupplier])
         val reader = AvroParquetReader.builder[GenericRecord](in).withConf(conf).build()
 
         val copy = reader.read()
@@ -81,27 +86,6 @@ class AvroParquetSuite extends MagnolifySuite {
         Prop.all(eq.eqv(t, at(copy)), next == null)
       }
     }
-  }
-
-  // Shade namespaces to prevent reader from confusing case classes as specific records
-  // E.g. java.lang.NoSuchMethodException: magnolify.test.Simple$Integers.<init>()
-  private def shade(schema: Schema): Schema = schema.getType match {
-    case Schema.Type.RECORD =>
-      val fields = schema.getFields.asScala.map { f =>
-        new Schema.Field(f.name(), shade(f.schema()), f.doc(), f.defaultVal())
-      }.asJava
-      val ns = "shaded." + schema.getNamespace
-      Schema.createRecord(schema.getName, schema.getDoc, ns, false, fields)
-    case Schema.Type.ENUM =>
-      val ns = "shaded." + schema.getNamespace
-      Schema.createEnum(schema.getName, schema.getDoc, ns, schema.getEnumSymbols)
-    case Schema.Type.ARRAY =>
-      Schema.createArray(shade(schema.getElementType))
-    case Schema.Type.MAP =>
-      Schema.createMap(shade(schema.getValueType))
-    case Schema.Type.UNION =>
-      Schema.createUnion(schema.getTypes.asScala.map(shade).asJava)
-    case _ => schema
   }
 
   test[Integers]
