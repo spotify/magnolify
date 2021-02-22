@@ -17,9 +17,10 @@
 package magnolify.parquet
 
 import magnolify.shims.JavaConverters._
+import org.apache.parquet.io.InvalidRecordException
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 import org.apache.parquet.schema.Type.Repetition
-import org.apache.parquet.schema.{LogicalTypeAnnotation, MessageType, Type, Types}
+import org.apache.parquet.schema.{GroupType, LogicalTypeAnnotation, MessageType, Type, Types}
 
 private object Schema {
   def rename(schema: Type, name: String): Type = {
@@ -73,5 +74,35 @@ private object Schema {
     val builder = Types.buildMessage()
     schema.asGroupType().getFields.asScala.foreach(builder.addField)
     builder.named(schema.getName)
+  }
+
+  def pruneRequested(fileSchema: MessageType, requestedSchema: MessageType): MessageType = {
+    def prune(file: GroupType, requested: GroupType): Type = {
+      val filtered = requested.getFields.asScala
+        .flatMap { rf =>
+          if (file.containsField(rf.getName)) {
+            val idx = file.getFieldIndex(rf.getName)
+            val ff = file.getFields.get(idx)
+            if (ff.isPrimitive != rf.isPrimitive) {
+              throw new InvalidRecordException(
+                s"Incompatible field ${rf.getName}, file schema: $ff, requested schema: $rf"
+              )
+            }
+            if (ff.isPrimitive) Some(rf) else Some(prune(ff.asGroupType(), rf.asGroupType()))
+          } else {
+            if (rf.getRepetition != Repetition.OPTIONAL) {
+              throw new InvalidRecordException(
+                s"${rf.getRepetition} field ${rf.getName} missing in file schema"
+              )
+            }
+            None
+          }
+        }
+      filtered
+        .foldLeft(Types.buildGroup(requested.getRepetition))(_.addField(_))
+        .named(requested.getName)
+    }
+
+    message(prune(fileSchema, requestedSchema))
   }
 }

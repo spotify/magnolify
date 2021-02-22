@@ -110,8 +110,9 @@ object ParquetType {
         parquetType = SerializationUtils.fromBase64(context.getConfiguration.get(ReadTypeKey))
       }
       val requestedSchema = Schema.message(parquetType.schema)
-      context.getFileSchema.checkContains(requestedSchema)
-      new hadoop.ReadSupport.ReadContext(requestedSchema, java.util.Collections.emptyMap())
+      val pruned = Schema.pruneRequested(context.getFileSchema, requestedSchema)
+      context.getFileSchema.checkContains(pruned)
+      new hadoop.ReadSupport.ReadContext(pruned, java.util.Collections.emptyMap())
     }
 
     override def prepareForRead(
