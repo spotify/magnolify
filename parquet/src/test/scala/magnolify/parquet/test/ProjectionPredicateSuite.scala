@@ -28,6 +28,7 @@ import magnolify.test.Time._
 import org.apache.parquet.filter2.compat.FilterCompat
 import org.apache.parquet.filter2.predicate.{FilterApi, FilterPredicate}
 import org.apache.parquet.io.InvalidRecordException
+import org.apache.parquet.io.api.Binary
 
 import scala.reflect.ClassTag
 
@@ -43,7 +44,8 @@ class ProjectionPredicateSuite extends MagnolifySuite {
       j.toString,
       if (i % 2 == 0) Some(i) else None,
       (1 to i).toList,
-      Instant.ofEpochMilli(i)
+      Instant.ofEpochMilli(i),
+      WideInner(s"s$i", if (i % 2 == 0) Some(s"o$i") else None, (1 to i).map("r" + _).toList)
     )
   }
 
@@ -73,7 +75,10 @@ class ProjectionPredicateSuite extends MagnolifySuite {
     }
 
   {
-    testProjection[ProjectionSubset](t => ProjectionSubset(t.b1, t.i1, t.s1))
+    testProjection[ProjectionNested1](t => ProjectionNested1(t.s1, ProjectionInner1(t.inner.s)))
+    testProjection[ProjectionNested2](t => ProjectionNested2(t.s1, ProjectionInner2(t.inner.o)))
+    testProjection[ProjectionNested3](t => ProjectionNested3(t.s1, ProjectionInner3(t.inner.r)))
+    testProjection[ProjectionSubset](t => ProjectionSubset(t.b1, t.i1, t.s1, t.inner))
     testProjection[ProjectionOrdering1](t => ProjectionOrdering1(t.s1, t.i1, t.b1))
     testProjection[ProjectionOrdering2](t => ProjectionOrdering2(t.b2, t.b1, t.i2, t.i1))
     testProjection[ProjectionLogical](t => ProjectionLogical(t.i.toEpochMilli))
@@ -155,18 +160,26 @@ class ProjectionPredicateSuite extends MagnolifySuite {
     val eOpt1 = records.filter(_.o.exists(_ >= 10))
     testPredicate[Wide]("opt1", pOpt1, eOpt1)
 
-    // Predicate on missing REQUIRED field
+    // Predicate on missing OPTIONAL field
     val pOpt2 = FilterApi.eq(FilterApi.intColumn("o"), jl.Integer.valueOf(15))
     val eOpt2 = records.filter(_.o.contains(15))
     testPredicate[Wide]("opt2", pOpt2, eOpt2)
 
+    val eInner1 = FilterApi.eq(FilterApi.binaryColumn("inner.s"), Binary.fromString("s50"))
+    val oInner1 = records.filter(_.inner.s == "s50")
+    testPredicate[Wide]("inner1", eInner1, oInner1)
+
+    val eInner2 = FilterApi.eq(FilterApi.binaryColumn("inner.o"), Binary.fromString("o50"))
+    val oInner2 = records.filter(_.inner.o.contains("o50"))
+    testPredicate[Wide]("inner2", eInner2, oInner2)
+
     val pSubset1 = pLtEq
-    val eSubset1 = eLtEq.map(t => ProjectionSubset(t.b1, t.i1, t.s1))
+    val eSubset1 = eLtEq.map(t => ProjectionSubset(t.b1, t.i1, t.s1, t.inner))
     testPredicate[ProjectionSubset]("subset1", pSubset1, eSubset1)
 
     // Predicate on field not in projection
     val pSubset2 = pMulti
-    val eSubset2 = eMulti.map(t => ProjectionSubset(t.b1, t.i1, t.s1))
+    val eSubset2 = eMulti.map(t => ProjectionSubset(t.b1, t.i1, t.s1, t.inner))
     testPredicate[ProjectionSubset]("subset2", pSubset2, eSubset2)
   }
 
@@ -191,6 +204,7 @@ class ProjectionPredicateSuite extends MagnolifySuite {
   }
 }
 
+case class WideInner(s: String, o: Option[String], r: List[String])
 case class Wide(
   b1: Boolean,
   b2: Boolean,
@@ -200,9 +214,18 @@ case class Wide(
   s2: String,
   o: Option[Int],
   r: List[Int],
-  i: Instant
+  i: Instant,
+  inner: WideInner
 )
-case class ProjectionSubset(b1: Boolean, i1: Int, s1: String)
+
+case class ProjectionInner1(s: String)
+case class ProjectionInner2(o: Option[String])
+case class ProjectionInner3(r: List[String])
+case class ProjectionNested1(s1: String, inner: ProjectionInner1)
+case class ProjectionNested2(s1: String, inner: ProjectionInner2)
+case class ProjectionNested3(s1: String, inner: ProjectionInner3)
+
+case class ProjectionSubset(b1: Boolean, i1: Int, s1: String, inner: WideInner)
 case class ProjectionOrdering1(s1: String, i1: Int, b1: Boolean)
 case class ProjectionOrdering2(b2: Boolean, b1: Boolean, i2: Int, i1: Int)
 case class ProjectionLogical(i: Long)
