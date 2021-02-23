@@ -32,6 +32,7 @@ val parquetVersion = "1.11.1"
 val protobufVersion = "3.15.1"
 val refinedVersion = "0.9.17"
 val scalacheckVersion = "1.15.3"
+val shapelessVersion = "2.3.3"
 val tensorflowVersion = "0.2.0"
 
 val commonSettings = Seq(
@@ -45,6 +46,7 @@ val commonSettings = Seq(
   }),
   libraryDependencies ++= Seq(
     "com.propensive" %% "magnolia" % magnoliaVersion,
+    "com.chuusai" %% "shapeless" % shapelessVersion,
     "org.scala-lang" % "scala-reflect" % scalaVersion.value
   ),
   testFrameworks += new TestFramework("munit.Framework"),
