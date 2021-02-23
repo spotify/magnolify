@@ -41,7 +41,17 @@ object Simple {
   )
   case class Collections(a: Array[Int], l: List[Int], v: Vector[Int])
   case class MoreCollections(i: Iterable[Int], s: Seq[Int], is: IndexedSeq[Int])
-  case class Enums(j: JavaEnums.Color, s: ScalaEnums.Color.Type, a: ADT.Color)
+  case class Enums(
+    j: JavaEnums.Color,
+    s: ScalaEnums.Color.Type,
+    a: ADT.Color,
+    jo: Option[JavaEnums.Color],
+    so: Option[ScalaEnums.Color.Type],
+    ao: Option[ADT.Color],
+    jr: List[JavaEnums.Color],
+    sr: List[ScalaEnums.Color.Type],
+    ar: List[ADT.Color]
+  )
   case class Custom(u: URI, d: Duration)
 
   case class LowerCamel(firstField: String, secondField: String, innerField: LowerCamelInner)

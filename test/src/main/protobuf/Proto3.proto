@@ -60,6 +60,12 @@ message EnumsP3 {
     JavaEnums j = 1;
     ScalaEnums s = 2; // Enumeration
     ScalaEnums a = 3; // ADT
+    JavaEnums jo = 4;
+    ScalaEnums so = 5; // Enumeration
+    ScalaEnums ao = 6; // ADT
+    repeated JavaEnums jr = 7;
+    repeated ScalaEnums sr = 8; // Enumeration
+    repeated ScalaEnums ar = 9; // ADT
 }
 
 message CustomP3 {

@@ -24,10 +24,12 @@ import magnolify.avro._
 import magnolify.avro.unsafe._
 import magnolify.parquet._
 import magnolify.parquet.unsafe._
+import magnolify.parquet.ParquetArray.AvroCompat._
 import magnolify.scalacheck.auto._
 import magnolify.shims.JavaConverters._
 import magnolify.test._
 import magnolify.test.Simple._
+
 import magnolify.test.Time._
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
@@ -103,7 +105,6 @@ class AvroParquetSuite extends MagnolifySuite {
   test[Nullable]
 
   {
-    import magnolify.parquet.ParquetArray.AvroCompat._
     test[Repeated]
     test[Nested]
   }
@@ -112,7 +113,6 @@ class AvroParquetSuite extends MagnolifySuite {
 
   {
     import Collections._
-    import magnolify.parquet.ParquetArray.AvroCompat._
     test[Collections]
     test[MoreCollections]
   }

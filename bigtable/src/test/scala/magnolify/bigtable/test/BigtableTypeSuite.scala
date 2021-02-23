@@ -59,7 +59,7 @@ class BigtableTypeSuite extends MagnolifySuite {
 
   {
     import Enums._
-    test[Enums]
+    test[BigtableEnums]
   }
 
   {
@@ -106,6 +106,14 @@ class BigtableTypeSuite extends MagnolifySuite {
 }
 
 // Collections are not supported
+case class BigtableEnums(
+  j: JavaEnums.Color,
+  s: ScalaEnums.Color.Type,
+  a: ADT.Color,
+  jo: Option[JavaEnums.Color],
+  so: Option[ScalaEnums.Color.Type],
+  ao: Option[ADT.Color]
+)
 case class BigtableNested(b: Boolean, i: Int, s: String, r: Required, o: Option[Required])
 
 case class BigtableTypes(b: Byte, c: Char, s: Short, bs: ByteString, ba: Array[Byte], uu: UUID)

@@ -113,7 +113,19 @@ class ProtobufTypeSuite extends MagnolifySuite {
   {
     import Enums._
     import Proto3Enums._
-    test[Enums, EnumsP3]
+    import magnolify.protobuf.unsafe.Proto3Option._
+    val eq: Eq[Enums] = Eq.by(e =>
+      (
+        e.j,
+        e.s,
+        e.a,
+        e.jo.getOrElse(JavaEnums.Color.RED),
+        e.so.getOrElse(ScalaEnums.Color.Red),
+        e.ao.getOrElse(ADT.Red)
+      )
+    )
+    val arb: Arbitrary[Enums] = implicitly[Arbitrary[Enums]]
+    test(classTag[Enums], arb, classTag[EnumsP3], ProtobufType[Enums, EnumsP3], eq)
   }
 
   {
