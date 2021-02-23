@@ -24,5 +24,6 @@ package object unsafe {
   implicit val trfShort = TableRowField.from[Long](_.toShort)(_.toLong)
   implicit val trfInt = TableRowField.from[Long](_.toInt)(_.toLong)
   implicit val trfFloat = TableRowField.from[Double](_.toFloat)(_.toDouble)
-  implicit def trfEnum[T](implicit et: EnumType[T]) = TableRowField.from[String](et.from)(et.to)
+  implicit def trfEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority) =
+    TableRowField.from[String](et.from)(et.to)
 }
