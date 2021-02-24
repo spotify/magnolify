@@ -17,41 +17,39 @@
 package magnolify.parquet
 
 import org.apache.parquet.io.api.{Binary, Converter, GroupConverter, PrimitiveConverter}
+import org.apache.parquet.schema.Type.Repetition
 
 import scala.collection.mutable
 
-sealed trait TypeConverter[T] extends Converter { self =>
+sealed trait TypeConverter[T] extends Converter {
   def get: T
 }
 
 private object TypeConverter {
   trait Buffered[T] extends TypeConverter[T] {
-    var isRepeated: Boolean = false
-    val buffer: mutable.Buffer[T] = mutable.Buffer.empty
-    override def get: T = {
-      require(buffer.size == 1, "Required field size != 1: " + buffer.size)
-      val v = buffer.head
-      buffer.clear()
-      v
-    }
-  }
+    private val buffer: mutable.Buffer[T] = mutable.Buffer.empty
+    private var _repetition: Repetition = Repetition.REQUIRED
+    def repetition: Repetition = _repetition
 
-  abstract class Primitive[T] extends PrimitiveConverter with Buffered[T] { self =>
-    protected def addValue(value: T): Unit = {
-      if (!isRepeated) buffer.clear()
+    override def get: T = get { b =>
+      require(b.size == 1, "Required field size != 1: " + buffer.size)
+      b.head
+    }
+
+    def get[R](f: mutable.Buffer[T] => R): R = {
+      val r = f(buffer)
+      buffer.clear()
+      r
+    }
+
+    def addValue(value: T): Unit = {
+      if (repetition != Repetition.REPEATED) buffer.clear()
       buffer += value
     }
-    def map[U](f: T => U): TypeConverter[U] = new Primitive[U] {
-      override def get: U = f(self.get)
-      override def isPrimitive: Boolean = self.isPrimitive
 
-      // We don't know which method was overridden, delegate all
-      override def addBinary(value: Binary): Unit = self.addBinary(value)
-      override def addBoolean(value: Boolean): Unit = self.addBoolean(value)
-      override def addDouble(value: Double): Unit = self.addDouble(value)
-      override def addFloat(value: Float): Unit = self.addFloat(value)
-      override def addInt(value: Int): Unit = self.addInt(value)
-      override def addLong(value: Long): Unit = self.addLong(value)
+    def withRepetition(repetition: Repetition): Buffered[T] = {
+      _repetition = repetition
+      this
     }
   }
 
@@ -64,6 +62,27 @@ private object TypeConverter {
     override def asGroupConverter(): GroupConverter = {
       require(!isPrimitive)
       inner.asGroupConverter()
+    }
+  }
+
+  abstract class Primitive[T] extends PrimitiveConverter with Buffered[T] { self =>
+    def map[U](f: T => U): TypeConverter[U] = new Primitive[U] {
+      override def repetition: Repetition = self.repetition
+      override def get: U = f(self.get)
+      override def get[R](g: mutable.Buffer[U] => R): R = self.get(b => g(b.map(f)))
+
+      override def withRepetition(repetition: Repetition): Buffered[U] = {
+        self.withRepetition(repetition)
+        this
+      }
+
+      // We don't know which method was overridden, delegate all
+      override def addBinary(value: Binary): Unit = self.addBinary(value)
+      override def addBoolean(value: Boolean): Unit = self.addBoolean(value)
+      override def addDouble(value: Double): Unit = self.addDouble(value)
+      override def addFloat(value: Float): Unit = self.addFloat(value)
+      override def addInt(value: Int): Unit = self.addInt(value)
+      override def addLong(value: Long): Unit = self.addLong(value)
     }
   }
 

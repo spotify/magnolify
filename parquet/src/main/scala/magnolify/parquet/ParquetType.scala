@@ -206,10 +206,7 @@ object ParquetField {
         override def getConverter(fieldIndex: Int): Converter = fieldConverters(fieldIndex)
         override def start(): Unit = ()
         override def end(): Unit = {
-          if (!isRepeated) {
-            buffer.clear()
-          }
-          buffer += caseClass.construct { p =>
+          val value = caseClass.construct { p =>
             try {
               fieldConverters(p.index).get
             } catch {
@@ -218,6 +215,7 @@ object ParquetField {
                 throw new ParquetDecodingException(s"Failed to decode $field: ${e.getMessage}", e)
             }
           }
+          addValue(value)
         }
       }
   }
@@ -319,14 +317,11 @@ object ParquetField {
         v.foreach(t.writeGroup(c, _)(cm))
 
       override def newConverter: TypeConverter[Option[T]] = {
-        val buffered = t.newConverter.asInstanceOf[TypeConverter.Buffered[T]]
+        val buffered = t.newConverter
+          .asInstanceOf[TypeConverter.Buffered[T]]
+          .withRepetition(Repetition.OPTIONAL)
         new TypeConverter.Delegate[T, Option[T]](buffered) {
-          override def get: Option[T] = {
-            require(inner.buffer.size <= 1, "Optional field size > 1: " + inner.buffer.size)
-            val v = inner.buffer.headOption
-            inner.buffer.clear()
-            v
-          }
+          override def get: Option[T] = inner.get(_.headOption)
         }
       }
     }
@@ -371,15 +366,13 @@ object ParquetField {
         }
 
       override def newConverter: TypeConverter[C[T]] = {
-        val buffered = t.newConverter.asInstanceOf[TypeConverter.Buffered[T]]
-        buffered.isRepeated = true
+        val buffered = t.newConverter
+          .asInstanceOf[TypeConverter.Buffered[T]]
+          .withRepetition(Repetition.REPEATED)
         val arrayConverter = new TypeConverter.Delegate[T, C[T]](buffered) {
-          override def get: C[T] = {
-            val v = fc.build(inner.buffer)
-            inner.buffer.clear()
-            v
-          }
+          override def get: C[T] = inner.get(fc.build(_))
         }
+
         if (isAvro) {
           new GroupConverter with TypeConverter.Buffered[C[T]] {
             override def getConverter(fieldIndex: Int): Converter = {
@@ -387,7 +380,7 @@ object ParquetField {
               arrayConverter
             }
             override def start(): Unit = ()
-            override def end(): Unit = buffer += arrayConverter.get
+            override def end(): Unit = addValue(arrayConverter.get)
           }
         } else {
           arrayConverter
