@@ -19,6 +19,7 @@ description := "A collection of Magnolia add-on modules"
 
 val magnoliaVersion = "0.17.0"
 
+val algebirdVersion = "0.13.7"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.10.1")
 val bigqueryVersion = "v2-rev20210215-1.31.0"
 val bigtableVersion = "1.20.1"
@@ -189,7 +190,8 @@ lazy val cats: Project = project
     description := "Magnolia add-on for Cats",
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % catsVersion,
-      "org.typelevel" %% "cats-laws" % catsVersion % Test
+      "org.typelevel" %% "cats-laws" % catsVersion % Test,
+      "com.twitter" %% "algebird-core" % algebirdVersion % Test
     )
   )
   .dependsOn(
