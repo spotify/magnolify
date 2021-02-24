@@ -24,6 +24,7 @@ import com.google.bigtable.v2.Mutation.SetCell
 import com.google.protobuf.ByteString
 import magnolia._
 import magnolify.shared._
+import magnolify.shims._
 import magnolify.shims.JavaConverters._
 
 import scala.annotation.implicitNotFound
@@ -107,6 +108,7 @@ object BigtableField {
   sealed trait Record[T] extends BigtableField[T]
 
   sealed trait Primitive[T] extends BigtableField[T] {
+    val size: Option[Int]
     def fromByteString(v: ByteString): T
     def toByteString(v: T): ByteString
 
@@ -167,6 +169,7 @@ object BigtableField {
   class FromWord[T] {
     def apply[U](f: T => U)(g: U => T)(implicit btf: Primitive[T]): Primitive[U] =
       new Primitive[U] {
+        override val size: Option[Int] = btf.size
         def fromByteString(v: ByteString): U = f(btf.fromByteString(v))
         def toByteString(v: U): ByteString = btf.toByteString(g(v))
       }
@@ -175,6 +178,7 @@ object BigtableField {
   private def primitive[T](
     capacity: Int
   )(f: ByteBuffer => T)(g: (ByteBuffer, T) => Unit): Primitive[T] = new Primitive[T] {
+    override val size: Option[Int] = Some(capacity)
     override def fromByteString(v: ByteString): T = f(v.asReadOnlyByteBuffer())
     override def toByteString(v: T): ByteString = {
       val bb = ByteBuffer.allocate(capacity)
@@ -197,6 +201,7 @@ object BigtableField {
   }
 
   implicit val btfByteString = new Primitive[ByteString] {
+    override val size: Option[Int] = None
     override def fromByteString(v: ByteString): ByteString = v
     override def toByteString(v: ByteString): ByteString = v
   }
@@ -219,13 +224,65 @@ object BigtableField {
     ByteString.copyFrom(bb.putInt(scale).put(unscaled).array())
   }
 
-  implicit def btfOption[A](implicit btf: BigtableField[A]): BigtableField[Option[A]] =
-    new BigtableField[Option[A]] {
-      override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[Option[A]] =
+  implicit def btfOption[T](implicit btf: BigtableField[T]): BigtableField[Option[T]] =
+    new BigtableField[Option[T]] {
+      override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[Option[T]] =
         Columns.findNullable(xs, k).map(btf.get(_, k)(cm).toOption).getOrElse(Value.Default(None))
 
-      override def put(k: String, v: Option[A])(cm: CaseMapper): Seq[SetCell.Builder] =
+      override def put(k: String, v: Option[T])(cm: CaseMapper): Seq[SetCell.Builder] =
         v.toSeq.flatMap(btf.put(k, _)(cm))
+    }
+
+  implicit def btfIterable[T, C[T]](implicit
+    btf: Primitive[T],
+    ti: C[T] => Iterable[T],
+    fc: FactoryCompat[T, C[T]]
+  ): Primitive[C[T]] =
+    new Primitive[C[T]] {
+      override val size: Option[Int] = None
+
+      override def fromByteString(v: ByteString): C[T] = {
+        val buf = v.asReadOnlyByteBuffer()
+        val n = buf.getInt
+        val b = fc.newBuilder
+        btf.size match {
+          case Some(size) =>
+            val ba = new Array[Byte](size)
+            (1 to n).foreach { _ =>
+              buf.get(ba)
+              b += btf.fromByteString(ByteString.copyFrom(ba))
+            }
+          case None =>
+            (1 to n).foreach { _ =>
+              val s = buf.getInt
+              val ba = new Array[Byte](s)
+              buf.get(ba)
+              b += btf.fromByteString(ByteString.copyFrom(ba))
+            }
+        }
+        b.result()
+      }
+
+      override def toByteString(v: C[T]): ByteString = {
+        val buf = btf.size match {
+          case Some(size) =>
+            val bb = ByteBuffer.allocate(java.lang.Integer.BYTES + v.size * size)
+            bb.putInt(v.size)
+            v.foreach(x => bb.put(btf.toByteString(x).asReadOnlyByteBuffer()))
+            bb
+          case None =>
+            val vs = v.map(btf.toByteString)
+            val size = java.lang.Integer.BYTES * (v.size + 1) + vs.iterator.map(_.size()).sum
+            val bb = ByteBuffer.allocate(size)
+            bb.putInt(v.size)
+            vs.foreach { v =>
+              bb.putInt(v.size())
+              bb.put(v.asReadOnlyByteBuffer())
+            }
+            bb
+        }
+        ByteString.copyFrom(buf.array())
+      }
     }
 }
 
