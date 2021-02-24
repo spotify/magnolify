@@ -85,58 +85,40 @@ private object CatsMacros {
   }
 }
 
-trait LowPriorityImplicits
-    extends LowPriorityGenCommmutativeGroup
-    with LowPriorityGenHash
-    with LowPriorityGenShow
+trait LowPriorityImplicits {
+  // Hash <: Eq
+  implicit def genHash[T](implicit lp: shapeless.LowPriority): Hash[T] =
+    macro CatsMacros.genHashMacro[T]
+  implicit def genEq[T](implicit lp: shapeless.LowPriority): Eq[T] = macro CatsMacros.genEqMacro[T]
+  implicit def genShow[T](implicit lp: shapeless.LowPriority): Show[T] =
+    macro CatsMacros.genShowMacro[T]
 
-trait LowPriorityGenCommmutativeGroup extends LowPriorityGenGroup {
+  // CommutativeGroup <: Group | CommutativeMonoid
   implicit def genCommutativeGroup[T](implicit lp: shapeless.LowPriority): CommutativeGroup[T] =
     macro CatsMacros.genCommutativeGroupMacro[T]
-}
 
-trait LowPriorityGenGroup extends LowPriorityGenCommmutativeMonoid {
+  // Group <: Monoid
   implicit def genGroup[T](implicit lp: shapeless.LowPriority): Group[T] =
     macro CatsMacros.genGroupMacro[T]
-}
 
-trait LowPriorityGenCommmutativeMonoid extends LowPriorityGenMonoid {
+  // CommutativeMonoid <: Monoid | CommutativeSemigroup
   implicit def genCommutativeMonoid[T](implicit lp: shapeless.LowPriority): CommutativeMonoid[T] =
     macro CatsMacros.genCommutativeMonoidMacro[T]
-}
 
-trait LowPriorityGenMonoid extends LowPriorityGenBand {
+  // Monoid <: Semigroup
   implicit def genMonoid[T](implicit lp: shapeless.LowPriority): Monoid[T] =
     macro CatsMacros.genMonoidMacro[T]
-}
 
-trait LowPriorityGenBand extends LowPriorityGenCommutativeSemigroup {
+  // Band <: Semigroup
   implicit def genBand[T](implicit lp: shapeless.LowPriority): Band[T] =
     macro CatsMacros.genBandMacro[T]
-}
 
-trait LowPriorityGenCommutativeSemigroup extends LowPriorityGenSemigroup {
+  // CommutativeSemigroup <: Semigroup
   implicit def genCommutativeSemigroup[T](implicit
     lp: shapeless.LowPriority
   ): CommutativeSemigroup[T] =
     macro CatsMacros.genCommutativeSemigroupMacro[T]
-}
 
-trait LowPriorityGenSemigroup {
   implicit def genSemigroup[T](implicit lp: shapeless.LowPriority): Semigroup[T] =
     macro CatsMacros.genSemigroupMacro[T]
-}
-
-trait LowPriorityGenHash extends LowPriorityGenEq {
-  implicit def genHash[T](implicit lp: shapeless.LowPriority): Hash[T] =
-    macro CatsMacros.genHashMacro[T]
-}
-
-trait LowPriorityGenEq {
-  implicit def genEq[T](implicit lp: shapeless.LowPriority): Eq[T] = macro CatsMacros.genEqMacro[T]
-}
-
-trait LowPriorityGenShow {
-  implicit def genShow[T](implicit lp: shapeless.LowPriority): Show[T] =
-    macro CatsMacros.genShowMacro[T]
 }
