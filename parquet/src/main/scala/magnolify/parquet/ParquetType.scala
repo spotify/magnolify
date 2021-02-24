@@ -453,7 +453,7 @@ object ParquetField {
     )(Decimal.toBytes(_, precision, scale))
   }
 
-  implicit def pfEnum[T](implicit et: EnumType[T]): Primitive[T] =
+  implicit def pfEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): Primitive[T] =
     logicalType[String](LogicalTypeAnnotation.enumType())(et.from)(et.to)
 
   implicit val ptUuid: Primitive[UUID] = new Primitive[UUID] {
