@@ -72,11 +72,10 @@ class ProtobufTypeSuite extends MagnolifySuite {
   // Hence `None` round trips back as `Some(false/0/"")`.
   {
     import magnolify.protobuf.unsafe.Proto3Option._
-    val eq: Eq[Nullable] = Eq.by { x =>
+    implicit val eq: Eq[Nullable] = Eq.by { x =>
       Required(x.b.getOrElse(false), x.i.getOrElse(0), x.s.getOrElse(""))
     }
-    val arb: Arbitrary[Nullable] = implicitly[Arbitrary[Nullable]]
-    test(classTag[Nullable], arb, classTag[SingularP3], ProtobufType[Nullable, SingularP3], eq)
+    test[Nullable, SingularP3]
   }
 
   test[Repeated, RepeatedP2]
@@ -114,7 +113,7 @@ class ProtobufTypeSuite extends MagnolifySuite {
     import Enums._
     import Proto3Enums._
     import magnolify.protobuf.unsafe.Proto3Option._
-    val eq: Eq[Enums] = Eq.by(e =>
+    implicit val eq: Eq[Enums] = Eq.by(e =>
       (
         e.j,
         e.s,
@@ -124,8 +123,7 @@ class ProtobufTypeSuite extends MagnolifySuite {
         e.ao.getOrElse(ADT.Red)
       )
     )
-    val arb: Arbitrary[Enums] = implicitly[Arbitrary[Enums]]
-    test(classTag[Enums], arb, classTag[EnumsP3], ProtobufType[Enums, EnumsP3], eq)
+    test[Enums, EnumsP3]
   }
 
   {

@@ -27,11 +27,14 @@ import org.scalacheck.rng.Seed
 import scala.reflect._
 
 class ArbitraryDerivationSuite extends MagnolifySuite {
-  private def test[T: Arbitrary: ClassTag]: Unit = test[T, T](identity)
+  private def test[T: Arbitrary: ClassTag]: Unit = test[T](null)
+  private def test[T: Arbitrary: ClassTag](suffix: String): Unit = test[T, T](identity, suffix)
 
-  private def test[T: ClassTag, U](f: T => U)(implicit t: Arbitrary[T]): Unit = {
+  private def test[T: ClassTag, U](f: T => U, suffix: String = null)(implicit
+    t: Arbitrary[T]
+  ): Unit = {
     val g = ensureSerializable(t).arbitrary
-    val name = className[T]
+    val name = className[T] + (if (suffix == null) "" else "." + suffix)
     val prms = Gen.Parameters.default
     // `forAll(Gen.listOfN(10, g))` fails for `Repeated` & `Collections` when size parameter <= 1
     property(s"$name.uniqueness") {
@@ -83,9 +86,20 @@ class ArbitraryDerivationSuite extends MagnolifySuite {
 
   {
     import magnolify.scalacheck.semiauto.ArbitraryDerivation.Fallback
-    // implicit val f: Fallback[GNode[Int]] = Fallback[GLeaf[Int]]
+    implicit val f: Fallback[GNode[Int]] = Fallback(Gen.const(GLeaf(0)))
+    test[GNode[Int]]("Fallback(G: Gen[T])")
+  }
+
+  {
+    import magnolify.scalacheck.semiauto.ArbitraryDerivation.Fallback
     implicit val f: Fallback[GNode[Int]] = Fallback(GLeaf(0))
-    test[GNode[Int]]
+    test[GNode[Int]]("Fallback(v: T)")
+  }
+
+  {
+    import magnolify.scalacheck.semiauto.ArbitraryDerivation.Fallback
+    implicit val f: Fallback[GNode[Int]] = Fallback[GLeaf[Int]]
+    test[GNode[Int]]("Fallback[T]")
   }
 
   test[Shape]

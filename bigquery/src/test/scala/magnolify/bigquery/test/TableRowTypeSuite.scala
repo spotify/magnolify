@@ -86,7 +86,6 @@ class TableRowTypeSuite extends MagnolifySuite {
   }
 
   {
-
     implicit val arbBigDecimal: Arbitrary[BigDecimal] =
       Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(BigDecimal(_)))
     test[BigQueryTypes]
