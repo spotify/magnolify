@@ -27,7 +27,7 @@ package object unsafe {
   implicit val efDouble = ExampleField.from[Float](_.toDouble)(_.toFloat)
   implicit val efBool = ExampleField.from[Long](_ == 1)(x => if (x) 1 else 0)
   implicit val efString = ExampleField.from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
-  implicit def efEnum[T](implicit et: EnumType[T]) =
+  implicit def efEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority) =
     ExampleField.from[ByteString](bs => et.from(bs.toStringUtf8))(v =>
       ByteString.copyFromUtf8(v.toString)
     )
