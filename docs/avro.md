@@ -5,15 +5,20 @@ AvroType
 
 ```scala
 import java.net.URI
-case class Inner(long: Long, str: String, uri: URI)
+case class CountryCode(code: String)
+case class Inner(long: Long, str: String, uri: URI, cc: CountryCode)
 case class Outer(inner: Inner)
-val record = Outer(Inner(1L, "hello", URI.create("https://www.spotify.com")))
+val record = Outer(Inner(1L, "hello", URI.create("https://www.spotify.com"), "US"))
 
 import magnolify.avro._
 import org.apache.avro.generic.GenericRecord
 
 // Encode custom type URI as String
 implicit val uriField = AvroField.from[String](URI.create)(_.toString)
+
+// Encode country code as fixed type
+implicit val afCountryCode =
+  AvroField.fixed[CountryCode](2)(bs => CountryCode(new String(bs)))(cc => cc.code.getBytes)
 
 val avroType = AvroType[Outer]
 val genericRecord: GenericRecord = avroType.to(record)

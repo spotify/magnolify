@@ -133,6 +133,23 @@ class AvroTypeSuite extends MagnolifySuite {
     }
   }
 
+  {
+    implicit val arbCountryCode: Arbitrary[CountryCode] = Arbitrary(
+      Gen.oneOf("US", "UK", "CA", "MX").map(CountryCode(_))
+    )
+    implicit val afCountryCode: AvroField[CountryCode] =
+      AvroField.fixed[CountryCode](2)(bs => CountryCode(new String(bs)))(cc => cc.code.getBytes)
+    test[Fixed]
+
+    test("FixedDoc") {
+      val at = ensureSerializable(AvroType[Fixed])
+      val schema = at.schema.getField("countryCode").schema
+      assertEquals(schema.getName, "CountryCode")
+      assertEquals(schema.getNamespace, "magnolify.avro.test")
+      assertEquals(schema.getDoc, "Fixed with doc")
+    }
+  }
+
   test("AvroDoc") {
     val at = ensureSerializable(AvroType[AvroDoc])
     val schema = at.schema
@@ -267,6 +284,10 @@ case class LogicalMicros(bd: BigDecimal, i: Instant, t: LocalTime, dt: LocalDate
 case class LogicalMillis(bd: BigDecimal, i: Instant, t: LocalTime, dt: LocalDateTime)
 case class LogicalBigQuery(bd: BigDecimal, i: Instant, t: LocalTime, dt: LocalDateTime)
 case class BigDec(bd: BigDecimal)
+
+@doc("Fixed with doc")
+case class CountryCode(code: String)
+case class Fixed(countryCode: CountryCode)
 
 @doc("Avro with doc")
 case class AvroDoc(@doc("string") s: String, @doc("integers") i: Integers)

@@ -32,6 +32,7 @@ import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.collection.concurrent
 import scala.language.experimental.macros
 import scala.language.implicitConversions
+import scala.reflect.ClassTag
 
 class doc(doc: String) extends StaticAnnotation with Serializable {
   override def toString: String = doc
@@ -306,4 +307,21 @@ object AvroField {
     logicalType[String](LogicalTypes.uuid())(ju.UUID.fromString)(_.toString)
   implicit val afDate: AvroField[LocalDate] =
     logicalType[Int](LogicalTypes.date())(LocalDate.ofEpochDay(_))(_.toEpochDay.toInt)
+
+  def fixed[T: ClassTag](
+    size: Int
+  )(f: Array[Byte] => T)(g: T => Array[Byte])(implicit an: AnnotationType[T]): AvroField[T] =
+    new AvroField[T] {
+      override type FromT = GenericFixed
+      override type ToT = GenericFixed
+
+      override protected def schemaString(cm: CaseMapper): String = {
+        val n = ReflectionUtils.name[T]
+        val ns = ReflectionUtils.namespace[T]
+        Schema.createFixed(n, getDoc(an.annotations, n), ns, size).toString
+      }
+
+      override def from(v: GenericFixed)(cm: CaseMapper): T = f(v.bytes())
+      override def to(v: T)(cm: CaseMapper): GenericFixed = new GenericData.Fixed(schema(cm), g(v))
+    }
 }
