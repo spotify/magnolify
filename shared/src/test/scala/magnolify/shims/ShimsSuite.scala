@@ -27,8 +27,7 @@ class ShimsSuite extends MagnolifySuite {
     ti: C[Int] => Iterable[Int],
     fc: FactoryCompat[Int, C[Int]]
   ): Unit = {
-    val name = ct.runtimeClass.getSimpleName
-    property(name) {
+    property(className[C[Int]]) {
       Prop.forAll { xs: List[Int] => fc.build(xs).toList == xs }
     }
   }

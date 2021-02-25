@@ -62,8 +62,8 @@ object EnumType {
   // Java `enum`
   implicit def javaEnumType[T <: Enum[T]](implicit ct: ClassTag[T]): EnumType[T] = {
     val cls: Class[_] = ct.runtimeClass
-    val n = cls.getSimpleName
-    val ns = cls.getCanonicalName.replaceFirst(s".$n$$", "")
+    val n = ReflectionUtils.name[T]
+    val ns = ReflectionUtils.namespace[T]
     val map: Map[String, T] = cls
       .getMethod("values")
       .invoke(null)
@@ -77,9 +77,12 @@ object EnumType {
   //////////////////////////////////////////////////
 
   // Scala `Enumeration`
-  implicit def scalaEnumType[T <: Enumeration#Value]: EnumType[T] = macro scalaEnumTypeImpl[T]
+  implicit def scalaEnumType[T <: Enumeration#Value: AnnotationType]: EnumType[T] =
+    macro scalaEnumTypeImpl[T]
 
-  def scalaEnumTypeImpl[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
+  def scalaEnumTypeImpl[T: c.WeakTypeTag](
+    c: whitebox.Context
+  )(annotations: c.Expr[AnnotationType[T]]): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     val ref = wtt.tpe.asInstanceOf[TypeRef]
@@ -87,24 +90,9 @@ object EnumType {
     val ns = ref.pre.typeSymbol.asClass.fullName // `object Namespace extends Enumeration`
     val map = q"${ref.pre.termSymbol}.values.map(x => x.toString -> x).toMap"
 
-    // Scala 2.12 & 2.13 macros seem to handle annotations differently
-    // Scala annotation works in both but Java annotations only works in 2.13
-    val saType = typeOf[scala.annotation.StaticAnnotation]
-    val jaType = typeOf[java.lang.annotation.Annotation]
-    val trees = ref.pre.typeSymbol.annotations.collect {
-      case t if t.tree.tpe <:< saType && !(t.tree.tpe <:< jaType) =>
-        // FIXME `t.tree` should work but somehow crashes the compiler
-        val q"new $n(..$args)" = t.tree
-        q"new $n(..$args)"
-    }
-
-    // Get Java annotations via reflection
-    val j = q"classOf[${ref.pre.typeSymbol.asClass}].getAnnotations.toList"
-    val annotations = q"_root_.scala.List(..$trees) ++ $j"
-
     q"""
         _root_.magnolify.shared.EnumType.create[$wtt](
-          $n, $ns, $map.keys.toList, $annotations, $map.apply(_), _.toString)
+          $n, $ns, $map.keys.toList, $annotations.annotations, $map.apply(_), _.toString)
      """
   }
 
