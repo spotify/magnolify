@@ -381,6 +381,7 @@ object ParquetField {
             }
             override def start(): Unit = ()
             override def end(): Unit = addValue(arrayConverter.get)
+            override def get: C[T] = get(_.headOption.getOrElse(fc.build(Nil)))
           }
         } else {
           arrayConverter

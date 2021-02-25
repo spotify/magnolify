@@ -91,7 +91,10 @@ private object Schema {
             }
             if (ff.isPrimitive) Some(rf) else Some(prune(ff.asGroupType(), rf.asGroupType()))
           } else {
-            if (rf.getRepetition != Repetition.OPTIONAL) {
+            if (
+              rf.isRepetition(Repetition.REQUIRED) &&
+              rf.getLogicalTypeAnnotation != LogicalTypeAnnotation.listType()
+            ) {
               throw new InvalidRecordException(
                 s"${rf.getRepetition} field ${rf.getName} missing in file schema"
               )
