@@ -322,7 +322,8 @@ lazy val parquet: Project = project
     libraryDependencies ++= Seq(
       "org.apache.parquet" % "parquet-hadoop" % parquetVersion % Provided,
       "org.apache.hadoop" % "hadoop-client" % hadoopVersion % Provided,
-      "org.apache.parquet" % "parquet-avro" % parquetVersion % Test
+      "org.apache.parquet" % "parquet-avro" % parquetVersion % Test,
+      "org.apache.avro" % "avro" % avroVersion % Test
     )
   )
   .dependsOn(
