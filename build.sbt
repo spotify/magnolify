@@ -150,9 +150,6 @@ lazy val shared: Project = project
     moduleName := "magnolify-shared",
     description := "Shared code for Magnolify"
   )
-  .dependsOn(
-    test % "test->test"
-  )
 
 // shared code for unit tests
 lazy val test: Project = project
@@ -167,6 +164,7 @@ lazy val test: Project = project
       com.github.os72.protocjar.Protoc.runProtoc(args.toArray)
     )
   )
+  .dependsOn(shared)
   .enablePlugins(ProtobufPlugin)
 
 lazy val scalacheck: Project = project
