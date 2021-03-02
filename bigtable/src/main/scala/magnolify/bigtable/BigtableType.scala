@@ -207,8 +207,14 @@ object BigtableField {
   }
   implicit val btfByteArray = from[ByteString](_.toByteArray)(ByteString.copyFrom)
   implicit val btfString = from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
-  implicit def btfEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority) =
+
+  implicit def btfEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): Primitive[T] =
     from[String](et.from)(et.to)
+  implicit def btfUnsafeEnum[T](implicit
+    et: EnumType[T],
+    lp: shapeless.LowPriority
+  ): Primitive[UnsafeEnum[T]] =
+    from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))
 
   implicit val btfBigInt =
     from[ByteString](bs => BigInt(bs.toByteArray))(bi => ByteString.copyFrom(bi.toByteArray))
