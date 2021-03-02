@@ -21,7 +21,8 @@ sealed trait UnsafeEnum[+T]
 object UnsafeEnum {
   case class Known[T](value: T) extends UnsafeEnum[T]
   case class Unknown(value: String) extends UnsafeEnum[Nothing] {
-    require(value != null && value.nonEmpty, s"Invalid enum value: $value")
+    require(value != null, "Enum value cannot be null")
+    require(value.nonEmpty, "Enum value cannot be empty")
   }
 
   def apply[T](value: T): Known[T] = Known(value)
