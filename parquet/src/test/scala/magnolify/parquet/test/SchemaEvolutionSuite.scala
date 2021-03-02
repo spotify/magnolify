@@ -17,6 +17,8 @@
 package magnolify.parquet.test
 
 import magnolify.parquet._
+import magnolify.parquet.unsafe._
+import magnolify.shared.UnsafeEnum
 import magnolify.shims.JavaConverters._
 import magnolify.test._
 import org.apache.avro.generic.{GenericRecord, GenericRecordBuilder}
@@ -51,18 +53,20 @@ object SchemaEvolutionSuite {
   }
 
   /*
-  V2 adds 3 fields
-  - Nested nullable string field "location.zip"
-  - Top level nullable string field "email"
-  - Top level repeated string field "aliases"
+  V2 has 4 changes
+  - New value for enum field "account_type"
+  - New nested nullable string field "location.zip"
+  - New top level nullable string field "email"
+  - New top level repeated string field "aliases"
    */
   val (userSchema1, userSchema2): (Schema, Schema) = {
     def id = new Schema.Field("id", Schema.create(Schema.Type.LONG), "", null)
     def name = new Schema.Field("name", Schema.create(Schema.Type.STRING), "", null)
+    def accountType = new Schema.Field("account_type", Schema.create(Schema.Type.STRING), "", null)
 
     val v1 = Schema.createRecord("UserV1", "", namespace, false)
     val location1 = new Schema.Field("location", locationSchema1, "", null)
-    v1.setFields(List(id, name, location1).asJava)
+    v1.setFields(List(id, name, accountType, location1).asJava)
 
     val v2 = Schema.createRecord("UserV2", "", namespace, false)
     val location2 = new Schema.Field("location", locationSchema2, "", null)
@@ -73,7 +77,7 @@ object SchemaEvolutionSuite {
       "",
       java.util.Collections.emptyList()
     )
-    v2.setFields(List(id, name, location2, email, aliases).asJava)
+    v2.setFields(List(id, name, accountType, location2, email, aliases).asJava)
 
     (v1, v2)
   }
@@ -88,16 +92,24 @@ object SchemaEvolutionSuite {
       .set("zip", zip)
       .build()
 
-  def avroUser1(id: Long, name: String, country: String, state: String): GenericRecord =
+  def avroUser1(
+    id: Long,
+    name: String,
+    accountType: String,
+    country: String,
+    state: String
+  ): GenericRecord =
     new GenericRecordBuilder(userSchema1)
       .set("id", id)
       .set("name", name)
+      .set("account_type", accountType)
       .set("location", avroLocation1(country, state))
       .build()
 
   def avroUser2(
     id: Long,
     name: String,
+    accountType: String,
     country: String,
     state: String,
     zip: String,
@@ -107,6 +119,7 @@ object SchemaEvolutionSuite {
     new GenericRecordBuilder(userSchema2)
       .set("id", id)
       .set("name", name)
+      .set("account_type", accountType)
       .set("location", avroLocation2(country, state, zip))
       .set("email", email)
       .set("aliases", aliases.asJava)
@@ -114,61 +127,108 @@ object SchemaEvolutionSuite {
 
   case class Location1(country: String, state: String)
   case class Location2(country: String, state: String, zip: Option[String])
-  case class User1(id: Long, name: String, location: Location1)
+
+  object AccountType1 extends Enumeration {
+    type Type = Value
+    val Checking, Saving = Value
+  }
+
+  object AccountType2 extends Enumeration {
+    type Type = Value
+    val Checking, Saving, Credit = Value
+  }
+
+  case class User1(
+    id: Long,
+    name: String,
+    account_type: UnsafeEnum[AccountType1.Type],
+    location: Location1
+  )
   case class User2(
     id: Long,
     name: String,
+    account_type: UnsafeEnum[AccountType2.Type],
     location: Location2,
     email: Option[String],
     aliases: Seq[String]
   )
 
   val avro1: Seq[GenericRecord] = Seq(
-    avroUser1(0, "Alice", "US", "NY"),
-    avroUser1(1, "Bob", "US", "NJ"),
-    avroUser1(2, "Carol", "US", "CT"),
-    avroUser1(3, "Dan", "US", "MA")
+    avroUser1(0, "Alice", "Checking", "US", "NY"),
+    avroUser1(1, "Bob", "Saving", "US", "NJ"),
+    avroUser1(2, "Carol", "Checking", "US", "CT"),
+    avroUser1(3, "Dan", "Saving", "US", "MA")
   )
 
   val avro2: Seq[GenericRecord] = Seq(
-    avroUser2(0, "Alice", "US", "NY", "12345", "alice@aol.com", Seq("Ada", "Ana")),
-    avroUser2(1, "Bob", "US", "NJ", null, null, Nil),
-    avroUser2(2, "Carol", "US", "CT", null, "carol@aol.com", Nil),
-    avroUser2(3, "Dan", "US", "MA", "54321", null, Nil)
+    avroUser2(0, "Alice", "Checking", "US", "NY", "12345", "alice@aol.com", Seq("Ada", "Ana")),
+    avroUser2(1, "Bob", "Saving", "US", "NJ", null, null, Nil),
+    avroUser2(2, "Carol", "Checking", "US", "CT", null, "carol@aol.com", Nil),
+    avroUser2(3, "Dan", "Saving", "US", "MA", "54321", null, Nil),
+    avroUser2(4, "Ed", "Credit", "US", "CO", "98765", "ed@aol.com", Nil)
   )
 
+  val avro2as1: Seq[GenericRecord] =
+    avro1 :+ avroUser1(4, "Ed", "Credit", "US", "CO")
+
   val avro1as2: Seq[GenericRecord] = Seq(
-    avroUser2(0, "Alice", "US", "NY", null, null, null),
-    avroUser2(1, "Bob", "US", "NJ", null, null, null),
-    avroUser2(2, "Carol", "US", "CT", null, null, null),
-    avroUser2(3, "Dan", "US", "MA", null, null, null)
+    avroUser2(0, "Alice", "Checking", "US", "NY", null, null, null),
+    avroUser2(1, "Bob", "Saving", "US", "NJ", null, null, null),
+    avroUser2(2, "Carol", "Checking", "US", "CT", null, null, null),
+    avroUser2(3, "Dan", "Saving", "US", "MA", null, null, null)
   )
 
   val scala1: Seq[User1] = Seq(
-    User1(0, "Alice", Location1("US", "NY")),
-    User1(1, "Bob", Location1("US", "NJ")),
-    User1(2, "Carol", Location1("US", "CT")),
-    User1(3, "Dan", Location1("US", "MA"))
+    User1(0, "Alice", UnsafeEnum(AccountType1.Checking), Location1("US", "NY")),
+    User1(1, "Bob", UnsafeEnum(AccountType1.Saving), Location1("US", "NJ")),
+    User1(2, "Carol", UnsafeEnum(AccountType1.Checking), Location1("US", "CT")),
+    User1(3, "Dan", UnsafeEnum(AccountType1.Saving), Location1("US", "MA"))
   )
 
   val scala2: Seq[User2] = Seq(
     User2(
       0,
       "Alice",
+      UnsafeEnum(AccountType2.Checking),
       Location2("US", "NY", Some("12345")),
       Some("alice@aol.com"),
       Seq("Ada", "Ana")
     ),
-    User2(1, "Bob", Location2("US", "NJ", None), None, Nil),
-    User2(2, "Carol", Location2("US", "CT", None), Some("carol@aol.com"), Nil),
-    User2(3, "Dan", Location2("US", "MA", Some("54321")), None, Nil)
+    User2(1, "Bob", UnsafeEnum(AccountType2.Saving), Location2("US", "NJ", None), None, Nil),
+    User2(
+      2,
+      "Carol",
+      UnsafeEnum(AccountType2.Checking),
+      Location2("US", "CT", None),
+      Some("carol@aol.com"),
+      Nil
+    ),
+    User2(
+      3,
+      "Dan",
+      UnsafeEnum(AccountType2.Saving),
+      Location2("US", "MA", Some("54321")),
+      None,
+      Nil
+    ),
+    User2(
+      4,
+      "Ed",
+      UnsafeEnum(AccountType2.Credit),
+      Location2("US", "CO", Some("98765")),
+      Some("ed@aol.com"),
+      Nil
+    )
   )
 
+  val scala2as1: Seq[User1] =
+    scala1 :+ User1(4, "Ed", UnsafeEnum.Unknown("Credit"), Location1("US", "CO"))
+
   val scala1as2: Seq[User2] = Seq(
-    User2(0, "Alice", Location2("US", "NY", None), None, Nil),
-    User2(1, "Bob", Location2("US", "NJ", None), None, Nil),
-    User2(2, "Carol", Location2("US", "CT", None), None, Nil),
-    User2(3, "Dan", Location2("US", "MA", None), None, Nil)
+    User2(0, "Alice", UnsafeEnum(AccountType2.Checking), Location2("US", "NY", None), None, Nil),
+    User2(1, "Bob", UnsafeEnum(AccountType2.Saving), Location2("US", "NJ", None), None, Nil),
+    User2(2, "Carol", UnsafeEnum(AccountType2.Checking), Location2("US", "CT", None), None, Nil),
+    User2(3, "Dan", UnsafeEnum(AccountType2.Saving), Location2("US", "MA", None), None, Nil)
   )
 }
 
@@ -253,7 +313,7 @@ class SchemaEvolutionSuite extends MagnolifySuite {
   }
 
   test("Avro V2 => Avro V1") {
-    assertEquals(readAvro(avroBytes2, userSchema1), avro1)
+    assertEquals(readAvro(avroBytes2, userSchema1), avro2as1)
   }
 
   //////////////////////////////////////////////////
@@ -271,7 +331,7 @@ class SchemaEvolutionSuite extends MagnolifySuite {
   }
 
   test("Scala V2 => Scala V1") {
-    assertEquals(readScala[User1](scalaBytes2), scala1)
+    assertEquals(readScala[User1](scalaBytes2), scala2as1)
   }
 
   //////////////////////////////////////////////////
@@ -293,7 +353,7 @@ class SchemaEvolutionSuite extends MagnolifySuite {
 
   test("Scala Compat V2 => Scala Compat V1") {
     import magnolify.parquet.ParquetArray.AvroCompat._
-    assertEquals(readScala[User1](scalaCompatBytes2), scala1)
+    assertEquals(readScala[User1](scalaCompatBytes2), scala2as1)
   }
 
   //////////////////////////////////////////////////
@@ -315,7 +375,7 @@ class SchemaEvolutionSuite extends MagnolifySuite {
 
   test("Avro V2 => Scala V1") {
     import magnolify.parquet.ParquetArray.AvroCompat._
-    assertEquals(readScala[User1](avroBytes2), scala1)
+    assertEquals(readScala[User1](avroBytes2), scala2as1)
   }
 
   //////////////////////////////////////////////////
@@ -337,6 +397,6 @@ class SchemaEvolutionSuite extends MagnolifySuite {
 
   test("Scala V2 => Avro V1") {
     import magnolify.parquet.ParquetArray.AvroCompat._
-    assertEquals(readAvro(scalaCompatBytes2, userSchema1), avro1)
+    assertEquals(readAvro(scalaCompatBytes2, userSchema1), avro2as1)
   }
 }
