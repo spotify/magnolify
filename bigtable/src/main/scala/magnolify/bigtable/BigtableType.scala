@@ -18,7 +18,6 @@ package magnolify.bigtable
 
 import java.nio.ByteBuffer
 import java.util.UUID
-
 import com.google.bigtable.v2.{Cell, Column, Family, Mutation, Row}
 import com.google.bigtable.v2.Mutation.SetCell
 import com.google.protobuf.ByteString
@@ -27,8 +26,12 @@ import magnolify.shared._
 import magnolify.shims._
 import magnolify.shims.JavaConverters._
 
-import scala.annotation.implicitNotFound
+import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.language.experimental.macros
+
+class fieldName(fieldName: String) extends StaticAnnotation with Serializable {
+  override def toString: String = fieldName
+}
 
 sealed trait BigtableType[T] extends Converter[T, java.util.List[Column], Seq[SetCell.Builder]] {
   def apply(v: Row, columnFamily: String): T =
@@ -133,13 +136,15 @@ object BigtableField {
   type Typeclass[T] = BigtableField[T]
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    private def key(prefix: String, label: String): String =
-      if (prefix == null) label else s"$prefix.$label"
+    private def key(prefix: String, label: String, annotations: Seq[Any]): String = {
+      val fieldName = getFieldName(annotations, caseClass.typeName.full).getOrElse(label)
+      if (prefix == null) fieldName else s"$prefix.$fieldName"
+    }
 
     override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T] = {
       var fallback = true
       val r = caseClass.construct { p =>
-        val cq = key(k, cm.map(p.label))
+        val cq = key(k, cm.map(p.label), p.annotations)
         val v = p.typeclass.get(xs, cq)(cm)
         if (v.isSome) {
           fallback = false
@@ -152,8 +157,14 @@ object BigtableField {
 
     override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
       caseClass.parameters.flatMap(p =>
-        p.typeclass.put(key(k, cm.map(p.label)), p.dereference(v))(cm)
+        p.typeclass.put(key(k, cm.map(p.label), p.annotations), p.dereference(v))(cm)
       )
+  }
+
+  private def getFieldName(annotations: Seq[Any], name: String): Option[String] = {
+    val fieldNames = annotations.collect { case n: fieldName => n.toString }
+    require(fieldNames.size <= 1, s"More than one @fieldName annotation: $name")
+    fieldNames.headOption
   }
 
   @implicitNotFound("Cannot derive BigtableField for sealed trait")

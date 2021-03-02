@@ -110,6 +110,21 @@ class BigtableTypeSuite extends MagnolifySuite {
     val record = bt(LowerCamel.default, "cf")
     assertEquals(record.map(_.getSetCell.getColumnQualifier.toStringUtf8), fields)
   }
+
+  test("fieldName attribute mapping") {
+    implicit val bt: BigtableType[FieldNameAttributed] = BigtableType[FieldNameAttributed]
+    test[LowerCamel]
+
+    val record = bt(FieldNameAttributed.default, "cf")
+    assertEquals(
+      record.map(_.getSetCell.getColumnQualifier.toStringUtf8),
+      Seq(
+        "f1",
+        "f2",
+        "i.i"
+      )
+    )
+  }
 }
 
 // Collections are not supported
@@ -123,3 +138,20 @@ case class DefaultOuter(
   i: DefaultInner = DefaultInner(2, Some(2)),
   o: Option[DefaultInner] = Some(DefaultInner(2, Some(2)))
 )
+
+case class FieldNameAttributedInner(@fieldName("i") innerFirst: String)
+case class FieldNameAttributed(
+  @fieldName("f1") firstField: String,
+  @fieldName("f2") secondField: String,
+  @fieldName("i") innerField: FieldNameAttributedInner
+)
+
+object FieldNameAttributed {
+  val default = FieldNameAttributed(
+    firstField = "field1",
+    secondField = "secondField",
+    innerField = FieldNameAttributedInner(
+      innerFirst = "inner"
+    )
+  )
+}
