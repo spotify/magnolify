@@ -16,7 +16,7 @@
  */
 package magnolify.datastore
 
-import magnolify.shared.EnumType
+import magnolify.shared._
 
 package object unsafe {
   implicit val efByte = EntityField.from[Long](_.toByte)(_.toLong)
@@ -24,6 +24,13 @@ package object unsafe {
   implicit val efShort = EntityField.from[Long](_.toShort)(_.toLong)
   implicit val efInt = EntityField.from[Long](_.toInt)(_.toLong)
   implicit val efFloat = EntityField.from[Double](_.toFloat)(_.toDouble)
-  implicit def efEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority) =
+
+  implicit def efEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): EntityField[T] =
     EntityField.from[String](et.from)(et.to)
+
+  implicit def efUnsafeEnum[T](implicit
+    et: EnumType[T],
+    lp: shapeless.LowPriority
+  ): EntityField[UnsafeEnum[T]] =
+    EntityField.from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))
 }
