@@ -16,7 +16,7 @@
  */
 package magnolify.bigquery
 
-import magnolify.shared.EnumType
+import magnolify.shared._
 
 package object unsafe {
   implicit val trfByte = TableRowField.from[Long](_.toByte)(_.toLong)
@@ -24,6 +24,13 @@ package object unsafe {
   implicit val trfShort = TableRowField.from[Long](_.toShort)(_.toLong)
   implicit val trfInt = TableRowField.from[Long](_.toInt)(_.toLong)
   implicit val trfFloat = TableRowField.from[Double](_.toFloat)(_.toDouble)
-  implicit def trfEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority) =
+
+  implicit def trfEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): TableRowField[T] =
     TableRowField.from[String](et.from)(et.to)
+
+  implicit def trfUnsafeEnum[T](implicit
+    et: EnumType[T],
+    lp: shapeless.LowPriority
+  ): TableRowField[UnsafeEnum[T]] =
+    TableRowField.from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))
 }
