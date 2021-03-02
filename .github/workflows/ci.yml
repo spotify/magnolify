@@ -32,7 +32,7 @@ jobs:
           - 11
         scala:
           - 2.12.13
-          - 2.13.4
+          - 2.13.5
 
   avro:
     runs-on: ubuntu-latest
