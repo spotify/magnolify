@@ -21,6 +21,7 @@ import java.time.Duration
 
 import org.scalacheck._
 import cats._
+import magnolify.shared.UnsafeEnum
 
 import scala.annotation.StaticAnnotation
 
@@ -52,6 +53,17 @@ object Simple {
     sr: List[ScalaEnums.Color.Type],
     ar: List[ADT.Color]
   )
+  case class UnsafeEnums(
+    j: UnsafeEnum[JavaEnums.Color],
+    s: UnsafeEnum[ScalaEnums.Color.Type],
+    a: UnsafeEnum[ADT.Color],
+    jo: Option[UnsafeEnum[JavaEnums.Color]],
+    so: Option[UnsafeEnum[ScalaEnums.Color.Type]],
+    ao: Option[UnsafeEnum[ADT.Color]],
+    jr: List[UnsafeEnum[JavaEnums.Color]],
+    sr: List[UnsafeEnum[ScalaEnums.Color.Type]],
+    ar: List[UnsafeEnum[ADT.Color]]
+  )
   case class Custom(u: URI, d: Duration)
 
   case class LowerCamel(firstField: String, secondField: String, innerField: LowerCamelInner)
@@ -82,6 +94,13 @@ object Simple {
       Arbitrary(Gen.oneOf(ScalaEnums.Color.values))
     implicit val eqJavaEnum: Eq[JavaEnums.Color] = Eq.by(_.name())
     implicit val eqScalaEnum: Eq[ScalaEnums.Color.Type] = Eq.by(_.toString)
+  }
+
+  object UnsafeEnums {
+    implicit def arbUnsafeEnum[T](implicit arb: Arbitrary[T]): Arbitrary[UnsafeEnum[T]] =
+      Arbitrary(
+        Gen.oneOf(arb.arbitrary.map(UnsafeEnum(_)), Gen.const(UnsafeEnum.Unknown("NOT_A_COLOR")))
+      )
   }
 
   object Custom {
