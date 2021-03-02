@@ -26,6 +26,7 @@ sealed trait EnumType[T] extends Serializable { self =>
   val name: String
   val namespace: String
   val values: List[String]
+  val valueSet: Set[String]
   val annotations: List[Any]
   def from(v: String): T
   def to(v: T): String
@@ -52,6 +53,7 @@ object EnumType {
     override val name: String = _name
     override val namespace: String = _namespace
     override val values: List[String] = _values
+    override val valueSet: Set[String] = _values.toSet
     override val annotations: List[Any] = _annotations
     override def from(v: String): T = f(v)
     override def to(v: T): String = g(v)
