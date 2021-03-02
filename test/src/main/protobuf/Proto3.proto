@@ -68,6 +68,18 @@ message EnumsP3 {
     repeated ScalaEnums ar = 9; // ADT
 }
 
+message UnsafeEnumsP3 {
+    string j = 1;
+    string s = 2;
+    string a = 3;
+    string jo = 4;
+    string so = 5;
+    string ao = 6;
+    repeated string jr = 7;
+    repeated string sr = 8;
+    repeated string ar = 9;
+}
+
 message CustomP3 {
     string u = 1;
     int64 d = 2;

@@ -25,7 +25,7 @@ import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.protobuf._
 import magnolify.protobuf.unsafe._
-import magnolify.shared.CaseMapper
+import magnolify.shared._
 import magnolify.shims.JavaConverters._
 import magnolify.test.Proto2._
 import magnolify.test.Proto3._
@@ -35,8 +35,8 @@ import org.scalacheck._
 
 import scala.reflect._
 
-class ProtobufTypeSuite extends MagnolifySuite {
-  private def test[T: ClassTag: Arbitrary, U <: Message: ClassTag](implicit
+trait BaseProtobufTypeSuite extends MagnolifySuite {
+  def test[T: ClassTag: Arbitrary, U <: Message: ClassTag](implicit
     t: ProtobufType[T, U],
     eqt: Eq[T]
   ): Unit = {
@@ -50,7 +50,9 @@ class ProtobufTypeSuite extends MagnolifySuite {
       }
     }
   }
+}
 
+class ProtobufTypeSuite extends BaseProtobufTypeSuite {
   test[Integers, IntegersP2]
   test[Integers, IntegersP3]
   test[Floats, FloatsP2]
@@ -87,6 +89,17 @@ class ProtobufTypeSuite extends MagnolifySuite {
   test[UnsafeShort, IntegersP2]
 
   {
+    import Collections._
+    test[Collections, CollectionP2]
+    test[MoreCollections, MoreCollectionP2]
+    test[Collections, CollectionP3]
+    test[MoreCollections, MoreCollectionP3]
+  }
+}
+
+// Workaround for "Method too large: magnolify/protobuf/test/ProtobufTypeSuite.<init> ()V"
+class MoreProtobufTypeSuite extends BaseProtobufTypeSuite {
+  {
     implicit val arbByteString: Arbitrary[ByteString] =
       Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
     implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
@@ -96,23 +109,19 @@ class ProtobufTypeSuite extends MagnolifySuite {
   }
 
   {
-    import Collections._
-    test[Collections, CollectionP2]
-    test[MoreCollections, MoreCollectionP2]
-    test[Collections, CollectionP3]
-    test[MoreCollections, MoreCollectionP3]
-  }
-
-  {
     import Enums._
+    import UnsafeEnums._
     import Proto2Enums._
     test[Enums, EnumsP2]
+    test[UnsafeEnums, UnsafeEnumsP2]
   }
 
   {
     import Enums._
+    import UnsafeEnums._
     import Proto3Enums._
     import magnolify.protobuf.unsafe.Proto3Option._
+    // Enums are encoded as integers and default to zero value
     implicit val eq: Eq[Enums] = Eq.by(e =>
       (
         e.j,
@@ -120,10 +129,15 @@ class ProtobufTypeSuite extends MagnolifySuite {
         e.a,
         e.jo.getOrElse(JavaEnums.Color.RED),
         e.so.getOrElse(ScalaEnums.Color.Red),
-        e.ao.getOrElse(ADT.Red)
+        e.ao.getOrElse(ADT.Red),
+        e.jr,
+        e.sr,
+        e.ar
       )
     )
     test[Enums, EnumsP3]
+    // Unsafe enums are encoded as string and default "" is treated as None
+    test[UnsafeEnums, UnsafeEnumsP3]
   }
 
   {

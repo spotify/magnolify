@@ -16,6 +16,8 @@
  */
 package magnolify.protobuf
 
+import magnolify.shared._
+
 package object unsafe {
   implicit val pfByte = ProtobufField.from[Int](_.toByte)(_.toInt)
   implicit val pfChar = ProtobufField.from[Int](_.toChar)(_.toInt)
@@ -24,4 +26,8 @@ package object unsafe {
   object Proto3Option {
     implicit val proto3Option: ProtobufOption = new ProtobufOption.Proto3Option
   }
+
+  implicit def pfUnsafeEnum[T](implicit et: EnumType[T]): ProtobufField[UnsafeEnum[T]] =
+    ProtobufField
+      .from[String](s => if (s == null || s.isEmpty) null else UnsafeEnum.from(s))(UnsafeEnum.to(_))
 }

@@ -265,7 +265,8 @@ object ProtobufField {
         case None    => None
       }
       override def from(v: f.FromT)(cm: CaseMapper): Option[T] =
-        if (v == null) None else Some(f.from(v)(cm))
+        if (v == null) None else Option(f.from(v)(cm))
+
       override def to(v: Option[T], b: Message.Builder)(cm: CaseMapper): f.ToT = v match {
         case None    => null.asInstanceOf[f.ToT]
         case Some(x) => f.to(x, b)(cm)
