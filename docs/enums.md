@@ -15,3 +15,11 @@ import magnolify.shared._
 // Encode as ["red", "green", "blue"]
 implicit val enumType = EnumType[Color.Type](CaseMapper(_.toLowerCase))
 ```
+
+An enum-like type can be wrapped inside a `magnolify.shared.UnsafeEnum[T]` to handle unknown cases. This could be useful for scenarios like schema evolution, or working with bad data.
+
+```scala
+UnsafeEnum(Color.Red) // Known(Red)
+UnsafeEnum.from[Color.Type]("Red") // Known(Red)
+UnsafeEnum.from[Color.Type]("Purple") // Unknown(Red)
+```
