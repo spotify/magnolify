@@ -74,7 +74,9 @@ class TableRowTypeSuite extends MagnolifySuite {
 
   {
     import Enums._
+    import UnsafeEnums._
     test[Enums]
+    test[UnsafeEnums]
   }
 
   {
