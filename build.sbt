@@ -29,6 +29,7 @@ val guavaVersion = "30.1-jre"
 val hadoopVersion = "3.3.0"
 val jacksonVersion = "2.12.2"
 val munitVersion = "0.7.22"
+val paigesVersion = "0.4.0"
 val parquetVersion = "1.11.1"
 val protobufVersion = "3.15.6"
 val refinedVersion = "0.9.17"
@@ -140,6 +141,7 @@ lazy val root: Project = project
     parquet,
     protobuf,
     tensorflow,
+    tools,
     test
   )
 
@@ -362,6 +364,27 @@ lazy val tensorflow: Project = project
     shared,
     cats % Test,
     scalacheck % Test,
+    test % "test->test"
+  )
+
+lazy val tools: Project = project
+  .in(file("tools"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-tools",
+    description := "Magnolia add-on for code generation",
+    libraryDependencies ++= Seq(
+      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
+      "org.apache.avro" % "avro" % avroVersion,
+      "org.apache.parquet" % "parquet-hadoop" % parquetVersion,
+      "org.typelevel" %% "paiges-core" % paigesVersion
+    )
+  )
+  .dependsOn(
+    shared,
+    avro % Test,
+    bigquery % Test,
+    parquet % Test,
     test % "test->test"
   )
 
