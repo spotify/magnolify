@@ -90,11 +90,12 @@ object EnumType {
     val ref = wtt.tpe.asInstanceOf[TypeRef]
     val n = ref.sym.name.toString // `type $Name = Value`
     val ns = ref.pre.typeSymbol.asClass.fullName // `object Namespace extends Enumeration`
+    val list = q"${ref.pre.termSymbol}.values.toList.sortBy(_.id).map(_.toString)"
     val map = q"${ref.pre.termSymbol}.values.map(x => x.toString -> x).toMap"
 
     q"""
         _root_.magnolify.shared.EnumType.create[$wtt](
-          $n, $ns, $map.keys.toList, $annotations.annotations, $map.apply(_), _.toString)
+          $n, $ns, $list, $annotations.annotations, $map.apply(_), _.toString)
      """
   }
 
