@@ -53,6 +53,6 @@ class UnsafeEnumSuite extends MagnolifySuite {
     assertEquals(UnsafeEnum.to(UnsafeEnum.Unknown("Purple")), "Purple")
   }
 
-  testFail(UnsafeEnum.Unknown(null))("Enum value cannot be null")
-  testFail(UnsafeEnum.Unknown(""))("Enum value cannot be empty")
+  testFail[UnsafeEnum, ADT.Color](UnsafeEnum.Unknown(null))("Enum value cannot be null")
+  testFail[UnsafeEnum, String](UnsafeEnum.Unknown(""))("Enum value cannot be empty")
 }
