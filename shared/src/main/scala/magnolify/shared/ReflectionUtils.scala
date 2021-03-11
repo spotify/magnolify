@@ -22,5 +22,9 @@ object ReflectionUtils {
   def name[T](implicit ct: ClassTag[T]): String = ct.runtimeClass.getSimpleName
 
   def namespace[T](implicit ct: ClassTag[T]): String =
-    ct.runtimeClass.getCanonicalName.replaceFirst(s".${name[T]}$$", "")
+    if (ct.runtimeClass.getPackageName.isEmpty) {
+      null
+    } else {
+      ct.runtimeClass.getCanonicalName.replaceFirst(s".${name[T]}$$", "")
+    }
 }
