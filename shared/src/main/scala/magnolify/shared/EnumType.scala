@@ -88,8 +88,10 @@ object EnumType {
     import c.universe._
     val wtt = weakTypeTag[T]
     val ref = wtt.tpe.asInstanceOf[TypeRef]
-    val n = ref.sym.name.toString // `type $Name = Value`
-    val ns = ref.pre.typeSymbol.asClass.fullName // `object Namespace extends Enumeration`
+    val fn = ref.pre.typeSymbol.asClass.fullName
+    val idx = fn.lastIndexOf('.')
+    val n = fn.drop(idx + 1) // `object <Namespace> extends Enumeration`
+    val ns = fn.take(idx)
     val list = q"${ref.pre.termSymbol}.values.toList.sortBy(_.id).map(_.toString)"
     val map = q"${ref.pre.termSymbol}.values.map(x => x.toString -> x).toMap"
 

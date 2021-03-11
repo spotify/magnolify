@@ -33,8 +33,8 @@ class EnumTypeSuite extends MagnolifySuite {
 
   test("ScalaEnums") {
     val et = ensureSerializable(implicitly[EnumType[ScalaEnums.Color.Type]])
-    assertEquals(et.name, "Type")
-    assertEquals(et.namespace, "magnolify.test.Simple.ScalaEnums.Color")
+    assertEquals(et.name, "Color")
+    assertEquals(et.namespace, "magnolify.test.Simple.ScalaEnums")
     assertEquals(et.values, List("Red", "Green", "Blue"))
     assertEquals(et.from("Red"), ScalaEnums.Color.Red)
     assertEquals(et.to(ScalaEnums.Color.Red), "Red")
