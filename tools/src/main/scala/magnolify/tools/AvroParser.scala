@@ -72,7 +72,8 @@ object AvroParser extends SchemaParser[avro.Schema] {
       Primitive.Instant
     case Type.INT if schema.getLogicalType.isInstanceOf[LogicalTypes.TimeMillis] =>
       Primitive.LocalTime
-    case Type.LONG if schema.getLogicalType.isInstanceOf[LogicalTypes.LocalTimestampMillis] =>
+    // `LogicalTypes.LocalTimestampMillis` is Avro 1.10.0+
+    case Type.LONG if isLogical(schema, "local-timestamp-millis") =>
       Primitive.LocalDateTime
 
     // Micros
@@ -80,7 +81,8 @@ object AvroParser extends SchemaParser[avro.Schema] {
       Primitive.Instant
     case Type.LONG if schema.getLogicalType.isInstanceOf[LogicalTypes.TimeMicros] =>
       Primitive.LocalTime
-    case Type.LONG if schema.getLogicalType.isInstanceOf[LogicalTypes.LocalTimestampMicros] =>
+    // `LogicalTypes.LocalTimestampMicros` is Avro 1.10.0+
+    case Type.LONG if isLogical(schema, "local-timestamp-micros") =>
       Primitive.LocalDateTime
 
     // BigQuery sqlType: DATETIME
