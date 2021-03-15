@@ -35,7 +35,7 @@ val protobufVersion = "3.15.6"
 val refinedVersion = "0.9.17"
 val scalacheckVersion = "1.15.3"
 val shapelessVersion = "2.3.3"
-val tensorflowVersion = "0.2.0"
+val tensorflowVersion = "0.3.0"
 
 val commonSettings = Seq(
   organization := "com.spotify",
