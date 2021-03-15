@@ -11,7 +11,7 @@ jobs:
       - name: Java 11 setup
         uses: olafurpg/setup-scala@v10
         with:
-          java-version: 11
+          java-version: 1.11.0
       - run: sbt scalafmtCheckAll scalafmtSbtCheck
 
   test:
@@ -28,8 +28,8 @@ jobs:
     strategy:
       matrix:
         java:
-          - 8
-          - 11
+          - 1.8.0
+          - 1.11.0
         scala:
           - 2.12.13
           - 2.13.5
@@ -43,7 +43,7 @@ jobs:
       - name: Java 11 setup
         uses: olafurpg/setup-scala@v10
         with:
-          java-version: 11
+          java-version: 1.11.0
       - run: sbt -Davro.version=1.8.2 test
 
   coverage:
@@ -55,7 +55,7 @@ jobs:
       - name: Java 11 setup
         uses: olafurpg/setup-scala@v10
         with:
-          java-version: 11
+          java-version: 1.11.0
       - run: |
           sbt coverage test coverageAggregate
           bash <(curl -s https://codecov.io/bash)
