@@ -47,7 +47,12 @@ object AvroParser extends SchemaParser[avro.Schema] {
           if schema.getTypes.size() == 2 &&
             schema.getTypes.asScala.count(_.getType == Type.NULL) == 1 =>
         val s = schema.getTypes.asScala.find(_.getType != Type.NULL).get
-        (parseSchema(s), Optional)
+        if (s.getType == Type.ARRAY) {
+          // Nullable array, e.g. ["null", {"type": "array", "items": ...}]
+          (parseSchema(s.getElementType), Repeated)
+        } else {
+          (parseSchema(s), Optional)
+        }
       case Type.ARRAY =>
         (parseSchema(schema.getElementType), Repeated)
       // FIXME: map

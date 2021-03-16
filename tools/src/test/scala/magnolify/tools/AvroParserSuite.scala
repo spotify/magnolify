@@ -140,6 +140,10 @@ class AvroParserSuite extends MagnolifySuite {
     )
   )
 
+  test[NullableArray](
+    Record(Some("NullableArray"), namespace, None, List(Field("a", None, Primitive.Int, Repeated)))
+  )
+
   private val innerSchema =
     Record(
       Some("Inner"),
@@ -185,6 +189,7 @@ object AvroParserSuite {
   case class DateTime(i: Instant, dt: LocalDateTime, t: LocalTime)
 
   case class Repetitions(r: Int, o: Option[Int], l: List[Int])
+  case class NullableArray(a: Option[List[Int]])
 
   case class Inner(i: Int)
   case class Outer(r: Inner, o: Option[Inner], l: List[Inner])
