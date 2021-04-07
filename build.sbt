@@ -51,7 +51,6 @@ val commonSettings = Seq(
     "com.chuusai" %% "shapeless" % shapelessVersion,
     "org.scala-lang" % "scala-reflect" % scalaVersion.value
   ),
-  testFrameworks += new TestFramework("munit.Framework"),
   // https://github.com/typelevel/scalacheck/pull/427#issuecomment-424330310
   // FIXME: workaround for Java serialization issues
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
