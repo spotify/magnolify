@@ -22,7 +22,7 @@ parquetType.schema
 
 Use `ParquetType#readBuilder` and `ParquetType#writeBuilder` to create new file reader and writer instances. See [HadoopSuite.scala](https://github.com/spotify/magnolify/tree/master/parquet/src/test/scala/magnolify/parquet/test/HadoopSuite.scala) for examples with Hadoop IO.
 
-Enum-like types map to strings. See [enums.md](https://github.com/spotify/magnolify/tree/master/docs/enums.md) for more details. Additional `ParquetField[T]` instance for `Char` is available from `import magnolify.parquet.unsafe._`. This conversions is unsafe due to potential overflow.
+Enum-like types map to strings. See [enums.md](https://github.com/spotify/magnolify/tree/master/docs/enums.md) for more details. Additional `ParquetField[T]` instances for `Char` and `UnsafeEnum[T]` are available from `import magnolify.parquet.unsafe._`. This conversions is unsafe due to potential overflow.
 
 To use a different field case format in target records, add an optional `CaseMapper` argument to `ParquetType`. The following example maps `firstName` & `lastName` to `first_name` & `last_name`.
 
