@@ -253,12 +253,25 @@ class SchemaEvolutionSuite extends MagnolifySuite {
   import SchemaEvolutionSuite._
 
   import org.apache.parquet.avro.AvroSchemaConverter
-  println("=" * 100)
-  println(userSchema1.toString(true))
-  println(new AvroSchemaConverter().convert(userSchema1))
-  println("=" * 100)
-  println(userSchema2.toString(true))
-  println(new AvroSchemaConverter().convert(userSchema2))
+//  println("=" * 100)
+//  println(userSchema1.toString(true))
+//  println(new AvroSchemaConverter().convert(userSchema1))
+//  println("=" * 100)
+//  println(userSchema2.toString(true))
+//  println(new AvroSchemaConverter().convert(userSchema2))
+  println(new Schema.Parser().parse(
+    """{
+       |"type": "record",
+       |"name": "MyRecord",
+       |"fields": [{
+       |"name": "field1",
+       |"type": {
+       |  "type": "array",
+       |  "items": ["null", "string"]
+       |}
+       |}]
+       |}
+      |""".stripMargin).toString(true))
 
   private def writeAvro(xs: Seq[GenericRecord], schema: Schema): Array[Byte] = {
     val out = new TestOutputFile
