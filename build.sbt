@@ -33,7 +33,7 @@ val paigesVersion = "0.4.1"
 val parquetVersion = "1.12.0"
 val protobufVersion = "3.15.8"
 val refinedVersion = "0.9.17"
-val scalacheckVersion = "1.15.3"
+val scalacheckVersion = "1.15.4"
 val shapelessVersion = "2.3.4"
 val tensorflowVersion = "0.3.1"
 
