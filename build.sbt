@@ -161,9 +161,13 @@ lazy val test: Project = project
       "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion % Test
     ),
-    ProtobufConfig / protobufRunProtoc := (args =>
-      com.github.os72.protocjar.Protoc.runProtoc(args.toArray)
-    )
+    ProtobufConfig / protobufRunProtoc := { args =>
+      if (sys.props("os.name") == "Mac OS X" && sys.props("os.arch") == "aarch64") {
+        scala.sys.process.Process("protoc", args).run().exitValue()
+      } else {
+        com.github.os72.protocjar.Protoc.runProtoc(args.toArray)
+      }
+    }
   )
   .dependsOn(shared)
   .enablePlugins(ProtobufPlugin)
