@@ -18,7 +18,6 @@ package magnolify.bigquery
 
 import java.{util => ju}
 
-import com.google.api.client.json.GenericJson
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.common.io.BaseEncoding
