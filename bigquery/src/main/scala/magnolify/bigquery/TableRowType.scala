@@ -19,7 +19,7 @@ package magnolify.bigquery
 import java.{util => ju}
 
 import com.google.api.client.json.GenericJson
-import com.google.api.client.json.jackson2.JacksonFactory
+import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.common.io.BaseEncoding
 import magnolia._
@@ -29,7 +29,6 @@ import magnolify.shims.JavaConverters._
 
 import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.language.experimental.macros
-import scala.reflect.ClassTag
 
 class description(description: String) extends StaticAnnotation with Serializable {
   override def toString: String = description
@@ -64,7 +63,7 @@ sealed trait TableRowField[T] extends Serializable {
 
   protected def schemaString(cm: CaseMapper): String
   def fieldSchema(cm: CaseMapper): TableFieldSchema =
-    Schemas.fromJson[TableFieldSchema](schemaString(cm))
+    Schemas.fromJson(schemaString(cm))
   def from(v: FromT)(cm: CaseMapper): T
   def to(v: T)(cm: CaseMapper): ToT
 
@@ -211,11 +210,10 @@ object TableRowField {
 }
 
 private object Schemas {
-  private val jsonFactory = JacksonFactory.getDefaultInstance
-  def toJson(schema: TableSchema) = jsonFactory.toString(schema)
+  private val jsonFactory = GsonFactory.getDefaultInstance
   def toJson(schema: TableFieldSchema) = jsonFactory.toString(schema)
-  def fromJson[T <: GenericJson](schemaString: String)(implicit ct: ClassTag[T]): T =
-    jsonFactory.fromString(schemaString, ct.runtimeClass).asInstanceOf[T]
+  def fromJson(schemaString: String): TableFieldSchema =
+    jsonFactory.fromString(schemaString, classOf[TableFieldSchema])
 }
 
 private object NumericConverter {
