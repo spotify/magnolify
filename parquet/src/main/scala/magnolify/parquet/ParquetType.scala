@@ -25,11 +25,11 @@ import magnolify.shims._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.mapreduce.Job
 import org.apache.parquet.hadoop.{
+  api => hadoop,
   ParquetInputFormat,
   ParquetOutputFormat,
   ParquetReader,
-  ParquetWriter,
-  api => hadoop
+  ParquetWriter
 }
 import org.apache.parquet.io.api._
 import org.apache.parquet.io.{InputFile, OutputFile, ParquetDecodingException}

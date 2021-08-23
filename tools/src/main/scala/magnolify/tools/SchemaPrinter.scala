@@ -130,7 +130,7 @@ object SchemaPrinter {
       case (true, false) if allLower => CaseFormat.LOWER_HYPHEN
       case (false, true) if allLower => CaseFormat.LOWER_UNDERSCORE
       case (false, true) if allUpper => CaseFormat.UPPER_UNDERSCORE
-      case _                         => throw new IllegalArgumentException(s"Unsupported case format: $name")
+      case _ => throw new IllegalArgumentException(s"Unsupported case format: $name")
     }
 
     format.to(CaseFormat.UPPER_CAMEL, name)
