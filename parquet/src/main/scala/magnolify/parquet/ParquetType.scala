@@ -131,6 +131,8 @@ object ParquetType {
   class WriteSupport[T](private var parquetType: ParquetType[T]) extends hadoop.WriteSupport[T] {
     def this() = this(null)
 
+    override def getName: String = "magnolify"
+
     private var recordConsumer: RecordConsumer = null
 
     override def init(configuration: Configuration): hadoop.WriteSupport.WriteContext = {
