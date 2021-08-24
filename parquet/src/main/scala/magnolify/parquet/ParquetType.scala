@@ -24,6 +24,7 @@ import magnolify.shared.{Converter => _, _}
 import magnolify.shims._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.mapreduce.Job
+import org.apache.parquet.avro.AvroSchemaConverter
 import org.apache.parquet.hadoop.{
   api => hadoop,
   ParquetInputFormat,
@@ -54,6 +55,7 @@ sealed trait ParquetType[T] extends Serializable { self =>
   import ParquetType._
 
   def schema: MessageType
+  val avroCompat: Boolean
 
   def setupInput(job: Job): Unit = {
     job.setInputFormatClass(classOf[ParquetInputFormat[T]])
@@ -63,6 +65,7 @@ sealed trait ParquetType[T] extends Serializable { self =>
 
   def setupOutput(job: Job): Unit = {
     job.setOutputFormatClass(classOf[ParquetOutputFormat[T]])
+
     ParquetOutputFormat.setWriteSupportClass(job, classOf[WriteSupport[T]])
     job.getConfiguration.set(WriteTypeKey, SerializationUtils.toBase64(this))
   }
@@ -78,12 +81,16 @@ sealed trait ParquetType[T] extends Serializable { self =>
 }
 
 object ParquetType {
-  implicit def apply[T](implicit f: ParquetField.Record[T]): ParquetType[T] =
+  implicit def apply[T](implicit f: ParquetField.Record[T], pa: ParquetArray): ParquetType[T] =
     ParquetType(CaseMapper.identity)
 
-  def apply[T](cm: CaseMapper)(implicit f: ParquetField.Record[T]): ParquetType[T] =
+  def apply[T](
+    cm: CaseMapper
+  )(implicit f: ParquetField.Record[T], pa: ParquetArray): ParquetType[T] =
     new ParquetType[T] {
       override def schema: MessageType = Schema.message(f.schema(cm))
+
+      override val avroCompat: Boolean = pa == ParquetArray.AvroCompat.avroCompat || f.hasAvroArray
       override def write(c: RecordConsumer, v: T): Unit = f.write(c, v)(cm)
       override def newConverter: TypeConverter[T] = f.newConverter
     }
@@ -102,6 +109,10 @@ object ParquetType {
     override def getWriteSupport(conf: Configuration): WriteSupport[T] = writeSupport
   }
 
+  // From AvroReadSupport
+  private val AVRO_SCHEMA_METADATA_KEY = "parquet.avro.schema"
+  private val OLD_AVRO_SCHEMA_METADATA_KEY = "avro.schema"
+
   class ReadSupport[T](private var parquetType: ParquetType[T]) extends hadoop.ReadSupport[T] {
     def this() = this(null)
 
@@ -109,6 +120,26 @@ object ParquetType {
       if (parquetType == null) {
         parquetType = SerializationUtils.fromBase64(context.getConfiguration.get(ReadTypeKey))
       }
+
+      val metadata = context.getKeyValueMetadata
+      val model = metadata.get(ParquetWriter.OBJECT_MODEL_NAME_PROP)
+      val isAvroFile = (model != null && model.contains("avro")) ||
+        metadata.containsKey(AVRO_SCHEMA_METADATA_KEY) ||
+        metadata.containsKey(OLD_AVRO_SCHEMA_METADATA_KEY)
+      if (isAvroFile) {
+        require(
+          parquetType.avroCompat,
+          "Parquet file was written from Avro records, " +
+            "`import magnolify.parquet.ParquetArray.AvroCompat._` to read correctly"
+        )
+      } else {
+        require(
+          !parquetType.avroCompat,
+          "Parquet file was not written from Avro records, " +
+            "remove `import magnolify.parquet.ParquetArray.AvroCompat._` to read correctly"
+        )
+      }
+
       val requestedSchema = Schema.message(parquetType.schema)
       val pruned = Schema.pruneRequested(context.getFileSchema, requestedSchema)
       context.getFileSchema.checkContains(pruned)
@@ -140,7 +171,14 @@ object ParquetType {
         parquetType = SerializationUtils.fromBase64(configuration.get(WriteTypeKey))
       }
       val schema = Schema.message(parquetType.schema)
-      new hadoop.WriteSupport.WriteContext(schema, java.util.Collections.emptyMap())
+      val metadata = new java.util.HashMap[String, String]()
+      if (parquetType.avroCompat) {
+        val avroSchema = new AvroSchemaConverter().convert(schema)
+        // This overrides `WriteSupport#getName`
+        metadata.put(ParquetWriter.OBJECT_MODEL_NAME_PROP, "avro")
+        metadata.put(AVRO_SCHEMA_METADATA_KEY, avroSchema.toString)
+      }
+      new hadoop.WriteSupport.WriteContext(schema, metadata)
     }
 
     override def prepareForWrite(recordConsumer: RecordConsumer): Unit =
@@ -158,6 +196,7 @@ object ParquetType {
 
 sealed trait ParquetField[T] extends Serializable {
   def schema(cm: CaseMapper): Type
+  val hasAvroArray: Boolean = false
   protected val isGroup: Boolean = false
   protected def isEmpty(v: T): Boolean
   def write(c: RecordConsumer, v: T)(cm: CaseMapper): Unit
@@ -187,6 +226,7 @@ object ParquetField {
         }
         .named(caseClass.typeName.full)
 
+    override val hasAvroArray: Boolean = caseClass.parameters.exists(_.typeclass.hasAvroArray)
     override protected val isGroup: Boolean = true
     override protected def isEmpty(v: T): Boolean = false
 
@@ -334,17 +374,18 @@ object ParquetField {
     fc: FactoryCompat[T, C[T]],
     pa: ParquetArray
   ): ParquetField[C[T]] = {
-    val isAvro = pa match {
+    val avroArrayField = "array"
+    val avroCompat = pa match {
       case ParquetArray.default               => false
       case ParquetArray.AvroCompat.avroCompat => true
     }
 
     new ParquetField[C[T]] {
-      private val avroArrayField = "array"
+      override val hasAvroArray: Boolean = avroCompat
 
       override def schema(cm: CaseMapper): Type = {
         val repeatedSchema = Schema.setRepetition(t.schema(cm), Repetition.REPEATED)
-        if (isAvro) {
+        if (avroCompat) {
           Types
             .requiredGroup()
             .addField(Schema.rename(repeatedSchema, avroArrayField))
@@ -355,11 +396,11 @@ object ParquetField {
         }
       }
 
-      override protected val isGroup: Boolean = isAvro
+      override protected val isGroup: Boolean = avroCompat
       override protected def isEmpty(v: C[T]): Boolean = v.isEmpty
 
       override def write(c: RecordConsumer, v: C[T])(cm: CaseMapper): Unit =
-        if (isAvro) {
+        if (avroCompat) {
           c.startField(avroArrayField, 0)
           v.foreach(t.writeGroup(c, _)(cm))
           c.endField(avroArrayField, 0)
@@ -375,7 +416,7 @@ object ParquetField {
           override def get: C[T] = inner.get(fc.build(_))
         }
 
-        if (isAvro) {
+        if (avroCompat) {
           new GroupConverter with TypeConverter.Buffered[C[T]] {
             override def getConverter(fieldIndex: Int): Converter = {
               require(fieldIndex == 0, "Avro array field index != 0")

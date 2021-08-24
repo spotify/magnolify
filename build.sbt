@@ -319,9 +319,9 @@ lazy val parquet: Project = project
     moduleName := "magnolify-parquet",
     description := "Magnolia add-on for Apache Parquet",
     libraryDependencies ++= Seq(
+      "org.apache.parquet" % "parquet-avro" % parquetVersion % Provided,
       "org.apache.parquet" % "parquet-hadoop" % parquetVersion % Provided,
-      "org.apache.hadoop" % "hadoop-client" % hadoopVersion % Provided,
-      "org.apache.parquet" % "parquet-avro" % parquetVersion % Test
+      "org.apache.hadoop" % "hadoop-client" % hadoopVersion % Provided
     )
   )
   .dependsOn(
