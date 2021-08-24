@@ -25,11 +25,11 @@ import magnolify.shims._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.mapreduce.Job
 import org.apache.parquet.hadoop.{
+  api => hadoop,
   ParquetInputFormat,
   ParquetOutputFormat,
   ParquetReader,
-  ParquetWriter,
-  api => hadoop
+  ParquetWriter
 }
 import org.apache.parquet.io.api._
 import org.apache.parquet.io.{InputFile, OutputFile, ParquetDecodingException}
@@ -130,6 +130,8 @@ object ParquetType {
 
   class WriteSupport[T](private var parquetType: ParquetType[T]) extends hadoop.WriteSupport[T] {
     def this() = this(null)
+
+    override def getName: String = "magnolify"
 
     private var recordConsumer: RecordConsumer = null
 
