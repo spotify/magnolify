@@ -37,6 +37,7 @@ import org.apache.parquet.io.{InputFile, OutputFile, ParquetDecodingException}
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 import org.apache.parquet.schema.Type.Repetition
 import org.apache.parquet.schema.{LogicalTypeAnnotation, MessageType, Type, Types}
+import org.slf4j.LoggerFactory
 
 import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
@@ -81,6 +82,8 @@ sealed trait ParquetType[T] extends Serializable { self =>
 }
 
 object ParquetType {
+  private val logger = LoggerFactory.getLogger(this.getClass)
+
   implicit def apply[T](implicit f: ParquetField.Record[T], pa: ParquetArray): ParquetType[T] =
     ParquetType(CaseMapper.identity)
 
@@ -126,15 +129,14 @@ object ParquetType {
       val isAvroFile = (model != null && model.contains("avro")) ||
         metadata.containsKey(AVRO_SCHEMA_METADATA_KEY) ||
         metadata.containsKey(OLD_AVRO_SCHEMA_METADATA_KEY)
-      if (isAvroFile) {
-        require(
-          parquetType.avroCompat,
+      if (isAvroFile && !parquetType.avroCompat) {
+        logger.warn(
           "Parquet file was written from Avro records, " +
             "`import magnolify.parquet.ParquetArray.AvroCompat._` to read correctly"
         )
-      } else {
-        require(
-          !parquetType.avroCompat,
+      }
+      if (!isAvroFile && parquetType.avroCompat) {
+        logger.warn(
           "Parquet file was not written from Avro records, " +
             "remove `import magnolify.parquet.ParquetArray.AvroCompat._` to read correctly"
         )
