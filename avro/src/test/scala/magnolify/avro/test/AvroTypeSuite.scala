@@ -22,7 +22,6 @@ import java.nio.ByteBuffer
 import java.time.format.DateTimeFormatter
 import java.time.{Duration, Instant, LocalDate, LocalDateTime, LocalTime}
 import java.util.UUID
-
 import cats._
 import magnolify.avro._
 import magnolify.avro.unsafe._
@@ -34,18 +33,16 @@ import magnolify.test.Simple._
 import magnolify.test.Time._
 import magnolify.test._
 import org.apache.avro.Schema
-import org.apache.avro.generic.{
-  GenericDatumReader,
-  GenericDatumWriter,
-  GenericRecord,
-  GenericRecordBuilder
-}
+import org.apache.avro.generic.{GenericDatumReader, GenericDatumWriter, GenericRecord, GenericRecordBuilder}
 import org.apache.avro.io.{DecoderFactory, EncoderFactory}
 import org.scalacheck._
+import org.slf4j.LoggerFactory
 
 import scala.reflect._
 
 class AvroTypeSuite extends MagnolifySuite {
+  private val logger = LoggerFactory.getLogger(this.getClass)
+
   private def test[T: Arbitrary: ClassTag](implicit
     t: AvroType[T],
     eqt: Eq[T],
@@ -127,6 +124,9 @@ class AvroTypeSuite extends MagnolifySuite {
       import magnolify.avro.logical.millis._
       implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
       test[LogicalMillis]
+
+      val at = AvroType[LogicalMillis]
+      logger.error(at.schema.toString)
     }
 
     {

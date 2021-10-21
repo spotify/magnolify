@@ -35,6 +35,7 @@ val protobufVersion = "3.18.0"
 val refinedVersion = "0.9.17"
 val scalacheckVersion = "1.15.4"
 val shapelessVersion = "2.3.7"
+val slf4jVersion = "1.7.32"
 val tensorflowVersion = "0.3.2"
 
 val commonSettings = Seq(
@@ -49,7 +50,9 @@ val commonSettings = Seq(
   libraryDependencies ++= Seq(
     "com.softwaremill.magnolia" %% "magnolia-core" % magnoliaVersion,
     "com.chuusai" %% "shapeless" % shapelessVersion,
-    "org.scala-lang" % "scala-reflect" % scalaVersion.value
+    "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+    "org.slf4j" % "slf4j-api" % slf4jVersion,
+    "org.slf4j" % "slf4j-simple" % slf4jVersion % "test"
   ),
   // https://github.com/typelevel/scalacheck/pull/427#issuecomment-424330310
   // FIXME: workaround for Java serialization issues

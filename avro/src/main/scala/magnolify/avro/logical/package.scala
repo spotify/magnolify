@@ -53,7 +53,7 @@ package object logical {
 
     // `LogicalTypes.localTimestampMillis` is Avro 1.10.0+
     implicit val afLocalTimestampMillis: AvroField[LocalDateTime] =
-      AvroField.logicalType[Long](new LogicalType("local-timestamp-micros"))(ms =>
+      AvroField.logicalType[Long](new LogicalType("local-timestamp-millis"))(ms =>
         LocalDateTime.ofInstant(Instant.ofEpochMilli(ms), ZoneOffset.UTC)
       )(_.toInstant(ZoneOffset.UTC).toEpochMilli)
   }
