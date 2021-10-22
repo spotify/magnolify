@@ -41,8 +41,6 @@ import org.slf4j.LoggerFactory
 import scala.reflect._
 
 class AvroTypeSuite extends MagnolifySuite {
-  private val logger = LoggerFactory.getLogger(this.getClass)
-
   private def test[T: Arbitrary: ClassTag](implicit
     t: AvroType[T],
     eqt: Eq[T],
@@ -59,6 +57,11 @@ class AvroTypeSuite extends MagnolifySuite {
         Prop.all(eqt.eqv(t, copy), eqr.eqv(r, rCopy))
       }
     }
+  }
+
+  private def assertLogicalType(schema: Schema, fieldName: String, logicalType: String): Unit = {
+    val lt = schema.getFields.asScala.find(_.name() == fieldName).map(_.schema().getLogicalType.getName)
+    assert(lt.contains(logicalType), s"field ${fieldName} has logicalType ${lt.getOrElse("null")}, should be ${logicalType}")
   }
 
   test[Integers]
@@ -125,8 +128,10 @@ class AvroTypeSuite extends MagnolifySuite {
       implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
       test[LogicalMillis]
 
-      val at = AvroType[LogicalMillis]
-      logger.error(at.schema.toString)
+      val schema = AvroType[LogicalMillis].schema
+      assertLogicalType(schema, "i", "local-timestamp-millis")
+      assertLogicalType(schema, "dt", "local-timestamp-millis")
+      assertLogicalType(schema, "t", "time-millis")
     }
 
     {
