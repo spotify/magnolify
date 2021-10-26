@@ -41,7 +41,6 @@ import org.apache.avro.generic.{
 }
 import org.apache.avro.io.{DecoderFactory, EncoderFactory}
 import org.scalacheck._
-import org.slf4j.LoggerFactory
 
 import scala.reflect._
 import scala.util.Try
