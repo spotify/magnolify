@@ -154,7 +154,10 @@ class AvroTypeSuite extends MagnolifySuite {
 
     {
       import magnolify.avro.logical.bigquery._
+      // `registerLogicalTypes()` is necessary to correctly parse a custom logical type from string.
+      // if omitted, the returned string schema will be correct, but the logicalType field will be null
       registerLogicalTypes()
+
       test[LogicalBigQuery]
       val schema = AvroType[LogicalBigQuery].schema
       assertLogicalType(schema, "bd", "decimal")
