@@ -33,7 +33,12 @@ import magnolify.test.Simple._
 import magnolify.test.Time._
 import magnolify.test._
 import org.apache.avro.Schema
-import org.apache.avro.generic.{GenericDatumReader, GenericDatumWriter, GenericRecord, GenericRecordBuilder}
+import org.apache.avro.generic.{
+  GenericDatumReader,
+  GenericDatumWriter,
+  GenericRecord,
+  GenericRecordBuilder
+}
 import org.apache.avro.io.{DecoderFactory, EncoderFactory}
 import org.scalacheck._
 import org.slf4j.LoggerFactory
@@ -62,9 +67,12 @@ class AvroTypeSuite extends MagnolifySuite {
 
   private def assertLogicalType(schema: Schema, fieldName: String, logicalType: String): Unit = {
     val f = schema.getFields.asScala.find(_.name() == fieldName)
-    assert(f.isDefined, s"field ${fieldName} is undefined")
-    val lt = f.flatMap { f => Try(f.schema().getLogicalType.getName).toOption }
-    assert(lt.contains(logicalType), s"field ${fieldName} has logicalType ${lt.getOrElse("null")}, should be ${logicalType}")
+    assert(f.isDefined, s"field $fieldName is undefined")
+    val lt = f.flatMap(f => Try(f.schema().getLogicalType.getName).toOption)
+    assert(
+      lt.contains(logicalType),
+      s"field $fieldName has logicalType ${lt.getOrElse("null")}, should be $logicalType"
+    )
   }
 
   test[Integers]
@@ -146,6 +154,7 @@ class AvroTypeSuite extends MagnolifySuite {
 
     {
       import magnolify.avro.logical.bigquery._
+      registerLogicalTypes()
       test[LogicalBigQuery]
       val schema = AvroType[LogicalBigQuery].schema
       assertLogicalType(schema, "bd", "decimal")

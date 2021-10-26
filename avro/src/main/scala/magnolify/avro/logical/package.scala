@@ -67,7 +67,12 @@ package object logical {
       override def fromSchema(schema: Schema): LogicalType = DateTimeLogicalType
       override def getTypeName: String = DateTimeTypeName
     }
-    org.apache.avro.LogicalTypes.register(DateTimeTypeName, DateTimeLogicalTypeFactory)
+
+    /**
+     * Register custom logical types with avro
+     */
+    def registerLogicalTypes(): Unit =
+      org.apache.avro.LogicalTypes.register(DateTimeTypeName, DateTimeLogicalTypeFactory)
 
     // DATETIME
     // YYYY-[M]M-[D]D[ [H]H:[M]M:[S]S[.DDDDDD]]
@@ -97,6 +102,8 @@ package object logical {
 
     // DATETIME -> sqlType: DATETIME
     implicit val afBigQueryDatetime: AvroField[LocalDateTime] =
-      AvroField.logicalType[String](DateTimeLogicalType)(s => LocalDateTime.from(datetimeParser.parse(s)))(datetimePrinter.format)
+      AvroField.logicalType[String](DateTimeLogicalType)(s =>
+        LocalDateTime.from(datetimeParser.parse(s))
+      )(datetimePrinter.format)
   }
 }
