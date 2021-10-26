@@ -16,10 +16,11 @@
  */
 package magnolify.avro
 
+import org.apache.avro.LogicalTypes.LogicalTypeFactory
+
 import java.time.{Instant, LocalDateTime, LocalTime, ZoneOffset}
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
-
-import org.apache.avro.{LogicalType, LogicalTypes}
+import org.apache.avro.{LogicalType, LogicalTypes, Schema}
 
 package object logical {
   object micros {
@@ -59,23 +60,14 @@ package object logical {
   }
 
   object bigquery {
-    // NUMERIC
-    // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
-    implicit val afBigQueryNumeric: AvroField[BigDecimal] = AvroField.bigDecimal(38, 9)
-
-    // TIMESTAMP
-    implicit val afBigQueryTimestamp: AvroField[Instant] = micros.afTimestampMicros
-
-    // DATE: `AvroField.afDate`
-
-    // TIME
-    implicit val afBigQueryTime: AvroField[LocalTime] = micros.afTimeMicros
-
-    // DATETIME -> sqlType: DATETIME
-    implicit val afBigQueryDatetime: AvroField[LocalDateTime] =
-      AvroField.logicalType[String](new org.apache.avro.LogicalType("datetime"))(s =>
-        LocalDateTime.from(datetimeParser.parse(s))
-      )(datetimePrinter.format)
+    // datetime is a custom logical type and must be registered
+    private final val DateTimeTypeName = "datetime"
+    private final val DateTimeLogicalType = new org.apache.avro.LogicalType(DateTimeTypeName)
+    private final val DateTimeLogicalTypeFactory: LogicalTypeFactory = new LogicalTypeFactory {
+      override def fromSchema(schema: Schema): LogicalType = DateTimeLogicalType
+      override def getTypeName: String = DateTimeTypeName
+    }
+    org.apache.avro.LogicalTypes.register(DateTimeTypeName, DateTimeLogicalTypeFactory)
 
     // DATETIME
     // YYYY-[M]M-[D]D[ [H]H:[M]M:[S]S[.DDDDDD]]
@@ -90,5 +82,21 @@ package object logical {
       )
       .toFormatter
       .withZone(ZoneOffset.UTC)
+
+    // NUMERIC
+    // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
+    implicit val afBigQueryNumeric: AvroField[BigDecimal] = AvroField.bigDecimal(38, 9)
+
+    // TIMESTAMP
+    implicit val afBigQueryTimestamp: AvroField[Instant] = micros.afTimestampMicros
+
+    // DATE: `AvroField.afDate`
+
+    // TIME
+    implicit val afBigQueryTime: AvroField[LocalTime] = micros.afTimeMicros
+
+    // DATETIME -> sqlType: DATETIME
+    implicit val afBigQueryDatetime: AvroField[LocalDateTime] =
+      AvroField.logicalType[String](DateTimeLogicalType)(s => LocalDateTime.from(datetimeParser.parse(s)))(datetimePrinter.format)
   }
 }

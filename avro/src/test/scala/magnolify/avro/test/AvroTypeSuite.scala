@@ -39,6 +39,7 @@ import org.scalacheck._
 import org.slf4j.LoggerFactory
 
 import scala.reflect._
+import scala.util.Try
 
 class AvroTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit
@@ -60,7 +61,9 @@ class AvroTypeSuite extends MagnolifySuite {
   }
 
   private def assertLogicalType(schema: Schema, fieldName: String, logicalType: String): Unit = {
-    val lt = schema.getFields.asScala.find(_.name() == fieldName).map(_.schema().getLogicalType.getName)
+    val f = schema.getFields.asScala.find(_.name() == fieldName)
+    assert(f.isDefined, s"field ${fieldName} is undefined")
+    val lt = f.flatMap { f => Try(f.schema().getLogicalType.getName).toOption }
     assert(lt.contains(logicalType), s"field ${fieldName} has logicalType ${lt.getOrElse("null")}, should be ${logicalType}")
   }
 
@@ -121,6 +124,12 @@ class AvroTypeSuite extends MagnolifySuite {
       import magnolify.avro.logical.micros._
       implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
       test[LogicalMicros]
+
+      val schema = AvroType[LogicalMicros].schema
+      assertLogicalType(schema, "bd", "decimal")
+      assertLogicalType(schema, "i", "timestamp-micros")
+      assertLogicalType(schema, "dt", "local-timestamp-micros")
+      assertLogicalType(schema, "t", "time-micros")
     }
 
     {
@@ -129,7 +138,8 @@ class AvroTypeSuite extends MagnolifySuite {
       test[LogicalMillis]
 
       val schema = AvroType[LogicalMillis].schema
-      assertLogicalType(schema, "i", "local-timestamp-millis")
+      assertLogicalType(schema, "bd", "decimal")
+      assertLogicalType(schema, "i", "timestamp-millis")
       assertLogicalType(schema, "dt", "local-timestamp-millis")
       assertLogicalType(schema, "t", "time-millis")
     }
@@ -137,6 +147,11 @@ class AvroTypeSuite extends MagnolifySuite {
     {
       import magnolify.avro.logical.bigquery._
       test[LogicalBigQuery]
+      val schema = AvroType[LogicalBigQuery].schema
+      assertLogicalType(schema, "bd", "decimal")
+      assertLogicalType(schema, "i", "timestamp-micros")
+      assertLogicalType(schema, "dt", "datetime")
+      assertLogicalType(schema, "t", "time-micros")
     }
   }
 
