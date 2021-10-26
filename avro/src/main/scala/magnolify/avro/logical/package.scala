@@ -63,14 +63,10 @@ package object logical {
     // datetime is a custom logical type and must be registered
     private final val DateTimeTypeName = "datetime"
     private final val DateTimeLogicalType = new org.apache.avro.LogicalType(DateTimeTypeName)
-    private final val DateTimeLogicalTypeFactory: LogicalTypeFactory = new LogicalTypeFactory {
-      override def fromSchema(schema: Schema): LogicalType = DateTimeLogicalType
-      override def getTypeName: String = DateTimeTypeName
-    }
+    private final val DateTimeLogicalTypeFactory: LogicalTypeFactory = (schema: Schema) =>
+      DateTimeLogicalType
 
-    /**
-     * Register custom logical types with avro
-     */
+    /** Register custom logical types with avro */
     def registerLogicalTypes(): Unit =
       org.apache.avro.LogicalTypes.register(DateTimeTypeName, DateTimeLogicalTypeFactory)
 
