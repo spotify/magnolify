@@ -67,7 +67,7 @@ package object logical {
 
     /**
      * Register custom logical types with avro, which is necessary to correctly parse a custom
-     * logical type from string. If registration omitted, the returned string schema will be
+     * logical type from string. If registration is omitted, the returned string schema will be
      * correct, but the logicalType field will be null. The registry is global mutable state, keyed
      * on the type name.
      */
