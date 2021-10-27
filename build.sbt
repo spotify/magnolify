@@ -20,7 +20,7 @@ description := "A collection of Magnolia add-on modules"
 val magnoliaVersion = "1.0.0-M4"
 
 val algebirdVersion = "0.13.8"
-val avroVersion = Option(sys.props("avro.version")).getOrElse("1.10.2")
+val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.0")
 val bigqueryVersion = "v2-rev20210910-1.32.1"
 val bigtableVersion = "2.1.4"
 val catsVersion = "2.6.1"
