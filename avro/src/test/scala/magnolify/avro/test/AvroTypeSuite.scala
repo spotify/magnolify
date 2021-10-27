@@ -46,7 +46,6 @@ import org.scalacheck._
 
 import scala.reflect._
 import scala.util.Try
-import scala.sys
 
 class AvroTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit

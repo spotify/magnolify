@@ -62,18 +62,22 @@ package object logical {
   object bigquery {
     // datetime is a custom logical type and must be registered
     private final val DateTimeTypeName = "datetime"
-    private final val DateTimeLogicalType = new org.apache.avro.LogicalType(DateTimeTypeName)
     private final val DateTimeLogicalTypeFactory: LogicalTypeFactory = (schema: Schema) =>
-      DateTimeLogicalType
+      new org.apache.avro.LogicalType(DateTimeTypeName)
 
-    /** Register custom logical types with avro */
+    /**
+     * Register custom logical types with avro, which is necessary to correctly parse a custom
+     * logical type from string. If registration omitted, the returned string schema will be
+     * correct, but the logicalType field will be null. The registry is global mutable state, keyed
+     * on the type name.
+     */
     def registerLogicalTypes(): Unit =
       org.apache.avro.LogicalTypes.register(DateTimeTypeName, DateTimeLogicalTypeFactory)
 
     // DATETIME
     // YYYY-[M]M-[D]D[ [H]H:[M]M:[S]S[.DDDDDD]]
-    private val datetimePrinter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")
-    private val datetimeParser = new DateTimeFormatterBuilder()
+    private val DatetimePrinter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")
+    private val DatetimeParser = new DateTimeFormatterBuilder()
       .append(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
       .appendOptional(
         new DateTimeFormatterBuilder()
@@ -98,8 +102,8 @@ package object logical {
 
     // DATETIME -> sqlType: DATETIME
     implicit val afBigQueryDatetime: AvroField[LocalDateTime] =
-      AvroField.logicalType[String](DateTimeLogicalType)(s =>
-        LocalDateTime.from(datetimeParser.parse(s))
-      )(datetimePrinter.format)
+      AvroField.logicalType[String](new org.apache.avro.LogicalType(DateTimeTypeName))(s =>
+        LocalDateTime.from(DatetimeParser.parse(s))
+      )(DatetimePrinter.format)
   }
 }
