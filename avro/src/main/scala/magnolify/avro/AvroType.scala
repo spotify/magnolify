@@ -87,7 +87,7 @@ object AvroField {
 
   sealed trait Record[T] extends Aux[T, GenericRecord, GenericRecord]
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   type Typeclass[T] = AvroField[T]
 
@@ -146,7 +146,7 @@ object AvroField {
 
   implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   def apply[T](implicit f: AvroField[T]): AvroField[T] = f
 
@@ -165,7 +165,7 @@ object AvroField {
       }
   }
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   private def aux[T, From, To](tpe: Schema.Type)(f: From => T)(g: T => To): AvroField[T] =
     new AvroField[T] {
@@ -273,7 +273,7 @@ object AvroField {
         if (v.isEmpty) null else v.iterator.map(kv => (kv._1, f.to(kv._2)(cm))).toMap.asJava
     }
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   def logicalType[T](lt: => LogicalType): LogicalTypeWord[T] = new LogicalTypeWord[T](lt)
 

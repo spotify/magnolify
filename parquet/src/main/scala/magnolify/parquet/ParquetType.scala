@@ -270,7 +270,7 @@ object ParquetField {
 
   implicit def apply[T]: Record[T] = macro Magnolia.gen[T]
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   def from[T]: FromWord[T] = new FromWord[T]
 
@@ -284,7 +284,7 @@ object ParquetField {
       }
   }
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   sealed trait Primitive[T] extends ParquetField[T] {
     override protected def isEmpty(v: T): Boolean = false
@@ -435,7 +435,7 @@ object ParquetField {
     }
   }
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   def logicalType[T](lta: => LogicalTypeAnnotation): LogicalTypeWord[T] =
     new LogicalTypeWord[T](lta)

@@ -99,7 +99,7 @@ object EntityField {
       Value.newBuilder().setEntityValue(toEntity(v)(cm))
   }
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   type Typeclass[T] = EntityField[T]
 
@@ -196,7 +196,7 @@ object EntityField {
 
   implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   def apply[T](implicit f: EntityField[T]): EntityField[T] = f
 
@@ -218,7 +218,7 @@ object EntityField {
       }
   }
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   // Entity key supports `Long` and `String` natively
   implicit val efLong = at[Long](_.getIntegerValue)(makeValue)

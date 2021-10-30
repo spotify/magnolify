@@ -78,7 +78,7 @@ object TableRowField {
   sealed trait Generic[T] extends Aux[T, Any, Any]
   sealed trait Record[T] extends Aux[T, java.util.Map[String, AnyRef], TableRow]
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   type Typeclass[T] = TableRowField[T]
 
@@ -131,7 +131,7 @@ object TableRowField {
 
   implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   def apply[T](implicit f: TableRowField[T]): TableRowField[T] = f
 
@@ -149,7 +149,7 @@ object TableRowField {
       }
   }
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   private def at[T](tpe: String)(f: Any => T)(g: T => Any): TableRowField[T] = new Generic[T] {
     private val _schemaString =

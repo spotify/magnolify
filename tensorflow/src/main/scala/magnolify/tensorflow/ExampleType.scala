@@ -73,7 +73,7 @@ object ExampleField {
 
   trait Record[T] extends ExampleField[T]
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   type Typeclass[T] = ExampleField[T]
 
@@ -108,7 +108,7 @@ object ExampleField {
 
   implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   def apply[T](implicit f: ExampleField[T]): ExampleField[T] = f
 

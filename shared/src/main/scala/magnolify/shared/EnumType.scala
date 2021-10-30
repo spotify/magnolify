@@ -59,7 +59,7 @@ object EnumType {
     override def to(v: T): String = g(v)
   }
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   // Java `enum`
   implicit def javaEnumType[T <: Enum[T]](implicit ct: ClassTag[T]): EnumType[T] = {
@@ -76,7 +76,7 @@ object EnumType {
     EnumType.create(n, ns, map.keys.toList, cls.getAnnotations.toList, map(_), _.name())
   }
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   // Scala `Enumeration`
   implicit def scalaEnumType[T <: Enumeration#Value: AnnotationType]: EnumType[T] =
@@ -101,7 +101,7 @@ object EnumType {
      """
   }
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   // Scala ADT
   implicit def gen[T](implicit lp: shapeless.LowPriority): Typeclass[T] = macro lowPrioGen[T]
