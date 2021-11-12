@@ -27,8 +27,8 @@ val catsVersion = "2.6.1"
 val datastoreVersion = "2.1.2"
 val guavaVersion = "30.1.1-jre"
 val hadoopVersion = "3.3.1"
-val jacksonVersion = "2.13.0"
-val munitVersion = "0.7.28"
+val jacksonVersion = "2.12.5"
+val munitVersion = "0.7.29"
 val paigesVersion = "0.4.2"
 val parquetVersion = "1.12.0"
 val protobufVersion = "3.18.0"
@@ -250,7 +250,8 @@ lazy val avro: Project = project
     moduleName := "magnolify-avro",
     description := "Magnolia add-on for Apache Avro",
     libraryDependencies ++= Seq(
-      "org.apache.avro" % "avro" % avroVersion % Provided
+      "org.apache.avro" % "avro" % avroVersion % Provided,
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
     )
   )
   .dependsOn(
