@@ -83,7 +83,8 @@ class ProjectionPredicateSuite extends MagnolifySuite {
     testProjection[ProjectionOrdering2](t => ProjectionOrdering2(t.b2, t.b1, t.i2, t.i1))
     testProjection[ProjectionLogical](t => ProjectionLogical(t.i.toEpochMilli))
     testProjection[ProjectionNestedOptional1](t =>
-      ProjectionNestedOptional1(t.s1, Some(ProjectionInnerOptional1(Some(t.inner.s)))))
+      ProjectionNestedOptional1(t.s1, Some(ProjectionInnerOptional1(Some(t.inner.s))))
+    )
   }
 
   private def testBadProjection[T: ClassTag](implicit rt: ParquetType[T]): Unit =

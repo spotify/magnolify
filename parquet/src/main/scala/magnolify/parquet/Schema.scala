@@ -91,8 +91,10 @@ private object Schema {
         case (r1, r2)                                   => r1 == r2
       }
 
-    if (!isRepetitionBackwardCompatible(writer, reader) ||
-        writer.isPrimitive != reader.isPrimitive) {
+    if (
+      !isRepetitionBackwardCompatible(writer, reader) ||
+      writer.isPrimitive != reader.isPrimitive
+    ) {
       throw new InvalidRecordException(s"$writer found: expected $reader")
     }
 

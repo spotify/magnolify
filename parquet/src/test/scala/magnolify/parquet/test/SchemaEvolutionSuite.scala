@@ -94,8 +94,7 @@ object SchemaEvolutionSuite {
     locationSchema1proj.setFields(List(country, state).asJava)
 
     val v1proj = Schema.createRecord("UserV1Projection", "", namespace, false)
-    val location1proj = new Schema.Field(
-      "location", locationSchema1proj, "", null)
+    val location1proj = new Schema.Field("location", locationSchema1proj, "", null)
     v1proj.setFields(List(id, name, location1proj).asJava)
 
     (locationSchema1proj, v1proj)
@@ -151,11 +150,11 @@ object SchemaEvolutionSuite {
       .build()
 
   def avroUser1Projection(
-                 id: Long,
-                 name: String,
-                 country: String,
-                 state: Option[String]
-               ): GenericRecord =
+    id: Long,
+    name: String,
+    country: String,
+    state: Option[String]
+  ): GenericRecord =
     new GenericRecordBuilder(user1ProjectionSchema)
       .set("id", id)
       .set("name", name)
