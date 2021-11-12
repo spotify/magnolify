@@ -19,7 +19,7 @@ description := "A collection of Magnolia add-on modules"
 
 val magnoliaVersion = "1.0.0-M4"
 
-val algebirdVersion = "0.13.8"
+val algebirdVersion = "0.13.9"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.10.2")
 val bigqueryVersion = "v2-rev20210910-1.32.1"
 val bigtableVersion = "2.1.4"
@@ -28,10 +28,10 @@ val datastoreVersion = "2.1.2"
 val guavaVersion = "30.1.1-jre"
 val hadoopVersion = "3.3.1"
 val jacksonVersion = "2.12.5"
-val munitVersion = "0.7.28"
+val munitVersion = "0.7.29"
 val paigesVersion = "0.4.2"
-val parquetVersion = "1.12.0"
-val protobufVersion = "3.18.1"
+val parquetVersion = "1.12.2"
+val protobufVersion = "3.18.0"
 val refinedVersion = "0.9.17"
 val scalacheckVersion = "1.15.4"
 val shapelessVersion = "2.3.7"
@@ -250,7 +250,8 @@ lazy val avro: Project = project
     moduleName := "magnolify-avro",
     description := "Magnolia add-on for Apache Avro",
     libraryDependencies ++= Seq(
-      "org.apache.avro" % "avro" % avroVersion % Provided
+      "org.apache.avro" % "avro" % avroVersion % Provided,
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
     )
   )
   .dependsOn(
