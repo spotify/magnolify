@@ -85,16 +85,17 @@ private object Schema {
   }
 
   def checkCompatibility(writer: Type, reader: Type): Unit = {
-    def isRepetitionBackwardCompatible(wr: Repetition, rr: Repetition) = (wr, rr) match {
-      case (Repetition.REQUIRED, Repetition.OPTIONAL) => true
-      case (r1, r2)                                   => r1 == r2
+    def isRepetitionBackwardCompatible(w: Type, r: Type) =
+      (w.getRepetition, r.getRepetition) match {
+        case (Repetition.REQUIRED, Repetition.OPTIONAL) => true
+        case (r1, r2)                                   => r1 == r2
+      }
+
+    if (!isRepetitionBackwardCompatible(writer, reader) ||
+        writer.isPrimitive != reader.isPrimitive) {
+      throw new InvalidRecordException(s"$writer found: expected $reader")
     }
 
-    if (writer.isPrimitive != reader.isPrimitive) {
-      throw new InvalidRecordException(
-        s"Incompatible field ${reader.getName}, file schema: $writer, requested schema: $reader"
-      )
-    }
     writer match {
       case _: GroupType =>
         val wg = writer.asGroupType()
@@ -117,10 +118,7 @@ private object Schema {
       case _: PrimitiveType =>
         val wf = writer.asPrimitiveType()
         val rf = reader.asPrimitiveType()
-        if (
-          wf.getPrimitiveTypeName != rf.getPrimitiveTypeName ||
-          !isRepetitionBackwardCompatible(wf.getRepetition, rf.getRepetition)
-        ) {
+        if (wf.getPrimitiveTypeName != rf.getPrimitiveTypeName) {
           throw new InvalidRecordException(s"$rf found: expected $wf")
         }
     }
