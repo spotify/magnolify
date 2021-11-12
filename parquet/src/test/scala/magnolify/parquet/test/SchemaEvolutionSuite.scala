@@ -30,6 +30,7 @@ import org.apache.parquet.avro.{
   AvroReadSupport,
   GenericDataSupplier
 }
+import org.apache.parquet.io.InvalidRecordException
 
 object SchemaEvolutionSuite {
   private val namespace = "magnolify.parquet"
@@ -82,6 +83,24 @@ object SchemaEvolutionSuite {
     (v1, v2)
   }
 
+  val (location1ProjectionSchema, user1ProjectionSchema): (Schema, Schema) = {
+    def id = new Schema.Field("id", Schema.create(Schema.Type.LONG), "", null)
+    def name = new Schema.Field("name", nullableString, "")
+
+    def country = new Schema.Field("country", Schema.create(Schema.Type.STRING), "", null)
+    def state = new Schema.Field("state", nullableString, "", null)
+
+    val locationSchema1proj = Schema.createRecord("LocationV1", "", namespace, false)
+    locationSchema1proj.setFields(List(country, state).asJava)
+
+    val v1proj = Schema.createRecord("UserV1Projection", "", namespace, false)
+    val location1proj = new Schema.Field(
+      "location", locationSchema1proj, "", null)
+    v1proj.setFields(List(id, name, location1proj).asJava)
+
+    (locationSchema1proj, v1proj)
+  }
+
   def avroLocation1(country: String, state: String): GenericRecord =
     new GenericRecordBuilder(locationSchema1).set("country", country).set("state", state).build()
 
@@ -90,6 +109,12 @@ object SchemaEvolutionSuite {
       .set("country", country)
       .set("state", state)
       .set("zip", zip)
+      .build()
+
+  def avroLocation1Projection(country: String, state: Option[String]): GenericRecord =
+    new GenericRecordBuilder(location1ProjectionSchema)
+      .set("country", country)
+      .set("state", state.orNull)
       .build()
 
   def avroUser1(
@@ -125,8 +150,21 @@ object SchemaEvolutionSuite {
       .set("aliases", aliases.asJava)
       .build()
 
+  def avroUser1Projection(
+                 id: Long,
+                 name: String,
+                 country: String,
+                 state: Option[String]
+               ): GenericRecord =
+    new GenericRecordBuilder(user1ProjectionSchema)
+      .set("id", id)
+      .set("name", name)
+      .set("location", avroLocation1Projection(country, state))
+      .build()
+
   case class Location1(country: String, state: String)
   case class Location2(country: String, state: String, zip: Option[String])
+  case class Location1Projection(country: String, state: Option[String])
 
   object AccountType1 extends Enumeration {
     type Type = Value
@@ -152,6 +190,11 @@ object SchemaEvolutionSuite {
     email: Option[String],
     aliases: Seq[String]
   )
+  case class User1Projection(
+    id: Long,
+    name: Option[String],
+    location: Location1Projection
+  )
 
   val avro1: Seq[GenericRecord] = Seq(
     avroUser1(0, "Alice", "Checking", "US", "NY"),
@@ -176,6 +219,13 @@ object SchemaEvolutionSuite {
     avroUser2(1, "Bob", "Saving", "US", "NJ", null, null, null),
     avroUser2(2, "Carol", "Checking", "US", "CT", null, null, null),
     avroUser2(3, "Dan", "Saving", "US", "MA", null, null, null)
+  )
+
+  val avro1asProj1: Seq[GenericRecord] = Seq(
+    avroUser1Projection(0, "Alice", "US", Some("NY")),
+    avroUser1Projection(1, "Bob", "US", Some("NJ")),
+    avroUser1Projection(2, "Carol", "US", Some("CT")),
+    avroUser1Projection(3, "Dan", "US", Some("MA"))
   )
 
   val scala1: Seq[User1] = Seq(
@@ -219,6 +269,13 @@ object SchemaEvolutionSuite {
       Some("ed@aol.com"),
       Nil
     )
+  )
+
+  val scala1asProj1: Seq[User1Projection] = Seq(
+    User1Projection(0, Some("Alice"), Location1Projection("US", Some("NY"))),
+    User1Projection(1, Some("Bob"), Location1Projection("US", Some("NJ"))),
+    User1Projection(2, Some("Carol"), Location1Projection("US", Some("CT"))),
+    User1Projection(3, Some("Dan"), Location1Projection("US", Some("MA")))
   )
 
   val scala2as1: Seq[User1] =
@@ -399,4 +456,26 @@ class SchemaEvolutionSuite extends MagnolifySuite {
     import magnolify.parquet.ParquetArray.AvroCompat._
     assertEquals(readAvro(scalaCompatBytes2, userSchema1), avro2as1)
   }
+
+  //////////////////////////////////////////////////
+
+  test("Scala V1 => Scala V1 Projection") {
+    assertEquals(readScala[User1Projection](scalaBytes1), scala1asProj1)
+  }
+
+  test("Avro V1 => Scala V1 Projection") {
+    import magnolify.parquet.ParquetArray.AvroCompat._
+    assertEquals(readScala[User1Projection](avroBytes1), scala1asProj1)
+  }
+
+  test("Scala V1 => Avro V1 Projection") {
+    import magnolify.parquet.ParquetArray.AvroCompat._
+    assertEquals(readAvro(scalaCompatBytes1, user1ProjectionSchema), avro1asProj1)
+  }
+
+  test("Avro V1 => Avro V1 Projection") {
+    import magnolify.parquet.ParquetArray.AvroCompat._
+    assertEquals(readAvro(avroBytes1, user1ProjectionSchema), avro1asProj1)
+  }
+
 }

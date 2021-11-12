@@ -82,6 +82,8 @@ class ProjectionPredicateSuite extends MagnolifySuite {
     testProjection[ProjectionOrdering1](t => ProjectionOrdering1(t.s1, t.i1, t.b1))
     testProjection[ProjectionOrdering2](t => ProjectionOrdering2(t.b2, t.b1, t.i2, t.i1))
     testProjection[ProjectionLogical](t => ProjectionLogical(t.i.toEpochMilli))
+    testProjection[ProjectionNestedOptional1](t =>
+      ProjectionNestedOptional1(t.s1, Some(ProjectionInnerOptional1(Some(t.inner.s)))))
   }
 
   private def testBadProjection[T: ClassTag](implicit rt: ParquetType[T]): Unit =
@@ -99,7 +101,6 @@ class ProjectionPredicateSuite extends MagnolifySuite {
     testBadProjection[ProjectionBadRepetition3]
     testBadProjection[ProjectionBadRepetition4]
     testBadProjection[ProjectionBadRepetition5]
-    testBadProjection[ProjectionBadRepetition6]
   }
 
   private def testPredicate[T: ClassTag](
@@ -232,9 +233,11 @@ case class ProjectionLogical(i: Long)
 
 case class ProjectionBadName(b1: Boolean, i3: Int)
 case class ProjectionBadType(b1: Boolean, i1: Long)
-case class ProjectionBadRepetition1(b1: Boolean, i1: Option[Int])
-case class ProjectionBadRepetition2(b1: Boolean, i1: List[Int])
-case class ProjectionBadRepetition3(b1: Boolean, o: Int)
-case class ProjectionBadRepetition4(b1: Boolean, o: List[Int])
-case class ProjectionBadRepetition5(b1: Boolean, r: Int)
-case class ProjectionBadRepetition6(b1: Boolean, r: Option[Int])
+case class ProjectionBadRepetition1(b1: Boolean, i1: List[Int])
+case class ProjectionBadRepetition2(b1: Boolean, o: Int)
+case class ProjectionBadRepetition3(b1: Boolean, o: List[Int])
+case class ProjectionBadRepetition4(b1: Boolean, r: Int)
+case class ProjectionBadRepetition5(b1: Boolean, r: Option[Int])
+
+case class ProjectionInnerOptional1(s: Option[String])
+case class ProjectionNestedOptional1(s1: String, inner: Option[ProjectionInnerOptional1])

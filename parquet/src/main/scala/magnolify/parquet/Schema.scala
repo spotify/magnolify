@@ -20,7 +20,14 @@ import magnolify.shims.JavaConverters._
 import org.apache.parquet.io.InvalidRecordException
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 import org.apache.parquet.schema.Type.Repetition
-import org.apache.parquet.schema.{GroupType, LogicalTypeAnnotation, MessageType, Type, Types}
+import org.apache.parquet.schema.{
+  GroupType,
+  LogicalTypeAnnotation,
+  MessageType,
+  PrimitiveType,
+  Type,
+  Types
+}
 
 private object Schema {
   def rename(schema: Type, name: String): Type = {
@@ -77,19 +84,25 @@ private object Schema {
     builder.named(schema.getName)
   }
 
-  def pruneRequested(fileSchema: MessageType, requestedSchema: MessageType): MessageType = {
-    def prune(file: GroupType, requested: GroupType): Type = {
-      val filtered = requested.getFields.asScala
-        .flatMap { rf =>
-          if (file.containsField(rf.getName)) {
-            val idx = file.getFieldIndex(rf.getName)
-            val ff = file.getFields.get(idx)
-            if (ff.isPrimitive != rf.isPrimitive) {
-              throw new InvalidRecordException(
-                s"Incompatible field ${rf.getName}, file schema: $ff, requested schema: $rf"
-              )
-            }
-            if (ff.isPrimitive) Some(rf) else Some(prune(ff.asGroupType(), rf.asGroupType()))
+  def checkCompatibility(writer: Type, reader: Type): Unit = {
+    def isRepetitionBackwardCompatible(wr: Repetition, rr: Repetition) = (wr, rr) match {
+      case (Repetition.REQUIRED, Repetition.OPTIONAL) => true
+      case (r1, r2)                                   => r1 == r2
+    }
+
+    if (writer.isPrimitive != reader.isPrimitive) {
+      throw new InvalidRecordException(
+        s"Incompatible field ${reader.getName}, file schema: $writer, requested schema: $reader"
+      )
+    }
+    writer match {
+      case _: GroupType =>
+        val wg = writer.asGroupType()
+        val rg = reader.asGroupType()
+        rg.getFields.asScala.foreach { rf =>
+          if (wg.containsField(rf.getName)) {
+            val wf = wg.getType(rf.getName)
+            checkCompatibility(wf, rf)
           } else {
             if (
               rf.isRepetition(Repetition.REQUIRED) &&
@@ -99,14 +112,17 @@ private object Schema {
                 s"${rf.getRepetition} field ${rf.getName} missing in file schema"
               )
             }
-            None
           }
         }
-      filtered
-        .foldLeft(Types.buildGroup(requested.getRepetition))(_.addField(_))
-        .named(requested.getName)
+      case _: PrimitiveType =>
+        val wf = writer.asPrimitiveType()
+        val rf = reader.asPrimitiveType()
+        if (
+          wf.getPrimitiveTypeName != rf.getPrimitiveTypeName ||
+          !isRepetitionBackwardCompatible(wf.getRepetition, rf.getRepetition)
+        ) {
+          throw new InvalidRecordException(s"$rf found: expected $wf")
+        }
     }
-
-    message(prune(fileSchema, requestedSchema))
   }
 }
