@@ -85,6 +85,9 @@ class ProjectionPredicateSuite extends MagnolifySuite {
     testProjection[ProjectionNestedOptional1](t =>
       ProjectionNestedOptional1(t.s1, Some(ProjectionInnerOptional1(Some(t.inner.s))))
     )
+    testProjection[ProjectionReorderedNested1](t =>
+      ProjectionReorderedNested1(ProjectionReorderedInner1(t.inner.r, t.inner.s), t.s1)
+    )
   }
 
   private def testBadProjection[T: ClassTag](implicit rt: ParquetType[T]): Unit =
@@ -242,3 +245,6 @@ case class ProjectionBadRepetition5(b1: Boolean, r: Option[Int])
 
 case class ProjectionInnerOptional1(s: Option[String])
 case class ProjectionNestedOptional1(s1: String, inner: Option[ProjectionInnerOptional1])
+
+case class ProjectionReorderedInner1(r: List[String], s: String)
+case class ProjectionReorderedNested1(inner: ProjectionReorderedInner1, s1: String)
