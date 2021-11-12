@@ -99,8 +99,7 @@ private object Schema {
     }
 
     writer match {
-      case _: GroupType =>
-        val wg = writer.asGroupType()
+      case wg: GroupType =>
         val rg = reader.asGroupType()
         rg.getFields.asScala.foreach { rf =>
           if (wg.containsField(rf.getName)) {
