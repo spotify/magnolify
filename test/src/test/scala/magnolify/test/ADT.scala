@@ -38,4 +38,12 @@ object ADT {
   case object Red extends Color
   case object Green extends Color
   case object Blue extends Color
+
+  // This is needed to simulate an error with "no valid constructor"
+  // exception on attempt to deserialize a case object implementing an abstract class without
+  // default constructor (observed on Scala 2.12 only).
+  sealed abstract class Person(val entryName: String)
+  case object Aldrin extends Person("Aldrin")
+  case object Neil extends Person("Neil")
+
 }

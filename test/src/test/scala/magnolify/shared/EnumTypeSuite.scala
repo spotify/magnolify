@@ -56,6 +56,15 @@ class EnumTypeSuite extends MagnolifySuite {
     assertEquals(as, List("Color", "Red"))
   }
 
+  test("ADT No Default Constructor") {
+    val et = ensureSerializable(implicitly[EnumType[ADT.Person]])
+    assertEquals(et.name, "Person")
+    assertEquals(et.namespace, "magnolify.test.ADT")
+    assertEquals(et.values, List("Aldrin", "Neil")) // ADTs are ordered alphabetically
+    assertEquals(et.from("Aldrin"), ADT.Aldrin)
+    assertEquals(et.to(ADT.Neil), "Neil")
+  }
+
   test("JavaEnums CaseMapper") {
     val et = ensureSerializable(EnumType[JavaEnums.Color](CaseMapper(_.toLowerCase)))
     assertEquals(et.values.toSet, JavaEnums.Color.values().map(_.name().toLowerCase).toSet)
