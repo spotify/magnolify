@@ -32,8 +32,8 @@ sealed trait EnumType[T] extends Serializable { self =>
   def to(v: T): String
 
   def map(cm: CaseMapper): EnumType[T] = {
-    val m1 = values.map(v => cm.map(v) -> self.from(v)).toMap
-    val m2 = values.map(v => self.from(v) -> cm.map(v)).toMap
+    lazy val m1 = values.map(v => cm.map(v) -> self.from(v)).toMap
+    lazy val m2 = values.map(v => self.from(v) -> cm.map(v)).toMap
     EnumType.create(name, namespace, values.map(cm.map), annotations, m1(_), m2(_))
   }
 }
@@ -129,7 +129,7 @@ object EnumType {
     val ns = sealedTrait.typeName.owner
     val subs = sealedTrait.subtypes.map(_.typeclass)
     val values = subs.flatMap(_.values).toList
-    val m = subs.map(s => s.name -> s.from(s.name)).toMap
+    lazy val m = subs.map(s => s.name -> s.from(s.name)).toMap
     val annotations = (sealedTrait.annotations ++ subs.flatMap(_.annotations)).toList
     EnumType.create(
       n,
