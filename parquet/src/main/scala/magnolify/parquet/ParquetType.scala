@@ -143,9 +143,11 @@ object ParquetType {
       }
 
       val requestedSchema = Schema.message(parquetType.schema)
-      val pruned = Schema.pruneRequested(context.getFileSchema, requestedSchema)
-      context.getFileSchema.checkContains(pruned)
-      new hadoop.ReadSupport.ReadContext(pruned, java.util.Collections.emptyMap())
+      Schema.checkCompatibility(
+        context.getFileSchema,
+        requestedSchema
+      )
+      new hadoop.ReadSupport.ReadContext(requestedSchema, java.util.Collections.emptyMap())
     }
 
     override def prepareForRead(

@@ -19,7 +19,7 @@ description := "A collection of Magnolia add-on modules"
 
 val magnoliaVersion = "1.0.0-M4"
 
-val algebirdVersion = "0.13.8"
+val algebirdVersion = "0.13.9"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.10.2")
 val bigqueryVersion = "v2-rev20210910-1.32.1"
 val bigtableVersion = "2.1.4"
@@ -28,19 +28,19 @@ val datastoreVersion = "2.1.2"
 val guavaVersion = "30.1.1-jre"
 val hadoopVersion = "3.3.1"
 val jacksonVersion = "2.12.5"
-val munitVersion = "0.7.28"
+val munitVersion = "0.7.29"
 val paigesVersion = "0.4.2"
-val parquetVersion = "1.12.0"
+val parquetVersion = "1.12.2"
 val protobufVersion = "3.18.0"
 val refinedVersion = "0.9.17"
 val scalacheckVersion = "1.15.4"
 val shapelessVersion = "2.3.7"
-val tensorflowVersion = "0.3.2"
+val tensorflowVersion = "0.3.3"
 
 val commonSettings = Seq(
   organization := "com.spotify",
-  scalaVersion := "2.13.7",
-  crossScalaVersions := Seq("2.12.14", "2.13.7"),
+  scalaVersion := "2.13.6",
+  crossScalaVersions := Seq("2.12.15", "2.13.6"),
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
   scalacOptions ++= (scalaBinaryVersion.value match {
     case "2.12" => Seq("-language:higherKinds")
