@@ -32,9 +32,15 @@ sealed trait EnumType[T] extends Serializable { self =>
   def to(v: T): String
 
   def map(cm: CaseMapper): EnumType[T] = {
-    val m1 = values.map(v => cm.map(v) -> self.from(v)).toMap
-    val m2 = values.map(v => self.from(v) -> cm.map(v)).toMap
-    EnumType.create(name, namespace, values.map(cm.map), annotations, m1(_), m2(_))
+    val cMap = values.map(v => cm.map(v) -> v).toMap
+    EnumType.create(
+      name,
+      namespace,
+      values.map(cm.map),
+      annotations,
+      v => self.from(cMap(v)),
+      v => cm.map(self.to(v))
+    )
   }
 }
 
@@ -50,13 +56,20 @@ object EnumType {
     f: String => T,
     g: T => String
   ): EnumType[T] = new EnumType[T] {
+
+    @transient private lazy val fMap =
+      _values.map(v => v -> f(v)).toMap
+
+    @transient private lazy val gMap =
+      _values.map(v => f(v) -> v).toMap
+
     override val name: String = _name
     override val namespace: String = _namespace
     override val values: List[String] = _values
     override val valueSet: Set[String] = _values.toSet
     override val annotations: List[Any] = _annotations
-    override def from(v: String): T = f(v)
-    override def to(v: T): String = g(v)
+    override def from(v: String): T = fMap(v)
+    override def to(v: T): String = gMap(v)
   }
 
   //////////////////////////////////////////////////
@@ -129,14 +142,14 @@ object EnumType {
     val ns = sealedTrait.typeName.owner
     val subs = sealedTrait.subtypes.map(_.typeclass)
     val values = subs.flatMap(_.values).toList
-    val m = subs.map(s => s.name -> s.from(s.name)).toMap
+    val m = subs.map(s => s.name -> s.from _).toMap
     val annotations = (sealedTrait.annotations ++ subs.flatMap(_.annotations)).toList
     EnumType.create(
       n,
       ns,
       values,
       annotations,
-      m(_),
+      v => m(v)(v),
       t => sealedTrait.dispatch(t)(_.typeclass.name)
     )
   }
