@@ -38,8 +38,7 @@ sealed trait EnumType[T] extends Serializable { self =>
       namespace,
       values.map(cm.map),
       annotations,
-      v => self.from(cMap(v)),
-      v => cm.map(self.to(v))
+      v => self.from(cMap(v))
     )
   }
 }
@@ -53,8 +52,7 @@ object EnumType {
     _namespace: String,
     _values: List[String],
     _annotations: List[Any],
-    f: String => T,
-    g: T => String
+    f: String => T
   ): EnumType[T] = new EnumType[T] {
 
     @transient private lazy val fMap =
@@ -86,7 +84,7 @@ object EnumType {
       .iterator
       .map(v => v.name() -> v)
       .toMap
-    EnumType.create(n, ns, map.keys.toList, cls.getAnnotations.toList, map(_), _.name())
+    EnumType.create(n, ns, map.keys.toList, cls.getAnnotations.toList, map(_))
   }
 
   //////////////////////////////////////////////////
@@ -110,7 +108,7 @@ object EnumType {
 
     q"""
         _root_.magnolify.shared.EnumType.create[$wtt](
-          $n, $ns, $list, $annotations.annotations, $map.apply(_), _.toString)
+          $n, $ns, $list, $annotations.annotations, $map.apply(_))
      """
   }
 
@@ -132,8 +130,7 @@ object EnumType {
       ns,
       List(n),
       caseClass.annotations.toList,
-      _ => caseClass.rawConstruct(Nil),
-      _ => n
+      _ => caseClass.rawConstruct(Nil)
     )
   }
 
@@ -142,15 +139,15 @@ object EnumType {
     val ns = sealedTrait.typeName.owner
     val subs = sealedTrait.subtypes.map(_.typeclass)
     val values = subs.flatMap(_.values).toList
-    val m = subs.map(s => s.name -> s.from _).toMap
     val annotations = (sealedTrait.annotations ++ subs.flatMap(_.annotations)).toList
     EnumType.create(
       n,
       ns,
       values,
       annotations,
-      v => m(v)(v),
-      t => sealedTrait.dispatch(t)(_.typeclass.name)
+      // it is ok to use the inefficient find here because it will be called only once
+      // and cached inside an instance of EnumType
+      v => subs.find(_.name == v).get.from(v)
     )
   }
 }
