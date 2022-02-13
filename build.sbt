@@ -34,7 +34,7 @@ val parquetVersion = "1.12.2"
 val protobufVersion = "3.18.0"
 val refinedVersion = "0.9.17"
 val scalacheckVersion = "1.15.4"
-val shapelessVersion = "2.3.7"
+val shapelessVersion = "2.3.8"
 val tensorflowVersion = "0.3.3"
 
 val commonSettings = Seq(
