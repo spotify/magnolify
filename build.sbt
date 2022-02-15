@@ -39,7 +39,7 @@ val tensorflowVersion = "0.3.3"
 
 val commonSettings = Seq(
   organization := "com.spotify",
-  scalaVersion := "2.13.7",
+  scalaVersion := "2.13.8",
   crossScalaVersions := Seq("2.12.15", "2.13.8"),
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
   scalacOptions ++= (scalaBinaryVersion.value match {
