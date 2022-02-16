@@ -34,13 +34,13 @@ val parquetVersion = "1.12.2"
 val protobufVersion = "3.18.0"
 val refinedVersion = "0.9.17"
 val scalacheckVersion = "1.15.4"
-val shapelessVersion = "2.3.7"
+val shapelessVersion = "2.3.8"
 val tensorflowVersion = "0.3.3"
 
 val commonSettings = Seq(
   organization := "com.spotify",
-  scalaVersion := "2.13.6",
-  crossScalaVersions := Seq("2.12.14", "2.13.6"),
+  scalaVersion := "2.13.8",
+  crossScalaVersions := Seq("2.12.15", "2.13.8"),
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
   scalacOptions ++= (scalaBinaryVersion.value match {
     case "2.12" => Seq("-language:higherKinds")
