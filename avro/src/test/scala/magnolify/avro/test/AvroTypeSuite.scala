@@ -22,8 +22,9 @@ import java.nio.ByteBuffer
 import java.time.format.DateTimeFormatter
 import java.time.{Duration, Instant, LocalDate, LocalDateTime, LocalTime}
 import java.util.UUID
-
 import cats._
+import com.fasterxml.jackson.core.JsonFactory
+import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import magnolify.avro._
 import magnolify.avro.unsafe._
 import magnolify.cats.auto._
@@ -44,6 +45,7 @@ import org.apache.avro.io.{DecoderFactory, EncoderFactory}
 import org.scalacheck._
 
 import scala.reflect._
+import scala.util.Try
 
 class AvroTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit
@@ -61,6 +63,38 @@ class AvroTypeSuite extends MagnolifySuite {
         val copy = tpe(rCopy)
         Prop.all(eqt.eqv(t, copy), eqr.eqv(r, rCopy))
       }
+    }
+  }
+
+  private def assertLogicalType(
+    schema: Schema,
+    fieldName: String,
+    logicalType: String,
+    backwardsCompatible: Boolean = true
+  ): Unit = {
+    // validate that the string schema contains the correct logical type
+    val jf = new JsonFactory
+    val om = new ObjectMapper(jf)
+    val tree: JsonNode = om.readTree(jf.createParser(schema.toString()))
+    val sf = tree.get("fields").elements().asScala.find(_.get("name").asText() == fieldName)
+    assert(sf.isDefined, s"schema field $fieldName is undefined")
+    val slt = sf.flatMap(f => Try(f.get("type").get("logicalType").asText()).toOption)
+    assert(
+      slt.contains(logicalType),
+      s"schema field $fieldName has logicalType ${slt.getOrElse("null")}, should be $logicalType"
+    )
+
+    // validate that the parsed schema contains the correct logical type if this type is backwards compatible or if we're testing with a recent avro
+    val compatibilityMode = sys.props.get("avro.version").contains("1.8.2")
+    val shouldTestSchema = backwardsCompatible || (!compatibilityMode)
+    if (shouldTestSchema) {
+      val f = schema.getFields.asScala.find(_.name() == fieldName)
+      assert(f.isDefined, s"field $fieldName is undefined")
+      val lt = f.flatMap(f => Try(f.schema().getLogicalType.getName).toOption)
+      assert(
+        lt.contains(logicalType),
+        s"field $fieldName has logicalType ${lt.getOrElse("null")}, should be $logicalType"
+      )
     }
   }
 
@@ -123,15 +157,51 @@ class AvroTypeSuite extends MagnolifySuite {
       test[LogicalMicros]
     }
 
+    test("MicrosLogicalTypes") {
+      import magnolify.avro.logical.micros._
+      implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
+
+      val schema = AvroType[LogicalMicros].schema
+      assertLogicalType(schema, "bd", "decimal")
+      assertLogicalType(schema, "i", "timestamp-micros")
+      assertLogicalType(schema, "dt", "local-timestamp-micros", false)
+      assertLogicalType(schema, "t", "time-micros")
+    }
+
     {
       import magnolify.avro.logical.millis._
       implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
       test[LogicalMillis]
     }
 
+    test("MilliLogicalTypes") {
+      import magnolify.avro.logical.millis._
+      implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
+
+      val schema = AvroType[LogicalMillis].schema
+      assertLogicalType(schema, "bd", "decimal")
+      assertLogicalType(schema, "i", "timestamp-millis")
+      assertLogicalType(schema, "dt", "local-timestamp-millis", false)
+      assertLogicalType(schema, "t", "time-millis")
+    }
+
     {
       import magnolify.avro.logical.bigquery._
       test[LogicalBigQuery]
+    }
+
+    test("BigQueryLogicalTypes") {
+      import magnolify.avro.logical.bigquery._
+      // `registerLogicalTypes()` is necessary to correctly parse a custom logical type from string.
+      // if omitted, the returned string schema will be correct, but the logicalType field will be null.
+      // this is unfortunately global mutable state
+      registerLogicalTypes()
+
+      val schema = AvroType[LogicalBigQuery].schema
+      assertLogicalType(schema, "bd", "decimal")
+      assertLogicalType(schema, "i", "timestamp-micros")
+      assertLogicalType(schema, "dt", "datetime")
+      assertLogicalType(schema, "t", "time-micros")
     }
   }
 
