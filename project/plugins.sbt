@@ -5,6 +5,7 @@ addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.4.6")
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.9.3")
 addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "3.9.12")
 addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.4.3")
+addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.5.10")
 
 libraryDependencies ++= Seq(
   "com.github.os72" % "protoc-jar" % "3.11.4"
