@@ -54,13 +54,8 @@ val commonSettings = Seq(
   // https://github.com/typelevel/scalacheck/pull/427#issuecomment-424330310
   // FIXME: workaround for Java serialization issues
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
-  // Release settings
-  publishTo := Some(
-    if (isSnapshot.value) Opts.resolver.sonatypeSnapshots else Opts.resolver.sonatypeStaging
-  ),
   releaseCrossBuild := true,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
-  publishMavenStyle := true,
   Test / publishArtifact := false,
   sonatypeProfileName := "com.spotify",
   licenses := Seq("Apache 2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
