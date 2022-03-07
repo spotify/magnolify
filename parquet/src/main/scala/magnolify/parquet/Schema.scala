@@ -111,7 +111,8 @@ private object Schema {
               rf.getLogicalTypeAnnotation != LogicalTypeAnnotation.listType()
             ) {
               throw new InvalidRecordException(
-                s"${rf.getRepetition} field ${rf.getName} missing in file schema"
+                s"Requested field `${rf.getName}` with repetition ${rf.getRepetition} missing from written file schema. " +
+                  s"Available fields are: [${wg.getFields.asScala.map(_.getName).mkString(",")}]"
               )
             }
           }
