@@ -88,6 +88,9 @@ private object Schema {
   }
 
   def checkCompatibility(writer: Type, reader: Type): Unit = {
+    def listFields(gt: GroupType) =
+      s"[${gt.getFields.asScala.map(f => s"${f.getName}: ${f.getRepetition}").mkString(",")}]"
+
     def isRepetitionBackwardCompatible(w: Type, r: Type) =
       (w.getRepetition, r.getRepetition) match {
         case (Repetition.REQUIRED, Repetition.OPTIONAL) => true
@@ -109,20 +112,21 @@ private object Schema {
             val wf = wg.getType(rf.getName)
             checkCompatibility(wf, rf)
           } else {
-            if (rf.getLogicalTypeAnnotation != LogicalTypeAnnotation.listType()) {
-              val availableFields =
-                wg.getFields.asScala.map(f => s"${f.getName}: ${f.getRepetition}").mkString(",")
-              if (rf.isRepetition(Repetition.REQUIRED)) {
+            (
+              rf.getLogicalTypeAnnotation != LogicalTypeAnnotation.listType(),
+              rf.getRepetition
+            ) match {
+              case (true, Repetition.REQUIRED) =>
                 throw new InvalidRecordException(
                   s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema. " +
-                    s"Available fields are: [$availableFields]"
+                    s"Available fields are: ${listFields(wg)}"
                 )
-              } else {
+              case (true, Repetition.OPTIONAL) =>
                 logger.warn(
                   s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema " +
-                    s"and will be evaluated as `Option.empty`. Available fields are: [$availableFields]"
+                    s"and will be evaluated as `Option.empty`. Available fields are: ${listFields(wg)}"
                 )
-              }
+              case _ =>
             }
           }
         }
