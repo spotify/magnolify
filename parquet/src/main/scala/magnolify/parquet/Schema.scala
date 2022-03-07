@@ -28,8 +28,11 @@ import org.apache.parquet.schema.{
   Type,
   Types
 }
+import org.slf4j.LoggerFactory
 
 private object Schema {
+  private lazy val logger = LoggerFactory.getLogger(this.getClass)
+
   def rename(schema: Type, name: String): Type = {
     if (schema.isPrimitive) {
       val p = schema.asPrimitiveType()
@@ -106,14 +109,20 @@ private object Schema {
             val wf = wg.getType(rf.getName)
             checkCompatibility(wf, rf)
           } else {
-            if (
-              rf.isRepetition(Repetition.REQUIRED) &&
-              rf.getLogicalTypeAnnotation != LogicalTypeAnnotation.listType()
-            ) {
-              throw new InvalidRecordException(
-                s"Requested field `${rf.getName}` with repetition ${rf.getRepetition} missing from written file schema. " +
-                  s"Available fields are: [${wg.getFields.asScala.map(f => s"${f.getName}: ${f.getRepetition}").mkString(",")}]"
-              )
+            if (rf.getLogicalTypeAnnotation != LogicalTypeAnnotation.listType()) {
+              val availableFields =
+                wg.getFields.asScala.map(f => s"${f.getName}: ${f.getRepetition}").mkString(",")
+              if (rf.isRepetition(Repetition.REQUIRED)) {
+                throw new InvalidRecordException(
+                  s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema. " +
+                    s"Available fields are: [$availableFields]"
+                )
+              } else {
+                logger.warn(
+                  s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema " +
+                    s"and will be evaluated as `Option.empty`. Available fields are: [$availableFields]"
+                )
+              }
             }
           }
         }
