@@ -112,7 +112,7 @@ private object Schema {
             ) {
               throw new InvalidRecordException(
                 s"Requested field `${rf.getName}` with repetition ${rf.getRepetition} missing from written file schema. " +
-                  s"Available fields are: [${wg.getFields.asScala.map(_.getName).mkString(",")}]"
+                  s"Available fields are: [${wg.getFields.asScala.map(f => s"${f.getName}: ${f.getRepetition}").mkString(",")}]"
               )
             }
           }
