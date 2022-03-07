@@ -121,7 +121,10 @@ private object Schema {
         val wf = writer.asPrimitiveType()
         val rf = reader.asPrimitiveType()
         if (wf.getPrimitiveTypeName != rf.getPrimitiveTypeName) {
-          throw new InvalidRecordException(s"$rf found: expected $wf")
+          throw new InvalidRecordException(
+            s"Requested ${reader.getName} with primitive type $rf not " +
+              s"found; written file schema had type $wf"
+          )
         }
     }
   }
