@@ -28,8 +28,11 @@ import org.apache.parquet.schema.{
   Type,
   Types
 }
+import org.slf4j.LoggerFactory
 
 private object Schema {
+  private lazy val logger = LoggerFactory.getLogger(this.getClass)
+
   def rename(schema: Type, name: String): Type = {
     if (schema.isPrimitive) {
       val p = schema.asPrimitiveType()
@@ -85,6 +88,9 @@ private object Schema {
   }
 
   def checkCompatibility(writer: Type, reader: Type): Unit = {
+    def listFields(gt: GroupType) =
+      s"[${gt.getFields.asScala.map(f => s"${f.getName}: ${f.getRepetition}").mkString(",")}]"
+
     def isRepetitionBackwardCompatible(w: Type, r: Type) =
       (w.getRepetition, r.getRepetition) match {
         case (Repetition.REQUIRED, Repetition.OPTIONAL) => true
@@ -106,13 +112,21 @@ private object Schema {
             val wf = wg.getType(rf.getName)
             checkCompatibility(wf, rf)
           } else {
-            if (
-              rf.isRepetition(Repetition.REQUIRED) &&
-              rf.getLogicalTypeAnnotation != LogicalTypeAnnotation.listType()
-            ) {
-              throw new InvalidRecordException(
-                s"${rf.getRepetition} field ${rf.getName} missing in file schema"
-              )
+            (
+              rf.getLogicalTypeAnnotation != LogicalTypeAnnotation.listType(),
+              rf.getRepetition
+            ) match {
+              case (true, Repetition.REQUIRED) =>
+                throw new InvalidRecordException(
+                  s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema. " +
+                    s"Available fields are: ${listFields(wg)}"
+                )
+              case (true, Repetition.OPTIONAL) =>
+                logger.warn(
+                  s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema " +
+                    s"and will be evaluated as `Option.empty`. Available fields are: ${listFields(wg)}"
+                )
+              case _ =>
             }
           }
         }
@@ -120,7 +134,10 @@ private object Schema {
         val wf = writer.asPrimitiveType()
         val rf = reader.asPrimitiveType()
         if (wf.getPrimitiveTypeName != rf.getPrimitiveTypeName) {
-          throw new InvalidRecordException(s"$rf found: expected $wf")
+          throw new InvalidRecordException(
+            s"Requested ${reader.getName} with primitive type $rf not " +
+              s"found; written file schema had type $wf"
+          )
         }
     }
   }
