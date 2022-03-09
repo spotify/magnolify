@@ -13,7 +13,7 @@ import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 
 object Predicate {
 
-  def onField[RecordT, ScalaFieldT](
+  def onField[ScalaFieldT](
     fieldName: String
   )(filterFn: ScalaFieldT => Boolean)(implicit
     pf: ParquetField.Primitive[ScalaFieldT]

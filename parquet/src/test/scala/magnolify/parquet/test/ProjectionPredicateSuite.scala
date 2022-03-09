@@ -127,15 +127,15 @@ class ProjectionPredicateSuite extends MagnolifySuite {
 
   {
     testPredicate[Wide]("customStr",
-      Predicate.onField[Wide, String]("s1")(_.toInt % 5 == 0), records.filter(_.s1.toInt % 5 == 0))
+      Predicate.onField[String]("s1")(_.toInt % 5 == 0), records.filter(_.s1.toInt % 5 == 0))
     testPredicate[Wide]("customBool",
-      Predicate.onField[Wide, Boolean]("b1")(identity), records.filter(_.b1))
+      Predicate.onField[Boolean]("b1")(identity), records.filter(_.b1))
     testPredicate[Wide]("customInt",
-      Predicate.onField[Wide, Int]("i1")(_ % 2 == 0), records.filter(_.i1 % 2 == 0))
+      Predicate.onField[Int]("i1")(_ % 2 == 0), records.filter(_.i1 % 2 == 0))
     testPredicate[Wide]("customInstant",
-      Predicate.onField[Wide, Instant]("i")(_.toEpochMilli % 2 == 0), records.filter(_.i.toEpochMilli % 2 == 0))
+      Predicate.onField[Instant]("i")(_.toEpochMilli % 2 == 0), records.filter(_.i.toEpochMilli % 2 == 0))
     testPredicate[Wide]("customNested",
-      Predicate.onField[Wide, String]("inner.s")(_.contains("5")), records.filter(_.inner.s.contains("5")))
+      Predicate.onField[String]("inner.s")(_.contains("5")), records.filter(_.inner.s.contains("5")))
   }
 
   {
