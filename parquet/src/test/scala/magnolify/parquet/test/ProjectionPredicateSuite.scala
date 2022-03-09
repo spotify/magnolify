@@ -126,11 +126,25 @@ class ProjectionPredicateSuite extends MagnolifySuite {
     }
 
   {
+    testPredicate[Wide]("customStr",
+      Predicate.onField[Wide, String]("s1")(_.toInt % 5 == 0), records.filter(_.s1.toInt % 5 == 0))
+    testPredicate[Wide]("customBool",
+      Predicate.onField[Wide, Boolean]("b1")(identity), records.filter(_.b1))
+    testPredicate[Wide]("customInt",
+      Predicate.onField[Wide, Int]("i1")(_ % 2 == 0), records.filter(_.i1 % 2 == 0))
+    testPredicate[Wide]("customInstant",
+      Predicate.onField[Wide, Instant]("i")(_.toEpochMilli % 2 == 0), records.filter(_.i.toEpochMilli % 2 == 0))
+    testPredicate[Wide]("customNested",
+      Predicate.onField[Wide, String]("inner.s")(_.contains("5")), records.filter(_.inner.s.contains("5")))
+  }
+
+  {
     val colI1 = FilterApi.intColumn("i1")
     val colI2 = FilterApi.intColumn("i2")
 
     val pLtEq = FilterApi.ltEq(colI1, jl.Integer.valueOf(10))
     val eLtEq = records.filter(_.i1 <= 10)
+
     testPredicate[Wide]("ltEq", pLtEq, eLtEq)
 
     val pGtEq = FilterApi.gtEq(colI1, jl.Integer.valueOf(90))
