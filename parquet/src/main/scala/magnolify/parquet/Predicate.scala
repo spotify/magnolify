@@ -13,6 +13,22 @@ import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 
 object Predicate {
 
+  /**
+   * Constructs a Parquet [[FilterPredicate]] based on a single primitive column and a user-defined
+   * function. Predicates can be logically combined using [[FilterApi.and]] and [[FilterApi.or]].
+   *
+   * Note that Optional fields should use a predicate for their lifted type: that is, create a
+   * predicate for an optional String field using [[Predicate.onField[String]], even if its
+   * projected case class defines the field as `Option[String]`. When applying predicates, Parquet
+   * will filter out optional fields with a value of `null` before applying the predicate filter.
+   *
+   * @param fieldName
+   *   the name of the primitive column. Nested fields are separated by '.'s
+   * @param filterFn
+   *   the UDF representing the desired filter
+   * @return
+   *   a FilterPredicate for use with typed Parquet
+   */
   def onField[ScalaFieldT](
     fieldName: String
   )(filterFn: ScalaFieldT => Boolean)(implicit
@@ -39,7 +55,7 @@ object Predicate {
     }
 
     type PC = PrimitiveConverter
-    val converter = (fieldType match {
+    val toScalaT = (fieldType match {
       case PrimitiveTypeName.INT32 =>
         wrap((pc: PC, value: java.lang.Integer) => pc.addInt(value))
       case PrimitiveTypeName.INT64 | PrimitiveTypeName.INT96 =>
@@ -59,7 +75,7 @@ object Predicate {
       column.asInstanceOf[Column[pf.ParquetT]],
       new UserDefinedPredicate[pf.ParquetT] with Serializable {
         override def keep(value: pf.ParquetT): Boolean =
-          filterFn.apply(converter(value))
+          filterFn.apply(toScalaT(value))
         override def canDrop(statistics: Statistics[pf.ParquetT]): Boolean = false
         override def inverseCanDrop(statistics: Statistics[pf.ParquetT]): Boolean = false
       }
