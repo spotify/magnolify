@@ -349,8 +349,13 @@ lazy val tensorflow: Project = project
     commonSettings,
     moduleName := "magnolify-tensorflow",
     description := "Magnolia add-on for TensorFlow",
+    Compile / sourceDirectories := (Compile / sourceDirectories).value
+      .filterNot(_.getPath.endsWith("/src_managed/main")),
+    Compile / managedSourceDirectories := (Compile / managedSourceDirectories).value
+      .filterNot(_.getPath.endsWith("/src_managed/main")),
     libraryDependencies ++= Seq(
-      "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Provided
+      "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Provided,
+      "com.google.protobuf" % "protobuf-java" % (ProtobufConfig / version).value % "protobuf"
     )
   )
   .dependsOn(
@@ -359,6 +364,7 @@ lazy val tensorflow: Project = project
     scalacheck % Test,
     test % "test->test"
   )
+  .enablePlugins(ProtobufPlugin)
 
 lazy val tools: Project = project
   .in(file("tools"))

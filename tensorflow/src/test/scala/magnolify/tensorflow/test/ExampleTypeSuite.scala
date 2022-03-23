@@ -31,8 +31,9 @@ import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
 import org.tensorflow.proto.example.Example
-
 import scala.reflect._
+
+import org.tensorflow.metadata.v0.{Annotation, Feature, FeatureType, Schema}
 
 class ExampleTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit t: ExampleType[T], eq: Eq[T]): Unit = {
@@ -117,6 +118,39 @@ class ExampleTypeSuite extends MagnolifySuite {
       assertEquals(record.getFeatures.getFeatureMap.keySet().asScala.toSet, fields.toSet)
     }
   }
+
+  test("WithAnnotations") {
+    implicit val et: ExampleType[WithAnnotations] = ExampleType[WithAnnotations]
+
+    val expectedSchema = Schema.newBuilder()
+      .addFeature(feature("b", FeatureType.INT))
+      .addFeature(feature("i", FeatureType.INT))
+      .addFeature(feature("l", FeatureType.INT))
+      .addFeature(feature("f", FeatureType.FLOAT))
+      .addFeature(feature("d", FeatureType.FLOAT))
+      .addFeature(feature("bs", FeatureType.BYTES))
+      .addFeature(feature("s", FeatureType.BYTES))
+      .addFeature(feature("ii", FeatureType.INT))
+      .addFeature(feature("ff", FeatureType.FLOAT))
+      .addFeature(feature("bsbs", FeatureType.BYTES))
+      .addFeature(feature("nested.b", FeatureType.INT))
+      .addFeature(feature("nested.i", FeatureType.INT))
+      .setAnnotation(annotation("Example top level doc"))
+      .build()
+    val schema = et.schema
+    assertEquals(et.schema, expectedSchema)
+
+    val ent: ExampleType[ExampleNested] = ExampleType[ExampleNested]
+    val e = ent.apply(ExampleNested(true, 1, "s", Required(false, 2, "ss"), None))
+    e
+  }
+
+  private def feature(name: String, t: FeatureType): Feature =
+    Feature.newBuilder().setName(name).setType(t).setAnnotation(annotation(s"$name doc")).build()
+
+  private def annotation(doc: String): Annotation =
+    Annotation.newBuilder().addTag(doc).build()
+
 }
 
 // Option[T] and Seq[T] not supported
@@ -130,3 +164,20 @@ case class DefaultOuter(
 )
 
 case class Unsafe(b: Byte, c: Char, s: Short, i: Int, d: Double, bool: Boolean, str: String)
+
+@doc("this doc will be ignored")
+case class NestedWithAnnotations(@doc("nested.b doc") b: Boolean, @doc("nested.i doc") i: Int)
+@doc("Example top level doc")
+case class WithAnnotations(
+  @doc("b doc") b: Boolean,
+  @doc("i doc") i: Int,
+  @doc("l doc") l: Long,
+  @doc("f doc") f: Float,
+  @doc("d doc") d: Double,
+  @doc("bs doc") bs: ByteString,
+  @doc("s doc") s: String,
+  @doc("ii doc") ii: Array[Int],
+  @doc("ff doc") ff: Array[Float],
+  @doc("bsbs doc") bsbs: Array[ByteString],
+  nested: NestedWithAnnotations
+)
