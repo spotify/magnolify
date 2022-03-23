@@ -64,6 +64,7 @@ val commonSettings = Seq(
       "scm:git:git@github.com:spotify/magnolify.git"
     )
   ),
+  scalafmt := (Compile / scalafmt).dependsOn(Test / scalafmt).value,
   developers := List(
     Developer(
       id = "sinisa_lyh",
