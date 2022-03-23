@@ -122,7 +122,8 @@ class ExampleTypeSuite extends MagnolifySuite {
   test("WithAnnotations") {
     implicit val et: ExampleType[WithAnnotations] = ExampleType[WithAnnotations]
 
-    val expectedSchema = Schema.newBuilder()
+    val expectedSchema = Schema
+      .newBuilder()
       .addFeature(feature("b", FeatureType.INT))
       .addFeature(feature("i", FeatureType.INT))
       .addFeature(feature("l", FeatureType.INT))
