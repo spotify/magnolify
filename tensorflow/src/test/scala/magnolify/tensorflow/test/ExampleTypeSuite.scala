@@ -126,6 +126,7 @@ class ExampleTypeSuite extends MagnolifySuite {
       .newBuilder()
       .addFeature(feature("b", FeatureType.INT))
       .addFeature(feature("i", FeatureType.INT))
+      .addFeature(feature("maybeI", FeatureType.INT))
       .addFeature(feature("l", FeatureType.INT))
       .addFeature(feature("f", FeatureType.FLOAT))
       .addFeature(feature("d", FeatureType.FLOAT))
@@ -138,12 +139,8 @@ class ExampleTypeSuite extends MagnolifySuite {
       .addFeature(feature("nested.i", FeatureType.INT))
       .setAnnotation(annotation("Example top level doc"))
       .build()
-    val schema = et.schema
-    assertEquals(et.schema, expectedSchema)
 
-    val ent: ExampleType[ExampleNested] = ExampleType[ExampleNested]
-    val e = ent.apply(ExampleNested(true, 1, "s", Required(false, 2, "ss"), None))
-    e
+    assertEquals(et.schema, expectedSchema)
   }
 
   private def feature(name: String, t: FeatureType): Feature =
@@ -172,6 +169,7 @@ case class NestedWithAnnotations(@doc("nested.b doc") b: Boolean, @doc("nested.i
 case class WithAnnotations(
   @doc("b doc") b: Boolean,
   @doc("i doc") i: Int,
+  @doc("maybeI doc") maybeI: Option[Int],
   @doc("l doc") l: Long,
   @doc("f doc") f: Float,
   @doc("d doc") d: Double,
@@ -180,5 +178,5 @@ case class WithAnnotations(
   @doc("ii doc") ii: Array[Int],
   @doc("ff doc") ff: Array[Float],
   @doc("bsbs doc") bsbs: Array[ByteString],
-  nested: NestedWithAnnotations
+  nested: NestedWithAnnotations,
 )
