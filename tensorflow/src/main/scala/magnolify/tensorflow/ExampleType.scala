@@ -29,8 +29,8 @@ import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.collection.concurrent
 import scala.language.experimental.macros
 
-class doc(doc: String) extends StaticAnnotation with Serializable {
-  override def toString: String = doc
+class doc(msg: String) extends StaticAnnotation with Serializable {
+  override def toString: String = msg
 }
 
 sealed trait ExampleType[T] extends Converter[T, Example, Example.Builder] {
