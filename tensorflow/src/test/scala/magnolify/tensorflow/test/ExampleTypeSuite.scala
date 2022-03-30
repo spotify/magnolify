@@ -178,5 +178,5 @@ case class WithAnnotations(
   @doc("ii doc") ii: Array[Int],
   @doc("ff doc") ff: Array[Float],
   @doc("bsbs doc") bsbs: Array[ByteString],
-  nested: NestedWithAnnotations,
+  nested: NestedWithAnnotations
 )

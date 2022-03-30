@@ -59,8 +59,8 @@ sealed trait ExampleField[T] extends Serializable {
   def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder
 
   def schema(k: String)(cm: CaseMapper): Schema =
-    schemaCache.getOrElseUpdate(cm.uuid, schemaInternal(k)(cm))
-  protected def schemaInternal(k: String)(cm: CaseMapper): Schema
+    schemaCache.getOrElseUpdate(cm.uuid, buildSchema(k)(cm))
+  protected def buildSchema(k: String)(cm: CaseMapper): Schema
 }
 
 object ExampleField {
@@ -83,7 +83,7 @@ object ExampleField {
     override def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder =
       f.putFeature(k, toFeature(Iterable(v)))
 
-    override def schemaInternal(k: String)(cm: CaseMapper): Schema =
+    override def buildSchema(k: String)(cm: CaseMapper): Schema =
       Schema.newBuilder().addFeature(featureSchema(k)(cm)).build()
 
     def featureSchema(k: String)(cm: CaseMapper): FeatureSchema
@@ -119,12 +119,12 @@ object ExampleField {
         f
       }
 
-    override protected def schemaInternal(k: String)(cm: CaseMapper): Schema = {
+    override protected def buildSchema(k: String)(cm: CaseMapper): Schema = {
       val sb = Schema
         .newBuilder()
         .setAnnotation(getDoc(caseClass.annotations, caseClass.typeName.full))
       caseClass.parameters.foldLeft(sb) { (b, p) =>
-        val s = p.typeclass.schemaInternal(key(k, cm.map(p.label)))(cm)
+        val s = p.typeclass.buildSchema(key(k, cm.map(p.label)))(cm)
         val annotatedFs = s.getFeatureList.asScala
           .map { f =>
             val annotation = if (f.hasAnnotation) {
@@ -251,8 +251,8 @@ object ExampleField {
         case Some(x) => ef.put(f, k, x)(cm)
       }
 
-      override protected def schemaInternal(k: String)(cm: CaseMapper): Schema =
-        ef.schemaInternal(k)(cm)
+      override protected def buildSchema(k: String)(cm: CaseMapper): Schema =
+        ef.buildSchema(k)(cm)
     }
 
   implicit def efIterable[T, C[_]](implicit
@@ -269,7 +269,7 @@ object ExampleField {
     override def put(f: Features.Builder, k: String, v: C[T])(cm: CaseMapper): Features.Builder =
       if (v.isEmpty) f else f.putFeature(k, ef.toFeature(v))
 
-    override protected def schemaInternal(k: String)(cm: CaseMapper): Schema =
-      ef.schemaInternal(k)(cm)
+    override protected def buildSchema(k: String)(cm: CaseMapper): Schema =
+      ef.buildSchema(k)(cm)
   }
 }
