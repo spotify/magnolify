@@ -32,6 +32,7 @@ import scala.reflect.ClassTag
 
 class PredicateSuite extends MagnolifySuite {
   implicit val baEq: cats.Eq[Array[Byte]] = (x: Array[Byte], y: Array[Byte]) => x.diff(y).isEmpty
+  implicit val pfDecimal = ParquetField.decimal32(9)
   implicit val projectionT = ParquetType[Projection]
   implicit val projectionSubsetT = ParquetType[ProjectionSmall]
 
@@ -48,7 +49,8 @@ class PredicateSuite extends MagnolifySuite {
       i.toLong,
       i.toFloat,
       i.toDouble,
-      Array.fill(i)(i.toByte)
+      Array.fill(i)(i.toByte),
+      BigDecimal(i)
     )
   }
   private val bytes = {
@@ -128,6 +130,11 @@ class PredicateSuite extends MagnolifySuite {
       "customByteArray",
       Predicate.onField[Array[Byte]]("ba")(_.length % 2 == 0),
       records.filter(_.ba.length % 2 == 0)
+    )
+    testPredicate[Projection](
+      "customBigDecimal",
+      Predicate.onField[BigDecimal]("bd")(_.bigDecimal.intValue() % 2 == 0),
+      records.filter(_.bd.bigDecimal.intValue() % 2 == 0)
     )
   }
 
@@ -230,7 +237,8 @@ case class Projection(
   l2: Long,
   f: Float,
   d: Double,
-  ba: Array[Byte]
+  ba: Array[Byte],
+  bd: BigDecimal
 )
 case class ProjectionInner(s: String, o: Option[String])
 case class ProjectionSmall(b1: Boolean, i1: Int, s1: String, inner: ProjectionInner)

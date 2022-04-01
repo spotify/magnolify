@@ -25,10 +25,7 @@ import magnolify.parquet._
 import magnolify.parquet.logical.millis._
 import magnolify.test._
 import magnolify.test.Time._
-import org.apache.parquet.filter2.compat.FilterCompat
-import org.apache.parquet.filter2.predicate.{FilterApi, FilterPredicate}
 import org.apache.parquet.io.InvalidRecordException
-import org.apache.parquet.io.api.Binary
 
 import scala.reflect.ClassTag
 

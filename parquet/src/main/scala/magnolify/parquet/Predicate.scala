@@ -43,7 +43,7 @@ object Predicate {
       case PrimitiveTypeName.FLOAT                           => FilterApi.floatColumn(fieldName)
       case PrimitiveTypeName.DOUBLE                          => FilterApi.doubleColumn(fieldName)
       case PrimitiveTypeName.BOOLEAN                         => FilterApi.booleanColumn(fieldName)
-      case _ => throw new UnsupportedOperationException(s"Unsupported column type $fieldType")
+      case PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY            => FilterApi.binaryColumn(fieldName)
     }
 
     def wrap[T](addFn: (PrimitiveConverter, T) => Unit): T => ScalaFieldT = {
@@ -68,7 +68,8 @@ object Predicate {
         wrap((pc: PC, value: java.lang.Double) => pc.addDouble(value))
       case PrimitiveTypeName.BOOLEAN =>
         wrap((pc: PC, value: java.lang.Boolean) => pc.addBoolean(value))
-      case _ => throw new UnsupportedOperationException(s"Unsupported column type $fieldType")
+      case PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY =>
+        wrap((pc: PC, value: Binary) => pc.addBinary(value))
     }).asInstanceOf[pf.ParquetT => ScalaFieldT]
 
     FilterApi.userDefined[pf.ParquetT, UserDefinedPredicate[pf.ParquetT] with Serializable](
