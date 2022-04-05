@@ -124,6 +124,7 @@ class ExampleTypeSuite extends MagnolifySuite {
 
     val expectedSchema = Schema
       .newBuilder()
+      .addFeature(noAnnotationFeature("noAnnotationB", FeatureType.INT))
       .addFeature(feature("b", FeatureType.INT))
       .addFeature(feature("i", FeatureType.INT))
       .addFeature(feature("maybeI", FeatureType.INT))
@@ -140,8 +141,12 @@ class ExampleTypeSuite extends MagnolifySuite {
       .setAnnotation(annotation("Example top level doc"))
       .build()
 
+    val s = et.schema
     assertEquals(et.schema, expectedSchema)
   }
+
+  private def noAnnotationFeature(name: String, t: FeatureType): Feature =
+    Feature.newBuilder().setName(name).setType(t).build()
 
   private def feature(name: String, t: FeatureType): Feature =
     Feature.newBuilder().setName(name).setType(t).setAnnotation(annotation(s"$name doc")).build()
@@ -167,6 +172,7 @@ case class Unsafe(b: Byte, c: Char, s: Short, i: Int, d: Double, bool: Boolean, 
 case class NestedWithAnnotations(@doc("nested.b doc") b: Boolean, @doc("nested.i doc") i: Int)
 @doc("Example top level doc")
 case class WithAnnotations(
+  noAnnotationB: Boolean,
   @doc("b doc") b: Boolean,
   @doc("i doc") i: Int,
   @doc("maybeI doc") maybeI: Option[Int],

@@ -122,17 +122,22 @@ object ExampleField {
     override protected def buildSchema(k: String)(cm: CaseMapper): Schema = {
       val sb = Schema
         .newBuilder()
-        .setAnnotation(getDoc(caseClass.annotations, caseClass.typeName.full))
+      getDoc(caseClass.annotations, caseClass.typeName.full).foreach(sb.setAnnotation)
+
       caseClass.parameters.foldLeft(sb) { (b, p) =>
         val s = p.typeclass.buildSchema(key(k, cm.map(p.label)))(cm)
         val annotatedFs = s.getFeatureList.asScala
           .map { f =>
-            val annotation = if (f.hasAnnotation) {
-              f.getAnnotation
+            val maybeAnnotation = if (f.hasAnnotation) {
+              Some(f.getAnnotation)
             } else {
               getDoc(p.annotations, s"${caseClass.typeName.full}#${key(k, cm.map(p.label))}")
             }
-            f.toBuilder.setAnnotation(annotation).build()
+
+            maybeAnnotation match {
+              case Some(a) => f.toBuilder.setAnnotation(a).build()
+              case None    => f
+            }
           }
         b.addAllFeature(annotatedFs.asJava)
         b
@@ -142,12 +147,10 @@ object ExampleField {
     }
   }
 
-  private def getDoc(annotations: Seq[Any], name: String): Annotation = {
+  private def getDoc(annotations: Seq[Any], name: String): Option[Annotation] = {
     val docs = annotations.collect { case d: doc => d.toString }
     require(docs.size <= 1, s"More than one @doc annotation: $name")
-    docs.headOption
-      .map(doc => Annotation.newBuilder().addTag(doc).build())
-      .getOrElse(Annotation.getDefaultInstance)
+    docs.headOption.map(doc => Annotation.newBuilder().addTag(doc).build())
   }
 
   @implicitNotFound("Cannot derive ExampleField for sealed trait")
