@@ -23,12 +23,18 @@ import magnolia._
 import magnolify.shared._
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
+import org.tensorflow.metadata.v0.{Annotation, Feature => FeatureSchema, FeatureType, Schema}
 import org.tensorflow.proto.example._
-
-import scala.annotation.implicitNotFound
+import scala.annotation.{implicitNotFound, StaticAnnotation}
+import scala.collection.concurrent
 import scala.language.experimental.macros
 
+class doc(msg: String) extends StaticAnnotation with Serializable {
+  override def toString: String = msg
+}
+
 sealed trait ExampleType[T] extends Converter[T, Example, Example.Builder] {
+  val schema: Schema
   def apply(v: Example): T = from(v)
   def apply(v: T): Example = to(v).build()
 }
@@ -39,6 +45,7 @@ object ExampleType {
   def apply[T](cm: CaseMapper)(implicit f: ExampleField.Record[T]): ExampleType[T] =
     new ExampleType[T] {
       private val caseMapper: CaseMapper = cm
+      @transient override lazy val schema: Schema = f.schema(null)(caseMapper)
       override def from(v: Example): T = f.get(v.getFeatures, null)(caseMapper).get
       override def to(v: T): Example.Builder =
         Example.newBuilder().setFeatures(f.put(Features.newBuilder(), null, v)(caseMapper))
@@ -46,8 +53,14 @@ object ExampleType {
 }
 
 sealed trait ExampleField[T] extends Serializable {
+  @transient private lazy val schemaCache: concurrent.Map[ju.UUID, Schema] =
+    concurrent.TrieMap.empty
   def get(f: Features, k: String)(cm: CaseMapper): Value[T]
   def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder
+
+  def schema(k: String)(cm: CaseMapper): Schema =
+    schemaCache.getOrElseUpdate(cm.uuid, buildSchema(k)(cm))
+  protected def buildSchema(k: String)(cm: CaseMapper): Schema
 }
 
 object ExampleField {
@@ -69,6 +82,11 @@ object ExampleField {
 
     override def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder =
       f.putFeature(k, toFeature(Iterable(v)))
+
+    override def buildSchema(k: String)(cm: CaseMapper): Schema =
+      Schema.newBuilder().addFeature(featureSchema(k)(cm)).build()
+
+    def featureSchema(k: String)(cm: CaseMapper): FeatureSchema
   }
 
   trait Record[T] extends ExampleField[T]
@@ -100,6 +118,39 @@ object ExampleField {
         p.typeclass.put(f, key(k, cm.map(p.label)), p.dereference(v))(cm)
         f
       }
+
+    override protected def buildSchema(k: String)(cm: CaseMapper): Schema = {
+      val sb = Schema
+        .newBuilder()
+      getDoc(caseClass.annotations, caseClass.typeName.full).foreach(sb.setAnnotation)
+
+      caseClass.parameters.foldLeft(sb) { (b, p) =>
+        val s = p.typeclass.buildSchema(key(k, cm.map(p.label)))(cm)
+        val annotatedFs = s.getFeatureList.asScala
+          .map { f =>
+            val maybeAnnotation = if (f.hasAnnotation) {
+              Some(f.getAnnotation)
+            } else {
+              getDoc(p.annotations, s"${caseClass.typeName.full}#${key(k, cm.map(p.label))}")
+            }
+
+            maybeAnnotation match {
+              case Some(a) => f.toBuilder.setAnnotation(a).build()
+              case None    => f
+            }
+          }
+        b.addAllFeature(annotatedFs.asJava)
+        b
+      }
+
+      sb.build()
+    }
+  }
+
+  private def getDoc(annotations: Seq[Any], name: String): Option[Annotation] = {
+    val docs = annotations.collect { case d: doc => d.toString }
+    require(docs.size <= 1, s"More than one @doc annotation: $name")
+    docs.headOption.map(doc => Annotation.newBuilder().addTag(doc).build())
   }
 
   @implicitNotFound("Cannot derive ExampleField for sealed trait")
@@ -121,6 +172,8 @@ object ExampleField {
         override def fromFeature(v: Feature): ju.List[U] =
           ef.fromFeature(v).asScala.map(f).asJava
         override def toFeature(v: Iterable[U]): Feature = ef.toFeature(v.map(g))
+        override def featureSchema(k: String)(cm: CaseMapper): FeatureSchema =
+          ef.featureSchema(k)(cm)
       }
   }
 
@@ -138,6 +191,9 @@ object ExampleField {
         .newBuilder()
         .setInt64List(Int64List.newBuilder().addAllValue(v.asInstanceOf[Iterable[jl.Long]].asJava))
         .build()
+
+    override def featureSchema(k: String)(cm: CaseMapper): FeatureSchema =
+      FeatureSchema.newBuilder().setName(k).setType(FeatureType.INT).build()
   }
 
   implicit val efFloat = new Primitive[Float] {
@@ -154,6 +210,10 @@ object ExampleField {
         .newBuilder()
         .setFloatList(FloatList.newBuilder().addAllValue(v.asInstanceOf[Iterable[jl.Float]].asJava))
         .build()
+
+    override def featureSchema(k: String)(cm: CaseMapper): FeatureSchema =
+      FeatureSchema.newBuilder().setName(k).setType(FeatureType.FLOAT).build()
+
   }
 
   implicit val efByteString = new Primitive[ByteString] {
@@ -170,6 +230,10 @@ object ExampleField {
         .newBuilder()
         .setBytesList(BytesList.newBuilder().addAllValue(v.asJava))
         .build()
+
+    override def featureSchema(k: String)(cm: CaseMapper): FeatureSchema =
+      FeatureSchema.newBuilder().setName(k).setType(FeatureType.BYTES).build()
+
   }
 
   implicit val efByteArray = from[ByteString](_.toByteArray)(ByteString.copyFrom(_))
@@ -189,6 +253,9 @@ object ExampleField {
         case None    => f
         case Some(x) => ef.put(f, k, x)(cm)
       }
+
+      override protected def buildSchema(k: String)(cm: CaseMapper): Schema =
+        ef.buildSchema(k)(cm)
     }
 
   implicit def efIterable[T, C[_]](implicit
@@ -204,5 +271,8 @@ object ExampleField {
 
     override def put(f: Features.Builder, k: String, v: C[T])(cm: CaseMapper): Features.Builder =
       if (v.isEmpty) f else f.putFeature(k, ef.toFeature(v))
+
+    override protected def buildSchema(k: String)(cm: CaseMapper): Schema =
+      ef.buildSchema(k)(cm)
   }
 }
