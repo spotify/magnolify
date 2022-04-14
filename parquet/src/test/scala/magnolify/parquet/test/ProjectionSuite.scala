@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Spotify AB.
+ * Copyright 2022 Spotify AB.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,14 +25,11 @@ import magnolify.parquet._
 import magnolify.parquet.logical.millis._
 import magnolify.test._
 import magnolify.test.Time._
-import org.apache.parquet.filter2.compat.FilterCompat
-import org.apache.parquet.filter2.predicate.{FilterApi, FilterPredicate}
 import org.apache.parquet.io.InvalidRecordException
-import org.apache.parquet.io.api.Binary
 
 import scala.reflect.ClassTag
 
-class ProjectionPredicateSuite extends MagnolifySuite {
+class ProjectionSuite extends MagnolifySuite {
   private val records = (1 to 100).toList.map { i =>
     val j = i + 100
     Wide(
@@ -105,107 +102,6 @@ class ProjectionPredicateSuite extends MagnolifySuite {
     testBadProjection[ProjectionBadRepetition3]
     testBadProjection[ProjectionBadRepetition4]
     testBadProjection[ProjectionBadRepetition5]
-  }
-
-  private def testPredicate[T: ClassTag](
-    name: String,
-    predicate: FilterPredicate,
-    expected: List[T]
-  )(implicit pt: ParquetType[T], eq: Eq[List[T]]): Unit =
-    test(s"Predicate.${className[T]}.$name") {
-      val in = new TestInputFile(bytes)
-      val reader = pt.readBuilder(in).withFilter(FilterCompat.get(predicate)).build()
-      var r = reader.read()
-      val b = List.newBuilder[T]
-      while (r != null) {
-        b += r
-        r = reader.read()
-      }
-      reader.close()
-      eq.eqv(b.result(), expected)
-    }
-
-  {
-    val colI1 = FilterApi.intColumn("i1")
-    val colI2 = FilterApi.intColumn("i2")
-
-    val pLtEq = FilterApi.ltEq(colI1, jl.Integer.valueOf(10))
-    val eLtEq = records.filter(_.i1 <= 10)
-    testPredicate[Wide]("ltEq", pLtEq, eLtEq)
-
-    val pGtEq = FilterApi.gtEq(colI1, jl.Integer.valueOf(90))
-    val eGtEq = records.filter(_.i1 >= 90)
-    testPredicate[Wide]("gtEq", pGtEq, eGtEq)
-
-    val pOr = FilterApi.or(pLtEq, pGtEq)
-    val eOr = records.filter(t => t.i1 <= 10 || t.i1 >= 90)
-    testPredicate[Wide]("or", pOr, eOr)
-
-    val pAnd = FilterApi.and(
-      FilterApi.gtEq(colI1, jl.Integer.valueOf(40)),
-      FilterApi.ltEq(colI1, jl.Integer.valueOf(60))
-    )
-    val eAnd = records.filter(t => t.i1 >= 40 && t.i1 <= 60)
-    testPredicate[Wide]("and", pAnd, eAnd)
-
-    val pMulti = FilterApi.or(
-      FilterApi.and(
-        FilterApi.gtEq(colI1, jl.Integer.valueOf(45)),
-        FilterApi.ltEq(colI1, jl.Integer.valueOf(55))
-      ),
-      FilterApi.or(
-        FilterApi.eq(colI2, jl.Integer.valueOf(115)),
-        FilterApi.eq(colI2, jl.Integer.valueOf(125))
-      )
-    )
-    val eMulti = records.filter(t => (t.i1 >= 45 && t.i1 <= 55) || (t.i2 == 115 || t.i2 == 125))
-    testPredicate[Wide]("multi", pMulti, eMulti)
-
-    val pOpt1 = FilterApi.gtEq(FilterApi.intColumn("o"), jl.Integer.valueOf(10))
-    val eOpt1 = records.filter(_.o.exists(_ >= 10))
-    testPredicate[Wide]("opt1", pOpt1, eOpt1)
-
-    // Predicate on missing OPTIONAL field
-    val pOpt2 = FilterApi.eq(FilterApi.intColumn("o"), jl.Integer.valueOf(15))
-    val eOpt2 = records.filter(_.o.contains(15))
-    testPredicate[Wide]("opt2", pOpt2, eOpt2)
-
-    val eInner1 = FilterApi.eq(FilterApi.binaryColumn("inner.s"), Binary.fromString("s50"))
-    val oInner1 = records.filter(_.inner.s == "s50")
-    testPredicate[Wide]("inner1", eInner1, oInner1)
-
-    val eInner2 = FilterApi.eq(FilterApi.binaryColumn("inner.o"), Binary.fromString("o50"))
-    val oInner2 = records.filter(_.inner.o.contains("o50"))
-    testPredicate[Wide]("inner2", eInner2, oInner2)
-
-    val pSubset1 = pLtEq
-    val eSubset1 = eLtEq.map(t => ProjectionSubset(t.b1, t.i1, t.s1, t.inner))
-    testPredicate[ProjectionSubset]("subset1", pSubset1, eSubset1)
-
-    // Predicate on field not in projection
-    val pSubset2 = pMulti
-    val eSubset2 = eMulti.map(t => ProjectionSubset(t.b1, t.i1, t.s1, t.inner))
-    testPredicate[ProjectionSubset]("subset2", pSubset2, eSubset2)
-  }
-
-  private def testBadPredicate(name: String, predicate: FilterPredicate): Unit =
-    test(s"BadPredicate.$name") {
-      val pt = ParquetType[Wide]
-      val in = new TestInputFile(bytes)
-      val reader = pt.readBuilder(in).withFilter(FilterCompat.get(predicate)).build()
-      intercept[IllegalArgumentException](reader.read())
-    }
-
-  {
-    // FIXME: Parquet does not validate non-existent fields
-    // val badName = FilterApi.eq(FilterApi.intColumn("i3"), jl.Integer.valueOf(0))
-    // testBadPredicate[Wide]("name", badName)
-
-    val badType = FilterApi.eq(FilterApi.intColumn("b1"), jl.Integer.valueOf(0))
-    testBadPredicate("type", badType)
-
-    val badRepetition = FilterApi.eq(FilterApi.intColumn("r"), jl.Integer.valueOf(0))
-    testBadPredicate("repetition", badRepetition)
   }
 }
 

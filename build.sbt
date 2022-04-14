@@ -26,7 +26,7 @@ val bigtableVersion = "2.5.1"
 val catsVersion = "2.7.0"
 val datastoreVersion = "2.1.2"
 val guavaVersion = "30.1.1-jre"
-val hadoopVersion = "3.3.1"
+val hadoopVersion = "3.3.2"
 val jacksonVersion = "2.13.0"
 val munitVersion = "0.7.29"
 val paigesVersion = "0.4.2"
@@ -34,7 +34,7 @@ val parquetVersion = "1.12.2"
 val protobufVersion = "3.19.2"
 val refinedVersion = "0.9.17"
 val scalacheckVersion = "1.15.4"
-val shapelessVersion = "2.3.8"
+val shapelessVersion = "2.3.9"
 val tensorflowVersion = "0.3.3"
 
 val commonSettings = Seq(
@@ -349,8 +349,13 @@ lazy val tensorflow: Project = project
     commonSettings,
     moduleName := "magnolify-tensorflow",
     description := "Magnolia add-on for TensorFlow",
+    Compile / sourceDirectories := (Compile / sourceDirectories).value
+      .filterNot(_.getPath.endsWith("/src_managed/main")),
+    Compile / managedSourceDirectories := (Compile / managedSourceDirectories).value
+      .filterNot(_.getPath.endsWith("/src_managed/main")),
     libraryDependencies ++= Seq(
-      "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Provided
+      "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Provided,
+      "com.google.protobuf" % "protobuf-java" % (ProtobufConfig / version).value % "protobuf"
     )
   )
   .dependsOn(
@@ -359,6 +364,7 @@ lazy val tensorflow: Project = project
     scalacheck % Test,
     test % "test->test"
   )
+  .enablePlugins(ProtobufPlugin)
 
 lazy val tools: Project = project
   .in(file("tools"))
