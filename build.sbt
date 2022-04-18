@@ -359,7 +359,8 @@ lazy val tensorflow: Project = project
     // Protobuf plugin adds protobuf-java to Compile scope automatically; we want it to remain Provided
     libraryDependencies := libraryDependencies.value.map { l =>
       (l.organization, l.name) match {
-        case ("com.google.protobuf", "protobuf-java") => l.withConfigurations(Some("provided,protobuf"))
+        case ("com.google.protobuf", "protobuf-java") =>
+          l.withConfigurations(Some("provided,protobuf"))
         case _ => l
       }
     }
