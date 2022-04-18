@@ -355,8 +355,12 @@ lazy val tensorflow: Project = project
       .filterNot(_.getPath.endsWith("/src_managed/main")),
     libraryDependencies ++= Seq(
       "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Provided,
-      "com.google.protobuf" % "protobuf-java" % protobufVersion % ProtobufConfig.name
-    )
+      "com.google.protobuf" % "protobuf-java" % protobufVersion % s"${ProtobufConfig.name},${Provided.name}"
+    ),
+    // Protobuf plugin adds protobuf-java to Compile scope automatically; we want it to remain Provided
+    libraryDependencies := libraryDependencies.value.filterNot { l =>
+      l.organization == "com.google.protobuf" && l.name == "protobuf-java" && l.configurations.isEmpty
+    }
   )
   .dependsOn(
     shared,
