@@ -355,7 +355,7 @@ lazy val tensorflow: Project = project
       .filterNot(_.getPath.endsWith("/src_managed/main")),
     libraryDependencies ++= Seq(
       "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Provided,
-      "com.google.protobuf" % "protobuf-java" % (ProtobufConfig / version).value % "protobuf"
+      "com.google.protobuf" % "protobuf-java" % protobufVersion % ProtobufConfig.name
     )
   )
   .dependsOn(
