@@ -354,7 +354,7 @@ class SchemaEvolutionSuite extends MagnolifySuite {
     writeScala[User2](scala2)
   }
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   test("Avro V1 => Avro V1") {
     assertEquals(readAvro(avroBytes1, userSchema1), avro1)
@@ -372,7 +372,7 @@ class SchemaEvolutionSuite extends MagnolifySuite {
     assertEquals(readAvro(avroBytes2, userSchema1), avro2as1)
   }
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   test("Scala V1 => Scala V1") {
     assertEquals(readScala[User1](scalaBytes1), scala1)
@@ -390,7 +390,7 @@ class SchemaEvolutionSuite extends MagnolifySuite {
     assertEquals(readScala[User1](scalaBytes2), scala2as1)
   }
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   test("Scala Compat V1 => Scala Compat V1") {
     import magnolify.parquet.ParquetArray.AvroCompat._
@@ -412,7 +412,7 @@ class SchemaEvolutionSuite extends MagnolifySuite {
     assertEquals(readScala[User1](scalaCompatBytes2), scala2as1)
   }
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   test("Avro V1 => Scala V1") {
     import magnolify.parquet.ParquetArray.AvroCompat._
@@ -434,7 +434,7 @@ class SchemaEvolutionSuite extends MagnolifySuite {
     assertEquals(readScala[User1](avroBytes2), scala2as1)
   }
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   test("Scala V1 => Avro V1") {
     import magnolify.parquet.ParquetArray.AvroCompat._

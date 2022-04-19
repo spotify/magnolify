@@ -116,7 +116,7 @@ object ProtobufField {
 
   sealed trait Record[T] extends Aux[T, Message, Message]
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   type Typeclass[T] = ProtobufField[T]
 
@@ -202,7 +202,7 @@ object ProtobufField {
 
   implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   def apply[T](implicit f: ProtobufField[T]): ProtobufField[T] = f
 
