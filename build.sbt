@@ -19,28 +19,28 @@ description := "A collection of Magnolia add-on modules"
 
 val magnoliaVersion = "1.0.0-M4"
 
-val algebirdVersion = "0.13.8"
+val algebirdVersion = "0.13.9"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.10.2")
-val bigqueryVersion = "v2-rev20210910-1.32.1"
-val bigtableVersion = "2.1.4"
-val catsVersion = "2.6.1"
-val datastoreVersion = "2.1.2"
+val bigqueryVersion = "v2-rev20211129-1.32.1"
+val bigtableVersion = "2.5.1"
+val catsVersion = "2.7.0"
+val datastoreVersion = "2.1.3"
 val guavaVersion = "31.0.1-jre"
-val hadoopVersion = "3.3.1"
-val jacksonVersion = "2.12.5"
-val munitVersion = "0.7.28"
+val hadoopVersion = "3.3.2"
+val jacksonVersion = "2.13.0"
+val munitVersion = "0.7.29"
 val paigesVersion = "0.4.2"
-val parquetVersion = "1.12.0"
-val protobufVersion = "3.18.0"
+val parquetVersion = "1.12.2"
+val protobufVersion = "3.19.2"
 val refinedVersion = "0.9.17"
-val scalacheckVersion = "1.15.4"
-val shapelessVersion = "2.3.7"
-val tensorflowVersion = "0.3.2"
+val scalacheckVersion = "1.16.0"
+val shapelessVersion = "2.3.9"
+val tensorflowVersion = "0.3.3"
 
 val commonSettings = Seq(
   organization := "com.spotify",
-  scalaVersion := "2.13.6",
-  crossScalaVersions := Seq("2.12.14", "2.13.6"),
+  scalaVersion := "2.13.8",
+  crossScalaVersions := Seq("2.12.15", "2.13.8"),
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
   scalacOptions ++= (scalaBinaryVersion.value match {
     case "2.12" => Seq("-language:higherKinds")
@@ -54,13 +54,6 @@ val commonSettings = Seq(
   // https://github.com/typelevel/scalacheck/pull/427#issuecomment-424330310
   // FIXME: workaround for Java serialization issues
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
-  // Release settings
-  publishTo := Some(
-    if (isSnapshot.value) Opts.resolver.sonatypeSnapshots else Opts.resolver.sonatypeStaging
-  ),
-  releaseCrossBuild := true,
-  releasePublishArtifactsAction := PgpKeys.publishSigned.value,
-  publishMavenStyle := true,
   Test / publishArtifact := false,
   sonatypeProfileName := "com.spotify",
   licenses := Seq("Apache 2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
@@ -250,7 +243,8 @@ lazy val avro: Project = project
     moduleName := "magnolify-avro",
     description := "Magnolia add-on for Apache Avro",
     libraryDependencies ++= Seq(
-      "org.apache.avro" % "avro" % avroVersion % Provided
+      "org.apache.avro" % "avro" % avroVersion % Provided,
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
     )
   )
   .dependsOn(
@@ -355,9 +349,21 @@ lazy val tensorflow: Project = project
     commonSettings,
     moduleName := "magnolify-tensorflow",
     description := "Magnolia add-on for TensorFlow",
+    Compile / sourceDirectories := (Compile / sourceDirectories).value
+      .filterNot(_.getPath.endsWith("/src_managed/main")),
+    Compile / managedSourceDirectories := (Compile / managedSourceDirectories).value
+      .filterNot(_.getPath.endsWith("/src_managed/main")),
     libraryDependencies ++= Seq(
       "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Provided
-    )
+    ),
+    // Protobuf plugin adds protobuf-java to Compile scope automatically; we want it to remain Provided
+    libraryDependencies := libraryDependencies.value.map { l =>
+      (l.organization, l.name) match {
+        case ("com.google.protobuf", "protobuf-java") =>
+          l.withConfigurations(Some("provided,protobuf"))
+        case _ => l
+      }
+    }
   )
   .dependsOn(
     shared,
@@ -365,6 +371,7 @@ lazy val tensorflow: Project = project
     scalacheck % Test,
     test % "test->test"
   )
+  .enablePlugins(ProtobufPlugin)
 
 lazy val tools: Project = project
   .in(file("tools"))

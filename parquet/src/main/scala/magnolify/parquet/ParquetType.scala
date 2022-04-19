@@ -143,9 +143,11 @@ object ParquetType {
       }
 
       val requestedSchema = Schema.message(parquetType.schema)
-      val pruned = Schema.pruneRequested(context.getFileSchema, requestedSchema)
-      context.getFileSchema.checkContains(pruned)
-      new hadoop.ReadSupport.ReadContext(pruned, java.util.Collections.emptyMap())
+      Schema.checkCompatibility(
+        context.getFileSchema,
+        requestedSchema
+      )
+      new hadoop.ReadSupport.ReadContext(requestedSchema, java.util.Collections.emptyMap())
     }
 
     override def prepareForRead(
@@ -281,6 +283,7 @@ object ParquetField {
         override def write(c: RecordConsumer, v: U)(cm: CaseMapper): Unit = pf.write(c, g(v))(cm)
         override def newConverter: TypeConverter[U] =
           pf.newConverter.asInstanceOf[TypeConverter.Primitive[T]].map(f)
+        override type ParquetT = pf.ParquetT
       }
   }
 
@@ -288,9 +291,10 @@ object ParquetField {
 
   sealed trait Primitive[T] extends ParquetField[T] {
     override protected def isEmpty(v: T): Boolean = false
+    type ParquetT <: Comparable[ParquetT]
   }
 
-  def primitive[T](
+  def primitive[T, UnderlyingT <: Comparable[UnderlyingT]](
     f: RecordConsumer => T => Unit,
     g: => TypeConverter[T],
     ptn: PrimitiveTypeName,
@@ -300,51 +304,62 @@ object ParquetField {
       override def schema(cm: CaseMapper): Type = Schema.primitive(ptn, lta)
       override def write(c: RecordConsumer, v: T)(cm: CaseMapper): Unit = f(c)(v)
       override def newConverter: TypeConverter[T] = g
+      override type ParquetT = UnderlyingT
     }
 
   implicit val pfBoolean =
-    primitive[Boolean](_.addBoolean, TypeConverter.newBoolean, PrimitiveTypeName.BOOLEAN)
+    primitive[Boolean, java.lang.Boolean](
+      _.addBoolean,
+      TypeConverter.newBoolean,
+      PrimitiveTypeName.BOOLEAN
+    )
+
   implicit val pfByte =
-    primitive[Byte](
+    primitive[Byte, Integer](
       c => v => c.addInteger(v),
       TypeConverter.newInt.map(_.toByte),
       PrimitiveTypeName.INT32,
       LogicalTypeAnnotation.intType(8, true)
     )
   implicit val pfShort =
-    primitive[Short](
+    primitive[Short, Integer](
       c => v => c.addInteger(v),
       TypeConverter.newInt.map(_.toShort),
       PrimitiveTypeName.INT32,
       LogicalTypeAnnotation.intType(16, true)
     )
   implicit val pfInt =
-    primitive[Int](
+    primitive[Int, Integer](
       _.addInteger,
       TypeConverter.newInt,
       PrimitiveTypeName.INT32,
       LogicalTypeAnnotation.intType(32, true)
     )
   implicit val pfLong =
-    primitive[Long](
+    primitive[Long, java.lang.Long](
       _.addLong,
       TypeConverter.newLong,
       PrimitiveTypeName.INT64,
       LogicalTypeAnnotation.intType(64, true)
     )
   implicit val pfFloat =
-    primitive[Float](_.addFloat, TypeConverter.newFloat, PrimitiveTypeName.FLOAT)
+    primitive[Float, java.lang.Float](_.addFloat, TypeConverter.newFloat, PrimitiveTypeName.FLOAT)
+
   implicit val pfDouble =
-    primitive[Double](_.addDouble, TypeConverter.newDouble, PrimitiveTypeName.DOUBLE)
+    primitive[Double, java.lang.Double](
+      _.addDouble,
+      TypeConverter.newDouble,
+      PrimitiveTypeName.DOUBLE
+    )
 
   implicit val pfByteArray =
-    primitive[Array[Byte]](
+    primitive[Array[Byte], Binary](
       c => v => c.addBinary(Binary.fromConstantByteArray(v)),
       TypeConverter.newByteArray,
       PrimitiveTypeName.BINARY
     )
   implicit val pfString =
-    primitive[String](
+    primitive[String, Binary](
       c => v => c.addBinary(Binary.fromString(v)),
       TypeConverter.newString,
       PrimitiveTypeName.BINARY,
@@ -446,6 +461,8 @@ object ParquetField {
       override def write(c: RecordConsumer, v: U)(cm: CaseMapper): Unit = pf.write(c, g(v))(cm)
       override def newConverter: TypeConverter[U] =
         pf.newConverter.asInstanceOf[TypeConverter.Primitive[T]].map(f)
+
+      override type ParquetT = pf.ParquetT
     }
   }
 
@@ -488,6 +505,8 @@ object ParquetField {
       override def newConverter: TypeConverter[BigDecimal] = TypeConverter.newByteArray.map { ba =>
         Decimal.fromBytes(ba, precision, scale)
       }
+
+      override type ParquetT = Binary
     }
   }
 
@@ -524,6 +543,8 @@ object ParquetField {
       val l = bb.getLong
       new UUID(h, l)
     }
+
+    override type ParquetT = Binary
   }
 
   implicit val ptDate: Primitive[LocalDate] =
