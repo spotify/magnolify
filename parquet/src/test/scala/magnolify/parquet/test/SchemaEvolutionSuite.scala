@@ -456,7 +456,7 @@ class SchemaEvolutionSuite extends MagnolifySuite {
     assertEquals(readAvro(scalaCompatBytes2, userSchema1), avro2as1)
   }
 
-  //////////////////////////////////////////////////
+  // ////////////////////////////////////////////////
 
   test("Scala V1 => Scala V1 Projection") {
     assertEquals(readScala[User1Projection](scalaBytes1), scala1asProj1)
