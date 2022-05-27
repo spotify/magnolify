@@ -21,7 +21,7 @@ import java.time.Instant
 import com.google.datastore.v1._
 import com.google.datastore.v1.client.DatastoreHelper.makeValue
 import com.google.protobuf.{ByteString, NullValue}
-import magnolia._
+import magnolia1._
 import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
@@ -103,7 +103,7 @@ object EntityField {
 
   type Typeclass[T] = EntityField[T]
 
-  def combine[T: KeyField](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
+  def join[T: KeyField](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
     private val (keyIndex, keyOpt): (Int, Option[key]) = {
       val keys = caseClass.parameters
         .map(p => p -> getKey(p.annotations, s"${caseClass.typeName.full}#${p.label}"))
@@ -192,7 +192,7 @@ object EntityField {
 
   @implicitNotFound("Cannot derive EntityField for sealed trait")
   private sealed trait Dispatchable[T]
-  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
 
   implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
 

@@ -17,7 +17,7 @@
 package magnolify.cats.semiauto
 
 import cats.kernel.CommutativeSemigroup
-import magnolia._
+import magnolia1._
 
 import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
@@ -25,7 +25,7 @@ import scala.language.experimental.macros
 object CommutativeSemigroupDerivation {
   type Typeclass[T] = CommutativeSemigroup[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+  def join[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
     val combineImpl = SemigroupMethods.combine(caseClass)
     val combineNImpl = SemigroupMethods.combineN(caseClass)
     val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
@@ -39,7 +39,7 @@ object CommutativeSemigroupDerivation {
 
   @implicitNotFound("Cannot derive CommutativeSemigroup for sealed trait")
   private sealed trait Dispatchable[T]
-  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
 }

@@ -18,14 +18,14 @@ package magnolify.guava.semiauto
 
 import com.google.common.base.Charsets
 import com.google.common.hash.{Funnel, Funnels, PrimitiveSink}
-import magnolia._
+import magnolia1._
 
 import scala.language.experimental.macros
 
 object FunnelDerivation {
   type Typeclass[T] = Funnel[T]
 
-  def combine[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] = new Funnel[T] {
+  def join[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] = new Funnel[T] {
     override def funnel(from: T, into: PrimitiveSink): Unit =
       if (caseClass.parameters.isEmpty) {
         into.putString(caseClass.typeName.short, Charsets.UTF_8)
@@ -38,9 +38,9 @@ object FunnelDerivation {
       }
   }
 
-  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = new Funnel[T] {
+  def split[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = new Funnel[T] {
     override def funnel(from: T, into: PrimitiveSink): Unit =
-      sealedTrait.dispatch(from)(sub => sub.typeclass.funnel(sub.cast(from), into))
+      sealedTrait.split(from)(sub => sub.typeclass.funnel(sub.cast(from), into))
   }
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]

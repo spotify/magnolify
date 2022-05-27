@@ -19,7 +19,7 @@ package magnolify.parquet
 import java.nio.{ByteBuffer, ByteOrder}
 import java.time.LocalDate
 import java.util.UUID
-import magnolia._
+import magnolia1._
 import magnolify.shared.{Converter => _, _}
 import magnolify.shims._
 import org.apache.hadoop.conf.Configuration
@@ -222,7 +222,7 @@ object ParquetField {
 
   sealed trait Record[T] extends ParquetField[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
+  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
     override def schema(cm: CaseMapper): Type =
       caseClass.parameters
         .foldLeft(Types.requiredGroup()) { (g, p) =>
@@ -268,7 +268,7 @@ object ParquetField {
 
   @implicitNotFound("Cannot derive ParquetType for sealed trait")
   private sealed trait Dispatchable[T]
-  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
 
   implicit def apply[T]: Record[T] = macro Magnolia.gen[T]
 

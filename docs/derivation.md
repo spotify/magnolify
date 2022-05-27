@@ -14,7 +14,7 @@ import magnolify.cats.auto._
 import cats._
 
 val sg: Semigroup[Outer] = implicitly[Semigroup[Outer]]
-sg.combine(Outer(Inner(1, "hello, ")), Outer(Inner(100, "world!")))
+sg.join(Outer(Inner(1, "hello, ")), Outer(Inner(100, "world!")))
 // = Outer(Inner(101,hello, world!))
 
 // ScalaCheck Arbitrary

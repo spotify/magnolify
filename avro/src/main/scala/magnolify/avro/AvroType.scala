@@ -20,7 +20,7 @@ import java.nio.ByteBuffer
 import java.time._
 import java.{util => ju}
 
-import magnolia._
+import magnolia1._
 import magnolify.shared._
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
@@ -91,7 +91,7 @@ object AvroField {
 
   type Typeclass[T] = AvroField[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
+  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
     override protected def schemaString(cm: CaseMapper): String = Schema
       .createRecord(
         caseClass.typeName.short,
@@ -142,7 +142,7 @@ object AvroField {
 
   @implicitNotFound("Cannot derive AvroField for sealed trait")
   private sealed trait Dispatchable[T]
-  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
 
   implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
 

@@ -22,7 +22,7 @@ import java.{util => ju}
 import com.google.protobuf.Descriptors.FileDescriptor.Syntax
 import com.google.protobuf.Descriptors.{Descriptor, EnumValueDescriptor, FieldDescriptor}
 import com.google.protobuf.{ByteString, Message, ProtocolMessageEnum}
-import magnolia._
+import magnolia1._
 import magnolify.shared._
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
@@ -120,7 +120,7 @@ object ProtobufField {
 
   type Typeclass[T] = ProtobufField[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
+  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
     // One Record[T] instance may be used for multiple Message types
     @transient private lazy val fieldsCache: concurrent.Map[String, Array[FieldDescriptor]] =
       concurrent.TrieMap.empty
@@ -198,7 +198,7 @@ object ProtobufField {
 
   @implicitNotFound("Cannot derive ProtobufField for sealed trait")
   private sealed trait Dispatchable[T]
-  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
 
   implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
 
