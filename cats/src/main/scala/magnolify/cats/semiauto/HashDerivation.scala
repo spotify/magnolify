@@ -17,7 +17,7 @@
 package magnolify.cats.semiauto
 
 import cats.Hash
-import magnolia._
+import magnolia1._
 import magnolify.shims.MurmurHash3Compat
 
 import scala.language.experimental.macros
@@ -26,8 +26,8 @@ import scala.util.hashing.MurmurHash3
 object HashDerivation {
   type Typeclass[T] = Hash[T]
 
-  def combine[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] = {
-    val eqvImpl = EqMethods.combine(caseClass)
+  def join[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] = {
+    val eqvImpl = EqMethods.join(caseClass)
 
     new Hash[T] {
       override def hash(x: T): Int =
@@ -45,11 +45,11 @@ object HashDerivation {
     }
   }
 
-  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = {
-    val eqvImpl = EqMethods.dispatch(sealedTrait)
+  def split[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = {
+    val eqvImpl = EqMethods.split(sealedTrait)
 
     new Hash[T] {
-      override def hash(x: T): Int = sealedTrait.dispatch(x) { sub =>
+      override def hash(x: T): Int = sealedTrait.split(x) { sub =>
         sub.typeclass.hash(sub.cast(x))
       }
 

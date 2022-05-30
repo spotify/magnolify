@@ -19,7 +19,7 @@ package magnolify.tensorflow
 import java.{lang => jl, util => ju}
 
 import com.google.protobuf.ByteString
-import magnolia._
+import magnolia1._
 import magnolify.shared._
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
@@ -95,7 +95,7 @@ object ExampleField {
 
   type Typeclass[T] = ExampleField[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
+  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
     private def key(prefix: String, label: String): String =
       if (prefix == null) label else s"$prefix.$label"
 
@@ -155,7 +155,7 @@ object ExampleField {
 
   @implicitNotFound("Cannot derive ExampleField for sealed trait")
   private sealed trait Dispatchable[T]
-  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
 
   implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
 

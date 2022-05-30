@@ -21,7 +21,7 @@ import java.{util => ju}
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.common.io.BaseEncoding
-import magnolia._
+import magnolia1._
 import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
@@ -82,7 +82,7 @@ object TableRowField {
 
   type Typeclass[T] = TableRowField[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
+  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
     override protected def schemaString(cm: CaseMapper): String =
       Schemas.toJson(
         new TableFieldSchema()
@@ -127,7 +127,7 @@ object TableRowField {
 
   @implicitNotFound("Cannot derive TableRowField for sealed trait")
   private sealed trait Dispatchable[T]
-  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
 
   implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
 

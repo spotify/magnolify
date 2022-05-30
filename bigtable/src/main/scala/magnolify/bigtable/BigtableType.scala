@@ -22,7 +22,7 @@ import java.util.UUID
 import com.google.bigtable.v2.{Cell, Column, Family, Mutation, Row}
 import com.google.bigtable.v2.Mutation.SetCell
 import com.google.protobuf.ByteString
-import magnolia._
+import magnolia1._
 import magnolify.shared._
 import magnolify.shims._
 import magnolify.shims.JavaConverters._
@@ -132,7 +132,7 @@ object BigtableField {
 
   type Typeclass[T] = BigtableField[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
+  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
     private def key(prefix: String, label: String): String =
       if (prefix == null) label else s"$prefix.$label"
 
@@ -158,7 +158,7 @@ object BigtableField {
 
   @implicitNotFound("Cannot derive BigtableField for sealed trait")
   private sealed trait Dispatchable[T]
-  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
 
   implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
 

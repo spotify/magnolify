@@ -16,7 +16,7 @@
  */
 package magnolify.scalacheck.semiauto
 
-import magnolia._
+import magnolia1._
 import magnolify.shims.Monadic
 import org.scalacheck.rng.Seed
 import org.scalacheck.{Arbitrary, Gen}
@@ -26,7 +26,7 @@ import scala.language.experimental.macros
 object ArbitraryDerivation {
   type Typeclass[T] = Arbitrary[T]
 
-  def combine[T: Fallback](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = Arbitrary {
+  def join[T: Fallback](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = Arbitrary {
     Gen.lzy(Gen.sized { size =>
       if (size >= 0) {
         Gen.resize(size - 1, caseClass.constructMonadic(_.typeclass.arbitrary)(monadicGen))
@@ -36,7 +36,7 @@ object ArbitraryDerivation {
     })
   }
 
-  def dispatch[T: Fallback](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = Arbitrary {
+  def split[T: Fallback](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = Arbitrary {
     if (sealedTrait.typeName.full == classOf[Seed].getCanonicalName) {
       // Prevent derivation of invalid seed via `Seed.apply(0, 0, 0, 0)`
       // https://github.com/typelevel/scalacheck/pull/674

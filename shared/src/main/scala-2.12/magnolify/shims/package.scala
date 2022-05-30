@@ -23,7 +23,7 @@ import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
 
 package object shims {
-  trait Monadic[F[_]] extends mercator.Monadic[F] {
+  trait Monadic[F[_]] extends magnolia1.Monadic[F] {
     def flatMapS[A, B](from: F[A])(fn: A => F[B]): F[B]
     def mapS[A, B](from: F[A])(fn: A => B): F[B]
 

@@ -17,7 +17,7 @@
 package magnolify.cats.semiauto
 
 import cats.Monoid
-import magnolia._
+import magnolia1._
 import magnolify.shims._
 
 import scala.annotation.implicitNotFound
@@ -26,7 +26,7 @@ import scala.language.experimental.macros
 object MonoidDerivation {
   type Typeclass[T] = Monoid[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+  def join[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
     val emptyImpl = MonoidMethods.empty(caseClass)
     val combineImpl = SemigroupMethods.combine(caseClass)
     val combineNImpl = MonoidMethods.combineN(caseClass)
@@ -44,7 +44,7 @@ object MonoidDerivation {
 
   @implicitNotFound("Cannot derive Monoid for sealed trait")
   private sealed trait Dispatchable[T]
-  def dispatch[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
 }

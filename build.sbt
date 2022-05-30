@@ -17,7 +17,7 @@
 name := "magnolify"
 description := "A collection of Magnolia add-on modules"
 
-val magnoliaVersion = "1.0.0-M4"
+val magnoliaVersion = "1.1.2"
 
 val algebirdVersion = "0.13.9"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.10.2")
@@ -47,7 +47,7 @@ val commonSettings = Seq(
     case "2.13" => Nil
   }),
   libraryDependencies ++= Seq(
-    "com.softwaremill.magnolia" %% "magnolia-core" % magnoliaVersion,
+    "com.softwaremill.magnolia1_2" %% "magnolia" % magnoliaVersion,
     "com.chuusai" %% "shapeless" % shapelessVersion,
     "org.scala-lang" % "scala-reflect" % scalaVersion.value
   ),

@@ -17,21 +17,21 @@
 package magnolify.cats.semiauto
 
 import cats.Show
-import magnolia._
+import magnolia1._
 
 import scala.language.experimental.macros
 
 object ShowDerivation {
   type Typeclass[T] = Show[T]
 
-  def combine[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] = Show.show { x =>
+  def join[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] = Show.show { x =>
     caseClass.parameters
       .map(p => s"${p.label} = ${p.typeclass.show(p.dereference(x))}")
       .mkString(s"${caseClass.typeName.full} {", ", ", "}")
   }
 
-  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = Show.show { x =>
-    sealedTrait.dispatch(x)(sub => sub.typeclass.show(sub.cast(x)))
+  def split[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = Show.show { x =>
+    sealedTrait.split(x)(sub => sub.typeclass.show(sub.cast(x)))
   }
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]

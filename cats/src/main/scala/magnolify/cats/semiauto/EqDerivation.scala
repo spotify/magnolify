@@ -17,33 +17,33 @@
 package magnolify.cats.semiauto
 
 import cats.Eq
-import magnolia._
+import magnolia1._
 
 import scala.language.experimental.macros
 
 object EqDerivation {
   type Typeclass[T] = Eq[T]
 
-  def combine[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] =
-    Eq.instance(EqMethods.combine(caseClass))
+  def join[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] =
+    Eq.instance(EqMethods.join(caseClass))
 
-  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] =
-    Eq.instance(EqMethods.dispatch(sealedTrait))
+  def split[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] =
+    Eq.instance(EqMethods.split(sealedTrait))
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
 }
 
 private object EqMethods {
-  def combine[T, Typeclass[T] <: Eq[T]](
+  def join[T, Typeclass[T] <: Eq[T]](
     caseClass: ReadOnlyCaseClass[Typeclass, T]
   ): (T, T) => Boolean =
     (x, y) => caseClass.parameters.forall(p => p.typeclass.eqv(p.dereference(x), p.dereference(y)))
 
-  def dispatch[T, Typeclass[T] <: Eq[T]](
+  def split[T, Typeclass[T] <: Eq[T]](
     sealedTrait: SealedTrait[Typeclass, T]
   ): (T, T) => Boolean =
     (x, y) =>
-      sealedTrait.dispatch(x) { sub =>
+      sealedTrait.split(x) { sub =>
         sub.cast.isDefinedAt(y) && sub.typeclass.eqv(sub.cast(x), sub.cast(y))
       }
 }

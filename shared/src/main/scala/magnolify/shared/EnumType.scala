@@ -16,7 +16,7 @@
  */
 package magnolify.shared
 
-import magnolia._
+import magnolia1._
 
 import scala.language.experimental.macros
 import scala.reflect.ClassTag
@@ -121,7 +121,7 @@ object EnumType {
 
   type Typeclass[T] = EnumType[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+  def join[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
     require(caseClass.isObject, s"Cannot derive EnumType[T] for case class ${caseClass.typeName}")
     val n = caseClass.typeName.short
     val ns = caseClass.typeName.owner
@@ -134,7 +134,7 @@ object EnumType {
     )
   }
 
-  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = {
+  def split[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = {
     val n = sealedTrait.typeName.short
     val ns = sealedTrait.typeName.owner
     val subs = sealedTrait.subtypes.map(_.typeclass)
