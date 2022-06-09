@@ -182,8 +182,8 @@ class tableDesc(projectId: String, datasetId: String, tableId: String)
 class fieldDesc(description: String, since: LocalDate)
     extends description(
       s"""{"description": "$description", "since": "${since.format(
-        DateTimeFormatter.ofPattern("YYYY-MM-dd")
-      )}"}"""
+          DateTimeFormatter.ofPattern("YYYY-MM-dd")
+        )}"}"""
     )
 
 @tableDesc("my-project", "my-dataset", "my-table")
