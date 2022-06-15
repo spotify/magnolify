@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 import de.heikoseeberger.sbtheader.CommentCreator
+import _root_.io.github.davidgregory084.DevMode
 
-name := "magnolify"
-description := "A collection of Magnolia add-on modules"
-
-val magnoliaVersion = "1.1.2"
+val magnoliaScala2Version = "1.1.2"
+val magnoliaScala3Version = "1.1.4"
 
 val algebirdVersion = "0.13.9"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.0")
@@ -47,23 +46,45 @@ lazy val keepExistingHeader =
         .trim()
   )
 
+ThisBuild / tpolecatDefaultOptionsMode := DevMode
+ThisBuild / tpolecatDevModeOptions ~= { opts =>
+  val excludes = Set(
+    ScalacOptions.lintPackageObjectClasses,
+    ScalacOptions.privateWarnDeadCode,
+    ScalacOptions.privateWarnValueDiscard,
+    ScalacOptions.warnDeadCode,
+    ScalacOptions.warnValueDiscard
+  )
+
+  val parallelism = math.min(java.lang.Runtime.getRuntime.availableProcessors(), 16)
+  val extras = Set(
+    ScalacOptions.privateBackendParallelism(parallelism),
+    ScalacOptions.release("8")
+  )
+
+  opts.filterNot(excludes).union(extras)
+}
+
 val commonSettings = Seq(
   organization := "com.spotify",
-  scalaVersion := "2.13.8",
-  crossScalaVersions := Seq("2.12.16", "2.13.8"),
-  scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
-  scalacOptions ++= (scalaBinaryVersion.value match {
-    case "2.12" => Seq("-language:higherKinds")
-    case "2.13" => Nil
-  }),
-  libraryDependencies ++= Seq(
-    "com.softwaremill.magnolia1_2" %% "magnolia" % magnoliaVersion,
-    "com.chuusai" %% "shapeless" % shapelessVersion,
-    "org.scala-lang" % "scala-reflect" % scalaVersion.value
-  ),
-  // https://github.com/typelevel/scalacheck/pull/427#issuecomment-424330310
-  // FIXME: workaround for Java serialization issues
-  Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
+  crossScalaVersions := Seq("3.1.2", "2.12.16", "2.13.8"),
+  scalaVersion := crossScalaVersions.value.head,
+  libraryDependencies ++= {
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((3, _)) =>
+        Seq(
+          "com.softwaremill.magnolia1_3" %% "magnolia" % magnoliaScala3Version
+        )
+      case Some((2, _)) =>
+        Seq(
+          "com.softwaremill.magnolia1_2" %% "magnolia" % magnoliaScala2Version,
+          "com.chuusai" %% "shapeless" % shapelessVersion,
+          "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided
+        )
+      case _ =>
+        throw new Exception("Unsupported scala version")
+    }
+  },
   Test / publishArtifact := false,
   sonatypeProfileName := "com.spotify",
   organizationName := "Spotify AB",
@@ -137,23 +158,25 @@ lazy val root: Project = project
   .in(file("."))
   .settings(
     commonSettings,
-    noPublishSettings
+    noPublishSettings,
+    name := "magnolify",
+    description := "A collection of Magnolia add-on modules"
   )
   .aggregate(
-    avro,
-    bigquery,
-    bigtable,
-    cats,
-    datastore,
-    guava,
-    parquet,
-    protobuf,
-    refined,
+//     avro,
+//     bigquery,
+//     bigtable,
+//     cats,
+//    datastore,
+//    guava,
+//    parquet,
+//    protobuf,
+//    refined,
     scalacheck,
     shared,
-    tensorflow,
-    test,
-    tools
+//    tensorflow,
+    test
+//    tools
   )
 
 lazy val shared: Project = project
@@ -194,254 +217,254 @@ lazy val scalacheck: Project = project
     test % "test->test"
   )
 
-lazy val cats: Project = project
-  .in(file("cats"))
-  .settings(
-    commonSettings,
-    moduleName := "magnolify-cats",
-    description := "Magnolia add-on for Cats",
-    libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-core" % catsVersion,
-      "org.typelevel" %% "cats-laws" % catsVersion % Test,
-      "com.twitter" %% "algebird-core" % algebirdVersion % Test
-    )
-  )
-  .dependsOn(
-    shared,
-    scalacheck % Test,
-    test % "test->test"
-  )
-
-lazy val guava: Project = project
-  .in(file("guava"))
-  .settings(
-    commonSettings,
-    moduleName := "magnolify-guava",
-    description := "Magnolia add-on for Guava",
-    libraryDependencies ++= Seq(
-      "com.google.guava" % "guava" % guavaVersion % Provided
-    )
-  )
-  .dependsOn(
-    shared,
-    scalacheck % Test,
-    test % "test->test"
-  )
-
-lazy val refined: Project = project
-  .in(file("refined"))
-  .settings(
-    commonSettings,
-    moduleName := "magnolify-refined",
-    description := "Magnolia add-on for Refined",
-    libraryDependencies ++= Seq(
-      "com.google.guava" % "guava" % guavaVersion % Provided,
-      "eu.timepit" %% "refined" % refinedVersion % Provided,
-      "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Test,
-      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
-      "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
-      "org.apache.avro" % "avro" % avroVersion % Test,
-      "org.scalameta" %% "munit" % munitVersion % Test,
-      "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Test
-    )
-  )
-  .dependsOn(
-    avro % Provided,
-    bigquery % Provided,
-    bigtable % Provided,
-    datastore % Provided,
-    guava % "provided,test->test",
-    protobuf % Provided,
-    tensorflow % Provided,
-    test % "test->test"
-  )
-
-lazy val avro: Project = project
-  .in(file("avro"))
-  .settings(
-    commonSettings,
-    moduleName := "magnolify-avro",
-    description := "Magnolia add-on for Apache Avro",
-    libraryDependencies ++= Seq(
-      "org.apache.avro" % "avro" % avroVersion % Provided,
-      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
-    )
-  )
-  .dependsOn(
-    shared,
-    cats % Test,
-    scalacheck % Test,
-    test % "test->test"
-  )
-
-lazy val bigquery: Project = project
-  .in(file("bigquery"))
-  .settings(
-    commonSettings,
-    moduleName := "magnolify-bigquery",
-    description := "Magnolia add-on for Google Cloud BigQuery",
-    libraryDependencies ++= Seq(
-      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Provided,
-      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
-    )
-  )
-  .dependsOn(
-    shared,
-    cats % Test,
-    scalacheck % Test,
-    test % "test->test"
-  )
-
-lazy val bigtable: Project = project
-  .in(file("bigtable"))
-  .settings(
-    commonSettings,
-    moduleName := "magnolify-bigtable",
-    description := "Magnolia add-on for Google Cloud Bigtable",
-    libraryDependencies ++= Seq(
-      "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Provided
-    )
-  )
-  .dependsOn(
-    shared,
-    cats % Test,
-    scalacheck % Test,
-    test % "test->test"
-  )
-
-lazy val datastore: Project = project
-  .in(file("datastore"))
-  .settings(
-    commonSettings,
-    moduleName := "magnolify-datastore",
-    description := "Magnolia add-on for Google Cloud Datastore",
-    libraryDependencies ++= Seq(
-      "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Provided
-    )
-  )
-  .dependsOn(
-    shared,
-    cats % Test,
-    scalacheck % Test,
-    test % "test->test"
-  )
-
-lazy val parquet: Project = project
-  .in(file("parquet"))
-  .settings(
-    commonSettings,
-    moduleName := "magnolify-parquet",
-    description := "Magnolia add-on for Apache Parquet",
-    libraryDependencies ++= Seq(
-      "org.apache.hadoop" % "hadoop-client" % hadoopVersion % Provided,
-      "org.apache.parquet" % "parquet-avro" % parquetVersion % Provided,
-      "org.apache.parquet" % "parquet-hadoop" % parquetVersion % Provided
-    )
-  )
-  .dependsOn(
-    shared,
-    avro % Test,
-    cats % Test,
-    scalacheck % Test,
-    test % "test->test"
-  )
-
-lazy val protobuf: Project = project
-  .in(file("protobuf"))
-  .settings(
-    commonSettings,
-    moduleName := "magnolify-protobuf",
-    description := "Magnolia add-on for Google Protocol Buffer",
-    libraryDependencies ++= Seq(
-      "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
-    )
-  )
-  .dependsOn(
-    shared,
-    cats % Test,
-    scalacheck % Test,
-    test % "test->test"
-  )
-
-lazy val tensorflow: Project = project
-  .in(file("tensorflow"))
-  .settings(
-    commonSettings,
-    moduleName := "magnolify-tensorflow",
-    description := "Magnolia add-on for TensorFlow",
-    Compile / sourceDirectories := (Compile / sourceDirectories).value
-      .filterNot(_.getPath.endsWith("/src_managed/main")),
-    Compile / managedSourceDirectories := (Compile / managedSourceDirectories).value
-      .filterNot(_.getPath.endsWith("/src_managed/main")),
-    libraryDependencies ++= Seq(
-      "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Provided
-    ),
-    // Protobuf plugin adds protobuf-java to Compile scope automatically; we want it to remain Provided
-    libraryDependencies := libraryDependencies.value.map { l =>
-      (l.organization, l.name) match {
-        case ("com.google.protobuf", "protobuf-java") =>
-          l.withConfigurations(Some("provided,protobuf"))
-        case _ => l
-      }
-    }
-  )
-  .dependsOn(
-    shared,
-    cats % Test,
-    scalacheck % Test,
-    test % "test->test"
-  )
-  .enablePlugins(ProtobufPlugin)
-
-lazy val tools: Project = project
-  .in(file("tools"))
-  .settings(
-    commonSettings,
-    moduleName := "magnolify-tools",
-    description := "Magnolia add-on for code generation",
-    libraryDependencies ++= Seq(
-      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
-      "org.apache.avro" % "avro" % avroVersion,
-      "org.apache.parquet" % "parquet-hadoop" % parquetVersion,
-      "org.typelevel" %% "paiges-core" % paigesVersion
-    )
-  )
-  .dependsOn(
-    shared,
-    avro % Test,
-    bigquery % Test,
-    parquet % Test,
-    test % "test->test"
-  )
-
-lazy val jmh: Project = project
-  .in(file("jmh"))
-  .settings(
-    commonSettings,
-    Jmh / classDirectory := (Test / classDirectory).value,
-    Jmh / dependencyClasspath := (Test / dependencyClasspath).value,
-    // rewire tasks, so that 'jmh:run' automatically invokes 'jmh:compile'
-    // (otherwise a clean 'jmh:run' would fail)
-    Jmh / compile := (Jmh / compile).dependsOn(Test / compile).value,
-    Jmh / run := (Jmh / run).dependsOn(Jmh / compile).evaluated,
-    libraryDependencies ++= Seq(
-      "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Test,
-      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
-      "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
-      "org.apache.avro" % "avro" % avroVersion % Test,
-      "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Test
-    )
-  )
-  .dependsOn(
-    avro % Test,
-    bigquery % Test,
-    bigtable % Test,
-    cats % Test,
-    datastore % Test,
-    guava % Test,
-    protobuf % Test,
-    scalacheck % Test,
-    tensorflow % Test,
-    test % "test->test"
-  )
-  .enablePlugins(JmhPlugin)
+//lazy val cats: Project = project
+//  .in(file("cats"))
+//  .settings(
+//    commonSettings,
+//    moduleName := "magnolify-cats",
+//    description := "Magnolia add-on for Cats",
+//    libraryDependencies ++= Seq(
+//      "org.typelevel" %% "cats-core" % catsVersion,
+//      "org.typelevel" %% "cats-laws" % catsVersion % Test,
+//      "com.twitter" %% "algebird-core" % algebirdVersion % Test
+//    )
+//  )
+//  .dependsOn(
+//    shared,
+//    scalacheck % Test,
+//    test % "test->test"
+//  )
+//
+//lazy val guava: Project = project
+//  .in(file("guava"))
+//  .settings(
+//    commonSettings,
+//    moduleName := "magnolify-guava",
+//    description := "Magnolia add-on for Guava",
+//    libraryDependencies ++= Seq(
+//      "com.google.guava" % "guava" % guavaVersion % Provided
+//    )
+//  )
+//  .dependsOn(
+//    shared,
+//    scalacheck % Test,
+//    test % "test->test"
+//  )
+//
+//lazy val refined: Project = project
+//  .in(file("refined"))
+//  .settings(
+//    commonSettings,
+//    moduleName := "magnolify-refined",
+//    description := "Magnolia add-on for Refined",
+//    libraryDependencies ++= Seq(
+//      "com.google.guava" % "guava" % guavaVersion % Provided,
+//      "eu.timepit" %% "refined" % refinedVersion % Provided,
+//      "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Test,
+//      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
+//      "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
+//      "org.apache.avro" % "avro" % avroVersion % Test,
+//      "org.scalameta" %% "munit" % munitVersion % Test,
+//      "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Test
+//    )
+//  )
+//  .dependsOn(
+//    avro % Provided,
+//    bigquery % Provided,
+//    bigtable % Provided,
+//    datastore % Provided,
+//    guava % "provided,test->test",
+//    protobuf % Provided,
+//    tensorflow % Provided,
+//    test % "test->test"
+//  )
+//
+//lazy val avro: Project = project
+//  .in(file("avro"))
+//  .settings(
+//    commonSettings,
+//    moduleName := "magnolify-avro",
+//    description := "Magnolia add-on for Apache Avro",
+//    libraryDependencies ++= Seq(
+//      "org.apache.avro" % "avro" % avroVersion % Provided,
+//      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
+//    )
+//  )
+//  .dependsOn(
+//    shared,
+//    cats % Test,
+//    scalacheck % Test,
+//    test % "test->test"
+//  )
+//
+//lazy val bigquery: Project = project
+//  .in(file("bigquery"))
+//  .settings(
+//    commonSettings,
+//    moduleName := "magnolify-bigquery",
+//    description := "Magnolia add-on for Google Cloud BigQuery",
+//    libraryDependencies ++= Seq(
+//      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Provided,
+//      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
+//    )
+//  )
+//  .dependsOn(
+//    shared,
+//    cats % Test,
+//    scalacheck % Test,
+//    test % "test->test"
+//  )
+//
+//lazy val bigtable: Project = project
+//  .in(file("bigtable"))
+//  .settings(
+//    commonSettings,
+//    moduleName := "magnolify-bigtable",
+//    description := "Magnolia add-on for Google Cloud Bigtable",
+//    libraryDependencies ++= Seq(
+//      "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Provided
+//    )
+//  )
+//  .dependsOn(
+//    shared,
+//    cats % Test,
+//    scalacheck % Test,
+//    test % "test->test"
+//  )
+//
+//lazy val datastore: Project = project
+//  .in(file("datastore"))
+//  .settings(
+//    commonSettings,
+//    moduleName := "magnolify-datastore",
+//    description := "Magnolia add-on for Google Cloud Datastore",
+//    libraryDependencies ++= Seq(
+//      "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Provided
+//    )
+//  )
+//  .dependsOn(
+//    shared,
+//    cats % Test,
+//    scalacheck % Test,
+//    test % "test->test"
+//  )
+//
+//lazy val parquet: Project = project
+//  .in(file("parquet"))
+//  .settings(
+//    commonSettings,
+//    moduleName := "magnolify-parquet",
+//    description := "Magnolia add-on for Apache Parquet",
+//    libraryDependencies ++= Seq(
+//      "org.apache.hadoop" % "hadoop-client" % hadoopVersion % Provided,
+//      "org.apache.parquet" % "parquet-avro" % parquetVersion % Provided,
+//      "org.apache.parquet" % "parquet-hadoop" % parquetVersion % Provided
+//    )
+//  )
+//  .dependsOn(
+//    shared,
+//    avro % Test,
+//    cats % Test,
+//    scalacheck % Test,
+//    test % "test->test"
+//  )
+//
+//lazy val protobuf: Project = project
+//  .in(file("protobuf"))
+//  .settings(
+//    commonSettings,
+//    moduleName := "magnolify-protobuf",
+//    description := "Magnolia add-on for Google Protocol Buffer",
+//    libraryDependencies ++= Seq(
+//      "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
+//    )
+//  )
+//  .dependsOn(
+//    shared,
+//    cats % Test,
+//    scalacheck % Test,
+//    test % "test->test"
+//  )
+//
+//lazy val tensorflow: Project = project
+//  .in(file("tensorflow"))
+//  .settings(
+//    commonSettings,
+//    moduleName := "magnolify-tensorflow",
+//    description := "Magnolia add-on for TensorFlow",
+//    Compile / sourceDirectories := (Compile / sourceDirectories).value
+//      .filterNot(_.getPath.endsWith("/src_managed/main")),
+//    Compile / managedSourceDirectories := (Compile / managedSourceDirectories).value
+//      .filterNot(_.getPath.endsWith("/src_managed/main")),
+//    libraryDependencies ++= Seq(
+//      "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Provided
+//    ),
+//    // Protobuf plugin adds protobuf-java to Compile scope automatically; we want it to remain Provided
+//    libraryDependencies := libraryDependencies.value.map { l =>
+//      (l.organization, l.name) match {
+//        case ("com.google.protobuf", "protobuf-java") =>
+//          l.withConfigurations(Some("provided,protobuf"))
+//        case _ => l
+//      }
+//    }
+//  )
+//  .dependsOn(
+//    shared,
+//    cats % Test,
+//    scalacheck % Test,
+//    test % "test->test"
+//  )
+//  .enablePlugins(ProtobufPlugin)
+//
+//lazy val tools: Project = project
+//  .in(file("tools"))
+//  .settings(
+//    commonSettings,
+//    moduleName := "magnolify-tools",
+//    description := "Magnolia add-on for code generation",
+//    libraryDependencies ++= Seq(
+//      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
+//      "org.apache.avro" % "avro" % avroVersion,
+//      "org.apache.parquet" % "parquet-hadoop" % parquetVersion,
+//      "org.typelevel" %% "paiges-core" % paigesVersion
+//    )
+//  )
+//  .dependsOn(
+//    shared,
+//    avro % Test,
+//    bigquery % Test,
+//    parquet % Test,
+//    test % "test->test"
+//  )
+//
+//lazy val jmh: Project = project
+//  .in(file("jmh"))
+//  .settings(
+//    commonSettings,
+//    Jmh / classDirectory := (Test / classDirectory).value,
+//    Jmh / dependencyClasspath := (Test / dependencyClasspath).value,
+//    // rewire tasks, so that 'jmh:run' automatically invokes 'jmh:compile'
+//    // (otherwise a clean 'jmh:run' would fail)
+//    Jmh / compile := (Jmh / compile).dependsOn(Test / compile).value,
+//    Jmh / run := (Jmh / run).dependsOn(Jmh / compile).evaluated,
+//    libraryDependencies ++= Seq(
+//      "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Test,
+//      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
+//      "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
+//      "org.apache.avro" % "avro" % avroVersion % Test,
+//      "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Test
+//    )
+//  )
+//  .dependsOn(
+//    avro % Test,
+//    bigquery % Test,
+//    bigtable % Test,
+//    cats % Test,
+//    datastore % Test,
+//    guava % Test,
+//    protobuf % Test,
+//    scalacheck % Test,
+//    tensorflow % Test,
+//    test % "test->test"
+//  )
+//  .enablePlugins(JmhPlugin)

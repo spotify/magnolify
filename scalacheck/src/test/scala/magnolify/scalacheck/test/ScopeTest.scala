@@ -16,12 +16,12 @@
 
 package magnolify.scalacheck.test
 
+import magnolify.scalacheck.AutoDerivation
 import magnolify.test.Simple._
 import org.scalacheck._
 
 object ScopeTest {
-  object Auto {
-    import magnolify.scalacheck.auto._
+  object Auto extends AutoDerivation {
     implicitly[Arbitrary[Numbers]]
     implicitly[Cogen[Numbers]]
     implicitly[Arbitrary[Numbers => Numbers]]
