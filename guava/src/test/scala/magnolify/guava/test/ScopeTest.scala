@@ -20,12 +20,11 @@ import com.google.common.hash.Funnel
 import magnolify.test.Simple._
 
 object ScopeTest {
-  object Auto {
-    import magnolify.guava.auto._
+  object Auto extends magnolify.guava.AutoDerivation with magnolify.guava.FunnelImplicits {
     implicitly[Funnel[Integers]]
   }
 
-  object Semi {
+  object Semi extends magnolify.guava.FunnelImplicits {
     import magnolify.guava.semiauto._
     FunnelDerivation[Integers]
   }

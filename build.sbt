@@ -168,7 +168,7 @@ lazy val root: Project = project
 //     bigtable,
      cats,
 //    datastore,
-//    guava,
+    guava,
 //    parquet,
 //    protobuf,
 //    refined,
@@ -235,22 +235,22 @@ lazy val cats: Project = project
     test % "test->test"
   )
 
-//lazy val guava: Project = project
-//  .in(file("guava"))
-//  .settings(
-//    commonSettings,
-//    moduleName := "magnolify-guava",
-//    description := "Magnolia add-on for Guava",
-//    libraryDependencies ++= Seq(
-//      "com.google.guava" % "guava" % guavaVersion % Provided
-//    )
-//  )
-//  .dependsOn(
-//    shared,
-//    scalacheck % Test,
-//    test % "test->test"
-//  )
-//
+lazy val guava: Project = project
+  .in(file("guava"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-guava",
+    description := "Magnolia add-on for Guava",
+    libraryDependencies ++= Seq(
+      "com.google.guava" % "guava" % guavaVersion % Provided
+    )
+  )
+  .dependsOn(
+    shared,
+    scalacheck % Test,
+    test % "test->test"
+  )
+
 //lazy val refined: Project = project
 //  .in(file("refined"))
 //  .settings(

@@ -14,22 +14,15 @@
  * limitations under the License.
  */
 
-package magnolify.guava
-
-import com.google.common.hash.Funnel
-import magnolify.guava.semiauto.FunnelImplicits
+package magnolify.guava.auto
 
 import scala.language.experimental.macros
 import scala.reflect.macros._
 
-package object auto extends FunnelImplicits {
+object FunnelMacros {
   def genFunnelMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.guava.semiauto.FunnelDerivation.apply[$wtt]"""
   }
-
-  implicit def genFunnel[T]: Funnel[T] = macro genFunnelMacro[T]
-
-  val FunnelDerivation = semiauto.FunnelDerivation
 }
