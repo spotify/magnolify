@@ -18,13 +18,12 @@ package magnolify.scalacheck.test
 
 import magnolify.test.Simple._
 import magnolify.test.ADT._
-import magnolify.scalacheck.AutoDerivation
 import magnolify.test._
 import org.scalacheck._
 
 import scala.reflect._
 
-class FunctionDerivationSuite extends MagnolifySuite with AutoDerivation {
+class FunctionDerivationSuite extends MagnolifySuite with magnolify.scalacheck.AutoDerivation {
   private def test[A: ClassTag, B: ClassTag](implicit
     t: Arbitrary[A => B],
     arbA: Arbitrary[A]

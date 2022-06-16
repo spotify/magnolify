@@ -16,6 +16,7 @@
 
 package magnolify
 
+import scala.annotation.nowarn
 import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable
 import scala.language.higherKinds
@@ -87,6 +88,7 @@ package object shims {
   def unsafeWrapArray(a: Array[Any]): Seq[Any] = mutable.WrappedArray.make(a)
 
   object MurmurHash3Compat {
+    @nowarn
     def seed(data: Int): Int = MurmurHash3.productSeed
   }
 }

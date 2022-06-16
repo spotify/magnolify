@@ -58,7 +58,6 @@ private object GroupMethods {
     val combineImpl = SemigroupMethods.combine(caseClass)
     val f = SemigroupMethods.combineNBase(caseClass)
     val inverseImpl = inverse(caseClass)
-    val removeImpl = remove(caseClass)
     (a: T, n: Int) =>
       if (n > 0) {
         f(a, n)

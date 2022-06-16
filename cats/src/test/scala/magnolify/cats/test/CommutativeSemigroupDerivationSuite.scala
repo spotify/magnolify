@@ -19,14 +19,16 @@ package magnolify.cats.test
 import cats._
 import cats.kernel.CommutativeSemigroup
 import cats.kernel.laws.discipline._
-import magnolify.cats.auto._
-import magnolify.scalacheck.auto._
 import magnolify.test._
 import org.scalacheck._
 
 import scala.reflect._
 
-class CommutativeSemigroupDerivationSuite extends MagnolifySuite {
+class CommutativeSemigroupDerivationSuite
+    extends MagnolifySuite
+    with magnolify.scalacheck.AutoDerivation
+    with magnolify.cats.AutoDerivation {
+
   private def test[T: Arbitrary: ClassTag: Eq: CommutativeSemigroup]: Unit = {
     val csg = ensureSerializable(implicitly[CommutativeSemigroup[T]])
     include(CommutativeSemigroupTests[T](csg).commutativeSemigroup.all, className[T] + ".")

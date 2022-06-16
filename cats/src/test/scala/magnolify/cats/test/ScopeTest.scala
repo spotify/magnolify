@@ -23,8 +23,7 @@ import magnolify.test.Simple._
 object ScopeTest {
   case class Sets(s: Set[Int])
 
-  object Auto {
-    import magnolify.cats.auto._
+  object Auto extends magnolify.cats.AutoDerivation {
     implicitly[Eq[Numbers]]
     implicitly[Hash[Numbers]]
     implicitly[Semigroup[Numbers]]

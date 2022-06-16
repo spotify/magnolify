@@ -166,7 +166,7 @@ lazy val root: Project = project
 //     avro,
 //     bigquery,
 //     bigtable,
-//     cats,
+     cats,
 //    datastore,
 //    guava,
 //    parquet,
@@ -217,24 +217,24 @@ lazy val scalacheck: Project = project
     test % "test->test"
   )
 
-//lazy val cats: Project = project
-//  .in(file("cats"))
-//  .settings(
-//    commonSettings,
-//    moduleName := "magnolify-cats",
-//    description := "Magnolia add-on for Cats",
-//    libraryDependencies ++= Seq(
-//      "org.typelevel" %% "cats-core" % catsVersion,
-//      "org.typelevel" %% "cats-laws" % catsVersion % Test,
-//      "com.twitter" %% "algebird-core" % algebirdVersion % Test
-//    )
-//  )
-//  .dependsOn(
-//    shared,
-//    scalacheck % Test,
-//    test % "test->test"
-//  )
-//
+lazy val cats: Project = project
+  .in(file("cats"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-cats",
+    description := "Magnolia add-on for Cats",
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-core" % catsVersion,
+      "org.typelevel" %% "cats-laws" % catsVersion % Test
+      // "com.twitter" %% "algebird-core" % algebirdVersion % Test
+    )
+  )
+  .dependsOn(
+    shared,
+    scalacheck % Test,
+    test % "test->test"
+  )
+
 //lazy val guava: Project = project
 //  .in(file("guava"))
 //  .settings(

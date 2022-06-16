@@ -19,21 +19,28 @@ package magnolify.cats.test
 import cats._
 import cats.kernel.CommutativeGroup
 import cats.kernel.laws.discipline._
-import magnolify.cats.auto._
-import magnolify.scalacheck.auto._
 import magnolify.test._
 import org.scalacheck._
 
 import scala.reflect._
 
-class CommutativeGroupDerivationSuite extends MagnolifySuite {
+class CommutativeGroupDerivationSuite
+    extends MagnolifySuite
+    with magnolify.scalacheck.AutoDerivation
+    with magnolify.cats.AutoDerivation {
+
   private def test[T: Arbitrary: ClassTag: Eq: CommutativeGroup]: Unit = {
     val cg = ensureSerializable(implicitly[CommutativeGroup[T]])
     include(CommutativeGroupTests[T](cg).commutativeGroup.all, className[T] + ".")
   }
 
   import CommutativeGroupDerivationSuite._
-  test[Record]
+  val arb: Arbitrary[Record] = implicitly
+  val ct: ClassTag[Record] = implicitly
+  val eq: Eq[Record] = implicitly
+  val test: CommutativeGroup[Record] = implicitly
+
+  test[Record](arb, ct, eq, test)
 }
 
 object CommutativeGroupDerivationSuite {

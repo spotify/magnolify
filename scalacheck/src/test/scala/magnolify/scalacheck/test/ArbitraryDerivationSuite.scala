@@ -16,7 +16,6 @@
 
 package magnolify.scalacheck.test
 
-import magnolify.scalacheck.AutoDerivation
 //import magnolify.shims.SerializableCanBuildFroms._
 import magnolify.test.ADT._
 import magnolify.test.Simple._
@@ -26,7 +25,7 @@ import org.scalacheck.rng.Seed
 
 import scala.reflect._
 
-class ArbitraryDerivationSuite extends MagnolifySuite with AutoDerivation {
+class ArbitraryDerivationSuite extends MagnolifySuite with magnolify.scalacheck.AutoDerivation {
   private def test[T: Arbitrary: ClassTag]: Unit = test[T](null)
   private def test[T: Arbitrary: ClassTag](suffix: String): Unit = test[T, T](identity, suffix)
 

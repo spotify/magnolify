@@ -35,9 +35,9 @@ object HashDerivation {
           caseClass.typeName.short.hashCode
         } else {
           val seed = MurmurHash3Compat.seed(caseClass.typeName.short.hashCode)
-          val h = caseClass.parameters.foldLeft(seed) { (h, p) =>
-            MurmurHash3.mix(h, p.typeclass.hash(p.dereference(x)))
-          }
+          val h = caseClass.parameters
+            .map(p => p.typeclass.hash(p.dereference(x)))
+            .foldLeft(seed)(MurmurHash3.mix)
           MurmurHash3.finalizeHash(h, caseClass.parameters.size)
         }
 

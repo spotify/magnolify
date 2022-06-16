@@ -16,7 +16,6 @@
 
 package magnolify.scalacheck.test
 
-import magnolify.scalacheck.AutoDerivation
 import magnolify.test.ADT._
 import magnolify.test.Simple._
 import magnolify.test._
@@ -25,7 +24,7 @@ import org.scalacheck.rng.Seed
 
 import scala.reflect._
 
-class CogenDerivationSuite extends MagnolifySuite with AutoDerivation {
+class CogenDerivationSuite extends MagnolifySuite with magnolify.scalacheck.AutoDerivation {
 
   private def test[T: Arbitrary: ClassTag: Cogen]: Unit =
     test[T, T](identity)

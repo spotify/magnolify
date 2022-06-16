@@ -18,14 +18,16 @@ package magnolify.cats.test
 
 import cats._
 import cats.kernel.laws.discipline._
-import magnolify.cats.auto._
-import magnolify.scalacheck.auto._
 import magnolify.test._
 import org.scalacheck._
 
 import scala.reflect._
 
-class GroupDerivationSuite extends MagnolifySuite {
+class GroupDerivationSuite
+    extends MagnolifySuite
+    with magnolify.scalacheck.AutoDerivation
+    with magnolify.cats.AutoDerivation {
+
   private def test[T: Arbitrary: ClassTag: Eq: Group]: Unit = {
     val grp = ensureSerializable(implicitly[Group[T]])
     include(GroupTests[T](grp).group.all, className[T] + ".")

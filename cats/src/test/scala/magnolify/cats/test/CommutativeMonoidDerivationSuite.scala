@@ -19,14 +19,16 @@ package magnolify.cats.test
 import cats._
 import cats.kernel.CommutativeMonoid
 import cats.kernel.laws.discipline._
-import magnolify.cats.auto._
-import magnolify.scalacheck.auto._
 import magnolify.test._
 import org.scalacheck._
 
 import scala.reflect._
 
-class CommutativeMonoidDerivationSuite extends MagnolifySuite {
+class CommutativeMonoidDerivationSuite
+    extends MagnolifySuite
+    with magnolify.scalacheck.AutoDerivation
+    with magnolify.cats.AutoDerivation {
+
   private def test[T: Arbitrary: ClassTag: Eq: CommutativeMonoid]: Unit = {
     val cm = ensureSerializable(implicitly[CommutativeMonoid[T]])
     include(CommutativeMonoidTests[T](cm).commutativeMonoid.all, className[T] + ".")

@@ -14,6 +14,21 @@
  * limitations under the License.
  */
 
-package magnolify.cats
+package magnolify.scalacheck.auto
 
-package object auto extends LowPriorityImplicits
+import scala.language.experimental.macros
+import scala.reflect.macros._
+
+object ScalacheckMacros {
+  def genArbitraryMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
+    import c.universe._
+    val wtt = weakTypeTag[T]
+    q"""_root_.magnolify.scalacheck.semiauto.ArbitraryDerivation.apply[$wtt]"""
+  }
+
+  def genCogenMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
+    import c.universe._
+    val wtt = weakTypeTag[T]
+    q"""_root_.magnolify.scalacheck.semiauto.CogenDerivation.apply[$wtt]"""
+  }
+}
