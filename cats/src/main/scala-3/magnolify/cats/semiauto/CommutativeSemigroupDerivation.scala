@@ -33,5 +33,5 @@ object CommutativeSemigroupDerivation extends ProductDerivation[CommutativeSemig
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
   }
-  
+
   inline given apply[T](using Mirror.Of[T]): CommutativeSemigroup[T] = derived[T]

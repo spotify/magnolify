@@ -8,7 +8,7 @@ trait FunnelImplicits {
     override def funnel(from: T, into: PrimitiveSink): Unit = f(into, from)
   }
 
-  implicit val intFunnel: Funnel[Int] = Funnels.integerFunnel().asInstanceOf[Funnel[Int]]
+  implicit val intFunnel: Funnel[Int] = Funnels.integerFunnel()
   implicit val longFunnel: Funnel[Long] = Funnels.longFunnel().asInstanceOf[Funnel[Long]]
   implicit val bytesFunnel: Funnel[Array[Byte]] = Funnels.byteArrayFunnel()
   implicit val charSequenceFunnel: Funnel[CharSequence] = Funnels.unencodedCharsFunnel()
@@ -34,3 +34,5 @@ trait FunnelImplicits {
       sink.putInt(i)
     }
 }
+
+object FunnelImplicits extends FunnelImplicits

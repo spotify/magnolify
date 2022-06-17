@@ -33,6 +33,7 @@ val paigesVersion = "0.4.2"
 val parquetVersion = "1.12.3"
 val protobufVersion = "3.21.2"
 val refinedVersion = "0.10.1"
+val scalaCollectionCompatVersion = "2.8.0"
 val scalacheckVersion = "1.16.0"
 val shapelessVersion = "2.3.9"
 val tensorflowVersion = "0.4.1"
@@ -73,12 +74,14 @@ val commonSettings = Seq(
     CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((3, _)) =>
         Seq(
-          "com.softwaremill.magnolia1_3" %% "magnolia" % magnoliaScala3Version
+          "com.softwaremill.magnolia1_3" %% "magnolia" % magnoliaScala3Version,
+          "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion,
         )
       case Some((2, _)) =>
         Seq(
           "com.softwaremill.magnolia1_2" %% "magnolia" % magnoliaScala2Version,
           "com.chuusai" %% "shapeless" % shapelessVersion,
+          "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion,
           "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided
         )
       case _ =>
@@ -163,7 +166,7 @@ lazy val root: Project = project
     description := "A collection of Magnolia add-on modules"
   )
   .aggregate(
-//     avro,
+     avro,
 //     bigquery,
 //     bigtable,
      cats,
@@ -278,25 +281,25 @@ lazy val guava: Project = project
 //    tensorflow % Provided,
 //    test % "test->test"
 //  )
-//
-//lazy val avro: Project = project
-//  .in(file("avro"))
-//  .settings(
-//    commonSettings,
-//    moduleName := "magnolify-avro",
-//    description := "Magnolia add-on for Apache Avro",
-//    libraryDependencies ++= Seq(
-//      "org.apache.avro" % "avro" % avroVersion % Provided,
-//      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
-//    )
-//  )
-//  .dependsOn(
-//    shared,
-//    cats % Test,
-//    scalacheck % Test,
-//    test % "test->test"
-//  )
-//
+
+lazy val avro: Project = project
+  .in(file("avro"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-avro",
+    description := "Magnolia add-on for Apache Avro",
+    libraryDependencies ++= Seq(
+      "org.apache.avro" % "avro" % avroVersion % Provided,
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
+    )
+  )
+  .dependsOn(
+    shared,
+    cats % Test,
+    scalacheck % Test,
+    test % "test->test"
+  )
+
 //lazy val bigquery: Project = project
 //  .in(file("bigquery"))
 //  .settings(

@@ -20,12 +20,15 @@ import java.io.File
 import java.time._
 
 import magnolify.avro._
-import magnolify.avro.logical.bigquery._
 import org.apache.avro.file.DataFileWriter
 import org.apache.avro.generic.{GenericDatumWriter, GenericRecord}
 
 // Test BigQuery data types, to be used with scripts/bigquery-test.sh
-object TestData {
+object TestData
+    extends magnolify.avro.AutoDerivation
+    with magnolify.avro.AvroImplicits
+    with magnolify.avro.logical.AvroBigQueryImplicits {
+
   def main(args: Array[String]): Unit = {
     val outDir = new File(args(0))
     outDir.mkdirs()

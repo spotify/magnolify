@@ -21,7 +21,7 @@ import magnolify.guava.auto.FunnelMacros
 
 import scala.language.experimental.macros
 
-package object auto extends FunnelImplicits
+package object auto extends FunnelImplicits with AutoDerivation
 
 trait AutoDerivation {
   implicit def genFunnel[T]: Funnel[T] = macro FunnelMacros.genFunnelMacro[T]

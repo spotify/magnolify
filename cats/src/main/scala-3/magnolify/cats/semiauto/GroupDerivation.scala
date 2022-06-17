@@ -69,4 +69,3 @@ private object GroupMethods:
 
   def remove[T, Typeclass[T] <: Group[T]](caseClass: CaseClass[Typeclass, T]): (T, T) => T =
     (a, b) => caseClass.construct(p => p.typeclass.remove(p.deref(a), p.deref(b)))
-

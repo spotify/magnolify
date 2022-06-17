@@ -32,3 +32,5 @@ trait FunnelImplicits:
 //      // inject size to distinguish `None`, `Some("")`, and `List("", "", ...)`
 //      sink.putInt(i)
 //    }
+
+object FunnelImplicits extends FunnelImplicits

@@ -38,7 +38,7 @@ object MonoidDerivation extends ProductDerivation[Monoid]:
       override def combineAll(as: IterableOnce[T]): T = combineAllImpl(as)
       override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
   }
-  
+
   inline given apply[T](using Mirror.Of[T]): Monoid[T] = derived[T]
 end MonoidDerivation
 
