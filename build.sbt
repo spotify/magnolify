@@ -167,7 +167,7 @@ lazy val root: Project = project
   )
   .aggregate(
      avro,
-//     bigquery,
+     bigquery,
 //     bigtable,
      cats,
 //    datastore,
@@ -300,24 +300,24 @@ lazy val avro: Project = project
     test % "test->test"
   )
 
-//lazy val bigquery: Project = project
-//  .in(file("bigquery"))
-//  .settings(
-//    commonSettings,
-//    moduleName := "magnolify-bigquery",
-//    description := "Magnolia add-on for Google Cloud BigQuery",
-//    libraryDependencies ++= Seq(
-//      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Provided,
-//      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
-//    )
-//  )
-//  .dependsOn(
-//    shared,
-//    cats % Test,
-//    scalacheck % Test,
-//    test % "test->test"
-//  )
-//
+lazy val bigquery: Project = project
+  .in(file("bigquery"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-bigquery",
+    description := "Magnolia add-on for Google Cloud BigQuery",
+    libraryDependencies ++= Seq(
+      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Provided,
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
+    )
+  )
+  .dependsOn(
+    shared,
+    cats % Test,
+    scalacheck % Test,
+    test % "test->test"
+  )
+
 //lazy val bigtable: Project = project
 //  .in(file("bigtable"))
 //  .settings(

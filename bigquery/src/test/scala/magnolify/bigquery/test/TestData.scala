@@ -23,7 +23,10 @@ import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
 import magnolify.bigquery._
 
 // Test BigQuery data types, to be used with scripts/bigquery-test.sh
-object TestData {
+object TestData
+    extends magnolify.bigquery.AutoDerivation
+    with magnolify.bigquery.BigQueryImplicits {
+
   def main(args: Array[String]): Unit = {
     val outDir = new File(args(0))
     outDir.mkdirs()
