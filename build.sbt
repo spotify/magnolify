@@ -168,7 +168,7 @@ lazy val root: Project = project
   .aggregate(
      avro,
      bigquery,
-//     bigtable,
+     bigtable,
      cats,
 //    datastore,
     guava,
@@ -318,23 +318,23 @@ lazy val bigquery: Project = project
     test % "test->test"
   )
 
-//lazy val bigtable: Project = project
-//  .in(file("bigtable"))
-//  .settings(
-//    commonSettings,
-//    moduleName := "magnolify-bigtable",
-//    description := "Magnolia add-on for Google Cloud Bigtable",
-//    libraryDependencies ++= Seq(
-//      "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Provided
-//    )
-//  )
-//  .dependsOn(
-//    shared,
-//    cats % Test,
-//    scalacheck % Test,
-//    test % "test->test"
-//  )
-//
+lazy val bigtable: Project = project
+  .in(file("bigtable"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-bigtable",
+    description := "Magnolia add-on for Google Cloud Bigtable",
+    libraryDependencies ++= Seq(
+      "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Provided
+    )
+  )
+  .dependsOn(
+    shared,
+    cats % Test,
+    scalacheck % Test,
+    test % "test->test"
+  )
+
 //lazy val datastore: Project = project
 //  .in(file("datastore"))
 //  .settings(

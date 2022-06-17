@@ -24,11 +24,13 @@ import com.google.bigtable.v2.Mutation.SetCell
 import com.google.protobuf.ByteString
 import magnolia1._
 import magnolify.shared._
-import magnolify.shims._
-import magnolify.shims.JavaConverters._
+//import magnolify.shims._
+//import magnolify.shims.JavaConverters._
 
 import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
+
+import scala.jdk.CollectionConverters._
 
 sealed trait BigtableType[T] extends Converter[T, java.util.List[Column], Seq[SetCell.Builder]] {
   def apply(v: Row, columnFamily: String): T =
@@ -48,7 +50,7 @@ sealed trait BigtableType[T] extends Converter[T, java.util.List[Column], Seq[Se
 }
 
 object BigtableType {
-  implicit def apply[T: BigtableField.Record]: BigtableType[T] = BigtableType(CaseMapper.identity)
+  def apply[T: BigtableField.Record]: BigtableType[T] = BigtableType(CaseMapper.identity)
 
   def apply[T](cm: CaseMapper)(implicit f: BigtableField.Record[T]): BigtableType[T] =
     new BigtableType[T] {
@@ -105,9 +107,9 @@ sealed trait BigtableField[T] extends Serializable {
 }
 
 object BigtableField {
-  sealed trait Record[T] extends BigtableField[T]
+  trait Record[T] extends BigtableField[T]
 
-  sealed trait Primitive[T] extends BigtableField[T] {
+  trait Primitive[T] extends BigtableField[T] {
     val size: Option[Int]
     def fromByteString(v: ByteString): T
     def toByteString(v: T): ByteString
@@ -128,41 +130,7 @@ object BigtableField {
       )
   }
 
-  // ////////////////////////////////////////////////
-
-  type Typeclass[T] = BigtableField[T]
-
-  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    private def key(prefix: String, label: String): String =
-      if (prefix == null) label else s"$prefix.$label"
-
-    override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T] = {
-      var fallback = true
-      val r = caseClass.construct { p =>
-        val cq = key(k, cm.map(p.label))
-        val v = p.typeclass.get(xs, cq)(cm)
-        if (v.isSome) {
-          fallback = false
-        }
-        v.getOrElse(p.default)
-      }
-      // result is default if all fields are default
-      if (fallback) Value.Default(r) else Value.Some(r)
-    }
-
-    override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
-      caseClass.parameters.flatMap(p =>
-        p.typeclass.put(key(k, cm.map(p.label)), p.dereference(v))(cm)
-      )
-  }
-
-  @implicitNotFound("Cannot derive BigtableField for sealed trait")
-  private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
-
-  implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
-
-  def apply[T](implicit f: BigtableField[T]): BigtableField[T] = f
+  def apply[T](f: BigtableField[T]): BigtableField[T] = f
 
   def from[T]: FromWord[T] = new FromWord
 
@@ -187,38 +155,46 @@ object BigtableField {
     }
   }
 
-  implicit val btfByte = primitive[Byte](java.lang.Byte.BYTES)(_.get)(_.put(_))
-  implicit val btChar = primitive[Char](java.lang.Character.BYTES)(_.getChar)(_.putChar(_))
-  implicit val btfShort = primitive[Short](java.lang.Short.BYTES)(_.getShort)(_.putShort(_))
-  implicit val btfInt = primitive[Int](java.lang.Integer.BYTES)(_.getInt)(_.putInt(_))
-  implicit val btfLong = primitive[Long](java.lang.Long.BYTES)(_.getLong)(_.putLong(_))
-  implicit val btfFloat = primitive[Float](java.lang.Float.BYTES)(_.getFloat)(_.putFloat(_))
-  implicit val btfDouble = primitive[Double](java.lang.Double.BYTES)(_.getDouble)(_.putDouble(_))
-  implicit val btfBoolean = from[Byte](_ == 1)(if (_) 1 else 0)
-  implicit val btfUUID = primitive[UUID](16)(bb => new UUID(bb.getLong, bb.getLong)) { (bb, uuid) =>
-    bb.putLong(uuid.getMostSignificantBits)
-    bb.putLong(uuid.getLeastSignificantBits)
+  val btfByte: Primitive[Byte] = primitive[Byte](java.lang.Byte.BYTES)(_.get)(_.put(_))
+  val btChar: Primitive[Char] = primitive[Char](java.lang.Character.BYTES)(_.getChar)(_.putChar(_))
+  val btfShort: Primitive[Short] =
+    primitive[Short](java.lang.Short.BYTES)(_.getShort)(_.putShort(_))
+  val btfInt: Primitive[Int] = primitive[Int](java.lang.Integer.BYTES)(_.getInt)(_.putInt(_))
+  val btfLong: Primitive[Long] = primitive[Long](java.lang.Long.BYTES)(_.getLong)(_.putLong(_))
+  val btfFloat: Primitive[Float] =
+    primitive[Float](java.lang.Float.BYTES)(_.getFloat)(_.putFloat(_))
+  val btfDouble: Primitive[Double] =
+    primitive[Double](java.lang.Double.BYTES)(_.getDouble)(_.putDouble(_))
+  val btfBoolean: Primitive[Boolean] = from[Byte](_ == 1)(if (_) 1 else 0)(btfByte)
+  val btfUUID: Primitive[UUID] = primitive[UUID](16)(bb => new UUID(bb.getLong, bb.getLong)) {
+    (bb, uuid) =>
+      bb.putLong(uuid.getMostSignificantBits)
+      bb.putLong(uuid.getLeastSignificantBits)
   }
 
-  implicit val btfByteString = new Primitive[ByteString] {
+  val btfByteString: Primitive[ByteString] = new Primitive[ByteString] {
     override val size: Option[Int] = None
     override def fromByteString(v: ByteString): ByteString = v
     override def toByteString(v: ByteString): ByteString = v
   }
-  implicit val btfByteArray = from[ByteString](_.toByteArray)(ByteString.copyFrom)
-  implicit val btfString = from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
+  val btfByteArray: Primitive[Array[Byte]] =
+    from[ByteString](_.toByteArray)(ByteString.copyFrom)(btfByteString)
+  val btfString: Primitive[String] =
+    from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)(btfByteString)
 
-  implicit def btfEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): Primitive[T] =
-    from[String](et.from)(et.to)
-  implicit def btfUnsafeEnum[T](implicit
-    et: EnumType[T],
-    lp: shapeless.LowPriority
-  ): Primitive[UnsafeEnum[T]] =
-    from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))
+//  def btfEnum[T](et: EnumType[T], lp: shapeless.LowPriority): Primitive[T] =
+//    from[String](et.from)(et.to)
+//  def btfUnsafeEnum[T](implicit
+//    et: EnumType[T],
+//    lp: shapeless.LowPriority
+//  ): Primitive[UnsafeEnum[T]] =
+//    from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))
 
-  implicit val btfBigInt =
-    from[ByteString](bs => BigInt(bs.toByteArray))(bi => ByteString.copyFrom(bi.toByteArray))
-  implicit val btfBigDecimal = from[ByteString] { bs =>
+  val btfBigInt: Primitive[BigInt] =
+    from[ByteString](bs => BigInt(bs.toByteArray))(bi => ByteString.copyFrom(bi.toByteArray))(
+      btfByteString
+    )
+  val btfBigDecimal: Primitive[BigDecimal] = from[ByteString] { bs =>
     val bb = bs.asReadOnlyByteBuffer()
     val scale = bb.getInt
     val unscaled = BigInt(bs.substring(java.lang.Integer.BYTES).toByteArray)
@@ -228,9 +204,9 @@ object BigtableField {
     val unscaled = bd.bigDecimal.unscaledValue().toByteArray
     val bb = ByteBuffer.allocate(java.lang.Integer.BYTES + unscaled.length)
     ByteString.copyFrom(bb.putInt(scale).put(unscaled).array())
-  }
+  }(btfByteString)
 
-  implicit def btfOption[T](implicit btf: BigtableField[T]): BigtableField[Option[T]] =
+  def btfOption[T](implicit btf: BigtableField[T]): BigtableField[Option[T]] =
     new BigtableField[Option[T]] {
       override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[Option[T]] =
         Columns.findNullable(xs, k).map(btf.get(_, k)(cm).toOption).getOrElse(Value.Default(None))
@@ -239,57 +215,57 @@ object BigtableField {
         v.toSeq.flatMap(btf.put(k, _)(cm))
     }
 
-  implicit def btfIterable[T, C[T]](implicit
-    btf: Primitive[T],
-    ti: C[T] => Iterable[T],
-    fc: FactoryCompat[T, C[T]]
-  ): Primitive[C[T]] =
-    new Primitive[C[T]] {
-      override val size: Option[Int] = None
-
-      override def fromByteString(v: ByteString): C[T] = {
-        val buf = v.asReadOnlyByteBuffer()
-        val n = buf.getInt
-        val b = fc.newBuilder
-        btf.size match {
-          case Some(size) =>
-            val ba = new Array[Byte](size)
-            (1 to n).foreach { _ =>
-              buf.get(ba)
-              b += btf.fromByteString(ByteString.copyFrom(ba))
-            }
-          case None =>
-            (1 to n).foreach { _ =>
-              val s = buf.getInt
-              val ba = new Array[Byte](s)
-              buf.get(ba)
-              b += btf.fromByteString(ByteString.copyFrom(ba))
-            }
-        }
-        b.result()
-      }
-
-      override def toByteString(v: C[T]): ByteString = {
-        val buf = btf.size match {
-          case Some(size) =>
-            val bb = ByteBuffer.allocate(java.lang.Integer.BYTES + v.size * size)
-            bb.putInt(v.size)
-            v.foreach(x => bb.put(btf.toByteString(x).asReadOnlyByteBuffer()))
-            bb
-          case None =>
-            val vs = v.map(btf.toByteString)
-            val size = java.lang.Integer.BYTES * (v.size + 1) + vs.iterator.map(_.size()).sum
-            val bb = ByteBuffer.allocate(size)
-            bb.putInt(v.size)
-            vs.foreach { v =>
-              bb.putInt(v.size())
-              bb.put(v.asReadOnlyByteBuffer())
-            }
-            bb
-        }
-        ByteString.copyFrom(buf.array())
-      }
-    }
+//  def btfIterable[T, C[T]](implicit
+//    btf: Primitive[T],
+//    ti: C[T] => Iterable[T],
+//    fc: FactoryCompat[T, C[T]]
+//  ): Primitive[C[T]] =
+//    new Primitive[C[T]] {
+//      override val size: Option[Int] = None
+//
+//      override def fromByteString(v: ByteString): C[T] = {
+//        val buf = v.asReadOnlyByteBuffer()
+//        val n = buf.getInt
+//        val b = fc.newBuilder
+//        btf.size match {
+//          case Some(size) =>
+//            val ba = new Array[Byte](size)
+//            (1 to n).foreach { _ =>
+//              buf.get(ba)
+//              b += btf.fromByteString(ByteString.copyFrom(ba))
+//            }
+//          case None =>
+//            (1 to n).foreach { _ =>
+//              val s = buf.getInt
+//              val ba = new Array[Byte](s)
+//              buf.get(ba)
+//              b += btf.fromByteString(ByteString.copyFrom(ba))
+//            }
+//        }
+//        b.result()
+//      }
+//
+//      override def toByteString(v: C[T]): ByteString = {
+//        val buf = btf.size match {
+//          case Some(size) =>
+//            val bb = ByteBuffer.allocate(java.lang.Integer.BYTES + v.size * size)
+//            bb.putInt(v.size)
+//            v.foreach(x => bb.put(btf.toByteString(x).asReadOnlyByteBuffer()))
+//            bb
+//          case None =>
+//            val vs = v.map(btf.toByteString)
+//            val size = java.lang.Integer.BYTES * (v.size + 1) + vs.iterator.map(_.size()).sum
+//            val bb = ByteBuffer.allocate(size)
+//            bb.putInt(v.size)
+//            vs.foreach { v =>
+//              bb.putInt(v.size())
+//              bb.put(v.asReadOnlyByteBuffer())
+//            }
+//            bb
+//        }
+//        ByteString.copyFrom(buf.array())
+//      }
+//    }
 }
 
 private object Columns {
