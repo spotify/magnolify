@@ -20,33 +20,6 @@ import scala.collection.{mutable, Factory}
 import scala.util.hashing.MurmurHash3
 
 package object shims {
-  trait Monadic[F[_]] extends magnolia1.Monadic[F] {
-    def flatMapS[A, B](from: F[A])(fn: A => F[B]): F[B]
-    def mapS[A, B](from: F[A])(fn: A => B): F[B]
-
-    override def flatMap[A, B](from: F[A])(fn: A => F[B]): F[B] = flatMapS(from)(fn)
-    override def map[A, B](from: F[A])(fn: A => B): F[B] = mapS(from)(fn)
-  }
-
-  trait FactoryCompat[-A, +C] extends Serializable {
-    def newBuilder: mutable.Builder[A, C]
-    def build(xs: IterableOnce[A]): C = newBuilder.addAll(xs).result()
-  }
-
-  object FactoryCompat {
-    implicit def fromFactory[A, C](implicit f: Factory[A, C]): FactoryCompat[A, C] =
-      new FactoryCompat[A, C] {
-        override def newBuilder: mutable.Builder[A, C] = f.newBuilder
-      }
-  }
-
-  object SerializableCanBuildFroms
-
-  val JavaConverters = scala.jdk.CollectionConverters
-
-  def unsafeWrapArray(a: Array[Any]): Seq[Any] =
-    scala.collection.immutable.ArraySeq.unsafeWrapArray(a)
-
   object MurmurHash3Compat {
     def seed(data: Int): Int = MurmurHash3.mix(MurmurHash3.productSeed, data)
   }

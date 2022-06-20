@@ -16,7 +16,6 @@
 
 package magnolify.guava.auto
 
-import scala.language.experimental.macros
 import scala.reflect.macros._
 
 object FunnelMacros {

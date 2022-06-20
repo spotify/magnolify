@@ -17,8 +17,7 @@
 package magnolify.scalacheck.semiauto
 
 import magnolia1._
-import magnolify.shims.Monadic
-import org.scalacheck.rng.Seed
+import magnolify.scalacheck.Fallback
 import org.scalacheck.{Arbitrary, Gen}
 
 import scala.language.experimental.macros
@@ -37,20 +36,14 @@ object ArbitraryDerivation {
   }
 
   def split[T: Fallback](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = Arbitrary {
-    if (sealedTrait.typeName.full == classOf[Seed].getCanonicalName) {
-      // Prevent derivation of invalid seed via `Seed.apply(0, 0, 0, 0)`
-      // https://github.com/typelevel/scalacheck/pull/674
-      Arbitrary.arbLong.arbitrary.map(Seed(_)).asInstanceOf[Gen[T]]
-    } else {
-      Gen.sized { size =>
-        if (size > 0) {
-          Gen.resize(
-            size - 1,
-            Gen.oneOf(sealedTrait.subtypes.map(_.typeclass.arbitrary)).flatMap(identity)
-          )
-        } else {
-          implicitly[Fallback[T]].get
-        }
+    Gen.sized { size =>
+      if (size > 0) {
+        Gen.resize(
+          size - 1,
+          Gen.oneOf(sealedTrait.subtypes.map(_.typeclass.arbitrary)).flatMap(identity)
+        )
+      } else {
+        implicitly[Fallback[T]].get
       }
     }
   }
@@ -59,27 +52,7 @@ object ArbitraryDerivation {
 
   private val monadicGen: Monadic[Gen] = new Monadic[Gen] {
     override def point[A](value: A): Gen[A] = Gen.const(value)
-    override def flatMapS[A, B](from: Gen[A])(fn: A => Gen[B]): Gen[B] = from.flatMap(fn)
-    override def mapS[A, B](from: Gen[A])(fn: A => B): Gen[B] = from.map(fn)
-  }
-
-  sealed trait Fallback[+T] extends Serializable {
-    def get: Gen[T]
-  }
-
-  object Fallback {
-
-    object NoFallback extends Fallback[Nothing] {
-      override def get: Gen[Nothing] = Gen.fail
-    }
-
-    def apply[T](g: Gen[T]): Fallback[T] = new Fallback[T] {
-      override def get: Gen[T] = g
-    }
-
-    def apply[T](v: T): Fallback[T] = Fallback[T](Gen.const(v))
-    def apply[T](implicit arb: Arbitrary[T]): Fallback[T] = Fallback[T](arb.arbitrary)
-
-    implicit def defaultFallback[T]: Fallback[T] = NoFallback
+    override def map[A, B](from: Gen[A])(fn: A => B): Gen[B] = from.map(fn)
+    override def flatMap[A, B](from: Gen[A])(fn: A => Gen[B]): Gen[B] = from.flatMap(fn)
   }
 }

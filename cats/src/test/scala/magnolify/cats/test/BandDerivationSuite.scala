@@ -36,7 +36,7 @@ class BandDerivationSuite
   }
 
   import BandDerivationSuite._
-//  test[Record]
+  test[Record]
 }
 
 object BandDerivationSuite {

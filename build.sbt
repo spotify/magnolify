@@ -13,13 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+import _root_.io.github.davidgregory084._
+import _root_.io.github.davidgregory084.ScalaVersion._
 import de.heikoseeberger.sbtheader.CommentCreator
-import _root_.io.github.davidgregory084.DevMode
+import scala.Ordering.Implicits._
 
 val magnoliaScala2Version = "1.1.2"
 val magnoliaScala3Version = "1.1.4"
 
-val algebirdVersion = "0.13.9"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.0")
 val bigqueryVersion = "v2-rev20220611-1.32.1"
 val bigtableVersion = "2.9.0"
@@ -36,6 +38,7 @@ val refinedVersion = "0.10.1"
 val scalaCollectionCompatVersion = "2.8.0"
 val scalacheckVersion = "1.16.0"
 val shapelessVersion = "2.3.9"
+val spireVersion = "0.18.0"
 val tensorflowVersion = "0.4.1"
 
 lazy val currentYear = java.time.LocalDate.now().getYear
@@ -59,6 +62,9 @@ ThisBuild / tpolecatDevModeOptions ~= { opts =>
 
   val parallelism = math.min(java.lang.Runtime.getRuntime.availableProcessors(), 16)
   val extras = Set(
+    new ScalacOption("-Xmax-inlines" :: "128" :: Nil, _ >= V3_0_0),
+    new ScalacOption("-Ywarn-macros:after" :: Nil, version => version.isBetween(V2_12_0, V2_13_0)),
+    new ScalacOption("-Wmacros:after" :: Nil, version => version.isBetween(V2_13_0, V3_0_0)),
     ScalacOptions.privateBackendParallelism(parallelism),
     ScalacOptions.release("8")
   )
@@ -75,7 +81,7 @@ val commonSettings = Seq(
       case Some((3, _)) =>
         Seq(
           "com.softwaremill.magnolia1_3" %% "magnolia" % magnoliaScala3Version,
-          "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion,
+          "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion
         )
       case Some((2, _)) =>
         Seq(
@@ -229,12 +235,11 @@ lazy val cats: Project = project
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % catsVersion,
       "org.typelevel" %% "cats-laws" % catsVersion % Test
-      // "com.twitter" %% "algebird-core" % algebirdVersion % Test
     )
   )
   .dependsOn(
     shared,
-    scalacheck % Test,
+    scalacheck % "test->test",
     test % "test->test"
   )
 

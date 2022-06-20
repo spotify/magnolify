@@ -17,7 +17,6 @@
 package magnolify.cats.test
 
 import cats._
-import cats.kernel.laws.discipline._
 import magnolify.test.ADT._
 import magnolify.test.Simple._
 import magnolify.test._

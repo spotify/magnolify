@@ -99,7 +99,7 @@ class BytesSink extends PrimitiveSink {
   }
 
   override def putByte(b: Byte): PrimitiveSink = {
-    oos.writeByte(b)
+    oos.writeByte(b.toInt)
     this
   }
 
@@ -118,7 +118,7 @@ class BytesSink extends PrimitiveSink {
   }
 
   override def putShort(s: Short): PrimitiveSink = {
-    oos.writeShort(s)
+    oos.writeShort(s.toInt)
     this
   }
 
@@ -148,7 +148,7 @@ class BytesSink extends PrimitiveSink {
   }
 
   override def putChar(c: Char): PrimitiveSink = {
-    oos.writeChar(c)
+    oos.writeChar(c.toInt)
     this
   }
 

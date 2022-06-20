@@ -21,7 +21,7 @@ import java.time.Duration
 
 import org.scalacheck._
 import cats._
-//import magnolify.shared.UnsafeEnum
+import magnolify.shared.UnsafeEnum
 
 import scala.annotation.StaticAnnotation
 
@@ -42,41 +42,41 @@ object Simple {
   )
   case class Collections(a: Array[Int], l: List[Int], v: Vector[Int])
   case class MoreCollections(i: Iterable[Int], s: Seq[Int], is: IndexedSeq[Int])
-//  case class Enums(
-//    j: JavaEnums.Color,
-//    s: ScalaEnums.Color.Type,
-//    a: ADT.Color,
-//    jo: Option[JavaEnums.Color],
-//    so: Option[ScalaEnums.Color.Type],
-//    ao: Option[ADT.Color],
-//    jr: List[JavaEnums.Color],
-//    sr: List[ScalaEnums.Color.Type],
-//    ar: List[ADT.Color]
-//  )
-//  case class UnsafeEnums(
-//    j: UnsafeEnum[JavaEnums.Color],
-//    s: UnsafeEnum[ScalaEnums.Color.Type],
-//    a: UnsafeEnum[ADT.Color],
-//    jo: Option[UnsafeEnum[JavaEnums.Color]],
-//    so: Option[UnsafeEnum[ScalaEnums.Color.Type]],
-//    ao: Option[UnsafeEnum[ADT.Color]],
-//    jr: List[UnsafeEnum[JavaEnums.Color]],
-//    sr: List[UnsafeEnum[ScalaEnums.Color.Type]],
-//    ar: List[UnsafeEnum[ADT.Color]]
-//  )
+  case class Enums(
+    j: JavaEnums.Color,
+    s: ScalaEnums.Color.Type,
+    a: ADT.Color,
+    jo: Option[JavaEnums.Color],
+    so: Option[ScalaEnums.Color.Type],
+    ao: Option[ADT.Color],
+    jr: List[JavaEnums.Color],
+    sr: List[ScalaEnums.Color.Type],
+    ar: List[ADT.Color]
+  )
+  case class UnsafeEnums(
+    j: UnsafeEnum[JavaEnums.Color],
+    s: UnsafeEnum[ScalaEnums.Color.Type],
+    a: UnsafeEnum[ADT.Color],
+    jo: Option[UnsafeEnum[JavaEnums.Color]],
+    so: Option[UnsafeEnum[ScalaEnums.Color.Type]],
+    ao: Option[UnsafeEnum[ADT.Color]],
+    jr: List[UnsafeEnum[JavaEnums.Color]],
+    sr: List[UnsafeEnum[ScalaEnums.Color.Type]],
+    ar: List[UnsafeEnum[ADT.Color]]
+  )
   case class Custom(u: URI, d: Duration)
 
   case class LowerCamel(firstField: String, secondField: String, innerField: LowerCamelInner)
   case class LowerCamelInner(innerFirst: String)
 
-//  object Collections {
-//    implicit def eqIterable[T, C[_]](implicit eq: Eq[T], tt: C[T] => Iterable[T]): Eq[C[T]] =
-//      Eq.instance { (x, y) =>
-//        val xs = x.toList
-//        val ys = y.toList
-//        xs.size == ys.size && (x.iterator zip y.iterator).forall((eq.eqv _).tupled)
-//      }
-//  }
+  object Collections {
+    implicit def eqIterable[T, C[_]](implicit eq: Eq[T], ti: C[T] => Iterable[T]): Eq[C[T]] =
+      Eq.instance { (x, y) =>
+        val xs = ti(x)
+        val ys = ti(y)
+        xs.size == ys.size && (xs zip ys).forall((eq.eqv _).tupled)
+      }
+  }
 
   class ScalaAnnotation(val value: String) extends StaticAnnotation with Serializable
 
@@ -96,18 +96,18 @@ object Simple {
     implicit val eqScalaEnum: Eq[ScalaEnums.Color.Type] = Eq.by(_.toString)
   }
 
-//  object UnsafeEnums {
-//    implicit def arbUnsafeEnum[T](implicit arb: Arbitrary[T]): Arbitrary[UnsafeEnum[T]] =
-//      Arbitrary(
-//        Gen.oneOf(arb.arbitrary.map(UnsafeEnum(_)), Gen.const(UnsafeEnum.Unknown("NOT_A_COLOR")))
-//      )
-//  }
+  object UnsafeEnums {
+    implicit def arbUnsafeEnum[T](implicit arb: Arbitrary[T]): Arbitrary[UnsafeEnum[T]] =
+      Arbitrary(
+        Gen.oneOf(arb.arbitrary.map(UnsafeEnum(_)), Gen.const(UnsafeEnum.Unknown("NOT_A_COLOR")))
+      )
+  }
 
   object Custom {
     implicit val arbUri: Arbitrary[URI] =
       Arbitrary(Gen.alphaNumStr.map(URI.create))
     implicit val arbDuration: Arbitrary[Duration] =
-      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Duration.ofMillis(_)))
+      Arbitrary(Gen.chooseNum(0L, Long.MaxValue).map(Duration.ofMillis))
     implicit val coUri: Cogen[URI] = Cogen(_.toString.hashCode())
     implicit val coDuration: Cogen[Duration] = Cogen(_.toMillis)
     implicit val hashUri: Hash[URI] = Hash.fromUniversalHashCode[URI]

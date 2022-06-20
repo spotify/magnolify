@@ -21,7 +21,7 @@ import java.time.format._
 import java.time.temporal.ChronoField
 
 // https://github.com/googleapis/java-bigquery/blob/master/google-cloud-bigquery/src/main/java/com/google/cloud/bigquery/QueryParameterValue.java
-private object TimestampConverter {
+private[bigquery] object TimestampConverter {
   // TIMESTAMP
   // YYYY-[M]M-[D]D[ [H]H:[M]M:[S]S[.DDDDDD]][time zone]
   private val timestampFormatter =

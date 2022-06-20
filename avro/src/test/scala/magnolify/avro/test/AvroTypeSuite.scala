@@ -50,7 +50,9 @@ class AvroTypeSuite
     extends MagnolifySuite
     with magnolify.scalacheck.AutoDerivation
     with magnolify.cats.AutoDerivation
+    with magnolify.shared.AutoDerivation
     with magnolify.avro.AutoDerivation
+    with magnolify.shared.EnumImplicits
     with magnolify.avro.AvroImplicits
     with magnolify.avro.unsafe.AvroUnsafeImplicits {
 
@@ -109,16 +111,16 @@ class AvroTypeSuite
   test[Floats]
   test[Required]
   test[Nullable]
-//  test[Repeated]
-//  test[Nested]
+  test[Repeated]
+  test[Nested]
   test[Unsafe]
 
-//  {
-//    import Collections._
-//    test[Collections]
-//    test[MoreCollections]
-//  }
-//
+  {
+    import Collections._
+    test[Collections]
+    test[MoreCollections]
+  }
+
 //  {
 //    import Enums._
 //    import UnsafeEnums._
@@ -134,10 +136,10 @@ class AvroTypeSuite
     test[Custom]
   }
 
-//  {
-//    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
-//    test[AvroTypes]
-//  }
+  {
+    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
+    test[AvroTypes]
+  }
 
   {
     def f[T](r: GenericRecord): List[(String, Any)] =
@@ -149,7 +151,7 @@ class AvroTypeSuite
         .sortBy(_._1)
     implicit val eqMapPrimitive: Eq[GenericRecord] = Eq.instance((x, y) => f(x) == f(y))
     test[MapPrimitive]
-//    test[MapNested]
+    test[MapNested]
   }
 
   test[Logical]
@@ -159,16 +161,10 @@ class AvroTypeSuite
       Arbitrary(Gen.chooseNum(0L, Long.MaxValue).map(BigDecimal(_, 0)))
 
     new AvroTimeMicrosImplicits {
-      {
-        implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
-        test[LogicalMicros]
-      }
+      test[LogicalMicros]
 
       test("MicrosLogicalTypes") {
-        implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
-
         val schema = AvroType[LogicalMicros].schema
-        assertLogicalType(schema, "bd", "decimal")
         assertLogicalType(schema, "i", "timestamp-micros")
         assertLogicalType(schema, "dt", "local-timestamp-micros", false)
         assertLogicalType(schema, "t", "time-micros")
@@ -176,16 +172,10 @@ class AvroTypeSuite
     }
 
     new AvroTimeMillisImplicits {
-      {
-        implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
-        test[LogicalMillis]
-      }
+      test[LogicalMillis]
 
       test("MilliLogicalTypes") {
-        implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
-
         val schema = AvroType[LogicalMillis].schema
-        assertLogicalType(schema, "bd", "decimal")
         assertLogicalType(schema, "i", "timestamp-millis")
         assertLogicalType(schema, "dt", "local-timestamp-millis", false)
         assertLogicalType(schema, "t", "time-millis")
@@ -258,13 +248,14 @@ class AvroTypeSuite
   )
 
 //  test("EnumDoc") {
-//    val at = ensureSerializable(AvroType[EnumDoc])
+//    // val at = ensureSerializable(AvroType[EnumDoc])
+//    val at = AvroType[EnumDoc]
 //    assertEquals(at.schema.getField("p").schema().getDoc, "Avro enum")
 //  }
-//
+
 //  test("DefaultInner") {
-//    import magnolify.avro.logical.bigquery._
-//    val at = ensureSerializable(AvroType[DefaultInner])
+//    // val at = ensureSerializable(AvroType[DefaultInner])
+//    val at = AvroType[DefaultInner]
 //    assertEquals(at(new GenericRecordBuilder(at.schema).build()), DefaultInner())
 //    val inner = DefaultInner(
 //      2,
@@ -284,8 +275,8 @@ class AvroTypeSuite
 //  }
 //
 //  test("DefaultOuter") {
-//    import magnolify.avro.logical.bigquery._
-//    val at = ensureSerializable(AvroType[DefaultOuter])
+//    // val at = ensureSerializable(AvroType[DefaultOuter])
+//    val at = AvroType[DefaultOuter]
 //    assertEquals(at(new GenericRecordBuilder(at.schema).build()), DefaultOuter())
 //    val inner = DefaultInner(
 //      3,
@@ -304,10 +295,8 @@ class AvroTypeSuite
 //    val outer = DefaultOuter(inner, Some(inner))
 //    assertEquals(at(at(outer)), outer)
 //  }
-
-//  testFail(AvroType[SomeDefault])(
-//    "Option[T] can only default to None"
-//  )
+//
+//  testFail(AvroType[SomeDefault])("Option[T] can only default to None")
 
   {
     implicit val at: AvroType[LowerCamel] = AvroType[LowerCamel](CaseMapper(_.toUpperCase))
@@ -360,8 +349,8 @@ case class MapPrimitive(m: Map[String, Int])
 case class MapNested(m: Map[String, Nested])
 
 case class Logical(u: UUID, d: LocalDate)
-case class LogicalMicros(bd: BigDecimal, i: Instant, t: LocalTime, dt: LocalDateTime)
-case class LogicalMillis(bd: BigDecimal, i: Instant, t: LocalTime, dt: LocalDateTime)
+case class LogicalMicros(i: Instant, t: LocalTime, dt: LocalDateTime)
+case class LogicalMillis(i: Instant, t: LocalTime, dt: LocalDateTime)
 case class LogicalBigQuery(bd: BigDecimal, i: Instant, t: LocalTime, dt: LocalDateTime)
 case class BigDec(bd: BigDecimal)
 

@@ -19,8 +19,6 @@ package magnolify.cats.semiauto
 import cats.Hash
 import magnolia1._
 import magnolify.shims.MurmurHash3Compat
-
-import scala.language.experimental.macros
 import scala.util.hashing.MurmurHash3
 
 object HashDerivation {

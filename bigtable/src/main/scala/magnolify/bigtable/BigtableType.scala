@@ -22,14 +22,9 @@ import java.util.UUID
 import com.google.bigtable.v2.{Cell, Column, Family, Mutation, Row}
 import com.google.bigtable.v2.Mutation.SetCell
 import com.google.protobuf.ByteString
-import magnolia1._
 import magnolify.shared._
-//import magnolify.shims._
-//import magnolify.shims.JavaConverters._
 
-import scala.annotation.implicitNotFound
-import scala.language.experimental.macros
-
+import scala.collection.compat._
 import scala.jdk.CollectionConverters._
 
 sealed trait BigtableType[T] extends Converter[T, java.util.List[Column], Seq[SetCell.Builder]] {
@@ -182,13 +177,9 @@ object BigtableField {
   val btfString: Primitive[String] =
     from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)(btfByteString)
 
-//  def btfEnum[T](et: EnumType[T], lp: shapeless.LowPriority): Primitive[T] =
-//    from[String](et.from)(et.to)
-//  def btfUnsafeEnum[T](implicit
-//    et: EnumType[T],
-//    lp: shapeless.LowPriority
-//  ): Primitive[UnsafeEnum[T]] =
-//    from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))
+  def btfEnum[T](implicit et: EnumType[T]): Primitive[T] = from[String](et.from)(et.to)(btfString)
+  def btfUnsafeEnum[T](implicit et: EnumType[T]): Primitive[UnsafeEnum[T]] =
+    from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))(btfString)
 
   val btfBigInt: Primitive[BigInt] =
     from[ByteString](bs => BigInt(bs.toByteArray))(bi => ByteString.copyFrom(bi.toByteArray))(
@@ -215,57 +206,57 @@ object BigtableField {
         v.toSeq.flatMap(btf.put(k, _)(cm))
     }
 
-//  def btfIterable[T, C[T]](implicit
-//    btf: Primitive[T],
-//    ti: C[T] => Iterable[T],
-//    fc: FactoryCompat[T, C[T]]
-//  ): Primitive[C[T]] =
-//    new Primitive[C[T]] {
-//      override val size: Option[Int] = None
-//
-//      override def fromByteString(v: ByteString): C[T] = {
-//        val buf = v.asReadOnlyByteBuffer()
-//        val n = buf.getInt
-//        val b = fc.newBuilder
-//        btf.size match {
-//          case Some(size) =>
-//            val ba = new Array[Byte](size)
-//            (1 to n).foreach { _ =>
-//              buf.get(ba)
-//              b += btf.fromByteString(ByteString.copyFrom(ba))
-//            }
-//          case None =>
-//            (1 to n).foreach { _ =>
-//              val s = buf.getInt
-//              val ba = new Array[Byte](s)
-//              buf.get(ba)
-//              b += btf.fromByteString(ByteString.copyFrom(ba))
-//            }
-//        }
-//        b.result()
-//      }
-//
-//      override def toByteString(v: C[T]): ByteString = {
-//        val buf = btf.size match {
-//          case Some(size) =>
-//            val bb = ByteBuffer.allocate(java.lang.Integer.BYTES + v.size * size)
-//            bb.putInt(v.size)
-//            v.foreach(x => bb.put(btf.toByteString(x).asReadOnlyByteBuffer()))
-//            bb
-//          case None =>
-//            val vs = v.map(btf.toByteString)
-//            val size = java.lang.Integer.BYTES * (v.size + 1) + vs.iterator.map(_.size()).sum
-//            val bb = ByteBuffer.allocate(size)
-//            bb.putInt(v.size)
-//            vs.foreach { v =>
-//              bb.putInt(v.size())
-//              bb.put(v.asReadOnlyByteBuffer())
-//            }
-//            bb
-//        }
-//        ByteString.copyFrom(buf.array())
-//      }
-//    }
+  def btfIterable[T, C[T]](implicit
+    btf: Primitive[T],
+    ti: C[T] => Iterable[T],
+    fc: Factory[T, C[T]]
+  ): Primitive[C[T]] = new Primitive[C[T]] {
+    override val size: Option[Int] = None
+
+    override def fromByteString(v: ByteString): C[T] = {
+      val buf = v.asReadOnlyByteBuffer()
+      val n = buf.getInt
+      val b = fc.newBuilder
+      btf.size match {
+        case Some(size) =>
+          val ba = new Array[Byte](size)
+          (1 to n).foreach { _ =>
+            buf.get(ba)
+            b += btf.fromByteString(ByteString.copyFrom(ba))
+          }
+        case None =>
+          (1 to n).foreach { _ =>
+            val s = buf.getInt
+            val ba = new Array[Byte](s)
+            buf.get(ba)
+            b += btf.fromByteString(ByteString.copyFrom(ba))
+          }
+      }
+      b.result()
+    }
+
+    override def toByteString(v: C[T]): ByteString = {
+      val xs = ti(v)
+      val buf = btf.size match {
+        case Some(size) =>
+          val bb = ByteBuffer.allocate(java.lang.Integer.BYTES + xs.size * size)
+          bb.putInt(xs.size)
+          xs.foreach(x => bb.put(btf.toByteString(x).asReadOnlyByteBuffer()))
+          bb
+        case None =>
+          val vs = xs.map(btf.toByteString)
+          val size = java.lang.Integer.BYTES * (xs.size + 1) + vs.iterator.map(_.size()).sum
+          val bb = ByteBuffer.allocate(size)
+          bb.putInt(xs.size)
+          vs.foreach { v =>
+            bb.putInt(v.size())
+            bb.put(v.asReadOnlyByteBuffer())
+          }
+          bb
+      }
+      ByteString.copyFrom(buf.array())
+    }
+  }
 }
 
 private object Columns {

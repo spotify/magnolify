@@ -31,7 +31,7 @@ class HashDerivationSuite
     with magnolify.scalacheck.AutoDerivation
     with magnolify.cats.AutoDerivation {
 
-  private def test[T: Arbitrary: ClassTag: Cogen: Hash]: Unit = test()
+  private def test[T: Arbitrary: ClassTag: Cogen: Hash]: Unit = test[T]()
 
   private def test[T: Arbitrary: ClassTag: Cogen: Hash](exclusions: String*): Unit = {
 //    val hash = ensureSerializable(implicitly[Hash[T]])

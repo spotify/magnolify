@@ -18,6 +18,7 @@ package magnolify.cats.test
 
 import cats._
 import cats.kernel.laws.discipline._
+import magnolify.cats.semiauto.EqDerivation
 import magnolify.test.ADT._
 import magnolify.test.Simple._
 import magnolify.test._
@@ -39,22 +40,25 @@ class EqDerivationSuite
   test[Numbers]
   test[Required]
   test[Nullable]
-// Try increasing `-Xmax-inlines` above 32
-//  test[Repeated]
+  test[Repeated]
 //  test[Nested]
-//
-//  {
-//    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
-//    test[Collections]
-//  }
+
+  {
+    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
+    test[Collections]
+  }
 
   {
     import Custom._
     test[Custom]
   }
 
-//  test[Node]
-//  test[GNode[Int]]
+  import magnolify.scalacheck.test.ADT._
+  implicit lazy val eqNode: Eq[Node] = EqDerivation[Node]
+  implicit lazy val eqGNode: Eq[GNode[Int]] = EqDerivation[GNode[Int]]
+
+  test[Node]
+  test[GNode[Int]]
   test[Shape]
   test[Color]
 }

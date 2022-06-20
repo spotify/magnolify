@@ -18,10 +18,15 @@ package magnolify.scalacheck
 
 import org.scalacheck._
 import magnolify.scalacheck.auto.ScalacheckMacros
+import org.scalacheck.rng.Seed
 
 package object auto extends AutoDerivation
 
 trait AutoDerivation {
+  implicit val seedArbitrary: Arbitrary[Seed] = Arbitrary(
+    Arbitrary.arbLong.arbitrary.map(Seed.apply)
+  )
+
   implicit def genArbitrary[T]: Arbitrary[T] = macro ScalacheckMacros.genArbitraryMacro[T]
   implicit def genCogen[T]: Cogen[T] = macro ScalacheckMacros.genCogenMacro[T]
 }

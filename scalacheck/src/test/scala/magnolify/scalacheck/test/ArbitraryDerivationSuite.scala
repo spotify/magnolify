@@ -16,7 +16,8 @@
 
 package magnolify.scalacheck.test
 
-//import magnolify.shims.SerializableCanBuildFroms._
+//import magnolify.scalacheck.Fallback
+//import magnolify.scalacheck.semiauto.ArbitraryDerivation
 import magnolify.test.ADT._
 import magnolify.test.Simple._
 import magnolify.test._
@@ -57,13 +58,11 @@ class ArbitraryDerivationSuite extends MagnolifySuite with magnolify.scalacheck.
   test[Nullable]
 
   {
-    import Collections._
     test[Repeated]
     test((c: Collections) => (c.a.toList, c.l, c.v))
   }
 
-// Try increasing `-Xmax-inlines` above 32
-//  test[Nested]
+  test[Nested]
 
   {
     implicit val arbInt: Arbitrary[Int] = Arbitrary(Gen.chooseNum(0, 100))
@@ -80,36 +79,37 @@ class ArbitraryDerivationSuite extends MagnolifySuite with magnolify.scalacheck.
     test[Custom]
   }
 
+//  // recursive structures require to assign the derived value to an implicit variable
 //  {
-//    import magnolify.scalacheck.semiauto.ArbitraryDerivation.Fallback
 //    implicit val f: Fallback[Node] = Fallback[Leaf]
+//    implicit lazy val arbNode: Arbitrary[Node] = ArbitraryDerivation[Node]
 //    test[Node]
 //  }
 //
 //  {
-//    import magnolify.scalacheck.semiauto.ArbitraryDerivation.Fallback
 //    implicit val f: Fallback[GNode[Int]] = Fallback(Gen.const(GLeaf(0)))
+//    implicit lazy val arbGNode: Arbitrary[GNode[Int]] = ArbitraryDerivation[GNode[Int]]
 //    test[GNode[Int]]("Fallback(G: Gen[T])")
 //  }
 //
 //  {
-//    import magnolify.scalacheck.semiauto.ArbitraryDerivation.Fallback
 //    implicit val f: Fallback[GNode[Int]] = Fallback(GLeaf(0))
+//    implicit lazy val arbGNode: Arbitrary[GNode[Int]] = ArbitraryDerivation[GNode[Int]]
 //    test[GNode[Int]]("Fallback(v: T)")
 //  }
 //
 //  {
-//    import magnolify.scalacheck.semiauto.ArbitraryDerivation.Fallback
 //    implicit val f: Fallback[GNode[Int]] = Fallback[GLeaf[Int]]
+//    implicit lazy val arbGNode: Arbitrary[GNode[Int]] = ArbitraryDerivation[GNode[Int]]
 //    test[GNode[Int]]("Fallback[T]")
 //  }
 
   test[Shape]
   test[Color]
 
-//  property("Seed") {
-//    Prop.forAll { (seed: Seed) =>
-//      seed.next != seed
-//    }
-//  }
+  property("Seed") {
+    Prop.forAll { (seed: Seed) =>
+      seed.next != seed
+    }
+  }
 }

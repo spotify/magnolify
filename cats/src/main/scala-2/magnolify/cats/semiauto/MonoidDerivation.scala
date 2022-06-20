@@ -18,10 +18,8 @@ package magnolify.cats.semiauto
 
 import cats.Monoid
 import magnolia1._
-import magnolify.shims._
-
+import scala.collection.compat.immutable.ArraySeq
 import scala.annotation.implicitNotFound
-import scala.language.experimental.macros
 
 object MonoidDerivation {
   type Typeclass[T] = Monoid[T]
@@ -85,7 +83,7 @@ private object MonoidMethods {
             result(i) = p.typeclass.combineAll(it.iterator.map(p.dereference))
             i += 1
           }
-          caseClass.rawConstruct(unsafeWrapArray(result))
+          caseClass.rawConstruct(ArraySeq.unsafeWrapArray(result))
         case xs => xs.foldLeft(emptyImpl())(combineImpl)
       }
   }

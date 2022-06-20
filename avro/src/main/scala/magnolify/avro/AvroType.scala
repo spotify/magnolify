@@ -19,10 +19,10 @@ package magnolify.avro
 import java.util.UUID
 import magnolify.shared._
 import org.apache.avro.JsonProperties
+import org.apache.avro.generic.GenericData.EnumSymbol
 
 import java.nio.ByteBuffer
 import java.time.LocalDate
-//import org.apache.avro.generic.GenericData.EnumSymbol
 import org.apache.avro.generic._
 import org.apache.avro.{LogicalType, LogicalTypes, Schema}
 
@@ -130,6 +130,12 @@ object AvroField {
       }
   }
 
+  private[avro] def getDoc(annotations: Seq[Any], name: String): String = {
+    val docs = annotations.collect { case d: doc => d.toString }
+    require(docs.size <= 1, s"More than one @doc annotation: $name")
+    docs.headOption.orNull
+  }
+
   // https://avro.apache.org/docs/current/spec.html#Logical+Types
   // Precision and scale are not encoded in the `BigDecimal` type and must be specified
   def bigDecimal(precision: Int, scale: Int = 0): AvroField[BigDecimal] =
@@ -170,36 +176,36 @@ object AvroField {
     override protected def buildSchema(cm: CaseMapper): Schema =
       Schema.create(Schema.Type.BYTES)
     // `JacksonUtils.toJson` expects `Array[Byte]` for `BYTES` defaults
-    override def makeDefault(p: Array[Byte])(cm: CaseMapper): Array[Byte] = p
+    override def makeDefault(d: Array[Byte])(cm: CaseMapper): Array[Byte] = d
     override def from(v: ByteBuffer)(cm: CaseMapper): Array[Byte] =
       java.util.Arrays.copyOfRange(v.array(), v.position(), v.limit())
     override def to(v: Array[Byte])(cm: CaseMapper): ByteBuffer = ByteBuffer.wrap(v)
   }
 
-  //  implicit def afEnum[T](implicit et: EnumType[T]): AvroField[T] =
-  //    new AvroField[T] {
-  //      // Avro 1.9+ added a type parameter for `GenericEnumSymbol`, breaking 1.8 compatibility
-  //      // Some reader, i.e. `AvroParquetReader` reads enums as `Utf8`
-  //      override type FromT = AnyRef
-  //      override type ToT = EnumSymbol
-  //
-  //      override protected def schemaString(cm: CaseMapper): String = {
-  //        val doc = getDoc(et.annotations, s"Enum ${et.namespace}.${et.name}")
-  //        Schema.createEnum(et.name, doc, et.namespace, et.values.asJava).toString
-  //      }
-  //      // `JacksonUtils.toJson` expects `String` for `ENUM` defaults
-  //      override def makeDefault(p: Option[T])(cm: CaseMapper): Option[Any] = p.map(et.to)
-  //      override def from(v: FromT)(cm: CaseMapper): T = et.from(v.toString)
-  //      override def to(v: T)(cm: CaseMapper): ToT = new GenericData.EnumSymbol(schema(cm), v)
-  //    }
+  def afEnum[T](implicit et: EnumType[T]): AvroField[T] =
+    new AvroField[T] {
+      // Avro 1.9+ added a type parameter for `GenericEnumSymbol`, breaking 1.8 compatibility
+      // Some reader, i.e. `AvroParquetReader` reads enums as `Utf8`
+      override type FromT = AnyRef
+      override type ToT = EnumSymbol
+
+      override protected def buildSchema(cm: CaseMapper): Schema = {
+        val doc = getDoc(et.annotations, s"Enum ${et.namespace}.${et.name}")
+        Schema.createEnum(et.name, doc, et.namespace, et.values.asJava)
+      }
+      // `JacksonUtils.toJson` expects `String` for `ENUM` defaults
+      override def makeDefault(d: T)(cm: CaseMapper): String = et.to(d)
+      override def from(v: FromT)(cm: CaseMapper): T = et.from(v.toString)
+      override def to(v: T)(cm: CaseMapper): ToT = new GenericData.EnumSymbol(schema(cm), v)
+    }
 
   def afOption[T](implicit f: AvroField[T]): AvroField[Option[T]] =
     new AvroField.Aux[Option[T], f.FromT, f.ToT] {
       override protected def buildSchema(cm: CaseMapper): Schema =
         Schema.createUnion(Schema.create(Schema.Type.NULL), f.schema(cm))
       // `Option[T]` is a `UNION` of `[NULL, T]` and must default to first type `NULL`
-      override def makeDefault(p: Option[T])(cm: CaseMapper): JsonProperties.Null = {
-        require(p.isEmpty, "Option[T] can only default to None")
+      override def makeDefault(d: Option[T])(cm: CaseMapper): JsonProperties.Null = {
+        require(d.isEmpty, "Option[T] can only default to None")
         JsonProperties.NULL_VALUE
       }
       override def from(v: f.FromT)(cm: CaseMapper): Option[T] =
@@ -210,25 +216,24 @@ object AvroField {
       }
     }
 
-//  def afIterable[T, C[_]](implicit
-//                         f: AvroField[T],
-//                         ti: C[T] => Iterable[T],
-//                         fc: FactoryCompat[T, C[T]]
-//                        ): AvroField[C[T]] =
-//    new AvroField.Aux[C[T], java.util.List[f.FromT], GenericArray[f.ToT]] {
-//      override protected def schemaString(cm: CaseMapper): String =
-//        Schema.createArray(f.schema(cm)).toString
-//      override val fallbackDefault: Any = java.util.Collections.emptyList()
-//      override def from(v: java.util.List[f.FromT])(cm: CaseMapper): C[T] =
-//        if (v == null) fc.newBuilder.result()
-//        else fc.build(v.asScala.iterator.map(p => f.from(p)(cm)))
-//      override def to(v: C[T])(cm: CaseMapper): GenericArray[f.ToT] =
-//        if (v.isEmpty) {
-//          null
-//        } else {
-//          new GenericData.Array[f.ToT](schema(cm), v.iterator.map(f.to(_)(cm)).toList.asJava)
-//        }
-//    }
+  def afIterable[T, C[_]](implicit
+    f: AvroField[T],
+    ti: C[T] => Iterable[T],
+    fc: Factory[T, C[T]]
+  ): AvroField[C[T]] =
+    new AvroField.Aux[C[T], java.util.List[f.FromT], GenericArray[f.ToT]] {
+      override protected def buildSchema(cm: CaseMapper): Schema =
+        Schema.createArray(f.schema(cm))
+      override val fallbackDefault: Any = java.util.Collections.emptyList()
+      override def from(v: java.util.List[f.FromT])(cm: CaseMapper): C[T] = {
+        val b = fc.newBuilder
+        b ++= v.asScala.iterator.map(p => f.from(p)(cm))
+        b.result()
+      }
+
+      override def to(v: C[T])(cm: CaseMapper): GenericArray[f.ToT] =
+        new GenericData.Array[f.ToT](schema(cm), ti(v).iterator.map(f.to(_)(cm)).toList.asJava)
+    }
 
   def afMap[T](implicit f: AvroField[T]): AvroField[Map[String, T]] =
     new AvroField.Aux[
@@ -240,20 +245,23 @@ object AvroField {
         Schema.createMap(f.schema(cm))
       override val fallbackDefault: Any = java.util.Collections.emptyMap()
       override def from(v: java.util.Map[CharSequence, f.FromT])(cm: CaseMapper): Map[String, T] =
-        if (v == null) {
-          Map.empty
-        } else {
-          v.asScala.iterator.map(kv => (kv._1.toString, f.from(kv._2)(cm))).toMap
-        }
+        v.asScala.iterator.map(kv => (kv._1.toString, f.from(kv._2)(cm))).toMap
       override def to(v: Map[String, T])(cm: CaseMapper): java.util.Map[String, f.ToT] =
-        if (v.isEmpty) null else v.iterator.map(kv => (kv._1, f.to(kv._2)(cm))).toMap.asJava
+        v.iterator.map(kv => (kv._1, f.to(kv._2)(cm))).toMap.asJava
     }
 
+  // logical-types
   val afUuid: AvroField[UUID] =
     AvroField.logicalType[String](LogicalTypes.uuid())(UUID.fromString)(_.toString)(afString)
   val afDate: AvroField[LocalDate] =
-    AvroField.logicalType[Int](LogicalTypes.date())(LocalDate.ofEpochDay(_))(_.toEpochDay.toInt)(
-      afInt
-    )
+    AvroField.logicalType[Int](LogicalTypes.date())(x => LocalDate.ofEpochDay(x.toLong))(
+      _.toEpochDay.toInt
+    )(afInt)
 
+  // unsafe
+  val afByte: AvroField[Byte] = AvroField.from[Int](_.toByte)(_.toInt)(afInt)
+  val afChar: AvroField[Char] = AvroField.from[Int](_.toChar)(_.toInt)(afInt)
+  val afShort: AvroField[Short] = AvroField.from[Int](_.toShort)(_.toInt)(afInt)
+  def afUnsafeEnum[T](implicit et: EnumType[T]): AvroField[UnsafeEnum[T]] =
+    AvroField.from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))(afString)
 }

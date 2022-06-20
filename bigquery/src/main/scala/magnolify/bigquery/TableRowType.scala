@@ -22,10 +22,8 @@ import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.common.io.BaseEncoding
 import magnolify.shared.{CaseMapper, Converter}
-//import magnolify.shims.FactoryCompat
-//import magnolify.shims.JavaConverters._
 import scala.collection.concurrent
-import scala.annotation.{implicitNotFound, StaticAnnotation}
+import scala.annotation.StaticAnnotation
 import scala.language.experimental.macros
 
 class description(description: String) extends StaticAnnotation with Serializable {

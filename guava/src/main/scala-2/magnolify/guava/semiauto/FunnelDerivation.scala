@@ -17,7 +17,7 @@
 package magnolify.guava.semiauto
 
 import com.google.common.base.Charsets
-import com.google.common.hash.{Funnel, Funnels, PrimitiveSink}
+import com.google.common.hash.{Funnel, PrimitiveSink}
 import magnolia1._
 
 import scala.language.experimental.macros

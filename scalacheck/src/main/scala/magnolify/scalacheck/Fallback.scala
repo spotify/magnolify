@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Spotify AB
+ * Copyright 2022 Spotify AB
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,32 +14,26 @@
  * limitations under the License.
  */
 
-package magnolify.shims
+package magnolify.scalacheck
 
-import magnolify.test._
 import org.scalacheck._
 
-import scala.reflect._
+sealed trait Fallback[+T] extends Serializable {
+  def get: Gen[T]
+}
 
-class ShimsSuite extends MagnolifySuite {
-  private def test[C[_]](implicit
-    ct: ClassTag[C[Int]],
-    ti: C[Int] => Iterable[Int],
-    fc: FactoryCompat[Int, C[Int]]
-  ): Unit = {
-    property(className[C[Int]]) {
-      Prop.forAll { xs: List[Int] => fc.build(xs).toList == xs }
-    }
+object Fallback {
+
+  private object Fail extends Fallback[Nothing] {
+    override val get: Gen[Nothing] = Gen.fail
   }
 
-  test[Array]
-  // Deprecated in 2.13
-  // test[Traversable]
-  test[Iterable]
-  test[Seq]
-  test[IndexedSeq]
-  test[List]
-  test[Vector]
-  // Deprecated in 2.13
-  // test[Stream]
+  def apply[T](g: Gen[T]): Fallback[T] = new Fallback[T] {
+    override def get: Gen[T] = g
+  }
+
+  def apply[T](v: T): Fallback[T] = Fallback[T](Gen.const(v))
+  def apply[T](implicit arb: Arbitrary[T]): Fallback[T] = Fallback[T](arb.arbitrary)
+
+  implicit def defaultFallback[T]: Fallback[T] = Fail
 }

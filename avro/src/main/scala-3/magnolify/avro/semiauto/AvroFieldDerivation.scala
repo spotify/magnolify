@@ -1,3 +1,19 @@
+/*
+ * Copyright 2022 Spotify AB
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package magnolify.avro.semiauto
 
 import magnolia1.*
@@ -17,7 +33,7 @@ object AvroFieldDerivation extends ProductDerivation[AvroField]:
     override protected def buildSchema(cm: CaseMapper): Schema = Schema
       .createRecord(
         caseClass.typeInfo.short,
-        getDoc(caseClass.annotations, caseClass.typeInfo.full),
+        AvroField.getDoc(caseClass.annotations, caseClass.typeInfo.full),
         caseClass.typeInfo.owner,
         false,
         caseClass.params
@@ -25,7 +41,7 @@ object AvroFieldDerivation extends ProductDerivation[AvroField]:
             new Schema.Field(
               cm.map(p.label),
               p.typeclass.schema(cm),
-              getDoc(p.annotations, s"${caseClass.typeInfo.full}#${p.label}"),
+              AvroField.getDoc(p.annotations, s"${caseClass.typeInfo.full}#${p.label}"),
               p.default
                 .map(d => p.typeclass.makeDefault(d)(cm))
                 .getOrElse(p.typeclass.fallbackDefault)
@@ -57,12 +73,6 @@ object AvroFieldDerivation extends ProductDerivation[AvroField]:
           r.put(p.index, p.typeclass.to(p.deref(v))(cm))
           r
         }
-
-  private def getDoc(annotations: Seq[Any], name: String): String = {
-    val docs = annotations.collect { case d: doc => d.toString }
-    require(docs.size <= 1, s"More than one @doc annotation: $name")
-    docs.headOption.orNull
-  }
 
   // ProductDerivation can be specialized to an AvroField.Record
   inline given apply[T](using mirror: Mirror.Of[T]): AvroField.Record[T] =

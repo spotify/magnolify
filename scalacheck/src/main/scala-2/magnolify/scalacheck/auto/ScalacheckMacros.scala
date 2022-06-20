@@ -16,7 +16,6 @@
 
 package magnolify.scalacheck.auto
 
-import scala.language.experimental.macros
 import scala.reflect.macros._
 
 object ScalacheckMacros {

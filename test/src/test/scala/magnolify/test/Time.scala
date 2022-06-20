@@ -24,7 +24,7 @@ import org.scalacheck._
 
 object Time {
   implicit val arbInstant: Arbitrary[Instant] =
-    Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Instant.ofEpochMilli(_)))
+    Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(ms => Instant.ofEpochMilli(ms.toLong)))
   implicit val arbLocalDate: Arbitrary[LocalDate] =
     Arbitrary(Gen.chooseNum(0L, 365L * 100).map(LocalDate.ofEpochDay))
   implicit val arbLocalTime: Arbitrary[LocalTime] =

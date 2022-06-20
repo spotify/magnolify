@@ -18,10 +18,8 @@ package magnolify.cats.semiauto
 
 import cats.Semigroup
 import magnolia1._
-import magnolify.shims._
-
+import scala.collection.compat.immutable.ArraySeq
 import scala.annotation.implicitNotFound
-import scala.language.experimental.macros
 
 object SemigroupDerivation {
   type Typeclass[T] = Semigroup[T]
@@ -81,7 +79,7 @@ private object SemigroupMethods {
             result(i) = p.typeclass.combineAllOption(it.iterator.map(p.dereference)).get
             i += 1
           }
-          Some(caseClass.rawConstruct(unsafeWrapArray(result)))
+          Some(caseClass.rawConstruct(ArraySeq.unsafeWrapArray(result)))
         case xs =>
           xs.reduceOption(combineImpl)
       }

@@ -48,7 +48,6 @@ class FunctionDerivationSuite extends MagnolifySuite with magnolify.scalacheck.A
 
 //  {
 //    // Gen[A => B] depends on Gen[B] and may run out of size
-//    import magnolify.scalacheck.semiauto.ArbitraryDerivation.Fallback
 //    implicit val f: Fallback[Shape] = Fallback[Circle]
 //    test[Shape, Shape]
 //    test[Numbers, Shape]

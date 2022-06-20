@@ -19,7 +19,11 @@ package magnolify.shared
 import magnolify.test._
 import magnolify.test.Simple._
 
-class UnsafeEnumSuite extends MagnolifySuite {
+class UnsafeEnumSuite
+    extends MagnolifySuite
+    with magnolify.shared.AutoDerivation
+    with magnolify.shared.EnumImplicits {
+
   test("JavaEnums") {
     assertEquals(UnsafeEnum(JavaEnums.Color.RED), UnsafeEnum.Known(JavaEnums.Color.RED))
 

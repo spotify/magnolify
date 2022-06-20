@@ -16,64 +16,74 @@
 
 package magnolify.cats.auto
 
-import scala.language.experimental.macros
+import scala.annotation.nowarn
 import scala.reflect.macros._
 
 object CatsMacros {
+  @nowarn
   def genEqMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.EqDerivation.apply[$wtt]"""
   }
 
+  @nowarn
   def genHashMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.HashDerivation.apply[$wtt]"""
   }
 
+  @nowarn
   def genSemigroupMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.SemigroupDerivation.apply[$wtt]"""
   }
 
+  @nowarn
   def genCommutativeSemigroupMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.CommutativeSemigroupDerivation.apply[$wtt]"""
   }
 
+  @nowarn
   def genBandMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.BandDerivation.apply[$wtt]"""
   }
 
+  @nowarn
   def genMonoidMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.MonoidDerivation.apply[$wtt]"""
   }
 
+  @nowarn
   def genCommutativeMonoidMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.CommutativeMonoidDerivation.apply[$wtt]"""
   }
 
+  @nowarn
   def genGroupMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.GroupDerivation.apply[$wtt]"""
   }
 
+  @nowarn
   def genCommutativeGroupMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.CommutativeGroupDerivation.apply[$wtt]"""
   }
 
+  @nowarn
   def genShowMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]

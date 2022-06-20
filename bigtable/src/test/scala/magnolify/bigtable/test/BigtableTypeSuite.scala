@@ -24,8 +24,6 @@ import cats._
 import com.google.bigtable.v2.Row
 import com.google.protobuf.ByteString
 import magnolify.bigtable._
-import magnolify.cats.auto._
-import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
 import magnolify.test.Simple._
 import magnolify.test._
@@ -37,7 +35,9 @@ class BigtableTypeSuite
     extends MagnolifySuite
     with magnolify.scalacheck.AutoDerivation
     with magnolify.cats.AutoDerivation
+    with magnolify.shared.AutoDerivation
     with magnolify.bigtable.AutoDerivation
+    with magnolify.shared.EnumImplicits
     with magnolify.bigtable.BigtableImplicits {
 
   private def test[T: Arbitrary: ClassTag](implicit t: BigtableType[T], eq: Eq[T]): Unit = {
@@ -62,21 +62,21 @@ class BigtableTypeSuite
   test[Numbers]
   test[Required]
   test[Nullable]
-//  test[Repeated]
-//  test[BigtableNested]
+  test[Repeated]
+  test[BigtableNested]
 
-//  {
-//    import Collections._
-//    test[Collections]
-//    test[MoreCollections]
-//  }
+  {
+    import Collections._
+    test[Collections]
+    test[MoreCollections]
+  }
 
-//  {
-//    import Enums._
-//    import UnsafeEnums._
-//    test[Enums]
-//    test[UnsafeEnums]
-//  }
+  {
+    import Enums._
+    import UnsafeEnums._
+    test[Enums]
+    test[UnsafeEnums]
+  }
 
   {
     import Custom._
@@ -87,23 +87,25 @@ class BigtableTypeSuite
     test[Custom]
   }
 
-//  {
-//    implicit val arbByteString: Arbitrary[ByteString] =
-//      Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
-//    implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
-//    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
-//    test[BigtableTypes]
-//  }
+  {
+    implicit val arbByteString: Arbitrary[ByteString] =
+      Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
+    implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
+    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
+    test[BigtableTypes]
+  }
 
   test("DefaultInner") {
-    val bt = ensureSerializable(BigtableType[DefaultInner])
+//    val bt = ensureSerializable(BigtableType[DefaultInner])
+    val bt = implicitly[BigtableType[DefaultInner]]
     assertEquals(bt(Row.getDefaultInstance, "cf"), DefaultInner())
     val inner = DefaultInner(2, Some(2))
     assertEquals(bt(BigtableType.mutationsToRow(ByteString.EMPTY, bt(inner, "cf")), "cf"), inner)
   }
 
   test("DefaultOuter") {
-    val bt = ensureSerializable(BigtableType[DefaultOuter])
+//    val bt = ensureSerializable(BigtableType[DefaultOuter])
+    val bt = implicitly[BigtableType[DefaultOuter]]
     assertEquals(bt(Row.getDefaultInstance, "cf"), DefaultOuter())
     val outer = DefaultOuter(DefaultInner(3, Some(3)), Some(DefaultInner(3, Some(3))))
     assertEquals(bt(BigtableType.mutationsToRow(ByteString.EMPTY, bt(outer, "cf")), "cf"), outer)

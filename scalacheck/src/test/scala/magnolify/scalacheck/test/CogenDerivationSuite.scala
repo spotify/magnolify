@@ -16,6 +16,7 @@
 
 package magnolify.scalacheck.test
 
+import magnolify.scalacheck.semiauto._
 import magnolify.test.ADT._
 import magnolify.test.Simple._
 import magnolify.test._
@@ -52,20 +53,20 @@ class CogenDerivationSuite extends MagnolifySuite with magnolify.scalacheck.Auto
   test[Required]
   test[Nullable]
 
-  {
-    import Collections._
-    test[Repeated]
-    test((c: Collections) => (c.a.toList, c.l, c.v))
-  }
-// Try increasing `-Xmax-inlines` above 32
-//  test[Nested]
+  test[Repeated]
+  test((c: Collections) => (c.a.toList, c.l, c.v))
+  test[Nested]
 
   import Custom._
   test[Custom]
 
-// Try increasing `-Xmax-inlines` above 32
-//  test[Node]
-//  test[GNode[Int]]
+  // recursive structures require to assign the derived value to an implicit variable
+  import magnolify.scalacheck.test.ADT.{arbGNode, arbNode}
+  implicit lazy val cogenNode: Cogen[Node] = CogenDerivation[Node]
+  implicit lazy val cogenGNode: Cogen[GNode[Int]] = CogenDerivation[GNode[Int]]
+  test[Node]
+  test[GNode[Int]]
+
   test[Shape]
   test[Color]
 }
