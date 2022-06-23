@@ -20,7 +20,6 @@ import com.google.common.base.Charsets
 import com.google.common.hash.{Funnel, PrimitiveSink}
 import magnolia1._
 
-
 object FunnelDerivation {
   type Typeclass[T] = Funnel[T]
 

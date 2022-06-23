@@ -34,7 +34,11 @@ trait BigQueryImplicits:
   given TableRowField[LocalTime] = TableRowField.trfTime
   given TableRowField[LocalDateTime] = TableRowField.trfDateTime
   given [T: TableRowField]: TableRowField[Option[T]] = TableRowField.trfOption
-  given [T, C[_]](using TableRowField[T], C[T] => Iterable[T], Factory[T, C[T]]): TableRowField[C[T]] =
+  given [T, C[_]](using
+    TableRowField[T],
+    C[T] => Iterable[T],
+    Factory[T, C[T]]
+  ): TableRowField[C[T]] =
     TableRowField.trfIterable
 
 object BigQueryImplicits extends BigQueryImplicits

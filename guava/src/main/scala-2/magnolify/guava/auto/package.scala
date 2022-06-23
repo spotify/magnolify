@@ -19,7 +19,6 @@ package magnolify.guava
 import com.google.common.hash.Funnel
 import magnolify.guava.auto.FunnelMacros
 
-
 package object auto extends FunnelImplicits with AutoDerivation
 
 trait AutoDerivation {

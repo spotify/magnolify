@@ -19,7 +19,6 @@ package magnolify.cats.semiauto
 import cats.Eq
 import magnolia1._
 
-
 object EqDerivation {
   type Typeclass[T] = Eq[T]
 

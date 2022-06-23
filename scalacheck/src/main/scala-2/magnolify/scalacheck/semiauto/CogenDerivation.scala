@@ -19,7 +19,6 @@ package magnolify.scalacheck.semiauto
 import magnolia1._
 import org.scalacheck.Cogen
 
-
 object CogenDerivation {
   type Typeclass[T] = Cogen[T]
 

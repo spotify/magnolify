@@ -19,7 +19,6 @@ package magnolify.cats.semiauto
 import cats.Show
 import magnolia1._
 
-
 object ShowDerivation {
   type Typeclass[T] = Show[T]
 

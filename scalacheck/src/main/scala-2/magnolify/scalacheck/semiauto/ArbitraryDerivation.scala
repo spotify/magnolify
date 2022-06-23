@@ -20,7 +20,6 @@ import magnolia1._
 import magnolify.scalacheck.Fallback
 import org.scalacheck.{Arbitrary, Gen}
 
-
 object ArbitraryDerivation {
   type Typeclass[T] = Arbitrary[T]
 
