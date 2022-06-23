@@ -68,6 +68,11 @@ object ArbitraryDerivation {
   }
 
   object Fallback {
+
+    object NoFallback extends Fallback[Nothing] {
+      override def get: Gen[Nothing] = Gen.fail
+    }
+
     def apply[T](g: Gen[T]): Fallback[T] = new Fallback[T] {
       override def get: Gen[T] = g
     }
@@ -75,6 +80,6 @@ object ArbitraryDerivation {
     def apply[T](v: T): Fallback[T] = Fallback[T](Gen.const(v))
     def apply[T](implicit arb: Arbitrary[T]): Fallback[T] = Fallback[T](arb.arbitrary)
 
-    implicit def defaultFallback[T]: Fallback[T] = Fallback[T](Gen.fail)
+    implicit def defaultFallback[T]: Fallback[T] = NoFallback
   }
 }
