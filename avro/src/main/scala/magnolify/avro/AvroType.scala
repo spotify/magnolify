@@ -19,16 +19,15 @@ package magnolify.avro
 import java.nio.ByteBuffer
 import java.time._
 import java.{util => ju}
-
 import magnolia1._
 import magnolify.shared._
 import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
 import org.apache.avro.generic.GenericData.EnumSymbol
 import org.apache.avro.generic._
-import org.apache.avro.{JsonProperties, LogicalType, LogicalTypes, Schema}
+import org.apache.avro.{JsonProperties, LogicalType, LogicalTypes, Schema, SchemaBuilder}
 
-import scala.annotation.{implicitNotFound, StaticAnnotation}
+import scala.annotation.{StaticAnnotation, implicitNotFound}
 import scala.collection.concurrent
 import scala.language.experimental.macros
 import scala.language.implicitConversions
@@ -64,9 +63,9 @@ sealed trait AvroField[T] extends Serializable { self =>
 
   @transient private lazy val schemaCache: concurrent.Map[ju.UUID, Schema] =
     concurrent.TrieMap.empty
-  protected def schemaString(cm: CaseMapper): String
+  protected def createSchema(cm: CaseMapper): Schema
   def schema(cm: CaseMapper): Schema =
-    schemaCache.getOrElseUpdate(cm.uuid, new Schema.Parser().parse(schemaString(cm)))
+    schemaCache.getOrElseUpdate(cm.uuid, createSchema(cm))
 
   // Convert case class default `T` to Avro Java type
   def makeDefault(p: Option[T])(cm: CaseMapper): Option[Any] = p.map(to(_)(cm))
@@ -92,7 +91,7 @@ object AvroField {
   type Typeclass[T] = AvroField[T]
 
   def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    override protected def schemaString(cm: CaseMapper): String = Schema
+    override protected def createSchema(cm: CaseMapper): Schema = Schema
       .createRecord(
         caseClass.typeName.short,
         getDoc(caseClass.annotations, caseClass.typeName.full),
@@ -107,7 +106,6 @@ object AvroField {
           )
         }.asJava
       )
-      .toString
 
     // `JacksonUtils.toJson` expects `Map[String, AnyRef]` for `RECORD` defaults
     override def makeDefault(p: Option[T])(cm: CaseMapper): Option[Any] = p.map { default =>
@@ -157,7 +155,7 @@ object AvroField {
       new AvroField[U] {
         override type FromT = af.FromT
         override type ToT = af.ToT
-        override protected def schemaString(cm: CaseMapper): String = af.schema(cm).toString
+        override protected def createSchema(cm: CaseMapper): Schema = af.schema(cm)
         override def makeDefault(p: Option[U])(cm: CaseMapper): Option[Any] =
           af.makeDefault(p.map(g))(cm)
         override def from(v: FromT)(cm: CaseMapper): U = f(af.from(v)(cm))
@@ -171,7 +169,7 @@ object AvroField {
     new AvroField[T] {
       override type FromT = From
       override type ToT = To
-      override protected def schemaString(cm: CaseMapper): String = Schema.create(tpe).toString
+      override protected def createSchema(cm: CaseMapper): Schema = Schema.create(tpe)
       override def from(v: FromT)(cm: CaseMapper): T = f(v)
       override def to(v: T)(cm: CaseMapper): ToT = g(v)
     }
@@ -195,8 +193,7 @@ object AvroField {
     override type FromT = ByteBuffer
     override type ToT = ByteBuffer
 
-    override protected def schemaString(cm: CaseMapper): String =
-      Schema.create(Schema.Type.BYTES).toString
+    override protected def createSchema(cm: CaseMapper): Schema = Schema.create(Schema.Type.BYTES)
     // `JacksonUtils.toJson` expects `Array[Byte]` for `BYTES` defaults
     override def makeDefault(p: Option[Array[Byte]])(cm: CaseMapper): Option[Any] = p
     override def from(v: ByteBuffer)(cm: CaseMapper): Array[Byte] =
@@ -211,9 +208,9 @@ object AvroField {
       override type FromT = AnyRef
       override type ToT = EnumSymbol
 
-      override protected def schemaString(cm: CaseMapper): String = {
+      override protected def createSchema(cm: CaseMapper): Schema = {
         val doc = getDoc(et.annotations, s"Enum ${et.namespace}.${et.name}")
-        Schema.createEnum(et.name, doc, et.namespace, et.values.asJava).toString
+        Schema.createEnum(et.name, doc, et.namespace, et.values.asJava)
       }
       // `JacksonUtils.toJson` expects `String` for `ENUM` defaults
       override def makeDefault(p: Option[T])(cm: CaseMapper): Option[Any] = p.map(et.to)
@@ -223,8 +220,8 @@ object AvroField {
 
   implicit def afOption[T](implicit f: AvroField[T]): AvroField[Option[T]] =
     new Aux[Option[T], f.FromT, f.ToT] {
-      override protected def schemaString(cm: CaseMapper): String =
-        Schema.createUnion(Schema.create(Schema.Type.NULL), f.schema(cm)).toString
+      override protected def createSchema(cm: CaseMapper): Schema =
+        Schema.createUnion(Schema.create(Schema.Type.NULL), f.schema(cm))
       // `Option[T]` is a `UNION` of `[NULL, T]` and must default to first type `NULL`
       override def makeDefault(p: Option[Option[T]])(cm: CaseMapper): Option[Any] = {
         require(p.flatten.isEmpty, "Option[T] can only default to None")
@@ -244,8 +241,7 @@ object AvroField {
     fc: FactoryCompat[T, C[T]]
   ): AvroField[C[T]] =
     new Aux[C[T], ju.List[f.FromT], GenericArray[f.ToT]] {
-      override protected def schemaString(cm: CaseMapper): String =
-        Schema.createArray(f.schema(cm)).toString
+      override protected def createSchema(cm: CaseMapper): Schema = Schema.createArray(f.schema(cm))
       override val fallbackDefault: Any = ju.Collections.emptyList()
       override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] =
         if (v == null) fc.newBuilder.result()
@@ -260,8 +256,7 @@ object AvroField {
 
   implicit def afMap[T](implicit f: AvroField[T]): AvroField[Map[String, T]] =
     new Aux[Map[String, T], ju.Map[CharSequence, f.FromT], ju.Map[String, f.ToT]] {
-      override protected def schemaString(cm: CaseMapper): String =
-        Schema.createMap(f.schema(cm)).toString
+      override protected def createSchema(cm: CaseMapper): Schema = Schema.createMap(f.schema(cm))
       override val fallbackDefault: Any = ju.Collections.emptyMap()
       override def from(v: ju.Map[CharSequence, f.FromT])(cm: CaseMapper): Map[String, T] =
         if (v == null) {
@@ -282,11 +277,10 @@ object AvroField {
       new AvroField[U] {
         override type FromT = af.FromT
         override type ToT = af.ToT
-        override protected def schemaString(cm: CaseMapper): String = {
+        override protected def createSchema(cm: CaseMapper): Schema = {
           // `LogicalType#addToSchema` mutates `Schema`, make a copy first
           val schema = new Schema.Parser().parse(af.schema(cm).toString)
           lt.addToSchema(schema)
-          schema.toString
         }
 
         override def makeDefault(p: Option[U])(cm: CaseMapper): Option[Any] =
@@ -315,10 +309,10 @@ object AvroField {
       override type FromT = GenericFixed
       override type ToT = GenericFixed
 
-      override protected def schemaString(cm: CaseMapper): String = {
+      override protected def createSchema(cm: CaseMapper): Schema = {
         val n = ReflectionUtils.name[T]
         val ns = ReflectionUtils.namespace[T]
-        Schema.createFixed(n, getDoc(an.annotations, n), ns, size).toString
+        Schema.createFixed(n, getDoc(an.annotations, n), ns, size)
       }
 
       override def from(v: GenericFixed)(cm: CaseMapper): T = f(v.bytes())
