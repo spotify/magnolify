@@ -295,8 +295,8 @@ class AvroTypeSuite
 //    val outer = DefaultOuter(inner, Some(inner))
 //    assertEquals(at(at(outer)), outer)
 //  }
-//
-//  testFail(AvroType[SomeDefault])("Option[T] can only default to None")
+
+  testFail(AvroType[SomeDefault])("Option[T] can only default to None")
 
   {
     implicit val at: AvroType[LowerCamel] = AvroType[LowerCamel](CaseMapper(_.toUpperCase))
