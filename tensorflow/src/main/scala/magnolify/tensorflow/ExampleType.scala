@@ -27,7 +27,6 @@ import org.tensorflow.metadata.v0.{Annotation, Feature => FeatureSchema, Feature
 import org.tensorflow.proto.example._
 import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.collection.concurrent
-import scala.language.experimental.macros
 
 class doc(msg: String) extends StaticAnnotation with Serializable {
   override def toString: String = msg

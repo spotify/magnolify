@@ -29,7 +29,6 @@ import magnolify.shims.JavaConverters._
 
 import scala.annotation.implicitNotFound
 import scala.collection.concurrent
-import scala.language.experimental.macros
 import scala.reflect.ClassTag
 
 sealed trait ProtobufType[T, MsgT <: Message] extends Converter[T, MsgT, MsgT] {

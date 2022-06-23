@@ -20,7 +20,6 @@ import cats.Group
 import magnolia1._
 
 import scala.annotation.implicitNotFound
-import scala.language.experimental.macros
 
 object GroupDerivation {
   type Typeclass[T] = Group[T]

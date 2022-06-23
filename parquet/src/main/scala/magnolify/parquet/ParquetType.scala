@@ -41,7 +41,6 @@ import org.slf4j.LoggerFactory
 
 import scala.annotation.implicitNotFound
 import scala.collection.concurrent
-import scala.language.experimental.macros
 
 sealed trait ParquetArray
 

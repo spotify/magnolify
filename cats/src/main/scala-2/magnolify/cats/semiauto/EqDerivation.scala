@@ -19,7 +19,6 @@ package magnolify.cats.semiauto
 import cats.Eq
 import magnolia1._
 
-import scala.language.experimental.macros
 
 object EqDerivation {
   type Typeclass[T] = Eq[T]

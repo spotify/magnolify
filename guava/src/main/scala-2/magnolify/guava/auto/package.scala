@@ -19,7 +19,6 @@ package magnolify.guava
 import com.google.common.hash.Funnel
 import magnolify.guava.auto.FunnelMacros
 
-import scala.language.experimental.macros
 
 package object auto extends FunnelImplicits with AutoDerivation
 

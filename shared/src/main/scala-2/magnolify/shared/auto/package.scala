@@ -18,8 +18,6 @@ package magnolify.shared
 
 import magnolify.shared.auto.EnumMacros
 
-import scala.language.experimental.macros
-
 package object auto extends AutoDerivation with EnumImplicits
 
 trait AutoDerivation {

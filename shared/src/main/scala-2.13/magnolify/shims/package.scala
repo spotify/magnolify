@@ -16,7 +16,6 @@
 
 package magnolify
 
-import scala.collection.{mutable, Factory}
 import scala.util.hashing.MurmurHash3
 
 package object shims {

@@ -27,7 +27,6 @@ import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
 
 import scala.annotation.{implicitNotFound, StaticAnnotation}
-import scala.language.experimental.macros
 
 sealed trait EntityType[T] extends Converter[T, Entity, Entity.Builder] {
   def apply(v: Entity): T = from(v)
