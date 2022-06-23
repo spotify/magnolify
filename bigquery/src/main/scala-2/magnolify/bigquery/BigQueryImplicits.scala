@@ -18,6 +18,8 @@ package magnolify.bigquery
 
 import java.time._
 
+import scala.collection.compat._
+
 trait BigQueryImplicits {
   implicit def tableRowType[T: TableRowField.Record]: TableRowType[T] = TableRowType[T]
 
@@ -31,8 +33,12 @@ trait BigQueryImplicits {
   implicit val trfDate: TableRowField[LocalDate] = TableRowField.trfDate
   implicit val trfTime: TableRowField[LocalTime] = TableRowField.trfTime
   implicit val trfDateTime: TableRowField[LocalDateTime] = TableRowField.trfDateTime
-
   implicit def trfOption[T: TableRowField]: TableRowField[Option[T]] = TableRowField.trfOption
+  implicit def trfIterable[T, C[_]](implicit
+    f: TableRowField[T],
+    ti: C[T] => Iterable[T],
+    fc: Factory[T, C[T]]
+  ): TableRowField[C[T]] = TableRowField.trfIterable
 }
 
 object BigQueryImplicits extends BigQueryImplicits

@@ -26,6 +26,9 @@ import scala.collection.concurrent
 import scala.annotation.StaticAnnotation
 import scala.language.experimental.macros
 
+import scala.collection.compat._
+import scala.jdk.CollectionConverters._
+
 class description(description: String) extends StaticAnnotation with Serializable {
   override def toString: String = description
 }
@@ -135,23 +138,29 @@ object TableRowField {
       }
     }
 
-//  def trfIterable[T, C[_]](implicit
-//    f: TableRowField[T],
-//    ti: C[T] => Iterable[T],
-//    fc: FactoryCompat[T, C[T]]
-//  ): TableRowField[C[T]] =
-//    new Aux[C[T], ju.List[f.FromT], ju.List[f.ToT]] {
-//      override protected def schemaString(cm: CaseMapper): String =
-//        Schemas.toJson(f.fieldSchema(cm).setMode("REPEATED"))
-//      override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] =
-//        if (v == null) {
-//          fc.newBuilder.result()
-//        } else {
-//          fc.build(v.asScala.iterator.map(f.from(_)(cm)))
-//        }
-//      override def to(v: C[T])(cm: CaseMapper): ju.List[f.ToT] =
-//        if (v.isEmpty) null else v.iterator.map(f.to(_)(cm)).toList.asJava
-//    }
+  def trfIterable[T, C[_]](implicit
+    f: TableRowField[T],
+    ti: C[T] => Iterable[T],
+    fc: Factory[T, C[T]]
+  ): TableRowField[C[T]] =
+    new Aux[C[T], java.util.List[f.FromT], java.util.List[f.ToT]] {
+      override protected def buildSchema(cm: CaseMapper): TableFieldSchema =
+        f.fieldSchema(cm).clone().setMode("REPEATED")
+      override def from(v: java.util.List[f.FromT])(cm: CaseMapper): C[T] = {
+        if (v == null) {
+          fc.newBuilder.result()
+        } else {
+          val b = fc.newBuilder
+          b ++= v.asScala.iterator.map(f.from(_)(cm))
+          b.result()
+        }
+      }
+
+      override def to(v: C[T])(cm: CaseMapper): java.util.List[f.ToT] = {
+        val xs = ti(v)
+        if (xs.isEmpty) null else xs.iterator.map(f.to(_)(cm)).toList.asJava
+      }
+    }
 }
 
 private object NumericConverter {

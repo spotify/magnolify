@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
 import com.google.api.services.bigquery.model.TableRow
 import magnolify.bigquery._
 import magnolify.shared.CaseMapper
-//import magnolify.shims.JavaConverters._
 import magnolify.test.Simple._
 import magnolify.test.Time._
 import magnolify.test._
@@ -70,15 +69,15 @@ class TableRowTypeSuite
 
   test[Required]
   test[Nullable]
-//  test[Repeated]
-//  test[Nested]
+  test[Repeated]
+  test[Nested]
   test[Unsafe]
 
-//  {
-//    import Collections._
-//    test[Collections]
-//    test[MoreCollections]
-//  }
+  {
+    import Collections._
+    test[Collections]
+    test[MoreCollections]
+  }
 
 //  {
 //    import Enums._
@@ -141,20 +140,22 @@ class TableRowTypeSuite
     "More than one @description annotation: magnolify.bigquery.test.DoubleFieldDesc#i"
   )
 
-//  test("DefaultInner") {
-//    val trt = ensureSerializable(TableRowType[DefaultInner])
-//    assertEquals(trt(new TableRow), DefaultInner())
-//    val inner = DefaultInner(2, Some(2), List(2, 2))
-//    assertEquals(trt(trt(inner)), inner)
-//  }
-//
-//  test("DefaultOuter") {
-//    val trt = ensureSerializable(TableRowType[DefaultOuter])
-//    assertEquals(trt(new TableRow), DefaultOuter())
-//    val outer =
-//      DefaultOuter(DefaultInner(3, Some(3), List(3, 3)), Some(DefaultInner(3, Some(3), List(3, 3))))
-//    assertEquals(trt(trt(outer)), outer)
-//  }
+  test("DefaultInner") {
+    // val trt = ensureSerializable(TableRowType[DefaultInner])
+    val trt = TableRowType[DefaultInner]
+    assertEquals(trt(new TableRow), DefaultInner())
+    val inner = DefaultInner(2, Some(2), List(2, 2))
+    assertEquals(trt(trt(inner)), inner)
+  }
+
+  test("DefaultOuter") {
+    // val trt = ensureSerializable(TableRowType[DefaultOuter])
+    val trt = TableRowType[DefaultOuter]
+    assertEquals(trt(new TableRow), DefaultOuter())
+    val outer =
+      DefaultOuter(DefaultInner(3, Some(3), List(3, 3)), Some(DefaultInner(3, Some(3), List(3, 3))))
+    assertEquals(trt(trt(outer)), outer)
+  }
 
   {
     implicit val trt: TableRowType[LowerCamel] = TableRowType[LowerCamel](CaseMapper(_.toUpperCase))
