@@ -25,7 +25,7 @@ import magnolify.shims.FactoryCompat
 import magnolify.shims.JavaConverters._
 import org.apache.avro.generic.GenericData.EnumSymbol
 import org.apache.avro.generic._
-import org.apache.avro.{JsonProperties, LogicalType, LogicalTypes, Schema, SchemaBuilder}
+import org.apache.avro.{JsonProperties, LogicalType, LogicalTypes, Schema}
 
 import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.collection.concurrent
@@ -123,16 +123,22 @@ object AvroField {
         .asJava
     }
 
-    override def from(v: GenericRecord)(cm: CaseMapper): T =
-      caseClass.construct(p => p.typeclass.fromAny(v.get(cm.map(p.label)))(cm))
+    // We are in control of the schema
+    // params and fields are at the same index
+    // prefer low level constructs instead of using names
+    override def from(v: GenericRecord)(cm: CaseMapper): T = {
+      val params = caseClass.parameters.zipWithIndex
+        .map { case (p, idx) => p.typeclass.fromAny(v.get(idx))(cm) }
+      caseClass.rawConstruct(params)
+    }
 
-    override def to(v: T)(cm: CaseMapper): GenericRecord =
-      caseClass.parameters
-        .foldLeft(new GenericRecordBuilder(schema(cm))) { (b, p) =>
-          val f = p.typeclass.to(p.dereference(v))(cm)
-          if (f == null) b else b.set(cm.map(p.label), f)
+    override def to(v: T)(cm: CaseMapper): GenericRecord = {
+      caseClass.parameters.zipWithIndex
+        .foldLeft(new GenericData.Record(schema(cm))) { case (r, (p, idx)) =>
+          r.put(idx, p.typeclass.to(p.dereference(v))(cm))
+          r
         }
-        .build()
+    }
   }
 
   private def getDoc(annotations: Seq[Any], name: String): String = {
