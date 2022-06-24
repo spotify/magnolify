@@ -125,19 +125,26 @@ object AvroField {
 
     // We are in control of the schema
     // params and fields are at the same index
-    // prefer low level constructs instead of using names
+    // use vars instead of zipWithIndex & rawConstruct for performance
     override def from(v: GenericRecord)(cm: CaseMapper): T = {
-      val params = caseClass.parameters.zipWithIndex
-        .map { case (p, idx) => p.typeclass.fromAny(v.get(idx))(cm) }
-      caseClass.rawConstruct(params)
+      var idx = -1
+      caseClass.construct { p =>
+        idx += 1
+        p.typeclass.fromAny(v.get(idx))(cm)
+      }
     }
 
+    // We are in control of the schema
+    // params and fields are at the same index
+    // use vars instead of zipWithIndex for performance
     override def to(v: T)(cm: CaseMapper): GenericRecord = {
-      caseClass.parameters.zipWithIndex
-        .foldLeft(new GenericData.Record(schema(cm))) { case (r, (p, idx)) =>
-          r.put(idx, p.typeclass.to(p.dereference(v))(cm))
-          r
-        }
+      val r = new GenericData.Record(schema(cm))
+      var idx = -1
+      caseClass.parameters.foreach { p =>
+        idx += 1
+        r.put(idx, p.typeclass.to(p.dereference(v))(cm))
+      }
+      r
     }
   }
 
