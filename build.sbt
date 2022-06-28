@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Spotify AB.
+ * Copyright 2019 Spotify AB
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -7,13 +7,14 @@
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+import de.heikoseeberger.sbtheader.CommentCreator
+
 name := "magnolify"
 description := "A collection of Magnolia add-on modules"
 
@@ -37,6 +38,15 @@ val scalacheckVersion = "1.16.0"
 val shapelessVersion = "2.3.9"
 val tensorflowVersion = "0.3.3"
 
+lazy val currentYear = java.time.LocalDate.now().getYear
+lazy val keepExistingHeader =
+  HeaderCommentStyle.cStyleBlockComment.copy(commentCreator =
+    (text: String, existingText: Option[String]) =>
+      existingText
+        .getOrElse(HeaderCommentStyle.cStyleBlockComment.commentCreator(text))
+        .trim()
+  )
+
 val commonSettings = Seq(
   organization := "com.spotify",
   scalaVersion := "2.13.8",
@@ -56,7 +66,14 @@ val commonSettings = Seq(
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
   Test / publishArtifact := false,
   sonatypeProfileName := "com.spotify",
-  licenses := Seq("Apache 2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
+  organizationName := "Spotify AB",
+  startYear := Some(2016),
+  licenses := Seq("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
+  headerLicense := Some(HeaderLicense.ALv2(currentYear.toString, "Spotify AB")),
+  headerMappings ++= Map(
+    HeaderFileType.scala -> keepExistingHeader,
+    HeaderFileType.java -> keepExistingHeader
+  ),
   homepage := Some(url("https://github.com/spotify/magnolify")),
   scmInfo := Some(
     ScmInfo(
