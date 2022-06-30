@@ -63,6 +63,7 @@ ThisBuild / tpolecatDevModeOptions ~= { opts =>
   val parallelism = math.min(java.lang.Runtime.getRuntime.availableProcessors(), 16)
   val extras = Set(
     ScalacOptions.privateOption("retain-trees", _ >= V3_0_0),
+    // allow some nested auto derivation
     new ScalacOption("-Xmax-inlines" :: "64" :: Nil, _ >= V3_0_0),
     ScalacOptions.warnOption("macros:after", version => version.isBetween(V2_13_0, V3_0_0)),
     ScalacOptions.privateWarnOption("macros:after", version => version.isBetween(V2_12_0, V2_13_0)),

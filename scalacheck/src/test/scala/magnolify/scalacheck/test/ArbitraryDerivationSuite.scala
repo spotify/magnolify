@@ -17,7 +17,6 @@
 package magnolify.scalacheck.test
 
 //import magnolify.scalacheck.Fallback
-//import magnolify.scalacheck.semiauto.ArbitraryDerivation
 import magnolify.test.ADT._
 import magnolify.test.Simple._
 import magnolify.test._

@@ -27,8 +27,7 @@ import com.fasterxml.jackson.core.JsonFactory
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import magnolify.avro._
 import magnolify.avro.logical._
-import magnolify.avro.semiauto.AvroFieldDerivation
-import magnolify.shared.CaseMapper
+import magnolify.shared.{CaseMapper, EnumType}
 import magnolify.test.Simple._
 import magnolify.test._
 import org.apache.avro.Schema
@@ -112,6 +111,12 @@ class AvroTypeSuite
   implicit val arbCountryCode: Arbitrary[CountryCode] = Arbitrary(
     Gen.oneOf("US", "UK", "CA", "MX").map(CountryCode(_))
   )
+
+  // Enum types would be derived several times if not stored
+  implicit val etJava: EnumType[JavaEnums.Color] = javaEnumType[JavaEnums.Color]
+  implicit val etScala: EnumType[ScalaEnums.Color.Type] = scalaEnumType[ScalaEnums.Color.Type]
+  implicit val etAdt: EnumType[ADT.Color] = autoDerivedEnumType[ADT.Color]
+
   implicit val afUri: AvroField[URI] = AvroField.from[String](URI.create)(_.toString)
   implicit val afDuration: AvroField[Duration] =
     AvroField.from[Long](Duration.ofMillis)(_.toMillis)
@@ -236,7 +241,6 @@ class AvroTypeSuite
   new AvroBigQueryImplicits {
     test("DefaultInner") {
       // val at = ensureSerializable(AvroType[DefaultInner])
-      AvroFieldDerivation[DefaultInner]
       val at = AvroType[DefaultInner]
       assertEquals(at(new GenericRecordBuilder(at.schema).build()), DefaultInner())
       val inner = DefaultInner(
