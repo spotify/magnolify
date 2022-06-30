@@ -24,38 +24,41 @@ package object auto extends AutoDerivation
 
 trait AutoDerivation {
   // Hash <: Eq
-  implicit def genHash[T](implicit lp: shapeless.LowPriority): Hash[T] =
+  implicit def derivedHash[T](implicit lp: shapeless.LowPriority): Hash[T] =
     macro CatsMacros.genHashMacro[T]
-  implicit def genEq[T](implicit lp: shapeless.LowPriority): Eq[T] = macro CatsMacros.genEqMacro[T]
-  implicit def genShow[T](implicit lp: shapeless.LowPriority): Show[T] =
+  implicit def derivedEq[T](implicit lp: shapeless.LowPriority): Eq[T] =
+    macro CatsMacros.genEqMacro[T]
+  implicit def derivedShow[T](implicit lp: shapeless.LowPriority): Show[T] =
     macro CatsMacros.genShowMacro[T]
 
   // CommutativeGroup <: Group | CommutativeMonoid
-  implicit def genCommutativeGroup[T](implicit lp: shapeless.LowPriority): CommutativeGroup[T] =
+  implicit def derivedCommutativeGroup[T](implicit lp: shapeless.LowPriority): CommutativeGroup[T] =
     macro CatsMacros.genCommutativeGroupMacro[T]
 
   // Group <: Monoid
-  implicit def genGroup[T](implicit lp: shapeless.LowPriority): Group[T] =
+  implicit def derivedGroup[T](implicit lp: shapeless.LowPriority): Group[T] =
     macro CatsMacros.genGroupMacro[T]
 
   // CommutativeMonoid <: Monoid | CommutativeSemigroup
-  implicit def genCommutativeMonoid[T](implicit lp: shapeless.LowPriority): CommutativeMonoid[T] =
+  implicit def derivedCommutativeMonoid[T](implicit
+    lp: shapeless.LowPriority
+  ): CommutativeMonoid[T] =
     macro CatsMacros.genCommutativeMonoidMacro[T]
 
   // Monoid <: Semigroup
-  implicit def genMonoid[T](implicit lp: shapeless.LowPriority): Monoid[T] =
+  implicit def derivedMonoid[T](implicit lp: shapeless.LowPriority): Monoid[T] =
     macro CatsMacros.genMonoidMacro[T]
 
   // Band <: Semigroup
-  implicit def genBand[T](implicit lp: shapeless.LowPriority): Band[T] =
+  implicit def derivedBand[T](implicit lp: shapeless.LowPriority): Band[T] =
     macro CatsMacros.genBandMacro[T]
 
   // CommutativeSemigroup <: Semigroup
-  implicit def genCommutativeSemigroup[T](implicit
+  implicit def derivedCommutativeSemigroup[T](implicit
     lp: shapeless.LowPriority
   ): CommutativeSemigroup[T] =
     macro CatsMacros.genCommutativeSemigroupMacro[T]
 
-  implicit def genSemigroup[T](implicit lp: shapeless.LowPriority): Semigroup[T] =
+  implicit def derivedSemigroup[T](implicit lp: shapeless.LowPriority): Semigroup[T] =
     macro CatsMacros.genSemigroupMacro[T]
 }

@@ -115,7 +115,7 @@ class AvroTypeSuite
   // Enum types would be derived several times if not stored
   implicit val etJava: EnumType[JavaEnums.Color] = javaEnumType[JavaEnums.Color]
   implicit val etScala: EnumType[ScalaEnums.Color.Type] = scalaEnumType[ScalaEnums.Color.Type]
-  implicit val etAdt: EnumType[ADT.Color] = autoDerivedEnumType[ADT.Color]
+  implicit val etAdt: EnumType[ADT.Color] = derivedEnumType[ADT.Color]
 
   implicit val afUri: AvroField[URI] = AvroField.from[String](URI.create)(_.toString)
   implicit val afDuration: AvroField[Duration] =

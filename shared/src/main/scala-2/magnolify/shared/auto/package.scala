@@ -21,5 +21,5 @@ import magnolify.shared.auto.EnumMacros
 package object auto extends AutoDerivation with EnumImplicits
 
 trait AutoDerivation {
-  implicit def genEnumType[T]: EnumType[T] = macro EnumMacros.genEnumTypeMacro[T]
+  implicit def derivedEnumType[T]: EnumType[T] = macro EnumMacros.genEnumTypeMacro[T]
 }

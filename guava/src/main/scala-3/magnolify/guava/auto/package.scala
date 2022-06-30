@@ -22,7 +22,7 @@ import magnolify.guava.semiauto.FunnelDerivation
 
 import scala.deriving.Mirror
 
-package object auto extends AutoDerivation with FunnelImplicits
+package object auto extends AutoDerivation
 
 trait AutoDerivation:
-  inline given autoDerivedFunnel[T](using Mirror.Of[T]): Funnel[T] = FunnelDerivation[T]
+  inline given derivedFunnel[T](using Mirror.Of[T]): Funnel[T] = FunnelDerivation[T]

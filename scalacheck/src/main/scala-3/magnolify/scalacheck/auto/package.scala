@@ -27,5 +27,5 @@ package object auto extends AutoDerivation
 trait AutoDerivation: // extends FallbackDerivation:
   given arbSeed: Arbitrary[Seed] = Arbitrary(Arbitrary.arbLong.arbitrary.map(Seed.apply))
 
-  inline given autoDerivedArbitrary[T](using Mirror.Of[T]): Arbitrary[T] = ArbitraryDerivation[T]
-  inline given autoDerivedCogen[T](using Mirror.Of[T]): Cogen[T] = CogenDerivation[T]
+  inline given derivedArbitrary[T](using Mirror.Of[T]): Arbitrary[T] = ArbitraryDerivation[T]
+  inline given derivedCogen[T](using Mirror.Of[T]): Cogen[T] = CogenDerivation[T]

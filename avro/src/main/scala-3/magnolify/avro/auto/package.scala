@@ -20,8 +20,8 @@ import magnolify.avro.semiauto.AvroFieldDerivation
 
 import scala.deriving.Mirror
 
-package object auto extends AutoDerivation with AvroImplicits
+package object auto extends AutoDerivation
 
 trait AutoDerivation:
-  inline given autoDerivedAvroField[T](using Mirror.Of[T]): AvroField.Record[T] =
+  inline given derivedAvroField[T](using Mirror.Of[T]): AvroField.Record[T] =
     AvroFieldDerivation[T]

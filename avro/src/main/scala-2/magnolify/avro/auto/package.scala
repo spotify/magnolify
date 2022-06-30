@@ -18,8 +18,8 @@ package magnolify.avro
 
 import magnolify.avro.auto.AvroMacros
 
-package object auto extends AutoDerivation with AvroImplicits
+package object auto extends AutoDerivation
 
 trait AutoDerivation {
-  implicit def genAvroField[T]: AvroField.Record[T] = macro AvroMacros.genAvroFieldMacro[T]
+  implicit def derivedAvroField[T]: AvroField.Record[T] = macro AvroMacros.genAvroFieldMacro[T]
 }

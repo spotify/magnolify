@@ -20,9 +20,9 @@ import magnolify.bigtable.semiauto.BigtableFieldDerivation
 
 import scala.deriving.Mirror
 
-package object auto extends AutoDerivation with BigtableImplicits
+package object auto extends AutoDerivation
 
 trait AutoDerivation {
-  inline given autoDerivedBigtableField[T](using Mirror.Of[T]): BigtableField.Record[T] =
+  inline given derivedBigtableField[T](using Mirror.Of[T]): BigtableField.Record[T] =
     BigtableFieldDerivation[T]
 }

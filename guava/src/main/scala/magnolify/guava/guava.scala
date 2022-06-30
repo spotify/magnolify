@@ -14,14 +14,6 @@
  * limitations under the License.
  */
 
-package magnolify.bigquery
+package magnolify
 
-import magnolify.bigquery.semiauto.TableRowFieldDerivation
-
-import scala.deriving.Mirror
-
-package object auto extends AutoDerivation
-
-trait AutoDerivation:
-  inline given derivedTableRowField[T](using Mirror.Of[T]): TableRowField.Record[T] =
-    TableRowFieldDerivation[T]
+package object guava extends FunnelImplicits

@@ -18,9 +18,9 @@ package magnolify.bigquery
 
 import magnolify.bigquery.auto.BigQueryMacros
 
-package object auto extends AutoDerivation with BigQueryImplicits
+package object auto extends AutoDerivation
 
 trait AutoDerivation {
-  implicit def genTableRowField[T]: TableRowField.Record[T] =
+  implicit def derivedTableRowField[T]: TableRowField.Record[T] =
     macro BigQueryMacros.genTableRowFieldMacro[T]
 }

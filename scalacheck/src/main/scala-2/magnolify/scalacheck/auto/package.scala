@@ -23,10 +23,8 @@ import org.scalacheck.rng.Seed
 package object auto extends AutoDerivation
 
 trait AutoDerivation {
-  implicit val seedArbitrary: Arbitrary[Seed] = Arbitrary(
-    Arbitrary.arbLong.arbitrary.map(Seed.apply)
-  )
+  implicit val arbSeed: Arbitrary[Seed] = Arbitrary(Arbitrary.arbLong.arbitrary.map(Seed.apply))
 
-  implicit def genArbitrary[T]: Arbitrary[T] = macro ScalacheckMacros.genArbitraryMacro[T]
-  implicit def genCogen[T]: Cogen[T] = macro ScalacheckMacros.genCogenMacro[T]
+  implicit def derivedArbitrary[T]: Arbitrary[T] = macro ScalacheckMacros.genArbitraryMacro[T]
+  implicit def derivedCogen[T]: Cogen[T] = macro ScalacheckMacros.genCogenMacro[T]
 }
