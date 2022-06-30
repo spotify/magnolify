@@ -23,4 +23,4 @@ import scala.deriving.Mirror
 package object auto extends AutoDerivation with EnumImplicits
 
 trait AutoDerivation:
-  inline given [T](using Mirror.Of[T]): EnumType[T] = EnumTypeDerivation[T]
+  inline given autoDerivedEnumType[T](using Mirror.Of[T]): EnumType[T] = EnumTypeDerivation[T]

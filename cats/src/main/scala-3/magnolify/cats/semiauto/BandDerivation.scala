@@ -23,7 +23,7 @@ import scala.deriving.Mirror
 
 object BandDerivation extends ProductDerivation[Band]:
 
-  def join[T](caseClass: CaseClass[Band, T]): Band[T] = {
+  def join[T](caseClass: CaseClass[Band, T]): Band[T] =
     val combineImpl = SemigroupMethods.combine(caseClass)
     val combineNImpl = SemigroupMethods.combineN(caseClass)
     val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
@@ -32,6 +32,6 @@ object BandDerivation extends ProductDerivation[Band]:
       override def combine(x: T, y: T): T = combineImpl(x, y)
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
-  }
+  end join
 
-  inline given apply[T](using Mirror.Of[T]): Band[T] = derived[T]
+  inline def apply[T](using Mirror.Of[T]): Band[T] = derivedMirror[T]

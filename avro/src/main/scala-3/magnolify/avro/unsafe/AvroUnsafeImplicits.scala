@@ -21,7 +21,7 @@ import magnolify.avro.AvroField
 import magnolify.avro.AvroImplicits.given
 
 trait AvroUnsafeImplicits:
-  given AvroField[Byte] = AvroField.afByte
-  given AvroField[Char] = AvroField.afChar
-  given AvroField[Short] = AvroField.afShort
-  given [T](using EnumType[T]): AvroField[UnsafeEnum[T]] = AvroField.afUnsafeEnum
+  given afByte: AvroField[Byte] = AvroField.afByte
+  given afChar: AvroField[Char] = AvroField.afChar
+  given afShort: AvroField[Short] = AvroField.afShort
+  given afUnsafeEnum[T](using EnumType[T]): AvroField[UnsafeEnum[T]] = AvroField.afUnsafeEnum

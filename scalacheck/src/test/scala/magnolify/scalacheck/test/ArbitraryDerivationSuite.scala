@@ -53,15 +53,13 @@ class ArbitraryDerivationSuite extends MagnolifySuite with magnolify.scalacheck.
     }
   }
 
+  import TestArbitraryImplicits.{arbDuration, arbUri}
+
   test[Numbers]
   test[Required]
   test[Nullable]
-
-  {
-    test[Repeated]
-    test((c: Collections) => (c.a.toList, c.l, c.v))
-  }
-
+  test[Repeated]
+  test((c: Collections) => (c.a.toList, c.l, c.v))
   test[Nested]
 
   {
@@ -74,10 +72,7 @@ class ArbitraryDerivationSuite extends MagnolifySuite with magnolify.scalacheck.
     }
   }
 
-  {
-    import Custom._
-    test[Custom]
-  }
+  test[Custom]
 
 //  // recursive structures require to assign the derived value to an implicit variable
 //  {

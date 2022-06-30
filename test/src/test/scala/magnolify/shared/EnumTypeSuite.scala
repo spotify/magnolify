@@ -26,7 +26,7 @@ class EnumTypeSuite
 
   test("JavaEnums") {
     // val et = ensureSerializable(implicitly[EnumType[JavaEnums.Color]])
-    val et = implicitly[EnumType[JavaEnums.Color]]
+    val et = EnumType[JavaEnums.Color]
     assertEquals(et.name, "Color")
     assertEquals(et.namespace, "magnolify.test.JavaEnums")
     assertEquals(et.values.toSet, Set("RED", "GREEN", "BLUE"))
@@ -38,7 +38,7 @@ class EnumTypeSuite
 
   test("ScalaEnums") {
     // val et = ensureSerializable(implicitly[EnumType[ScalaEnums.Color.Type]])
-    val et = implicitly[EnumType[ScalaEnums.Color.Type]]
+    val et = EnumType[ScalaEnums.Color.Type]
     assertEquals(et.name, "Color")
     assertEquals(et.namespace, "magnolify.test.Simple.ScalaEnums")
     assertEquals(et.values.toSet, Set("Red", "Green", "Blue"))
@@ -52,7 +52,7 @@ class EnumTypeSuite
 
   test("ADT") {
 //    val et = ensureSerializable(implicitly[EnumType[ADT.Color]])
-    val et = implicitly[EnumType[ADT.Color]]
+    val et = EnumType[ADT.Color]
     assertEquals(et.name, "Color")
     assertEquals(et.namespace, "magnolify.test.ADT")
     assertEquals(et.values.toSet, Set("Red", "Green", "Blue"))
@@ -65,7 +65,7 @@ class EnumTypeSuite
 
   test("ADT No Default Constructor") {
 //    val et = ensureSerializable(implicitly[EnumType[ADT.Person]])
-    val et = implicitly[EnumType[ADT.Person]]
+    val et = EnumType[ADT.Person]
     assertEquals(et.name, "Person")
     assertEquals(et.namespace, "magnolify.test.ADT")
     assertEquals(et.values.toSet, Set("Aldrin", "Neil"))

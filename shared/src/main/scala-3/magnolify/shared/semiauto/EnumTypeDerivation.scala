@@ -25,7 +25,7 @@ import scala.quoted.*
 
 object EnumTypeDerivation extends Derivation[EnumType]:
 
-  def join[T](caseClass: CaseClass[EnumType, T]): EnumType[T] = {
+  def join[T](caseClass: CaseClass[EnumType, T]): EnumType[T] =
     require(caseClass.isObject, s"Cannot derive EnumType[T] for case class ${caseClass.typeInfo}")
     val n = caseClass.typeInfo.short
     val ns = caseClass.typeInfo.owner
@@ -36,9 +36,9 @@ object EnumTypeDerivation extends Derivation[EnumType]:
       caseClass.annotations.toList,
       _ => caseClass.rawConstruct(Nil)
     )
-  }
+  end join
 
-  def split[T](sealedTrait: SealedTrait[EnumType, T]): EnumType[T] = {
+  def split[T](sealedTrait: SealedTrait[EnumType, T]): EnumType[T] =
     val n = sealedTrait.typeInfo.short
     val ns = sealedTrait.typeInfo.owner
     val subs = sealedTrait.subtypes.map(_.typeclass)
@@ -53,6 +53,6 @@ object EnumTypeDerivation extends Derivation[EnumType]:
       // and cached inside an instance of EnumType
       v => subs.find(_.name == v).get.from(v)
     )
-  }
+  end split
 
-  inline def apply[T](using Mirror.Of[T]): EnumType[T] = derived[T]
+  inline def apply[T](using Mirror.Of[T]): EnumType[T] = derivedMirror[T]

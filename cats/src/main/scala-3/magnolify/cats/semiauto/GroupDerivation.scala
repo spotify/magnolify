@@ -23,7 +23,7 @@ import scala.deriving.Mirror
 
 object GroupDerivation extends ProductDerivation[Group]:
 
-  def join[T](caseClass: CaseClass[Group, T]): Group[T] = {
+  def join[T](caseClass: CaseClass[Group, T]): Group[T] =
     val emptyImpl = MonoidMethods.empty(caseClass)
     val combineImpl = SemigroupMethods.combine(caseClass)
     val combineNImpl = GroupMethods.combineN(caseClass)
@@ -40,9 +40,9 @@ object GroupDerivation extends ProductDerivation[Group]:
       override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
       override def inverse(a: T): T = inverseImpl(a)
       override def remove(a: T, b: T): T = removeImpl(a, b)
-  }
+  end join
 
-  inline given apply[T](using Mirror.Of[T]): Group[T] = derived[T]
+  inline def apply[T](using Mirror.Of[T]): Group[T] = derivedMirror[T]
 end GroupDerivation
 
 private object GroupMethods:
@@ -51,7 +51,6 @@ private object GroupMethods:
     val combineImpl = SemigroupMethods.combine(caseClass)
     val f = SemigroupMethods.combineNBase(caseClass)
     val inverseImpl = inverse(caseClass)
-    val removeImpl = remove(caseClass)
     (a: T, n: Int) =>
       if (n > 0) {
         f(a, n)

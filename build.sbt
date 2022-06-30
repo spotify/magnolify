@@ -63,7 +63,7 @@ ThisBuild / tpolecatDevModeOptions ~= { opts =>
   val parallelism = math.min(java.lang.Runtime.getRuntime.availableProcessors(), 16)
   val extras = Set(
     ScalacOptions.privateOption("retain-trees", _ >= V3_0_0),
-    new ScalacOption("-Xmax-inlines" :: "128" :: Nil, _ >= V3_0_0),
+    new ScalacOption("-Xmax-inlines" :: "64" :: Nil, _ >= V3_0_0),
     ScalacOptions.warnOption("macros:after", version => version.isBetween(V2_13_0, V3_0_0)),
     ScalacOptions.privateWarnOption("macros:after", version => version.isBetween(V2_12_0, V2_13_0)),
     ScalacOptions.privateBackendParallelism(parallelism),
@@ -240,7 +240,7 @@ lazy val cats: Project = project
   )
   .dependsOn(
     shared,
-    scalacheck % "test->test",
+    scalacheck % "compile->compile;test->test",
     test % "test->test"
   )
 
@@ -256,7 +256,7 @@ lazy val guava: Project = project
   )
   .dependsOn(
     shared,
-    scalacheck % Test,
+    scalacheck % "compile->compile;test->test",
     test % "test->test"
   )
 
@@ -301,8 +301,8 @@ lazy val avro: Project = project
   )
   .dependsOn(
     shared,
-    cats % Test,
-    scalacheck % Test,
+    cats % "compile->compile;test->test",
+    scalacheck % "compile->compile;test->test",
     test % "test->test"
   )
 
@@ -319,8 +319,8 @@ lazy val bigquery: Project = project
   )
   .dependsOn(
     shared,
-    cats % Test,
-    scalacheck % Test,
+    cats % "compile->compile;test->test",
+    scalacheck % "compile->compile;test->test",
     test % "test->test"
   )
 
@@ -336,8 +336,8 @@ lazy val bigtable: Project = project
   )
   .dependsOn(
     shared,
-    cats % Test,
-    scalacheck % Test,
+    cats % "compile->compile;test->test",
+    scalacheck % "compile->compile;test->test",
     test % "test->test"
   )
 

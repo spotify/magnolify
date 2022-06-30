@@ -38,4 +38,4 @@ object CogenDerivation extends Derivation[Cogen]:
     }
   }
 
-  inline given apply[T](using Mirror.Of[T]): Cogen[T] = derived[T]
+  inline def apply[T](using Mirror.Of[T]): Cogen[T] = derivedMirror[T]

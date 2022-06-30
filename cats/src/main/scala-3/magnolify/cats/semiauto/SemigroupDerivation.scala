@@ -24,7 +24,7 @@ import scala.deriving.Mirror
 
 object SemigroupDerivation extends ProductDerivation[Semigroup]:
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+  def join[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] =
     val combineImpl = SemigroupMethods.combine(caseClass)
     val combineNImpl = SemigroupMethods.combineN(caseClass)
     val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
@@ -33,9 +33,9 @@ object SemigroupDerivation extends ProductDerivation[Semigroup]:
       override def combine(x: T, y: T): T = combineImpl(x, y)
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
-  }
+  end join
 
-  inline given apply[T](using Mirror.Of[T]): Semigroup[T] = derived
+  inline def apply[T](using Mirror.Of[T]): Semigroup[T] = derivedMirror[T]
 end SemigroupDerivation
 
 private object SemigroupMethods:

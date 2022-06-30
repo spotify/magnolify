@@ -29,8 +29,8 @@ import scala.jdk.CollectionConverters._
 object TableRowFieldDerivation extends ProductDerivation[TableRowField]:
 
   def join[T](caseClass: CaseClass[TableRowField, T]): TableRowField.Record[T] =
-    new TableRowField.Record[T] {
-      override protected def buildSchema(cm: CaseMapper): TableFieldSchema = {
+    new TableRowField.Record[T]:
+      override protected def buildSchema(cm: CaseMapper): TableFieldSchema =
         // do not use a scala wrapper in the schema, so clone() works
         val fields = new java.util.ArrayList[TableFieldSchema](caseClass.params.size)
         caseClass.params.foreach { p =>
@@ -47,24 +47,19 @@ object TableRowFieldDerivation extends ProductDerivation[TableRowField]:
           .setMode("REQUIRED")
           .setDescription(getDescription(caseClass.annotations, caseClass.typeInfo.full))
           .setFields(fields)
-      }
+      end buildSchema
 
       override def from(v: java.util.Map[String, AnyRef])(cm: CaseMapper): T =
         caseClass.construct { p =>
           val f = v.get(cm.map(p.label))
-          if (f == null && p.default.isDefined) {
-            p.default.get
-          } else {
-            p.typeclass.fromAny(f)(cm)
-          }
+          if (f == null && p.default.isDefined) p.default.get
+          else p.typeclass.fromAny(f)(cm)
         }
 
       override def to(v: T)(cm: CaseMapper): TableRow =
         caseClass.params.foldLeft(new TableRow) { (tr, p) =>
           val f = p.typeclass.to(p.deref(v))(cm)
-          if (f != null) {
-            tr.put(cm.map(p.label), f)
-          }
+          if (f != null) tr.put(cm.map(p.label), f)
           tr
         }
 
@@ -73,7 +68,8 @@ object TableRowFieldDerivation extends ProductDerivation[TableRowField]:
         require(descs.size <= 1, s"More than one @description annotation: $name")
         descs.headOption.orNull
       }
-    }
+  end join
 
-  inline given apply[T](using Mirror.Of[T]): TableRowField.Record[T] =
-    derived[T].asInstanceOf[TableRowField.Record[T]]
+  // ProductDerivation can be specialized to an AvroField.Record
+  inline def apply[T](using Mirror.Of[T]): TableRowField.Record[T] =
+    derivedMirror[T].asInstanceOf[TableRowField.Record[T]]

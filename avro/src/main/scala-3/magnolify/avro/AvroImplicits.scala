@@ -29,23 +29,27 @@ import scala.jdk.CollectionConverters.*
 
 trait AvroImplicits:
 
-  given [T](using AvroField.Record[T]): AvroType[T] = AvroType[T]
+  given avroType[T](using AvroField.Record[T]): AvroType[T] = AvroType[T]
 
-  given AvroField[Boolean] = AvroField.afBoolean
-  given AvroField[Int] = AvroField.afInt
-  given AvroField[Long] = AvroField.afLong
-  given AvroField[Float] = AvroField.afFloat
-  given AvroField[Double] = AvroField.afDouble
-  given AvroField[String] = AvroField.afString
-  given AvroField[Unit] = AvroField.afUnit
-  given AvroField[Array[Byte]] = AvroField.afBytes
-  given [T: EnumType]: AvroField[T] = AvroField.afEnum
-  given [T: AvroField]: AvroField[Option[T]] = AvroField.afOption
-  given [T, C[_]](using AvroField[T], C[T] => Iterable[T], Factory[T, C[T]]): AvroField[C[T]] =
+  given afBoolean: AvroField[Boolean] = AvroField.afBoolean
+  given afInt: AvroField[Int] = AvroField.afInt
+  given afLong: AvroField[Long] = AvroField.afLong
+  given afFloat: AvroField[Float] = AvroField.afFloat
+  given afDouble: AvroField[Double] = AvroField.afDouble
+  given afString: AvroField[String] = AvroField.afString
+  given afUnit: AvroField[Unit] = AvroField.afUnit
+  given afBytes: AvroField[Array[Byte]] = AvroField.afBytes
+  given afEnum[T: EnumType]: AvroField[T] = AvroField.afEnum
+  given afOption[T: AvroField]: AvroField[Option[T]] = AvroField.afOption
+  given afIterable[T, C[_]](using
+    AvroField[T],
+    C[T] => Iterable[T],
+    Factory[T, C[T]]
+  ): AvroField[C[T]] =
     AvroField.afIterable
-  given [T: AvroField]: AvroField[Map[String, T]] = AvroField.afMap
+  given afMap[T: AvroField]: AvroField[Map[String, T]] = AvroField.afMap
 
-  given AvroField[UUID] = AvroField.afUuid
-  given AvroField[LocalDate] = AvroField.afDate
+  given afUuid: AvroField[UUID] = AvroField.afUuid
+  given afDate: AvroField[LocalDate] = AvroField.afDate
 
 object AvroImplicits extends AvroImplicits

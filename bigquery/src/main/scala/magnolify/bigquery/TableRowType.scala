@@ -21,9 +21,9 @@ import java.util.UUID
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.common.io.BaseEncoding
-import magnolify.shared.{CaseMapper, Converter}
-import scala.collection.concurrent
+import magnolify.shared.{CaseMapper, Converter, EnumType, UnsafeEnum}
 import scala.annotation.StaticAnnotation
+import scala.collection.concurrent
 import scala.language.experimental.macros
 
 import scala.collection.compat._
@@ -161,6 +161,24 @@ object TableRowField {
         if (xs.isEmpty) null else xs.iterator.map(f.to(_)(cm)).toList.asJava
       }
     }
+
+  // unsafe
+  val trfByte: TableRowField[Byte] =
+    TableRowField.from[Long](_.toByte)(_.toLong)(trfLong)
+  val trfChar: TableRowField[Char] =
+    TableRowField.from[Long](_.toChar)(_.toLong)(trfLong)
+  val trfShort: TableRowField[Short] =
+    TableRowField.from[Long](_.toShort)(_.toLong)(trfLong)
+  val trfInt: TableRowField[Int] =
+    TableRowField.from[Long](_.toInt)(_.toLong)(trfLong)
+  val trfFloat: TableRowField[Float] =
+    TableRowField.from[Double](_.toFloat)(_.toDouble)(trfDouble)
+
+  def trfEnum[T](implicit et: EnumType[T]): TableRowField[T] =
+    TableRowField.from[String](et.from)(et.to)(trfString)
+
+  def trfUnsafeEnum[T](implicit et: EnumType[T]): TableRowField[UnsafeEnum[T]] =
+    TableRowField.from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))(trfString)
 }
 
 private object NumericConverter {

@@ -73,7 +73,8 @@ object AvroFieldDerivation extends ProductDerivation[AvroField]:
           r.put(p.index, p.typeclass.to(p.deref(v))(cm))
           r
         }
+  end join
 
   // ProductDerivation can be specialized to an AvroField.Record
-  inline given apply[T](using mirror: Mirror.Of[T]): AvroField.Record[T] =
-    derived[T].asInstanceOf[AvroField.Record[T]]
+  inline def apply[T](using mirror: Mirror.Of[T]): AvroField.Record[T] =
+    derivedMirror[T].asInstanceOf[AvroField.Record[T]]

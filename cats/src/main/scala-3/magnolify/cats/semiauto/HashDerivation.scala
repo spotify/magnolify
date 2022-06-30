@@ -24,7 +24,7 @@ import scala.deriving.Mirror
 
 object HashDerivation extends Derivation[Hash] {
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+  def join[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] =
     val eqvImpl = EqMethods.join(caseClass)
 
     new Hash[T]:
@@ -40,15 +40,15 @@ object HashDerivation extends Derivation[Hash] {
         }
 
       override def eqv(x: T, y: T): Boolean = eqvImpl(x, y)
-  }
+  end join
 
-  def split[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = {
+  def split[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] =
     val eqvImpl = EqMethods.split(sealedTrait)
 
     new Hash[T]:
       override def hash(x: T): Int = sealedTrait.choose(x)(sub => sub.typeclass.hash(sub.value))
       override def eqv(x: T, y: T): Boolean = eqvImpl(x, y)
-  }
+  end split
 
-  inline given apply[T](using Mirror.Of[T]): Hash[T] = derived[T]
+  inline def apply[T](using Mirror.Of[T]): Hash[T] = derivedMirror[T]
 }

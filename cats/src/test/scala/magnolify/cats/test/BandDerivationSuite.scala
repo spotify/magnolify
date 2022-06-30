@@ -20,14 +20,13 @@ import cats._
 import cats.kernel.Band
 import cats.kernel.laws.discipline._
 import magnolify.test._
+import magnolify.scalacheck.semiauto.ArbitraryDerivation
+import magnolify.cats.test.Types.MiniSet
 import org.scalacheck._
 
 import scala.reflect._
 
-class BandDerivationSuite
-    extends MagnolifySuite
-    with magnolify.scalacheck.AutoDerivation
-    with magnolify.cats.AutoDerivation {
+class BandDerivationSuite extends MagnolifySuite with magnolify.cats.AutoDerivation {
 
   private def test[T: Arbitrary: ClassTag: Eq: Band]: Unit = {
 //    val band = ensureSerializable(implicitly[Band[T]])
@@ -35,12 +34,16 @@ class BandDerivationSuite
     include(BandTests[T](band).band.all, className[T] + ".")
   }
 
-  import BandDerivationSuite._
-  test[Record]
+  {
+    import cats.Eq._
+    import BandDerivationSuite._
+    implicit val arbRecord: Arbitrary[Record] = ArbitraryDerivation[Record]
+    implicit val bMiniSet: Band[MiniSet] = Band.instance((x, y) => MiniSet(x.s ++ y.s))
+
+    test[Record]
+  }
 }
 
 object BandDerivationSuite {
-  import Types.MiniSet
-  implicit val bMiniSet: Band[MiniSet] = Band.instance((x, y) => MiniSet(x.s ++ y.s))
   case class Record(s: Set[Int], m: MiniSet)
 }

@@ -26,7 +26,6 @@ import com.google.api.services.bigquery.model.TableRow
 import magnolify.bigquery._
 import magnolify.shared.CaseMapper
 import magnolify.test.Simple._
-import magnolify.test.Time._
 import magnolify.test._
 import org.scalacheck._
 
@@ -38,14 +37,17 @@ class TableRowTypeSuite
     extends MagnolifySuite
     with magnolify.scalacheck.AutoDerivation
     with magnolify.cats.AutoDerivation
+    with magnolify.shared.AutoDerivation
     with magnolify.bigquery.AutoDerivation
+    with magnolify.shared.EnumImplicits
     with magnolify.bigquery.BigQueryImplicits
     with magnolify.bigquery.unsafe.BigQueryUnsafeImplicits {
 
   private val mapper = new ObjectMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-  private def test[T: Arbitrary: ClassTag](implicit t: TableRowType[T], eq: Eq[T]): Unit = {
+  private def test[T: Arbitrary: ClassTag: Eq: TableRowType]: Unit = {
     // val tpe = ensureSerializable(t)
-    val tpe = t
+    val tpe = implicitly[TableRowType[T]]
+    val eq = implicitly[Eq[T]]
     // FIXME: test schema
     tpe.schema
     property(className[T]) {
@@ -58,47 +60,30 @@ class TableRowTypeSuite
     }
   }
 
+  import magnolify.scalacheck.test.TestArbitraryImplicits._
+  import magnolify.cats.test.TestEqImplicits._
+  // `TableRow` reserves field `f`
+  implicit val trt: TableRowType[Floats] =
+    TableRowType[Floats](CaseMapper(s => if (s == "f") "float" else s))
+  implicit val trfUri: TableRowField[URI] = TableRowField.from[String](URI.create)(_.toString)
+  implicit val trfDuration: TableRowField[Duration] =
+    TableRowField.from[Long](Duration.ofMillis)(_.toMillis)
+  implicit val arbBigDecimal: Arbitrary[BigDecimal] =
+    Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(BigDecimal(_)))
+
   test[Integers]
-
-  {
-    // `TableRow` reserves field `f`
-    implicit val trt: TableRowType[Floats] =
-      TableRowType[Floats](CaseMapper(s => if (s == "f") "float" else s))
-    test[Floats]
-  }
-
+  test[Floats]
   test[Required]
   test[Nullable]
   test[Repeated]
   test[Nested]
   test[Unsafe]
-
-  {
-    import Collections._
-    test[Collections]
-    test[MoreCollections]
-  }
-
-//  {
-//    import Enums._
-//    import UnsafeEnums._
-//    test[Enums]
-//    test[UnsafeEnums]
-//  }
-
-  {
-    import Custom._
-    implicit val trfUri: TableRowField[URI] = TableRowField.from[String](URI.create)(_.toString)
-    implicit val trfDuration: TableRowField[Duration] =
-      TableRowField.from[Long](Duration.ofMillis)(_.toMillis)
-    test[Custom]
-  }
-
-  {
-    implicit val arbBigDecimal: Arbitrary[BigDecimal] =
-      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(BigDecimal(_)))
-    test[BigQueryTypes]
-  }
+  test[Collections]
+  test[MoreCollections]
+  test[Enums]
+  test[UnsafeEnums]
+  test[Custom]
+  test[BigQueryTypes]
 
   test("BigDecimal") {
     val at: TableRowType[BigDec] = TableRowType[BigDec]

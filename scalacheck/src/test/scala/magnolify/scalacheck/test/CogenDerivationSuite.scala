@@ -25,6 +25,8 @@ import org.scalacheck.rng.Seed
 
 import scala.reflect._
 
+import java.net.URI
+
 class CogenDerivationSuite extends MagnolifySuite with magnolify.scalacheck.AutoDerivation {
 
   private def test[T: Arbitrary: ClassTag: Cogen]: Unit =
@@ -36,18 +38,20 @@ class CogenDerivationSuite extends MagnolifySuite with magnolify.scalacheck.Auto
     val name = className[T]
     implicit val arbList: Arbitrary[List[T]] = Arbitrary(Gen.listOfN(10, arb.arbitrary))
     property(s"$name.uniqueness") {
-      Prop.forAll { (l: Long, xs: List[T]) =>
-        val seed = Seed(l) // prevent Magnolia from deriving `Seed`
+      Prop.forAll { (seed: Seed, xs: List[T]) =>
         xs.map(co.perturb(seed, _)).toSet.size == xs.map(f).toSet.size
       }
     }
     property(s"$name.consistency") {
-      Prop.forAll { (l: Long, x: T) =>
-        val seed = Seed(l) // prevent Magnolia from deriving `Seed`
+      Prop.forAll { (seed: Seed, x: T) =>
         co.perturb(seed, x) == co.perturb(seed, x)
       }
     }
   }
+
+  // we only want to derive Cogen
+  import magnolify.scalacheck.test.TestArbitraryImplicits._
+  implicit val cogenUri: Cogen[URI] = Cogen(_.hashCode().toLong)
 
   test[Numbers]
   test[Required]
@@ -56,12 +60,9 @@ class CogenDerivationSuite extends MagnolifySuite with magnolify.scalacheck.Auto
   test[Repeated]
   test((c: Collections) => (c.a.toList, c.l, c.v))
   test[Nested]
-
-  import Custom._
   test[Custom]
 
   // recursive structures require to assign the derived value to an implicit variable
-  import magnolify.scalacheck.test.ADT.{arbGNode, arbNode}
   implicit lazy val cogenNode: Cogen[Node] = CogenDerivation[Node]
   implicit lazy val cogenGNode: Cogen[GNode[Int]] = CogenDerivation[GNode[Int]]
   test[Node]

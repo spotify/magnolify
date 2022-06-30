@@ -22,15 +22,14 @@ import java.time.Duration
 import cats._
 import cats.kernel.laws.discipline._
 import magnolify.test.Simple._
+import magnolify.scalacheck.semiauto.ArbitraryDerivation
 import magnolify.test._
+import magnolify.cats.test.Types.MiniInt
 import org.scalacheck._
 
 import scala.reflect._
 
-class SemigroupDerivationSuite
-    extends MagnolifySuite
-    with magnolify.scalacheck.AutoDerivation
-    with magnolify.cats.AutoDerivation {
+class SemigroupDerivationSuite extends MagnolifySuite with magnolify.cats.AutoDerivation {
 
   private def test[T: Arbitrary: ClassTag: Eq: Semigroup]: Unit = {
 //    val sg = ensureSerializable(implicitly[Semigroup[T]])
@@ -38,30 +37,28 @@ class SemigroupDerivationSuite
     include(SemigroupTests[T](sg).semigroup.all, className[T] + ".")
   }
 
-  import SemigroupDerivationSuite._
-  test[Record]
-
-  test[Integers]
-
   {
+    import cats.Eq._
+    import SemigroupDerivationSuite._
+    import magnolify.scalacheck.test.TestArbitraryImplicits._
+    import magnolify.cats.test.TestEqImplicits._
+    implicit val arbRecord: Arbitrary[Record] = ArbitraryDerivation[Record]
     implicit val sgBool: Semigroup[Boolean] = Semigroup.instance(_ ^ _)
-    test[Required]
-    test[Nullable]
-//    test[Repeated]
-//    test[Nested]
-  }
-
-  {
-    import Custom._
     implicit val sgUri: Semigroup[URI] =
       Semigroup.instance((x, y) => URI.create(x.toString + y.toString))
     implicit val sgDuration: Semigroup[Duration] = Semigroup.instance(_ plus _)
+    implicit val sgMiniInt: Semigroup[MiniInt] = Semigroup.instance((x, y) => MiniInt(x.i + y.i))
+
+    test[Record]
+    test[Integers]
+    test[Required]
+    test[Nullable]
+    test[Repeated]
+    test[Nested]
     test[Custom]
   }
 }
 
 object SemigroupDerivationSuite {
-  import Types.MiniInt
-  implicit val sgMiniInt: Semigroup[MiniInt] = Semigroup.instance((x, y) => MiniInt(x.i + y.i))
   case class Record(i: Int, m: MiniInt)
 }

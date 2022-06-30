@@ -23,7 +23,7 @@ import scala.deriving.Mirror
 
 object CommutativeMonoidDerivation extends ProductDerivation[CommutativeMonoid]:
 
-  def join[T](caseClass: CaseClass[CommutativeMonoid, T]): CommutativeMonoid[T] = {
+  def join[T](caseClass: CaseClass[CommutativeMonoid, T]): CommutativeMonoid[T] =
     val emptyImpl = MonoidMethods.empty(caseClass)
     val combineImpl = SemigroupMethods.combine(caseClass)
     val combineNImpl = MonoidMethods.combineN(caseClass)
@@ -36,6 +36,6 @@ object CommutativeMonoidDerivation extends ProductDerivation[CommutativeMonoid]:
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAll(as: IterableOnce[T]): T = combineAllImpl(as)
       override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
-  }
+  end join
 
-  inline given apply[T](using Mirror.Of[T]): CommutativeMonoid[T] = derived[T]
+  inline def apply[T](using Mirror.Of[T]): CommutativeMonoid[T] = derivedMirror[T]

@@ -19,8 +19,6 @@ package magnolify
 import scala.collection.{mutable, Factory}
 import scala.util.hashing.MurmurHash3
 
-package object shims {
-  object MurmurHash3Compat {
+package object shims:
+  object MurmurHash3Compat:
     def seed(data: Int): Int = MurmurHash3.mix(MurmurHash3.productSeed, data)
-  }
-}

@@ -23,7 +23,7 @@ import scala.deriving.Mirror
 
 object CommutativeGroupDerivation extends ProductDerivation[CommutativeGroup]:
 
-  def join[T](caseClass: CaseClass[CommutativeGroup, T]): CommutativeGroup[T] = {
+  def join[T](caseClass: CaseClass[CommutativeGroup, T]): CommutativeGroup[T] =
     val emptyImpl = MonoidMethods.empty(caseClass)
     val combineImpl = SemigroupMethods.combine(caseClass)
     val combineNImpl = GroupMethods.combineN(caseClass)
@@ -40,6 +40,6 @@ object CommutativeGroupDerivation extends ProductDerivation[CommutativeGroup]:
       override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
       override def inverse(a: T): T = inverseImpl(a)
       override def remove(a: T, b: T): T = removeImpl(a, b)
-  }
+  end join
 
-  inline given apply[T](using Mirror.Of[T]): CommutativeGroup[T] = derived[T]
+  inline def apply[T](using Mirror.Of[T]): CommutativeGroup[T] = derivedMirror[T]

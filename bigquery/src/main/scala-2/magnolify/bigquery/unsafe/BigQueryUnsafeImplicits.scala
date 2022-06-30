@@ -17,18 +17,17 @@
 package magnolify.bigquery.unsafe
 
 import magnolify.bigquery.TableRowField
+import magnolify.shared.{EnumType, UnsafeEnum}
 
 trait BigQueryUnsafeImplicits {
-  implicit val trfByte: TableRowField[Byte] =
-    TableRowField.from[Long](_.toByte)(_.toLong)(TableRowField.trfLong)
-  implicit val trfChar: TableRowField[Char] =
-    TableRowField.from[Long](_.toChar)(_.toLong)(TableRowField.trfLong)
-  implicit val trfShort: TableRowField[Short] =
-    TableRowField.from[Long](_.toShort)(_.toLong)(TableRowField.trfLong)
-  implicit val trfInt: TableRowField[Int] =
-    TableRowField.from[Long](_.toInt)(_.toLong)(TableRowField.trfLong)
-  implicit val trfFloat: TableRowField[Float] =
-    TableRowField.from[Double](_.toFloat)(_.toDouble)(TableRowField.trfDouble)
+  implicit val trfByte: TableRowField[Byte] = TableRowField.trfByte
+  implicit val trfChar: TableRowField[Char] = TableRowField.trfChar
+  implicit val trfShort: TableRowField[Short] = TableRowField.trfShort
+  implicit val trfInt: TableRowField[Int] = TableRowField.trfInt
+  implicit val trfFloat: TableRowField[Float] = TableRowField.trfFloat
+  implicit def trfEnum[T: EnumType]: TableRowField[T] = TableRowField.trfEnum
+  implicit def trfUnsafeEnum[T: EnumType]: TableRowField[UnsafeEnum[T]] =
+    TableRowField.trfUnsafeEnum
 }
 
 object BigQueryUnsafeImplicits extends BigQueryUnsafeImplicits

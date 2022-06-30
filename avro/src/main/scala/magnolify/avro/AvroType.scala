@@ -252,16 +252,16 @@ object AvroField {
 
   // logical-types
   val afUuid: AvroField[UUID] =
-    AvroField.logicalType[String](LogicalTypes.uuid())(UUID.fromString)(_.toString)(afString)
+    logicalType[String](LogicalTypes.uuid())(UUID.fromString)(_.toString)(afString)
   val afDate: AvroField[LocalDate] =
-    AvroField.logicalType[Int](LogicalTypes.date())(x => LocalDate.ofEpochDay(x.toLong))(
+    logicalType[Int](LogicalTypes.date())(x => LocalDate.ofEpochDay(x.toLong))(
       _.toEpochDay.toInt
     )(afInt)
 
   // unsafe
-  val afByte: AvroField[Byte] = AvroField.from[Int](_.toByte)(_.toInt)(afInt)
-  val afChar: AvroField[Char] = AvroField.from[Int](_.toChar)(_.toInt)(afInt)
-  val afShort: AvroField[Short] = AvroField.from[Int](_.toShort)(_.toInt)(afInt)
+  val afByte: AvroField[Byte] = from[Int](_.toByte)(_.toInt)(afInt)
+  val afChar: AvroField[Char] = from[Int](_.toChar)(_.toInt)(afInt)
+  val afShort: AvroField[Short] = from[Int](_.toShort)(_.toInt)(afInt)
   def afUnsafeEnum[T](implicit et: EnumType[T]): AvroField[UnsafeEnum[T]] =
-    AvroField.from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))(afString)
+    from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))(afString)
 }

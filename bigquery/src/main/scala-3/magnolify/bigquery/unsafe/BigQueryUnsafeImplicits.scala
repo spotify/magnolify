@@ -17,13 +17,16 @@
 package magnolify.bigquery.unsafe
 
 import magnolify.bigquery.TableRowField
+import magnolify.shared.{EnumType, UnsafeEnum}
 
 trait BigQueryUnsafeImplicits:
-  given TableRowField[Byte] = TableRowField.from[Long](_.toByte)(_.toLong)(TableRowField.trfLong)
-  given TableRowField[Char] = TableRowField.from[Long](_.toChar)(_.toLong)(TableRowField.trfLong)
-  given TableRowField[Short] = TableRowField.from[Long](_.toShort)(_.toLong)(TableRowField.trfLong)
-  given TableRowField[Int] = TableRowField.from[Long](_.toInt)(_.toLong)(TableRowField.trfLong)
-  given TableRowField[Float] =
-    TableRowField.from[Double](_.toFloat)(_.toDouble)(TableRowField.trfDouble)
+  given trfByte: TableRowField[Byte] = TableRowField.trfByte
+  given trfChar: TableRowField[Char] = TableRowField.trfChar
+  given trfShort: TableRowField[Short] = TableRowField.trfShort
+  given trfInt: TableRowField[Int] = TableRowField.trfInt
+  given trfFloat: TableRowField[Float] = TableRowField.trfFloat
+  given trfEnum[T](using EnumType[T]): TableRowField[T] = TableRowField.trfEnum
+  given trfUnsafeEnum[T](using EnumType[T]): TableRowField[UnsafeEnum[T]] =
+    TableRowField.trfUnsafeEnum
 
 object BigQueryUnsafeImplicits extends BigQueryUnsafeImplicits

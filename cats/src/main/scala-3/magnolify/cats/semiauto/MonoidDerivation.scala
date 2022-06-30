@@ -24,7 +24,7 @@ import scala.deriving.Mirror
 
 object MonoidDerivation extends ProductDerivation[Monoid]:
 
-  def join[T](caseClass: CaseClass[Monoid, T]): Monoid[T] = {
+  def join[T](caseClass: CaseClass[Monoid, T]): Monoid[T] =
     val emptyImpl = MonoidMethods.empty(caseClass)
     val combineImpl = SemigroupMethods.combine(caseClass)
     val combineNImpl = MonoidMethods.combineN(caseClass)
@@ -37,12 +37,12 @@ object MonoidDerivation extends ProductDerivation[Monoid]:
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAll(as: IterableOnce[T]): T = combineAllImpl(as)
       override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
-  }
+  end join
 
-  inline given apply[T](using Mirror.Of[T]): Monoid[T] = derived[T]
+  inline def apply[T](using Mirror.Of[T]): Monoid[T] = derivedMirror[T]
 end MonoidDerivation
 
-private object MonoidMethods {
+private object MonoidMethods:
   def empty[T, Typeclass[T] <: Monoid[T]](caseClass: CaseClass[Typeclass, T]): () => T =
     new Function0[T] with Serializable:
       @transient private lazy val value = caseClass.construct(_.typeclass.empty)
@@ -80,4 +80,3 @@ private object MonoidMethods {
       case xs => xs.iterator.foldLeft(emptyImpl())(combineImpl)
     }
   }
-}

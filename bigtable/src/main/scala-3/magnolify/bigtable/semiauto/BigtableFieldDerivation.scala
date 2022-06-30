@@ -29,7 +29,7 @@ import scala.deriving.Mirror
 object BigtableFieldDerivation extends ProductDerivation[BigtableField]:
 
   def join[T](caseClass: CaseClass[BigtableField, T]): BigtableField[T] =
-    new BigtableField.Record[T] {
+    new BigtableField.Record[T]:
       private def key(prefix: String, label: String): String =
         if (prefix == null) label else s"$prefix.$label"
 
@@ -38,9 +38,7 @@ object BigtableFieldDerivation extends ProductDerivation[BigtableField]:
         val r = caseClass.construct { p =>
           val cq = key(k, cm.map(p.label))
           val v = p.typeclass.get(xs, cq)(cm)
-          if (v.isSome) {
-            fallback = false
-          }
+          if (v.isSome) fallback = false
           v.getOrElse(p.default)
         }
         // result is default if all fields are default
@@ -49,7 +47,7 @@ object BigtableFieldDerivation extends ProductDerivation[BigtableField]:
 
       override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
         caseClass.params.flatMap(p => p.typeclass.put(key(k, cm.map(p.label)), p.deref(v))(cm))
-    }
+  end join
 
-  inline given apply[T](using Mirror.Of[T]): BigtableField.Record[T] =
-    derived[T].asInstanceOf[BigtableField.Record[T]]
+  inline def apply[T](using Mirror.Of[T]): BigtableField.Record[T] =
+    derivedMirror[T].asInstanceOf[BigtableField.Record[T]]

@@ -29,7 +29,7 @@ object EqDerivation extends Derivation[Eq]:
   def split[T](sealedTrait: SealedTrait[Eq, T]): Eq[T] =
     Eq.instance(EqMethods.split(sealedTrait))
 
-  inline given apply[T](using Mirror.Of[T]): Eq[T] = derived[T]
+  inline def apply[T](using Mirror.Of[T]): Eq[T] = derivedMirror[T]
 end EqDerivation
 
 private object EqMethods:

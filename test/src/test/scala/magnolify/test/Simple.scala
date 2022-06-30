@@ -19,13 +19,22 @@ package magnolify.test
 import java.net.URI
 import java.time.Duration
 
-import org.scalacheck._
-import cats._
 import magnolify.shared.UnsafeEnum
 
 import scala.annotation.StaticAnnotation
 
 object Simple {
+  class ScalaAnnotation(val value: String) extends StaticAnnotation with Serializable
+
+  object ScalaEnums {
+    @JavaAnnotation("Java Annotation")
+    @ScalaAnnotation("Scala Annotation")
+    object Color extends Enumeration {
+      type Type = Value
+      val Red, Green, Blue = Value
+    }
+  }
+
   case class Integers(i: Int, l: Long)
   case class Floats(f: Float, d: Double)
   case class Numbers(i: Int, l: Long, f: Float, d: Double, bi: BigInt, bd: BigDecimal)
@@ -68,54 +77,6 @@ object Simple {
 
   case class LowerCamel(firstField: String, secondField: String, innerField: LowerCamelInner)
   case class LowerCamelInner(innerFirst: String)
-
-  object Collections {
-    implicit def eqIterable[T, C[_]](implicit eq: Eq[T], ti: C[T] => Iterable[T]): Eq[C[T]] =
-      Eq.instance { (x, y) =>
-        val xs = ti(x)
-        val ys = ti(y)
-        xs.size == ys.size && (xs zip ys).forall((eq.eqv _).tupled)
-      }
-  }
-
-  class ScalaAnnotation(val value: String) extends StaticAnnotation with Serializable
-
-  object ScalaEnums {
-    @JavaAnnotation("Java Annotation")
-    @ScalaAnnotation("Scala Annotation")
-    object Color extends Enumeration {
-      type Type = Value
-      val Red, Green, Blue = Value
-    }
-  }
-
-  object Enums {
-    implicit val arbScalaEnum: Arbitrary[ScalaEnums.Color.Type] =
-      Arbitrary(Gen.oneOf(ScalaEnums.Color.values))
-    implicit val eqJavaEnum: Eq[JavaEnums.Color] = Eq.by(_.name())
-    implicit val eqScalaEnum: Eq[ScalaEnums.Color.Type] = Eq.by(_.toString)
-  }
-
-  object UnsafeEnums {
-    implicit def arbUnsafeEnum[T](implicit arb: Arbitrary[T]): Arbitrary[UnsafeEnum[T]] =
-      Arbitrary(
-        Gen.oneOf(arb.arbitrary.map(UnsafeEnum(_)), Gen.const(UnsafeEnum.Unknown("NOT_A_COLOR")))
-      )
-  }
-
-  object Custom {
-    implicit val arbUri: Arbitrary[URI] =
-      Arbitrary(Gen.alphaNumStr.map(URI.create))
-    implicit val arbDuration: Arbitrary[Duration] =
-      Arbitrary(Gen.chooseNum(0L, Long.MaxValue).map(Duration.ofMillis))
-    implicit val coUri: Cogen[URI] = Cogen(_.toString.hashCode())
-    implicit val coDuration: Cogen[Duration] = Cogen(_.toMillis)
-    implicit val hashUri: Hash[URI] = Hash.fromUniversalHashCode[URI]
-    implicit val hashDuration: Hash[Duration] = Hash.fromUniversalHashCode[Duration]
-
-    implicit val showUri: Show[URI] = Show.fromToString
-    implicit val showDuration: Show[Duration] = Show.fromToString
-  }
 
   object LowerCamel {
     val fields: Seq[String] = Seq("firstField", "secondField", "innerField")

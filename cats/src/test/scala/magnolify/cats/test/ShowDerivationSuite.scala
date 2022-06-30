@@ -20,6 +20,7 @@ import cats._
 import magnolify.test.ADT._
 import magnolify.test.Simple._
 import magnolify.test._
+import magnolify.cats.semiauto.ShowDerivation
 import org.scalacheck._
 import cats.laws.discipline.{ContravariantTests, MiniInt}
 import cats.laws.discipline.arbitrary._
@@ -27,12 +28,12 @@ import cats.laws.discipline.eq._
 
 import scala.reflect._
 
-class ShowDerivationSuite
-    extends MagnolifySuite
-    with magnolify.scalacheck.AutoDerivation
-    with magnolify.cats.AutoDerivation {
+import java.net.URI
+import java.time.Duration
 
-  private def test[T: Arbitrary: ClassTag: Cogen: Show]: Unit = {
+class ShowDerivationSuite extends MagnolifySuite with magnolify.cats.AutoDerivation {
+
+  private def test[T: Arbitrary: ClassTag: Show]: Unit = {
 //    val show = ensureSerializable(implicitly[Show[T]])
     val show = implicitly[Show[T]]
     val name = className[T]
@@ -47,24 +48,25 @@ class ShowDerivationSuite
     }
   }
 
+  import magnolify.scalacheck.test.TestArbitraryImplicits._
+  implicit val showArray: Show[Array[Int]] = Show.fromToString
+  implicit val showUri: Show[URI] = Show.fromToString
+  implicit val showDuration: Show[Duration] = Show.fromToString
+
   test[Numbers]
   test[Required]
   test[Nullable]
-//  test[Repeated]
-//  test[Nested]
+  test[Repeated]
+  test[Nested]
+  test[Collections]
+  test[Custom]
 
-  {
-    implicit val showArray: Show[Array[Int]] = Show.fromToString[Array[Int]]
-    test[Collections]
-  }
+  // recursive structures require to assign the derived value to an implicit variable
+  implicit lazy val showNode: Show[Node] = ShowDerivation[Node]
+  implicit lazy val showGNode: Show[GNode[Int]] = ShowDerivation[GNode[Int]]
+  test[Node]
+  test[GNode[Int]]
 
-  {
-    import Custom._
-    test[Custom]
-  }
-
-//  test[Node]
-//  test[GNode[Int]]
   test[Shape]
   test[Color]
 }

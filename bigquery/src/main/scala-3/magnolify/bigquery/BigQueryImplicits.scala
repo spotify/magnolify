@@ -21,20 +21,20 @@ import java.time._
 import scala.collection.Factory
 
 trait BigQueryImplicits:
-  given [T: TableRowField.Record]: TableRowType[T] = TableRowType[T]
+  given tableRowType[T: TableRowField.Record]: TableRowType[T] = TableRowType[T]
 
-  given TableRowField[Boolean] = TableRowField.trfBool
-  given TableRowField[Long] = TableRowField.trfLong
-  given TableRowField[Double] = TableRowField.trfDouble
-  given TableRowField[String] = TableRowField.trfString
-  given TableRowField[BigDecimal] = TableRowField.trfNumeric
-  given TableRowField[Array[Byte]] = TableRowField.trfByteArray
-  given TableRowField[Instant] = TableRowField.trfInstant
-  given TableRowField[LocalDate] = TableRowField.trfDate
-  given TableRowField[LocalTime] = TableRowField.trfTime
-  given TableRowField[LocalDateTime] = TableRowField.trfDateTime
-  given [T: TableRowField]: TableRowField[Option[T]] = TableRowField.trfOption
-  given [T, C[_]](using
+  given trfBool: TableRowField[Boolean] = TableRowField.trfBool
+  given trfLong: TableRowField[Long] = TableRowField.trfLong
+  given trfDouble: TableRowField[Double] = TableRowField.trfDouble
+  given trfString: TableRowField[String] = TableRowField.trfString
+  given trfNumeric: TableRowField[BigDecimal] = TableRowField.trfNumeric
+  given trfByteArray: TableRowField[Array[Byte]] = TableRowField.trfByteArray
+  given trfInstant: TableRowField[Instant] = TableRowField.trfInstant
+  given trfDate: TableRowField[LocalDate] = TableRowField.trfDate
+  given trfTime: TableRowField[LocalTime] = TableRowField.trfTime
+  given trfDateTime: TableRowField[LocalDateTime] = TableRowField.trfDateTime
+  given trfOption[T: TableRowField]: TableRowField[Option[T]] = TableRowField.trfOption
+  given trfIterable[T, C[_]](using
     TableRowField[T],
     C[T] => Iterable[T],
     Factory[T, C[T]]

@@ -27,10 +27,9 @@ import com.fasterxml.jackson.core.JsonFactory
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import magnolify.avro._
 import magnolify.avro.logical._
+import magnolify.avro.semiauto.AvroFieldDerivation
 import magnolify.shared.CaseMapper
-//import magnolify.shims.JavaConverters._
 import magnolify.test.Simple._
-import magnolify.test.Time._
 import magnolify.test._
 import org.apache.avro.Schema
 import org.apache.avro.generic.{
@@ -56,13 +55,12 @@ class AvroTypeSuite
     with magnolify.avro.AvroImplicits
     with magnolify.avro.unsafe.AvroUnsafeImplicits {
 
-  private def test[T: Arbitrary: ClassTag](implicit
-    t: AvroType[T],
-    eqt: Eq[T],
+  private def test[T: Arbitrary: ClassTag: Eq: AvroType](implicit
     eqr: Eq[GenericRecord] = Eq.instance(_ == _)
   ): Unit = {
     // val tpe = ensureSerializable(t)
-    val tpe = t
+    val tpe = implicitly[AvroType[T]]
+    val eqt = implicitly[Eq[T]]
     // FIXME: test schema
     val copier = new Copier(tpe.schema)
     property(className[T]) {
@@ -107,6 +105,19 @@ class AvroTypeSuite
     }
   }
 
+  import magnolify.scalacheck.test.TestArbitraryImplicits._
+  import magnolify.cats.test.TestEqImplicits._
+  implicit val arbBigDecimal: Arbitrary[BigDecimal] =
+    Arbitrary(Gen.chooseNum(0L, Long.MaxValue).map(BigDecimal(_, 0)))
+  implicit val arbCountryCode: Arbitrary[CountryCode] = Arbitrary(
+    Gen.oneOf("US", "UK", "CA", "MX").map(CountryCode(_))
+  )
+  implicit val afUri: AvroField[URI] = AvroField.from[String](URI.create)(_.toString)
+  implicit val afDuration: AvroField[Duration] =
+    AvroField.from[Long](Duration.ofMillis)(_.toMillis)
+  implicit val afCountryCode: AvroField[CountryCode] =
+    AvroField.fixed[CountryCode](2)(bs => CountryCode(new String(bs)))(cc => cc.code.getBytes)
+
   test[Integers]
   test[Floats]
   test[Required]
@@ -114,35 +125,16 @@ class AvroTypeSuite
   test[Repeated]
   test[Nested]
   test[Unsafe]
+  test[Collections]
+  test[MoreCollections]
+  test[Enums]
+  test[UnsafeEnums]
+  test[Custom]
+
+  test[AvroTypes]
 
   {
-    import Collections._
-    test[Collections]
-    test[MoreCollections]
-  }
-
-//  {
-//    import Enums._
-//    import UnsafeEnums._
-//    test[Enums]
-//    test[UnsafeEnums]
-//  }
-
-  {
-    import Custom._
-    implicit val afUri: AvroField[URI] = AvroField.from[String](URI.create)(_.toString)
-    implicit val afDuration: AvroField[Duration] =
-      AvroField.from[Long](Duration.ofMillis)(_.toMillis)
-    test[Custom]
-  }
-
-  {
-    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
-    test[AvroTypes]
-  }
-
-  {
-    def f[T](r: GenericRecord): List[(String, Any)] =
+    def f(r: GenericRecord): List[(String, Any)] =
       r.get("m")
         .asInstanceOf[java.util.Map[CharSequence, Any]]
         .asScala
@@ -156,66 +148,53 @@ class AvroTypeSuite
 
   test[Logical]
 
-  {
-    implicit val arbBigDecimal: Arbitrary[BigDecimal] =
-      Arbitrary(Gen.chooseNum(0L, Long.MaxValue).map(BigDecimal(_, 0)))
+  new AvroTimeMicrosImplicits {
+    test[LogicalMicros]
 
-    new AvroTimeMicrosImplicits {
-      test[LogicalMicros]
-
-      test("MicrosLogicalTypes") {
-        val schema = AvroType[LogicalMicros].schema
-        assertLogicalType(schema, "i", "timestamp-micros")
-        assertLogicalType(schema, "dt", "local-timestamp-micros", false)
-        assertLogicalType(schema, "t", "time-micros")
-      }
-    }
-
-    new AvroTimeMillisImplicits {
-      test[LogicalMillis]
-
-      test("MilliLogicalTypes") {
-        val schema = AvroType[LogicalMillis].schema
-        assertLogicalType(schema, "i", "timestamp-millis")
-        assertLogicalType(schema, "dt", "local-timestamp-millis", false)
-        assertLogicalType(schema, "t", "time-millis")
-      }
-    }
-
-    new AvroBigQueryImplicits {
-      test[LogicalBigQuery]
-
-      test("BigQueryLogicalTypes") {
-        // `registerLogicalTypes()` is necessary to correctly parse a custom logical type from string.
-        // if omitted, the returned string schema will be correct, but the logicalType field will be null.
-        // this is unfortunately global mutable state
-        magnolify.avro.logical.bigquery.registerLogicalTypes()
-
-        val schema = AvroType[LogicalBigQuery].schema
-        assertLogicalType(schema, "bd", "decimal")
-        assertLogicalType(schema, "i", "timestamp-micros")
-        assertLogicalType(schema, "dt", "datetime")
-        assertLogicalType(schema, "t", "time-micros")
-      }
+    test("MicrosLogicalTypes") {
+      val schema = AvroType[LogicalMicros].schema
+      assertLogicalType(schema, "i", "timestamp-micros")
+      assertLogicalType(schema, "dt", "local-timestamp-micros", false)
+      assertLogicalType(schema, "t", "time-micros")
     }
   }
 
-  {
-    implicit val arbCountryCode: Arbitrary[CountryCode] = Arbitrary(
-      Gen.oneOf("US", "UK", "CA", "MX").map(CountryCode(_))
-    )
-    implicit val afCountryCode: AvroField[CountryCode] =
-      AvroField.fixed[CountryCode](2)(bs => CountryCode(new String(bs)))(cc => cc.code.getBytes)
-    test[Fixed]
+  new AvroTimeMillisImplicits {
+    test[LogicalMillis]
 
-    test("FixedDoc") {
-//      val at = ensureSerializable(AvroType[Fixed])
-      val at = AvroType[Fixed]
-      val schema = at.schema.getField("countryCode").schema
-      assertEquals(schema.getName, "CountryCode")
-      assertEquals(schema.getNamespace, "magnolify.avro.test")
-//      assertEquals(schema.getDoc, "Fixed with doc")
+    test("MilliLogicalTypes") {
+      val schema = AvroType[LogicalMillis].schema
+      assertLogicalType(schema, "i", "timestamp-millis")
+      assertLogicalType(schema, "dt", "local-timestamp-millis", false)
+      assertLogicalType(schema, "t", "time-millis")
     }
+  }
+
+  new AvroBigQueryImplicits {
+    test[LogicalBigQuery]
+
+    test("BigQueryLogicalTypes") {
+      // `registerLogicalTypes()` is necessary to correctly parse a custom logical type from string.
+      // if omitted, the returned string schema will be correct, but the logicalType field will be null.
+      // this is unfortunately global mutable state
+      magnolify.avro.logical.bigquery.registerLogicalTypes()
+
+      val schema = AvroType[LogicalBigQuery].schema
+      assertLogicalType(schema, "bd", "decimal")
+      assertLogicalType(schema, "i", "timestamp-micros")
+      assertLogicalType(schema, "dt", "datetime")
+      assertLogicalType(schema, "t", "time-micros")
+    }
+  }
+
+  test[Fixed]
+  test("FixedDoc") {
+//      val at = ensureSerializable(AvroType[Fixed])
+    val at = AvroType[Fixed]
+    val schema = at.schema.getField("countryCode").schema
+    assertEquals(schema.getName, "CountryCode")
+    assertEquals(schema.getNamespace, "magnolify.avro.test")
+//      assertEquals(schema.getDoc, "Fixed with doc")
   }
 
   test("AvroDoc") {
@@ -253,48 +232,52 @@ class AvroTypeSuite
 //    assertEquals(at.schema.getField("p").schema().getDoc, "Avro enum")
 //  }
 
-//  test("DefaultInner") {
-//    // val at = ensureSerializable(AvroType[DefaultInner])
-//    val at = AvroType[DefaultInner]
-//    assertEquals(at(new GenericRecordBuilder(at.schema).build()), DefaultInner())
-//    val inner = DefaultInner(
-//      2,
-//      Some(2),
-//      List(2, 2),
-//      Map("b" -> 2),
-//      JavaEnums.Color.GREEN,
-//      ScalaEnums.Color.Green,
-//      BigDecimal(222.222),
-//      UUID.fromString("22223333-abcd-abcd-abcd-222233334444"),
-//      Instant.ofEpochSecond(22334455L),
-//      LocalDate.ofEpochDay(2233),
-//      LocalTime.of(2, 3, 4),
-//      LocalDateTime.of(2002, 3, 4, 5, 6, 7)
-//    )
-//    assertEquals(at(at(inner)), inner)
-//  }
-//
-//  test("DefaultOuter") {
-//    // val at = ensureSerializable(AvroType[DefaultOuter])
-//    val at = AvroType[DefaultOuter]
-//    assertEquals(at(new GenericRecordBuilder(at.schema).build()), DefaultOuter())
-//    val inner = DefaultInner(
-//      3,
-//      Some(3),
-//      List(3, 3),
-//      Map("c" -> 3),
-//      JavaEnums.Color.BLUE,
-//      ScalaEnums.Color.Blue,
-//      BigDecimal(333.333),
-//      UUID.fromString("33334444-abcd-abcd-abcd-333344445555"),
-//      Instant.ofEpochSecond(33445566L),
-//      LocalDate.ofEpochDay(3344),
-//      LocalTime.of(3, 4, 5),
-//      LocalDateTime.of(2003, 4, 5, 6, 7, 8)
-//    )
-//    val outer = DefaultOuter(inner, Some(inner))
-//    assertEquals(at(at(outer)), outer)
-//  }
+  // use bq implicits for convenience
+  new AvroBigQueryImplicits {
+    test("DefaultInner") {
+      // val at = ensureSerializable(AvroType[DefaultInner])
+      AvroFieldDerivation[DefaultInner]
+      val at = AvroType[DefaultInner]
+      assertEquals(at(new GenericRecordBuilder(at.schema).build()), DefaultInner())
+      val inner = DefaultInner(
+        2,
+        Some(2),
+        List(2, 2),
+        Map("b" -> 2),
+        JavaEnums.Color.GREEN,
+        ScalaEnums.Color.Green,
+        BigDecimal(222.222),
+        UUID.fromString("22223333-abcd-abcd-abcd-222233334444"),
+        Instant.ofEpochSecond(22334455L),
+        LocalDate.ofEpochDay(2233),
+        LocalTime.of(2, 3, 4),
+        LocalDateTime.of(2002, 3, 4, 5, 6, 7)
+      )
+      assertEquals(at(at(inner)), inner)
+    }
+
+    test("DefaultOuter") {
+      // val at = ensureSerializable(AvroType[DefaultOuter])
+      val at = AvroType[DefaultOuter]
+      assertEquals(at(new GenericRecordBuilder(at.schema).build()), DefaultOuter())
+      val inner = DefaultInner(
+        3,
+        Some(3),
+        List(3, 3),
+        Map("c" -> 3),
+        JavaEnums.Color.BLUE,
+        ScalaEnums.Color.Blue,
+        BigDecimal(333.333),
+        UUID.fromString("33334444-abcd-abcd-abcd-333344445555"),
+        Instant.ofEpochSecond(33445566L),
+        LocalDate.ofEpochDay(3344),
+        LocalTime.of(3, 4, 5),
+        LocalDateTime.of(2003, 4, 5, 6, 7, 8)
+      )
+      val outer = DefaultOuter(inner, Some(inner))
+      assertEquals(at(at(outer)), outer)
+    }
+  }
 
   testFail(AvroType[SomeDefault])("Option[T] can only default to None")
 

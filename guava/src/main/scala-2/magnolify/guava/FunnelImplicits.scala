@@ -16,39 +16,24 @@
 
 package magnolify.guava
 
-import com.google.common.base.Charsets
-import com.google.common.hash.{Funnel, Funnels, PrimitiveSink}
+import com.google.common.hash.Funnel
 
 trait FunnelImplicits {
-  private def funnel[T](f: (PrimitiveSink, T) => Unit): Funnel[T] = new Funnel[T] {
-    override def funnel(from: T, into: PrimitiveSink): Unit = f(into, from)
-  }
-
-  implicit val intFunnel: Funnel[Int] = Funnels.integerFunnel.asInstanceOf[Funnel[Int]]
-  implicit val longFunnel: Funnel[Long] = Funnels.longFunnel().asInstanceOf[Funnel[Long]]
-  implicit val bytesFunnel: Funnel[Array[Byte]] = Funnels.byteArrayFunnel()
-  implicit val charSequenceFunnel: Funnel[CharSequence] = Funnels.unencodedCharsFunnel()
-
-  implicit val booleanFunnel: Funnel[Boolean] = funnel[Boolean](_.putBoolean(_))
-  implicit val stringFunnel: Funnel[String] = funnel[String](_.putString(_, Charsets.UTF_8))
-  implicit val byteFunnel: Funnel[Byte] = funnel[Byte](_.putByte(_))
-  implicit val charFunnel: Funnel[Char] = funnel[Char](_.putChar(_))
-  implicit val shortFunnel: Funnel[Short] = funnel[Short](_.putShort(_))
+  implicit val intFunnel: Funnel[Int] = Funnels.intFunnel
+  implicit val longFunnel: Funnel[Long] = Funnels.longFunnel
+  implicit val bytesFunnel: Funnel[Array[Byte]] = Funnels.bytesFunnel
+  implicit val charSequenceFunnel: Funnel[CharSequence] = Funnels.charSequenceFunnel
+  implicit val booleanFunnel: Funnel[Boolean] = Funnels.booleanFunnel
+  implicit val stringFunnel: Funnel[String] = Funnels.stringFunnel
+  implicit val byteFunnel: Funnel[Byte] = Funnels.byteFunnel
+  implicit val charFunnel: Funnel[Char] = Funnels.charFunnel
+  implicit val shortFunnel: Funnel[Short] = Funnels.shortFunnel
 
   // There is an implicit Option[T] => Iterable[T]
   implicit def iterableFunnel[T, C[_]](implicit
     fnl: Funnel[T],
     ti: C[T] => Iterable[T]
-  ): Funnel[C[T]] =
-    funnel { (sink, from) =>
-      var i = 0
-      from.foreach { x =>
-        fnl.funnel(x, sink)
-        i += 1
-      }
-      // inject size to distinguish `None`, `Some("")`, and `List("", "", ...)`
-      sink.putInt(i)
-    }
+  ): Funnel[C[T]] = Funnels.iterableFunnel
 }
 
 object FunnelImplicits extends FunnelImplicits

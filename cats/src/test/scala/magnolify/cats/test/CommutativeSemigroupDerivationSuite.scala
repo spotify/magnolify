@@ -20,27 +20,32 @@ import cats._
 import cats.kernel.CommutativeSemigroup
 import cats.kernel.laws.discipline._
 import magnolify.test._
+import magnolify.scalacheck.semiauto.ArbitraryDerivation
+import magnolify.cats.test.Types.MiniInt
 import org.scalacheck._
 
 import scala.reflect._
 
 class CommutativeSemigroupDerivationSuite
     extends MagnolifySuite
-    with magnolify.scalacheck.AutoDerivation
     with magnolify.cats.AutoDerivation {
 
   private def test[T: Arbitrary: ClassTag: Eq: CommutativeSemigroup]: Unit = {
-    val csg = ensureSerializable(implicitly[CommutativeSemigroup[T]])
+    // val csg = ensureSerializable(implicitly[CommutativeSemigroup[T]])
+    val csg = implicitly[CommutativeSemigroup[T]]
     include(CommutativeSemigroupTests[T](csg).commutativeSemigroup.all, className[T] + ".")
   }
 
-  import CommutativeSemigroupDerivationSuite._
-  test[Record]
+  {
+    import cats.Eq._
+    import CommutativeSemigroupDerivationSuite._
+    implicit val arbRecord: Arbitrary[Record] = ArbitraryDerivation[Record]
+    implicit val csgMiniInt: CommutativeSemigroup[MiniInt] =
+      CommutativeSemigroup.instance((x, y) => MiniInt(x.i + y.i))
+    test[Record]
+  }
 }
 
 object CommutativeSemigroupDerivationSuite {
-  import Types.MiniInt
-  implicit val csgMiniInt: CommutativeSemigroup[MiniInt] =
-    CommutativeSemigroup.instance((x, y) => MiniInt(x.i + y.i))
   case class Record(i: Int, m: MiniInt)
 }

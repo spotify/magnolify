@@ -22,8 +22,7 @@ import scala.reflect.ClassTag
 
 trait EnumImplicits:
   given javaEnumType[T <: Enum[T]: ClassTag]: EnumType[T] = EnumType.javaEnumType
-  inline given scalaEnumType[T <: Enumeration#Value]: EnumType[T] = ${
-    EnumMacros.scalaEnumTypeMacro
-  }
+  inline given scalaEnumType[T <: Enumeration#Value]: EnumType[T] =
+    ${ EnumMacros.scalaEnumTypeMacro }
 
 object EnumImplicits extends EnumImplicits

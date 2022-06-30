@@ -24,6 +24,7 @@ import java.time.Duration
 import com.google.common.hash.{Funnel, PrimitiveSink}
 import magnolify.guava.FunnelImplicits
 import magnolify.guava.semiauto.FunnelDerivation
+import magnolify.scalacheck.semiauto.ArbitraryDerivation
 import magnolify.test.ADT._
 import magnolify.test.Simple._
 import magnolify.test._
@@ -33,7 +34,6 @@ import scala.reflect._
 
 class FunnelDerivationSuite
     extends MagnolifySuite
-    with magnolify.scalacheck.AutoDerivation
     with magnolify.guava.AutoDerivation
     with FunnelImplicits {
 
@@ -61,27 +61,28 @@ class FunnelDerivationSuite
     sink.toBytes.toList
   }
 
+  import magnolify.scalacheck.test.TestArbitraryImplicits._
+  implicit val arbFunnelTypes: Arbitrary[FunnelTypes] = ArbitraryDerivation.apply
+
+  implicit val fUri: Funnel[URI] = FunnelDerivation.by(_.toString)
+  implicit val fDuration: Funnel[Duration] = FunnelDerivation.by(_.toMillis)
+
   test[Integers]
   test[Required]
   test[Nullable]
   test[FunnelTypes]
 
-//  {
-//    import Collections._
-// Try increasing `-Xmax-inlines` above 32
-//    test[Repeated]
-  // test((c: Collections) => (c.a.toList, c.l, c.v))
-//  }
+  test[Repeated]
+  test((c: Collections) => (c.a.toList, c.l, c.v))
 
-  {
-    import Custom._
-    implicit val fUri: Funnel[URI] = FunnelDerivation.by(_.toString)
-    implicit val fDuration: Funnel[Duration] = FunnelDerivation.by(_.toMillis)
-    test[Custom]
-  }
+  test[Custom]
 
-//  test[Node]
-//  test[GNode[Int]]
+  // recursive structures require to assign the derived value to an implicit variable
+  implicit lazy val fNode: Funnel[Node] = FunnelDerivation[Node]
+  implicit lazy val fGNode: Funnel[GNode[Int]] = FunnelDerivation[GNode[Int]]
+  test[Node]
+  test[GNode[Int]]
+
   test[Shape]
   test[Color]
 }

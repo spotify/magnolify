@@ -24,8 +24,8 @@ import scala.deriving.Mirror
 
 object FunnelDerivation extends Derivation[Funnel]:
 
-  def join[T](caseClass: CaseClass[Funnel, T]): Funnel[T] = new Funnel[T] {
-    override def funnel(from: T, into: PrimitiveSink): Unit =
+  def join[T](caseClass: CaseClass[Funnel, T]): Funnel[T] =
+    (from: T, into: PrimitiveSink) =>
       if (caseClass.params.isEmpty) {
         into.putString(caseClass.typeInfo.short, Charsets.UTF_8)
       } else {
@@ -35,15 +35,14 @@ object FunnelDerivation extends Derivation[Funnel]:
           p.typeclass.funnel(p.deref(from), into)
         }
       }
-  }
+  end join
 
-  def split[T](sealedTrait: SealedTrait[Funnel, T]): Funnel[T] = new Funnel[T] {
-    override def funnel(from: T, into: PrimitiveSink): Unit =
+  def split[T](sealedTrait: SealedTrait[Funnel, T]): Funnel[T] =
+    (from: T, into: PrimitiveSink) =>
       sealedTrait.choose(from)(sub => sub.typeclass.funnel(sub.value, into))
-  }
+  end split
 
-  inline given apply[T](using Mirror.Of[T]): Funnel[T] = derived[T]
+  inline def apply[T](using Mirror.Of[T]): Funnel[T] = derivedMirror[T]
 
-  def by[T, S](f: T => S)(implicit fnl: Funnel[S]): Funnel[T] = new Funnel[T] {
-    override def funnel(from: T, into: PrimitiveSink): Unit = fnl.funnel(f(from), into)
-  }
+  def by[T, S](f: T => S)(implicit fnl: Funnel[S]): Funnel[T] =
+    (from: T, into: PrimitiveSink) => fnl.funnel(f(from), into)

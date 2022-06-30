@@ -16,13 +16,15 @@
 
 package magnolify.shared
 
+import magnolify.shared.semiauto.EnumTypeDerivation
 import magnolify.test._
 import magnolify.test.Simple._
 
-class UnsafeEnumSuite
-    extends MagnolifySuite
-    with magnolify.shared.AutoDerivation
-    with magnolify.shared.EnumImplicits {
+class UnsafeEnumSuite extends MagnolifySuite {
+
+  implicit val javaEnumType: EnumType[JavaEnums.Color] = EnumImplicits.javaEnumType
+  implicit val scalaEnumType: EnumType[ScalaEnums.Color.Type] = EnumImplicits.scalaEnumType
+  implicit val adtEnumType: EnumType[ADT.Color] = EnumTypeDerivation.apply
 
   test("JavaEnums") {
     assertEquals(UnsafeEnum(JavaEnums.Color.RED), UnsafeEnum.Known(JavaEnums.Color.RED))
@@ -53,7 +55,7 @@ class UnsafeEnumSuite
     assertEquals(UnsafeEnum.from[ADT.Color]("Red"), UnsafeEnum.Known(ADT.Red))
     assertEquals(UnsafeEnum.from[ADT.Color]("Purple"), UnsafeEnum.Unknown("Purple"))
 
-    assertEquals(UnsafeEnum.to(UnsafeEnum.Known(ADT.Red)), "Red")
+    assertEquals(UnsafeEnum.to(UnsafeEnum.Known[ADT.Color](ADT.Red)), "Red")
     assertEquals(UnsafeEnum.to(UnsafeEnum.Unknown("Purple")), "Purple")
   }
 

@@ -33,4 +33,4 @@ object ShowDerivation extends Derivation[Show]:
     sealedTrait.choose(x)(sub => sub.typeclass.show(sub.value))
   }
 
-  inline given apply[T](using Mirror.Of[T]): Show[T] = derived[T]
+  inline def apply[T](using Mirror.Of[T]): Show[T] = derivedMirror[T]

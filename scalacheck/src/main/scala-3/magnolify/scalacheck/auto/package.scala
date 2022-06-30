@@ -25,7 +25,7 @@ import scala.deriving.Mirror
 package object auto extends AutoDerivation
 
 trait AutoDerivation: // extends FallbackDerivation:
-  given Arbitrary[Seed] = Arbitrary(Arbitrary.arbLong.arbitrary.map(Seed.apply))
+  given arbSeed: Arbitrary[Seed] = Arbitrary(Arbitrary.arbLong.arbitrary.map(Seed.apply))
 
   inline given autoDerivedArbitrary[T](using Mirror.Of[T]): Arbitrary[T] = ArbitraryDerivation[T]
   inline given autoDerivedCogen[T](using Mirror.Of[T]): Cogen[T] = CogenDerivation[T]

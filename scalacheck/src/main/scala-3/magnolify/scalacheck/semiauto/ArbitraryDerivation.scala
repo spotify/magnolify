@@ -54,4 +54,4 @@ object ArbitraryDerivation extends Derivation[Arbitrary]:
     }
   }
 
-  inline given apply[T](using Mirror.Of[T]): Arbitrary[T] = derived[T]
+  inline def apply[T](using Mirror.Of[T]): Arbitrary[T] = derivedMirror[T]

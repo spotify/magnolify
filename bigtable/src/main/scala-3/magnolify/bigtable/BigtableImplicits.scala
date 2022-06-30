@@ -25,26 +25,27 @@ import magnolify.bigtable.BigtableField
 import scala.collection.Factory
 
 trait BigtableImplicits extends LowPriorityImplicits:
-  given [T: BigtableField.Record]: BigtableType[T] = BigtableType[T]
+  given bigtableType[T: BigtableField.Record]: BigtableType[T] = BigtableType[T]
 
-  given BigtableField.Primitive[Byte] = BigtableField.btfByte
-  given BigtableField.Primitive[Char] = BigtableField.btChar
-  given BigtableField.Primitive[Short] = BigtableField.btfShort
-  given BigtableField.Primitive[Int] = BigtableField.btfInt
-  given BigtableField.Primitive[Long] = BigtableField.btfLong
-  given BigtableField.Primitive[Float] = BigtableField.btfFloat
-  given BigtableField.Primitive[Double] = BigtableField.btfDouble
-  given BigtableField.Primitive[Boolean] = BigtableField.btfBoolean
-  given BigtableField.Primitive[UUID] = BigtableField.btfUUID
-  given BigtableField.Primitive[ByteString] = BigtableField.btfByteString
-  given BigtableField.Primitive[Array[Byte]] = BigtableField.btfByteArray
-  given BigtableField.Primitive[String] = BigtableField.btfString
-  given [T: EnumType]: BigtableField.Primitive[UnsafeEnum[T]] = BigtableField.btfUnsafeEnum
+  given btfByte: BigtableField.Primitive[Byte] = BigtableField.btfByte
+  given btChar: BigtableField.Primitive[Char] = BigtableField.btChar
+  given btfShort: BigtableField.Primitive[Short] = BigtableField.btfShort
+  given btfInt: BigtableField.Primitive[Int] = BigtableField.btfInt
+  given btfLong: BigtableField.Primitive[Long] = BigtableField.btfLong
+  given btfFloat: BigtableField.Primitive[Float] = BigtableField.btfFloat
+  given btfDouble: BigtableField.Primitive[Double] = BigtableField.btfDouble
+  given btfBoolean: BigtableField.Primitive[Boolean] = BigtableField.btfBoolean
+  given btfUUID: BigtableField.Primitive[UUID] = BigtableField.btfUUID
+  given btfByteString: BigtableField.Primitive[ByteString] = BigtableField.btfByteString
+  given btfByteArray: BigtableField.Primitive[Array[Byte]] = BigtableField.btfByteArray
+  given btfString: BigtableField.Primitive[String] = BigtableField.btfString
+  given btfUnsafeEnum[T: EnumType]: BigtableField.Primitive[UnsafeEnum[T]] =
+    BigtableField.btfUnsafeEnum
 
-  given BigtableField.Primitive[BigInt] = BigtableField.btfBigInt
-  given BigtableField.Primitive[BigDecimal] = BigtableField.btfBigDecimal
-  given [T: BigtableField]: BigtableField[Option[T]] = BigtableField.btfOption[T]
-  given [T, C[_]](using
+  given btfBigInt: BigtableField.Primitive[BigInt] = BigtableField.btfBigInt
+  given btfBigDecimal: BigtableField.Primitive[BigDecimal] = BigtableField.btfBigDecimal
+  given btfOption[T: BigtableField]: BigtableField[Option[T]] = BigtableField.btfOption[T]
+  given btfIterable[T, C[_]](using
     BigtableField.Primitive[T],
     C[T] => Iterable[T],
     Factory[T, C[T]]
@@ -52,6 +53,6 @@ trait BigtableImplicits extends LowPriorityImplicits:
     BigtableField.btfIterable
 
 trait LowPriorityImplicits:
-  given [T: EnumType]: BigtableField.Primitive[T] = BigtableField.btfEnum
+  given btfEnum[T: EnumType]: BigtableField.Primitive[T] = BigtableField.btfEnum
 
 object BigtableImplicits extends BigtableImplicits

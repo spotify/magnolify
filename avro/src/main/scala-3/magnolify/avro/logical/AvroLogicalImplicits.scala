@@ -25,25 +25,22 @@ import java.time.{Instant, LocalDateTime, LocalTime, ZoneOffset}
 
 trait AvroLogicalImplicits
 
-trait AvroTimeMicrosImplicits {
+trait AvroTimeMicrosImplicits:
   given afTimestampMicros: AvroField[Instant] = AvroTimeMicros.afTimestampMicros
   given afTimeMicros: AvroField[LocalTime] = AvroTimeMicros.afTimeMicros
   given afLocalTimestampMicros: AvroField[LocalDateTime] = AvroTimeMicros.afLocalTimestampMicros
-}
 
 object AvroTimeMicrosImplicits extends AvroTimeMicrosImplicits
 
-trait AvroTimeMillisImplicits {
+trait AvroTimeMillisImplicits:
   given afTimestampMillis: AvroField[Instant] = AvroTimeMillis.afTimestampMillis
   given afTimeMillis: AvroField[LocalTime] = AvroTimeMillis.afTimeMillis
   given afLocalTimestampMillis: AvroField[LocalDateTime] = AvroTimeMillis.afLocalTimestampMillis
-}
 
 object AvroTimeMillisImplicits extends AvroTimeMillisImplicits
 
-trait AvroBigQueryImplicits {
+trait AvroBigQueryImplicits:
   given afBigQueryNumeric: AvroField[BigDecimal] = AvroBigQuery.afBigQueryNumeric
   given afBigQueryTimestamp: AvroField[Instant] = AvroBigQuery.afBigQueryTimestamp
   given afBigQueryTime: AvroField[LocalTime] = AvroBigQuery.afBigQueryTime
   given afBigQueryDatetime: AvroField[LocalDateTime] = AvroBigQuery.afBigQueryDatetime
-}

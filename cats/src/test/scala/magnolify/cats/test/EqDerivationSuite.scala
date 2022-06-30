@@ -26,10 +26,7 @@ import org.scalacheck._
 
 import scala.reflect._
 
-class EqDerivationSuite
-    extends MagnolifySuite
-    with magnolify.scalacheck.AutoDerivation
-    with magnolify.cats.AutoDerivation {
+class EqDerivationSuite extends MagnolifySuite with magnolify.cats.AutoDerivation {
 
   private def test[T: Arbitrary: ClassTag: Cogen: Eq]: Unit = {
 //    val eq = ensureSerializable(implicitly[Eq[T]])
@@ -37,28 +34,28 @@ class EqDerivationSuite
     include(EqTests[T](eq).eqv.all, className[T] + ".")
   }
 
-  test[Numbers]
-  test[Required]
-  test[Nullable]
-  test[Repeated]
-//  test[Nested]
-
   {
-    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
+    // prefer cats Eq instance as auto derivation
+    import cats.Eq._
+    import magnolify.scalacheck.test.TestArbitraryImplicits._
+    import magnolify.scalacheck.test.TestCogenImplicits._
+    import magnolify.cats.test.TestEqImplicits.{eqArray, eqDuration, eqUri}
+
+    test[Numbers]
+    test[Required]
+    test[Nullable]
+    test[Repeated]
+    test[Nested]
     test[Collections]
-  }
-
-  {
-    import Custom._
     test[Custom]
+
+    // recursive structures require to assign the derived value to an implicit variable
+    implicit lazy val eqNode: Eq[Node] = EqDerivation[Node]
+    implicit lazy val eqGNode: Eq[GNode[Int]] = EqDerivation[GNode[Int]]
+    test[Node]
+    test[GNode[Int]]
+
+    test[Shape]
+    test[Color]
   }
-
-  import magnolify.scalacheck.test.ADT._
-  implicit lazy val eqNode: Eq[Node] = EqDerivation[Node]
-  implicit lazy val eqGNode: Eq[GNode[Int]] = EqDerivation[GNode[Int]]
-
-  test[Node]
-  test[GNode[Int]]
-  test[Shape]
-  test[Color]
 }
