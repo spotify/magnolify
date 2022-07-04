@@ -123,29 +123,16 @@ object AvroField {
         .asJava
     }
 
-    // We are in control of the schema
-    // params and fields are at the same index
-    // use vars instead of zipWithIndex & rawConstruct for performance
-    override def from(v: GenericRecord)(cm: CaseMapper): T = {
-      var idx = -1
+    override def from(v: GenericRecord)(cm: CaseMapper): T =
       caseClass.construct { p =>
-        idx += 1
-        p.typeclass.fromAny(v.get(idx))(cm)
+        p.typeclass.fromAny(v.get(p.index))(cm)
       }
-    }
 
-    // We are in control of the schema
-    // params and fields are at the same index
-    // use vars instead of zipWithIndex for performance
-    override def to(v: T)(cm: CaseMapper): GenericRecord = {
-      val r = new GenericData.Record(schema(cm))
-      var idx = -1
-      caseClass.parameters.foreach { p =>
-        idx += 1
-        r.put(idx, p.typeclass.to(p.dereference(v))(cm))
+    override def to(v: T)(cm: CaseMapper): GenericRecord =
+      caseClass.parameters.foldLeft(new GenericData.Record(schema(cm))) { (r, p) =>
+        r.put(p.index, p.typeclass.to(p.dereference(v))(cm))
+        r
       }
-      r
-    }
   }
 
   private def getDoc(annotations: Seq[Any], name: String): String = {
