@@ -55,12 +55,13 @@ object ExampleType {
 sealed trait ExampleField[T] extends Serializable {
   @transient private lazy val schemaCache: concurrent.Map[ju.UUID, Schema] =
     concurrent.TrieMap.empty
-  def get(f: Features, k: String)(cm: CaseMapper): Value[T]
-  def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder
 
+  protected def buildSchema(k: String)(cm: CaseMapper): Schema
   def schema(k: String)(cm: CaseMapper): Schema =
     schemaCache.getOrElseUpdate(cm.uuid, buildSchema(k)(cm))
-  protected def buildSchema(k: String)(cm: CaseMapper): Schema
+
+  def get(f: Features, k: String)(cm: CaseMapper): Value[T]
+  def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder
 }
 
 object ExampleField {

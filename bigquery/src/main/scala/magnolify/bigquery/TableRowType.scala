@@ -63,9 +63,9 @@ sealed trait TableRowField[T] extends Serializable {
   @transient private lazy val schemaCache: concurrent.Map[ju.UUID, TableFieldSchema] =
     concurrent.TrieMap.empty
 
-  protected def createSchema(cm: CaseMapper): TableFieldSchema
+  protected def buildSchema(cm: CaseMapper): TableFieldSchema
   def fieldSchema(cm: CaseMapper): TableFieldSchema =
-    schemaCache.getOrElseUpdate(cm.uuid, createSchema(cm))
+    schemaCache.getOrElseUpdate(cm.uuid, buildSchema(cm))
 
   def from(v: FromT)(cm: CaseMapper): T
   def to(v: T)(cm: CaseMapper): ToT
@@ -87,7 +87,7 @@ object TableRowField {
   type Typeclass[T] = TableRowField[T]
 
   def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    override protected def createSchema(cm: CaseMapper): TableFieldSchema = {
+    override protected def buildSchema(cm: CaseMapper): TableFieldSchema = {
       // do not use a scala wrapper in the schema, so clone() works
       val fields = new ju.ArrayList[TableFieldSchema](caseClass.parameters.size)
       caseClass.parameters.foreach { p =>
@@ -147,7 +147,7 @@ object TableRowField {
         override type FromT = trf.FromT
         override type ToT = trf.ToT
 
-        override protected def createSchema(cm: CaseMapper): TableFieldSchema =
+        override protected def buildSchema(cm: CaseMapper): TableFieldSchema =
           trf.fieldSchema(cm)
         override def from(v: FromT)(cm: CaseMapper): U = f(trf.from(v)(cm))
         override def to(v: U)(cm: CaseMapper): ToT = trf.to(g(v))(cm)
@@ -157,7 +157,7 @@ object TableRowField {
   // ////////////////////////////////////////////////
 
   private def at[T](tpe: String)(f: Any => T)(g: T => Any): TableRowField[T] = new Generic[T] {
-    override protected def createSchema(cm: CaseMapper): TableFieldSchema =
+    override protected def buildSchema(cm: CaseMapper): TableFieldSchema =
       new TableFieldSchema().setType(tpe).setMode("REQUIRED")
     override def from(v: Any)(cm: CaseMapper): T = f(v)
     override def to(v: T)(cm: CaseMapper): Any = g(v)
@@ -183,7 +183,7 @@ object TableRowField {
 
   implicit def trfOption[T](implicit f: TableRowField[T]): TableRowField[Option[T]] =
     new Aux[Option[T], f.FromT, f.ToT] {
-      override protected def createSchema(cm: CaseMapper): TableFieldSchema =
+      override protected def buildSchema(cm: CaseMapper): TableFieldSchema =
         f.fieldSchema(cm).clone().setMode("NULLABLE")
       override def from(v: f.FromT)(cm: CaseMapper): Option[T] =
         if (v == null) None else Some(f.from(v)(cm))
@@ -199,7 +199,7 @@ object TableRowField {
     fc: FactoryCompat[T, C[T]]
   ): TableRowField[C[T]] =
     new Aux[C[T], ju.List[f.FromT], ju.List[f.ToT]] {
-      override protected def createSchema(cm: CaseMapper): TableFieldSchema =
+      override protected def buildSchema(cm: CaseMapper): TableFieldSchema =
         f.fieldSchema(cm).clone().setMode("REPEATED")
       override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] =
         if (v == null) {
