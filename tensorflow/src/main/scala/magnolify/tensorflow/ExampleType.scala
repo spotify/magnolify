@@ -45,7 +45,7 @@ object ExampleType {
   def apply[T](cm: CaseMapper)(implicit f: ExampleField.Record[T]): ExampleType[T] =
     new ExampleType[T] {
       private val caseMapper: CaseMapper = cm
-      @transient override lazy val schema: Schema = f.schema(null)(caseMapper)
+      @transient override lazy val schema: Schema = f.schema(caseMapper)
       override def from(v: Example): T = f.get(v.getFeatures, null)(caseMapper).get
       override def to(v: T): Example.Builder =
         Example.newBuilder().setFeatures(f.put(Features.newBuilder(), null, v)(caseMapper))
@@ -56,9 +56,9 @@ sealed trait ExampleField[T] extends Serializable {
   @transient private lazy val schemaCache: concurrent.Map[ju.UUID, Schema] =
     concurrent.TrieMap.empty
 
-  protected def buildSchema(k: String)(cm: CaseMapper): Schema
-  def schema(k: String)(cm: CaseMapper): Schema =
-    schemaCache.getOrElseUpdate(cm.uuid, buildSchema(k)(cm))
+  protected def buildSchema(cm: CaseMapper): Schema
+  def schema(cm: CaseMapper): Schema =
+    schemaCache.getOrElseUpdate(cm.uuid, buildSchema(cm))
 
   def get(f: Features, k: String)(cm: CaseMapper): Value[T]
   def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder
@@ -84,10 +84,10 @@ object ExampleField {
     override def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder =
       f.putFeature(k, toFeature(Iterable(v)))
 
-    override def buildSchema(k: String)(cm: CaseMapper): Schema =
-      Schema.newBuilder().addFeature(featureSchema(k)(cm)).build()
+    override def buildSchema(cm: CaseMapper): Schema =
+      Schema.newBuilder().addFeature(featureSchema(cm)).build()
 
-    def featureSchema(k: String)(cm: CaseMapper): FeatureSchema
+    def featureSchema(cm: CaseMapper): FeatureSchema
   }
 
   trait Record[T] extends ExampleField[T]
@@ -120,25 +120,23 @@ object ExampleField {
         f
       }
 
-    override protected def buildSchema(k: String)(cm: CaseMapper): Schema = {
-      val sb = Schema
-        .newBuilder()
+    override protected def buildSchema(cm: CaseMapper): Schema = {
+      val sb = Schema.newBuilder()
       getDoc(caseClass.annotations, caseClass.typeName.full).foreach(sb.setAnnotation)
-
       caseClass.parameters.foldLeft(sb) { (b, p) =>
-        val n = key(k, cm.map(p.label))
-        val s = p.typeclass.schema(k)(cm)
-        val annotatedFs = getDoc(p.annotations, s"${caseClass.typeName.full}#$n")
-          .map { a =>
-            s.getFeatureList.asScala.map { f =>
-              if (f.hasAnnotation) f else f.toBuilder.setAnnotation(a).build()
-            }.asJava
-          }
-          .getOrElse(s.getFeatureList)
-        b.addAllFeature(annotatedFs)
+        val n = cm.map(p.label)
+        val s = p.typeclass.schema(cm)
+        val fs = s.getFeatureList.asScala.map { f =>
+          val fb = f.toBuilder
+          val k = if (f.hasName) key(n, f.getName) else n // primitives do not have name
+          val d = getDoc(p.annotations, s"${caseClass.typeName.full}#$k")
+          fb.setName(k)
+          if (!f.hasAnnotation) d.foreach(fb.setAnnotation)
+          fb.build()
+        }.asJava
+        b.addAllFeature(fs)
         b
       }
-
       sb.build()
     }
   }
@@ -168,8 +166,8 @@ object ExampleField {
         override def fromFeature(v: Feature): ju.List[U] =
           ef.fromFeature(v).asScala.map(f).asJava
         override def toFeature(v: Iterable[U]): Feature = ef.toFeature(v.map(g))
-        override def featureSchema(k: String)(cm: CaseMapper): FeatureSchema =
-          ef.featureSchema(k)(cm)
+        override def featureSchema(cm: CaseMapper): FeatureSchema =
+          ef.featureSchema(cm)
       }
   }
 
@@ -188,8 +186,8 @@ object ExampleField {
         .setInt64List(Int64List.newBuilder().addAllValue(v.asInstanceOf[Iterable[jl.Long]].asJava))
         .build()
 
-    override def featureSchema(k: String)(cm: CaseMapper): FeatureSchema =
-      FeatureSchema.newBuilder().setName(k).setType(FeatureType.INT).build()
+    override def featureSchema(cm: CaseMapper): FeatureSchema =
+      FeatureSchema.newBuilder().setType(FeatureType.INT).build()
   }
 
   implicit val efFloat = new Primitive[Float] {
@@ -207,8 +205,8 @@ object ExampleField {
         .setFloatList(FloatList.newBuilder().addAllValue(v.asInstanceOf[Iterable[jl.Float]].asJava))
         .build()
 
-    override def featureSchema(k: String)(cm: CaseMapper): FeatureSchema =
-      FeatureSchema.newBuilder().setName(k).setType(FeatureType.FLOAT).build()
+    override def featureSchema(cm: CaseMapper): FeatureSchema =
+      FeatureSchema.newBuilder().setType(FeatureType.FLOAT).build()
 
   }
 
@@ -227,8 +225,8 @@ object ExampleField {
         .setBytesList(BytesList.newBuilder().addAllValue(v.asJava))
         .build()
 
-    override def featureSchema(k: String)(cm: CaseMapper): FeatureSchema =
-      FeatureSchema.newBuilder().setName(k).setType(FeatureType.BYTES).build()
+    override def featureSchema(cm: CaseMapper): FeatureSchema =
+      FeatureSchema.newBuilder().setType(FeatureType.BYTES).build()
 
   }
 
@@ -250,8 +248,8 @@ object ExampleField {
         case Some(x) => ef.put(f, k, x)(cm)
       }
 
-      override protected def buildSchema(k: String)(cm: CaseMapper): Schema =
-        ef.buildSchema(k)(cm)
+      override protected def buildSchema(cm: CaseMapper): Schema =
+        ef.buildSchema(cm)
     }
 
   implicit def efIterable[T, C[_]](implicit
@@ -268,7 +266,7 @@ object ExampleField {
     override def put(f: Features.Builder, k: String, v: C[T])(cm: CaseMapper): Features.Builder =
       if (v.isEmpty) f else f.putFeature(k, ef.toFeature(v))
 
-    override protected def buildSchema(k: String)(cm: CaseMapper): Schema =
-      ef.buildSchema(k)(cm)
+    override protected def buildSchema(cm: CaseMapper): Schema =
+      ef.buildSchema(cm)
   }
 }
