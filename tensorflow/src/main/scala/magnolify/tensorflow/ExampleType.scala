@@ -126,21 +126,16 @@ object ExampleField {
       getDoc(caseClass.annotations, caseClass.typeName.full).foreach(sb.setAnnotation)
 
       caseClass.parameters.foldLeft(sb) { (b, p) =>
-        val s = p.typeclass.buildSchema(key(k, cm.map(p.label)))(cm)
-        val annotatedFs = s.getFeatureList.asScala
-          .map { f =>
-            val maybeAnnotation = if (f.hasAnnotation) {
-              Some(f.getAnnotation)
-            } else {
-              getDoc(p.annotations, s"${caseClass.typeName.full}#${key(k, cm.map(p.label))}")
-            }
-
-            maybeAnnotation match {
-              case Some(a) => f.toBuilder.setAnnotation(a).build()
-              case None    => f
-            }
+        val n = key(k, cm.map(p.label))
+        val s = p.typeclass.schema(k)(cm)
+        val annotatedFs = getDoc(p.annotations, s"${caseClass.typeName.full}#$n")
+          .map { a =>
+            s.getFeatureList.asScala.map { f =>
+              if (f.hasAnnotation) f else f.toBuilder.setAnnotation(a).build()
+            }.asJava
           }
-        b.addAllFeature(annotatedFs.asJava)
+          .getOrElse(s.getFeatureList)
+        b.addAllFeature(annotatedFs)
         b
       }
 
