@@ -64,9 +64,9 @@ sealed trait AvroField[T] extends Serializable { self =>
   @transient private lazy val schemaCache: concurrent.Map[ju.UUID, Schema] =
     concurrent.TrieMap.empty
 
-  protected def createSchema(cm: CaseMapper): Schema
+  protected def buildSchema(cm: CaseMapper): Schema
   def schema(cm: CaseMapper): Schema =
-    schemaCache.getOrElseUpdate(cm.uuid, createSchema(cm))
+    schemaCache.getOrElseUpdate(cm.uuid, buildSchema(cm))
 
   // Convert default `T` to Avro schema default value
   def makeDefault(d: T)(cm: CaseMapper): Any = to(d)(cm)
@@ -93,7 +93,7 @@ object AvroField {
   type Typeclass[T] = AvroField[T]
 
   def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    override protected def createSchema(cm: CaseMapper): Schema = Schema
+    override protected def buildSchema(cm: CaseMapper): Schema = Schema
       .createRecord(
         caseClass.typeName.short,
         getDoc(caseClass.annotations, caseClass.typeName.full),
@@ -169,7 +169,7 @@ object AvroField {
   class FromWord[T] {
     def apply[U](f: T => U)(g: U => T)(implicit af: AvroField[T]): AvroField[U] =
       new Aux[U, af.FromT, af.ToT] {
-        override protected def createSchema(cm: CaseMapper): Schema = af.schema(cm)
+        override protected def buildSchema(cm: CaseMapper): Schema = af.schema(cm)
         override def makeDefault(d: U)(cm: CaseMapper): Any = af.makeDefault(g(d))(cm)
         override def from(v: FromT)(cm: CaseMapper): U = f(af.from(v)(cm))
         override def to(v: U)(cm: CaseMapper): ToT = af.to(g(v))(cm)
@@ -180,7 +180,7 @@ object AvroField {
 
   private def aux[T, From, To](tpe: Schema.Type)(f: From => T)(g: T => To): AvroField[T] =
     new Aux[T, From, To] {
-      override protected def createSchema(cm: CaseMapper): Schema = Schema.create(tpe)
+      override protected def buildSchema(cm: CaseMapper): Schema = Schema.create(tpe)
       override def from(v: FromT)(cm: CaseMapper): T = f(v)
       override def to(v: T)(cm: CaseMapper): ToT = g(v)
     }
@@ -201,7 +201,7 @@ object AvroField {
     aux2[Unit, JsonProperties.Null](Schema.Type.NULL)(_ => ())(_ => JsonProperties.NULL_VALUE)
 
   implicit val afBytes = new Aux[Array[Byte], ByteBuffer, ByteBuffer] {
-    override protected def createSchema(cm: CaseMapper): Schema = Schema.create(Schema.Type.BYTES)
+    override protected def buildSchema(cm: CaseMapper): Schema = Schema.create(Schema.Type.BYTES)
     // `JacksonUtils.toJson` expects `Array[Byte]` for `BYTES` defaults
     override def makeDefault(d: Array[Byte])(cm: CaseMapper): Array[Byte] = d
     override def from(v: ByteBuffer)(cm: CaseMapper): Array[Byte] =
@@ -213,7 +213,7 @@ object AvroField {
     // Avro 1.9+ added a type parameter for `GenericEnumSymbol`, breaking 1.8 compatibility
     // Some reader, i.e. `AvroParquetReader` reads enums as `Utf8`
     new Aux[T, AnyRef, EnumSymbol] {
-      override protected def createSchema(cm: CaseMapper): Schema = {
+      override protected def buildSchema(cm: CaseMapper): Schema = {
         val doc = getDoc(et.annotations, s"Enum ${et.namespace}.${et.name}")
         Schema.createEnum(et.name, doc, et.namespace, et.values.asJava)
       }
@@ -225,7 +225,7 @@ object AvroField {
 
   implicit def afOption[T](implicit f: AvroField[T]): AvroField[Option[T]] =
     new Aux[Option[T], f.FromT, f.ToT] {
-      override protected def createSchema(cm: CaseMapper): Schema =
+      override protected def buildSchema(cm: CaseMapper): Schema =
         Schema.createUnion(Schema.create(Schema.Type.NULL), f.schema(cm))
       // `Option[T]` is a `UNION` of `[NULL, T]` and must default to first type `NULL`
       override def makeDefault(d: Option[T])(cm: CaseMapper): JsonProperties.Null = {
@@ -246,7 +246,7 @@ object AvroField {
     fc: FactoryCompat[T, C[T]]
   ): AvroField[C[T]] =
     new Aux[C[T], ju.List[f.FromT], GenericArray[f.ToT]] {
-      override protected def createSchema(cm: CaseMapper): Schema = Schema.createArray(f.schema(cm))
+      override protected def buildSchema(cm: CaseMapper): Schema = Schema.createArray(f.schema(cm))
       override def fallbackDefault: ju.List[f.ToT] = ju.Collections.emptyList()
       override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] =
         fc.build(v.asScala.iterator.map(p => f.from(p)(cm)))
@@ -256,7 +256,7 @@ object AvroField {
 
   implicit def afMap[T](implicit f: AvroField[T]): AvroField[Map[String, T]] =
     new Aux[Map[String, T], ju.Map[CharSequence, f.FromT], ju.Map[String, f.ToT]] {
-      override protected def createSchema(cm: CaseMapper): Schema = Schema.createMap(f.schema(cm))
+      override protected def buildSchema(cm: CaseMapper): Schema = Schema.createMap(f.schema(cm))
       override def fallbackDefault: ju.Map[String, f.ToT] = ju.Collections.emptyMap()
       override def from(v: ju.Map[CharSequence, f.FromT])(cm: CaseMapper): Map[String, T] =
         v.asScala.iterator.map(kv => (kv._1.toString, f.from(kv._2)(cm))).toMap
@@ -271,7 +271,7 @@ object AvroField {
   class LogicalTypeWord[T](lt: => LogicalType) extends Serializable {
     def apply[U](f: T => U)(g: U => T)(implicit af: AvroField[T]): AvroField[U] =
       new Aux[U, af.FromT, af.ToT] {
-        override protected def createSchema(cm: CaseMapper): Schema = {
+        override protected def buildSchema(cm: CaseMapper): Schema = {
           // `LogicalType#addToSchema` mutates `Schema`, make a copy first
           val schema = new Schema.Parser().parse(af.schema(cm).toString)
           lt.addToSchema(schema)
@@ -299,7 +299,7 @@ object AvroField {
     size: Int
   )(f: Array[Byte] => T)(g: T => Array[Byte])(implicit an: AnnotationType[T]): AvroField[T] =
     new Aux[T, GenericFixed, GenericFixed] {
-      override protected def createSchema(cm: CaseMapper): Schema = {
+      override protected def buildSchema(cm: CaseMapper): Schema = {
         val n = ReflectionUtils.name[T]
         val ns = ReflectionUtils.namespace[T]
         Schema.createFixed(n, getDoc(an.annotations, n), ns, size)
