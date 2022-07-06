@@ -128,9 +128,9 @@ object ExampleField {
         val s = p.typeclass.schema(cm)
         val fs = s.getFeatureList.asScala.map { f =>
           val fb = f.toBuilder
-          val k = if (f.hasName) key(n, f.getName) else n // primitives do not have name
-          val d = getDoc(p.annotations, s"${caseClass.typeName.full}#$k")
-          fb.setName(k)
+          val fk = if (f.hasName) key(n, f.getName) else n // primitives do not have name
+          val d = getDoc(p.annotations, s"${caseClass.typeName.full}#$fk")
+          fb.setName(fk)
           if (!f.hasAnnotation) d.foreach(fb.setAnnotation)
           fb.build()
         }.asJava
