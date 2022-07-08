@@ -36,7 +36,7 @@ val protobufVersion = "3.19.4"
 val refinedVersion = "0.9.17"
 val scalacheckVersion = "1.16.0"
 val shapelessVersion = "2.3.9"
-val tensorflowVersion = "0.3.3"
+val tensorflowVersion = "0.4.1"
 
 lazy val currentYear = java.time.LocalDate.now().getYear
 lazy val keepExistingHeader =
