@@ -120,7 +120,16 @@ class ExampleTypeSuite extends MagnolifySuite {
   }
 
   test("WithAnnotations") {
-    val et: ExampleType[WithAnnotations] = ExampleType[WithAnnotations]
+    implicit val ef: ExampleField[NestedWithAnnotations] = ExampleField.gen
+    val et = ExampleType[WithAnnotations]
+
+    val expectedFieldSchema = Schema
+      .newBuilder()
+      .addFeature(feature("b", FeatureType.INT, Some("other b doc")))
+      .addFeature(feature("i", FeatureType.INT, Some("other i doc")))
+      .setAnnotation(annotation("this doc will be ignored"))
+      .build()
+
     val expectedSchema = Schema
       .newBuilder()
       .addFeature(feature("noAnnotationB", FeatureType.INT, None))
@@ -139,16 +148,9 @@ class ExampleTypeSuite extends MagnolifySuite {
       .addFeature(feature("nested.i", FeatureType.INT, Some("other i doc")))
       .setAnnotation(annotation("Example top level doc"))
       .build()
-    assertEquals(et.schema, expectedSchema)
 
-    val ef: ExampleField[NestedWithAnnotations] = ExampleField[NestedWithAnnotations]
-    val expectedFieldSchema = Schema
-      .newBuilder()
-      .addFeature(feature("b", FeatureType.INT, Some("other b doc")))
-      .addFeature(feature("i", FeatureType.INT, Some("other i doc")))
-      .setAnnotation(annotation("this doc will be ignored"))
-      .build()
     assertEquals(ef.schema(CaseMapper.identity), expectedFieldSchema)
+    assertEquals(et.schema, expectedSchema)
   }
 
   private def feature(name: String, t: FeatureType, doc: Option[String]): Feature = {
