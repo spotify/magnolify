@@ -40,6 +40,7 @@ import org.apache.parquet.schema.{LogicalTypeAnnotation, MessageType, Type, Type
 import org.slf4j.LoggerFactory
 
 import scala.annotation.implicitNotFound
+import scala.collection.concurrent
 import scala.language.experimental.macros
 
 sealed trait ParquetArray
@@ -52,7 +53,7 @@ object ParquetArray {
   }
 }
 
-sealed trait ParquetType[T] extends Serializable { self =>
+sealed trait ParquetType[T] extends Serializable {
   import ParquetType._
 
   def schema: MessageType
@@ -66,7 +67,6 @@ sealed trait ParquetType[T] extends Serializable { self =>
 
   def setupOutput(job: Job): Unit = {
     job.setOutputFormatClass(classOf[ParquetOutputFormat[T]])
-
     ParquetOutputFormat.setWriteSupportClass(job, classOf[WriteSupport[T]])
     job.getConfiguration.set(WriteTypeKey, SerializationUtils.toBase64(this))
   }
@@ -143,10 +143,7 @@ object ParquetType {
       }
 
       val requestedSchema = Schema.message(parquetType.schema)
-      Schema.checkCompatibility(
-        context.getFileSchema,
-        requestedSchema
-      )
+      Schema.checkCompatibility(context.getFileSchema, requestedSchema)
       new hadoop.ReadSupport.ReadContext(requestedSchema, java.util.Collections.emptyMap())
     }
 
@@ -199,7 +196,14 @@ object ParquetType {
 //////////////////////////////////////////////////
 
 sealed trait ParquetField[T] extends Serializable {
-  def schema(cm: CaseMapper): Type
+
+  @transient private lazy val schemaCache: concurrent.Map[UUID, Type] =
+    concurrent.TrieMap.empty
+
+  protected def buildSchema(cm: CaseMapper): Type
+  def schema(cm: CaseMapper): Type =
+    schemaCache.getOrElseUpdate(cm.uuid, buildSchema(cm))
+
   val hasAvroArray: Boolean = false
   protected val isGroup: Boolean = false
   protected def isEmpty(v: T): Boolean
@@ -220,10 +224,13 @@ sealed trait ParquetField[T] extends Serializable {
 object ParquetField {
   type Typeclass[T] = ParquetField[T]
 
-  sealed trait Record[T] extends ParquetField[T]
+  sealed trait Record[T] extends ParquetField[T] {
+    override protected val isGroup: Boolean = true
+    override protected def isEmpty(v: T): Boolean = false
+  }
 
   def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    override def schema(cm: CaseMapper): Type =
+    override def buildSchema(cm: CaseMapper): Type =
       caseClass.parameters
         .foldLeft(Types.requiredGroup()) { (g, p) =>
           g.addField(Schema.rename(p.typeclass.schema(cm), cm.map(p.label)))
@@ -231,16 +238,15 @@ object ParquetField {
         .named(caseClass.typeName.full)
 
     override val hasAvroArray: Boolean = caseClass.parameters.exists(_.typeclass.hasAvroArray)
-    override protected val isGroup: Boolean = true
-    override protected def isEmpty(v: T): Boolean = false
 
     override def write(c: RecordConsumer, v: T)(cm: CaseMapper): Unit = {
       caseClass.parameters.foreach { p =>
         val x = p.dereference(v)
         if (!p.typeclass.isEmpty(x)) {
-          c.startField(cm.map(p.label), p.index)
+          val name = cm.map(p.label)
+          c.startField(name, p.index)
           p.typeclass.writeGroup(c, x)(cm)
-          c.endField(cm.map(p.label), p.index)
+          c.endField(name, p.index)
         }
       }
     }
@@ -279,7 +285,7 @@ object ParquetField {
   class FromWord[T] {
     def apply[U](f: T => U)(g: U => T)(implicit pf: Primitive[T]): Primitive[U] =
       new Primitive[U] {
-        override def schema(cm: CaseMapper): Type = pf.schema(cm)
+        override def buildSchema(cm: CaseMapper): Type = pf.schema(cm)
         override def write(c: RecordConsumer, v: U)(cm: CaseMapper): Unit = pf.write(c, g(v))(cm)
         override def newConverter: TypeConverter[U] =
           pf.newConverter.asInstanceOf[TypeConverter.Primitive[T]].map(f)
@@ -301,7 +307,7 @@ object ParquetField {
     lta: => LogicalTypeAnnotation = null
   ): Primitive[T] =
     new Primitive[T] {
-      override def schema(cm: CaseMapper): Type = Schema.primitive(ptn, lta)
+      override def buildSchema(cm: CaseMapper): Type = Schema.primitive(ptn, lta)
       override def write(c: RecordConsumer, v: T)(cm: CaseMapper): Unit = f(c)(v)
       override def newConverter: TypeConverter[T] = g
       override type ParquetT = UnderlyingT
@@ -368,7 +374,7 @@ object ParquetField {
 
   implicit def pfOption[T](implicit t: ParquetField[T]): ParquetField[Option[T]] =
     new ParquetField[Option[T]] {
-      override def schema(cm: CaseMapper): Type =
+      override def buildSchema(cm: CaseMapper): Type =
         Schema.setRepetition(t.schema(cm), Repetition.OPTIONAL)
       override protected def isEmpty(v: Option[T]): Boolean = v.isEmpty
 
@@ -385,27 +391,25 @@ object ParquetField {
       }
     }
 
+  private val AvroArrayField = "array"
   implicit def ptIterable[T, C[T]](implicit
     t: ParquetField[T],
     ti: C[T] => Iterable[T],
     fc: FactoryCompat[T, C[T]],
     pa: ParquetArray
   ): ParquetField[C[T]] = {
-    val avroArrayField = "array"
-    val avroCompat = pa match {
-      case ParquetArray.default               => false
-      case ParquetArray.AvroCompat.avroCompat => true
-    }
-
     new ParquetField[C[T]] {
-      override val hasAvroArray: Boolean = avroCompat
+      override val hasAvroArray: Boolean = pa match {
+        case ParquetArray.default               => false
+        case ParquetArray.AvroCompat.avroCompat => true
+      }
 
-      override def schema(cm: CaseMapper): Type = {
+      override def buildSchema(cm: CaseMapper): Type = {
         val repeatedSchema = Schema.setRepetition(t.schema(cm), Repetition.REPEATED)
-        if (avroCompat) {
+        if (hasAvroArray) {
           Types
             .requiredGroup()
-            .addField(Schema.rename(repeatedSchema, avroArrayField))
+            .addField(Schema.rename(repeatedSchema, AvroArrayField))
             .as(LogicalTypeAnnotation.listType())
             .named(t.schema(cm).getName)
         } else {
@@ -413,14 +417,14 @@ object ParquetField {
         }
       }
 
-      override protected val isGroup: Boolean = avroCompat
+      override protected val isGroup: Boolean = hasAvroArray
       override protected def isEmpty(v: C[T]): Boolean = v.isEmpty
 
       override def write(c: RecordConsumer, v: C[T])(cm: CaseMapper): Unit =
-        if (avroCompat) {
-          c.startField(avroArrayField, 0)
+        if (hasAvroArray) {
+          c.startField(AvroArrayField, 0)
           v.foreach(t.writeGroup(c, _)(cm))
-          c.endField(avroArrayField, 0)
+          c.endField(AvroArrayField, 0)
         } else {
           v.foreach(t.writeGroup(c, _)(cm))
         }
@@ -433,7 +437,7 @@ object ParquetField {
           override def get: C[T] = inner.get(fc.build(_))
         }
 
-        if (avroCompat) {
+        if (hasAvroArray) {
           new GroupConverter with TypeConverter.Buffered[C[T]] {
             override def getConverter(fieldIndex: Int): Converter = {
               require(fieldIndex == 0, "Avro array field index != 0")
@@ -457,7 +461,7 @@ object ParquetField {
 
   class LogicalTypeWord[T](lta: => LogicalTypeAnnotation) extends Serializable {
     def apply[U](f: T => U)(g: U => T)(implicit pf: Primitive[T]): Primitive[U] = new Primitive[U] {
-      override def schema(cm: CaseMapper): Type = Schema.setLogicalType(pf.schema(cm), lta)
+      override def buildSchema(cm: CaseMapper): Type = Schema.setLogicalType(pf.schema(cm), lta)
       override def write(c: RecordConsumer, v: U)(cm: CaseMapper): Unit = pf.write(c, g(v))(cm)
       override def newConverter: TypeConverter[U] =
         pf.newConverter.asInstanceOf[TypeConverter.Primitive[T]].map(f)
@@ -492,7 +496,7 @@ object ParquetField {
     )
 
     new Primitive[BigDecimal] {
-      override def schema(cm: CaseMapper): Type =
+      override def buildSchema(cm: CaseMapper): Type =
         Schema.primitive(
           PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY,
           LogicalTypeAnnotation.decimalType(scale, precision),
@@ -522,7 +526,7 @@ object ParquetField {
     logicalType[String](LogicalTypeAnnotation.enumType())(et.from)(et.to)
 
   implicit val ptUuid: Primitive[UUID] = new Primitive[UUID] {
-    override def schema(cm: CaseMapper): Type =
+    override def buildSchema(cm: CaseMapper): Type =
       Schema.primitive(PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY, length = 16)
 
     override def write(c: RecordConsumer, v: UUID)(cm: CaseMapper): Unit =

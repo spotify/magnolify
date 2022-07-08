@@ -85,7 +85,7 @@ class AvroBench {
   private val genericRecord = avroType.to(nested)
   @Benchmark def avroTo: GenericRecord = avroType.to(nested)
   @Benchmark def avroFrom: Nested = avroType.from(genericRecord)
-  @Benchmark def avroSchema: Schema = avroType.schema
+  @Benchmark def avroSchema: Schema = AvroType[Nested].schema
 }
 
 @BenchmarkMode(Array(Mode.AverageTime))
@@ -100,7 +100,7 @@ class TableRowBench {
   private val tableRow = tableRowType.to(nested)
   @Benchmark def tableRowTo: TableRow = tableRowType.to(nested)
   @Benchmark def tableRowFrom: Nested = tableRowType.from(tableRow)
-  @Benchmark def tableRowSchema: TableSchema = tableRowType.schema
+  @Benchmark def tableRowSchema: TableSchema = TableRowType[Nested].schema
 }
 
 @BenchmarkMode(Array(Mode.AverageTime))
