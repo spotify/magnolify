@@ -120,36 +120,46 @@ class ExampleTypeSuite extends MagnolifySuite {
   }
 
   test("WithAnnotations") {
+    implicit val ef: ExampleField[NestedWithAnnotations] = ExampleField.gen
     implicit val et: ExampleType[WithAnnotations] = ExampleType[WithAnnotations]
 
     val expectedSchema = Schema
       .newBuilder()
-      .addFeature(noAnnotationFeature("noAnnotationB", FeatureType.INT))
-      .addFeature(feature("b", FeatureType.INT))
-      .addFeature(feature("i", FeatureType.INT))
-      .addFeature(feature("maybeI", FeatureType.INT))
-      .addFeature(feature("l", FeatureType.INT))
-      .addFeature(feature("f", FeatureType.FLOAT))
-      .addFeature(feature("d", FeatureType.FLOAT))
-      .addFeature(feature("bs", FeatureType.BYTES))
-      .addFeature(feature("s", FeatureType.BYTES))
-      .addFeature(feature("ii", FeatureType.INT))
-      .addFeature(feature("ff", FeatureType.FLOAT))
-      .addFeature(feature("bsbs", FeatureType.BYTES))
-      .addFeature(feature("nested.b", FeatureType.INT))
-      .addFeature(feature("nested.i", FeatureType.INT))
+      .addFeature(feature("noAnnotationB", FeatureType.INT, None))
+      .addFeature(feature("b", FeatureType.INT, Some("b doc")))
+      .addFeature(feature("i", FeatureType.INT, Some("i doc")))
+      .addFeature(feature("maybeI", FeatureType.INT, Some("maybeI doc")))
+      .addFeature(feature("l", FeatureType.INT, Some("l doc")))
+      .addFeature(feature("f", FeatureType.FLOAT, Some("f doc")))
+      .addFeature(feature("d", FeatureType.FLOAT, Some("d doc")))
+      .addFeature(feature("bs", FeatureType.BYTES, Some("bs doc")))
+      .addFeature(feature("s", FeatureType.BYTES, Some("s doc")))
+      .addFeature(feature("ii", FeatureType.INT, Some("ii doc")))
+      .addFeature(feature("ff", FeatureType.FLOAT, Some("ff doc")))
+      .addFeature(feature("bsbs", FeatureType.BYTES, Some("bsbs doc")))
+      .addFeature(feature("nested.b", FeatureType.INT, Some("other b doc")))
+      .addFeature(feature("nested.i", FeatureType.INT, Some("other i doc")))
       .setAnnotation(annotation("Example top level doc"))
       .build()
 
-    val s = et.schema
+    val expectedFieldSchema = Schema
+      .newBuilder()
+      .addFeature(feature("b", FeatureType.INT, Some("other b doc")))
+      .addFeature(feature("i", FeatureType.INT, Some("other i doc")))
+      .setAnnotation(annotation("this doc will be ignored"))
+      .build()
+
     assertEquals(et.schema, expectedSchema)
+    assertEquals(ef.schema(CaseMapper.identity), expectedFieldSchema)
   }
 
-  private def noAnnotationFeature(name: String, t: FeatureType): Feature =
-    Feature.newBuilder().setName(name).setType(t).build()
-
-  private def feature(name: String, t: FeatureType): Feature =
-    Feature.newBuilder().setName(name).setType(t).setAnnotation(annotation(s"$name doc")).build()
+  private def feature(name: String, t: FeatureType, doc: Option[String]): Feature = {
+    val b = Feature.newBuilder()
+    b.setName(name)
+    b.setType(t)
+    doc.map(annotation).foreach(b.setAnnotation)
+    b.build()
+  }
 
   private def annotation(doc: String): Annotation =
     Annotation.newBuilder().addTag(doc).build()
@@ -169,7 +179,7 @@ case class DefaultOuter(
 case class Unsafe(b: Byte, c: Char, s: Short, i: Int, d: Double, bool: Boolean, str: String)
 
 @doc("this doc will be ignored")
-case class NestedWithAnnotations(@doc("nested.b doc") b: Boolean, @doc("nested.i doc") i: Int)
+case class NestedWithAnnotations(@doc("other b doc") b: Boolean, @doc("other i doc") i: Int)
 @doc("Example top level doc")
 case class WithAnnotations(
   noAnnotationB: Boolean,
