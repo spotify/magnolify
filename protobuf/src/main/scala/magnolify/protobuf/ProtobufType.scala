@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Spotify AB.
+ * Copyright 2020 Spotify AB
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -7,13 +7,13 @@
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 package magnolify.protobuf
 
 import java.lang.reflect.Method
@@ -114,7 +114,9 @@ object ProtobufField {
     override type ToT = To
   }
 
-  sealed trait Record[T] extends Aux[T, Message, Message]
+  sealed trait Record[T] extends Aux[T, Message, Message] {
+    override val default: Option[T] = None
+  }
 
   // ////////////////////////////////////////////////
 
@@ -137,7 +139,7 @@ object ProtobufField {
       )
 
     override val hasOptional: Boolean = caseClass.parameters.exists(_.typeclass.hasOptional)
-    override val default: Option[T] = None
+
     override def checkDefaults(descriptor: Descriptor)(cm: CaseMapper): Unit = {
       val syntax = descriptor.getFile.getSyntax
       val fields = getFields(descriptor)(cm)
@@ -251,7 +253,7 @@ object ProtobufField {
       .asInstanceOf[Array[E]]
       .map(e => e.name() -> e)
       .toMap
-    val default = et.from(map.find(_._2.getNumber == 0).get._1)
+    val default = et.from(map.values.find(_.getNumber == 0).get.name())
     aux2[T, EnumValueDescriptor](default)(e => et.from(e.getName))(e =>
       map(et.to(e)).getValueDescriptor
     )
@@ -264,6 +266,10 @@ object ProtobufField {
         case Some(v) => Some(Some(v))
         case None    => None
       }
+
+      // we must use Option instead of Some because
+      // the underlying field may interpret custom values as null
+      // eg. Unsafe enums are encoded as string and default "" is treated as None
       override def from(v: f.FromT)(cm: CaseMapper): Option[T] =
         if (v == null) None else Option(f.from(v)(cm))
 

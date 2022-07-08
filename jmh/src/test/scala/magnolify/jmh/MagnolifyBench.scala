@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Spotify AB.
+ * Copyright 2019 Spotify AB
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -7,13 +7,13 @@
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 package magnolify.jmh
 
 import java.util.concurrent.TimeUnit
@@ -85,7 +85,7 @@ class AvroBench {
   private val genericRecord = avroType.to(nested)
   @Benchmark def avroTo: GenericRecord = avroType.to(nested)
   @Benchmark def avroFrom: Nested = avroType.from(genericRecord)
-  @Benchmark def avroSchema: Schema = avroType.schema
+  @Benchmark def avroSchema: Schema = AvroType[Nested].schema
 }
 
 @BenchmarkMode(Array(Mode.AverageTime))
@@ -100,7 +100,7 @@ class TableRowBench {
   private val tableRow = tableRowType.to(nested)
   @Benchmark def tableRowTo: TableRow = tableRowType.to(nested)
   @Benchmark def tableRowFrom: Nested = tableRowType.from(tableRow)
-  @Benchmark def tableRowSchema: TableSchema = tableRowType.schema
+  @Benchmark def tableRowSchema: TableSchema = TableRowType[Nested].schema
 }
 
 @BenchmarkMode(Array(Mode.AverageTime))
