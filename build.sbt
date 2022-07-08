@@ -184,7 +184,7 @@ lazy val scalacheck: Project = project
     commonSettings,
     moduleName := "magnolify-scalacheck",
     description := "Magnolia add-on for ScalaCheck",
-    libraryDependencies += "org.scalacheck" %% "scalacheck" % scalacheckVersion
+    libraryDependencies += "org.scalacheck" %% "scalacheck" % scalacheckVersion % Provided
   )
   .dependsOn(
     shared,
@@ -198,9 +198,9 @@ lazy val cats: Project = project
     moduleName := "magnolify-cats",
     description := "Magnolia add-on for Cats",
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-core" % catsVersion,
-      "org.typelevel" %% "cats-laws" % catsVersion % Test,
-      "com.twitter" %% "algebird-core" % algebirdVersion % Test
+      "org.typelevel" %% "cats-core" % catsVersion % Provided,
+      "com.twitter" %% "algebird-core" % algebirdVersion % Test,
+      "org.typelevel" %% "cats-laws" % catsVersion % Test
     )
   )
   .dependsOn(
