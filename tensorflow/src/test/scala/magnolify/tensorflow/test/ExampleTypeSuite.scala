@@ -120,7 +120,7 @@ class ExampleTypeSuite extends MagnolifySuite {
   }
 
   test("WithAnnotations") {
-    implicit val ef: ExampleField[NestedWithAnnotations] = ExampleField.gen
+    implicit val ef: ExampleField[NestedWithAnnotations] = ExampleField[NestedWithAnnotations]
     implicit val et: ExampleType[WithAnnotations] = ExampleType[WithAnnotations]
 
     val expectedSchema = Schema
