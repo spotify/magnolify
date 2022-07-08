@@ -25,7 +25,7 @@ val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.0")
 val bigqueryVersion = "v2-rev20220611-1.32.1"
 val bigtableVersion = "2.5.1"
 val catsVersion = "2.8.0"
-val datastoreVersion = "2.1.3"
+val datastoreVersion = "2.10.0"
 val guavaVersion = "30.1.1-jre"
 val hadoopVersion = "3.3.3"
 val jacksonVersion = "2.13.3"
@@ -36,7 +36,7 @@ val protobufVersion = "3.19.4"
 val refinedVersion = "0.9.17"
 val scalacheckVersion = "1.16.0"
 val shapelessVersion = "2.3.9"
-val tensorflowVersion = "0.3.3"
+val tensorflowVersion = "0.4.1"
 
 lazy val currentYear = java.time.LocalDate.now().getYear
 lazy val keepExistingHeader =
