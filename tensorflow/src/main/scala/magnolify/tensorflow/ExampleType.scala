@@ -75,9 +75,9 @@ object ExampleField {
       if (feature == null) {
         Value.None
       } else {
-        val l = fromFeature(feature)
-        require(l.size() == 1)
-        Value.Some(l.get(0))
+        val values = fromFeature(feature)
+        require(values.size() == 1)
+        Value.Some(values.get(0))
       }
     }
 
@@ -103,12 +103,12 @@ object ExampleField {
     override def get(f: Features, k: String)(cm: CaseMapper): Value[T] = {
       var fallback = true
       val r = caseClass.construct { p =>
-        val fk = key(k, cm.map(p.label))
-        val v = p.typeclass.get(f, fk)(cm)
-        if (v.isSome) {
+        val fieldKey = key(k, cm.map(p.label))
+        val fieldValue = p.typeclass.get(f, fieldKey)(cm)
+        if (fieldValue.isSome) {
           fallback = false
         }
-        v.getOrElse(p.default)
+        fieldValue.getOrElse(p.default)
       }
       // result is default if all fields are default
       if (fallback) Value.Default(r) else Value.Some(r)
@@ -116,7 +116,9 @@ object ExampleField {
 
     override def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder =
       caseClass.parameters.foldLeft(f) { (f, p) =>
-        p.typeclass.put(f, key(k, cm.map(p.label)), p.dereference(v))(cm)
+        val fieldKey = key(k, cm.map(p.label))
+        val fieldValue = p.dereference(v)
+        p.typeclass.put(f, fieldKey, fieldValue)(cm)
         f
       }
 
@@ -124,17 +126,21 @@ object ExampleField {
       val sb = Schema.newBuilder()
       getDoc(caseClass.annotations, caseClass.typeName.full).foreach(sb.setAnnotation)
       caseClass.parameters.foldLeft(sb) { (b, p) =>
-        val n = cm.map(p.label)
-        val s = p.typeclass.schema(cm)
-        val fs = s.getFeatureList.asScala.map { f =>
+        val fieldNane = cm.map(p.label)
+        val fieldSchema = p.typeclass.schema(cm)
+        val fieldFeatures = fieldSchema.getFeatureList.asScala.map { f =>
           val fb = f.toBuilder
-          val fk = if (f.hasName) key(n, f.getName) else n // primitives do not have name
-          val d = getDoc(p.annotations, s"${caseClass.typeName.full}#$fk")
-          fb.setName(fk)
-          if (!f.hasAnnotation) d.foreach(fb.setAnnotation)
+          // if schema does not have a name (eg. primitive), use the fieldNane
+          // otherwise prepend to the feature name (eg. nested records)
+          val fieldKey = if (f.hasName) key(fieldNane, f.getName) else fieldNane
+          fb.setName(fieldKey)
+          // if field already has a doc, keep it
+          // otherwise use the parameter annotation
+          val fieldDoc = getDoc(p.annotations, s"${caseClass.typeName.full}#$fieldKey")
+          if (!f.hasAnnotation) fieldDoc.foreach(fb.setAnnotation)
           fb.build()
         }.asJava
-        b.addAllFeature(fs)
+        b.addAllFeature(fieldFeatures)
         b
       }
       sb.build()
