@@ -136,22 +136,24 @@ val noPublishSettings = Seq(
 lazy val root: Project = project
   .in(file("."))
   .settings(
-    commonSettings ++ noPublishSettings
+    commonSettings,
+    noPublishSettings
   )
   .aggregate(
-    shared,
-    scalacheck,
-    cats,
-    guava,
     avro,
     bigquery,
     bigtable,
+    cats,
     datastore,
+    guava,
     parquet,
     protobuf,
+    refined,
+    scalacheck,
+    shared,
     tensorflow,
-    tools,
-    test
+    test,
+    tools
   )
 
 lazy val shared: Project = project
@@ -166,7 +168,8 @@ lazy val shared: Project = project
 lazy val test: Project = project
   .in(file("test"))
   .settings(
-    commonSettings ++ noPublishSettings,
+    commonSettings,
+    noPublishSettings,
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion % Test
@@ -234,20 +237,20 @@ lazy val refined: Project = project
     libraryDependencies ++= Seq(
       "com.google.guava" % "guava" % guavaVersion % Provided,
       "eu.timepit" %% "refined" % refinedVersion % Provided,
-      "org.scalameta" %% "munit" % munitVersion % Test,
-      "org.apache.avro" % "avro" % avroVersion % Test,
-      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
       "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Test,
+      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
       "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
+      "org.apache.avro" % "avro" % avroVersion % Test,
+      "org.scalameta" %% "munit" % munitVersion % Test,
       "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Test
     )
   )
   .dependsOn(
-    guava % "provided,test->test",
     avro % Provided,
     bigquery % Provided,
     bigtable % Provided,
     datastore % Provided,
+    guava % "provided,test->test",
     protobuf % Provided,
     tensorflow % Provided,
     test % "test->test"
@@ -330,9 +333,9 @@ lazy val parquet: Project = project
     moduleName := "magnolify-parquet",
     description := "Magnolia add-on for Apache Parquet",
     libraryDependencies ++= Seq(
+      "org.apache.hadoop" % "hadoop-client" % hadoopVersion % Provided,
       "org.apache.parquet" % "parquet-avro" % parquetVersion % Provided,
-      "org.apache.parquet" % "parquet-hadoop" % parquetVersion % Provided,
-      "org.apache.hadoop" % "hadoop-client" % hadoopVersion % Provided
+      "org.apache.parquet" % "parquet-hadoop" % parquetVersion % Provided
     )
   )
   .dependsOn(
@@ -422,23 +425,23 @@ lazy val jmh: Project = project
     Jmh / compile := (Jmh / compile).dependsOn(Test / compile).value,
     Jmh / run := (Jmh / run).dependsOn(Jmh / compile).evaluated,
     libraryDependencies ++= Seq(
-      "org.apache.avro" % "avro" % avroVersion % Test,
-      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
       "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Test,
+      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
       "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
+      "org.apache.avro" % "avro" % avroVersion % Test,
       "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Test
     )
   )
   .dependsOn(
-    scalacheck % Test,
-    cats % Test,
-    guava % Test,
     avro % Test,
     bigquery % Test,
     bigtable % Test,
+    cats % Test,
     datastore % Test,
-    tensorflow % Test,
+    guava % Test,
     protobuf % Test,
+    scalacheck % Test,
+    tensorflow % Test,
     test % "test->test"
   )
   .enablePlugins(JmhPlugin)
