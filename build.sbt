@@ -174,10 +174,10 @@ lazy val root: Project = project
     description := "A collection of Magnolia add-on modules"
   )
   .aggregate(
-     avro,
-     bigquery,
-     bigtable,
-     cats,
+    avro,
+    bigquery,
+    bigtable,
+    cats,
 //    datastore,
     guava,
 //    parquet,
