@@ -16,17 +16,16 @@
 
 package magnolify.datastore
 
-import java.time.Instant
-
 import com.google.datastore.v1._
 import com.google.datastore.v1.client.DatastoreHelper.makeValue
 import com.google.protobuf.{ByteString, NullValue}
-import magnolia1._
-import magnolify.shared.{CaseMapper, Converter}
-import magnolify.shims.FactoryCompat
-import magnolify.shims.JavaConverters._
+import magnolify.shared.{CaseMapper, Converter, EnumType, UnsafeEnum}
 
-import scala.annotation.{implicitNotFound, StaticAnnotation}
+import scala.annotation.StaticAnnotation
+import scala.collection.compat._
+import scala.jdk.CollectionConverters._
+
+import java.time.Instant
 
 sealed trait EntityType[T] extends Converter[T, Entity, Entity.Builder] {
   def apply(v: Entity): T = from(v)
@@ -39,7 +38,7 @@ class key(val project: String = null, val namespace: String = null, val kind: St
 class excludeFromIndexes(val exclude: Boolean = true) extends StaticAnnotation with Serializable
 
 object EntityType {
-  implicit def apply[T: EntityField.Record]: EntityType[T] = EntityType(CaseMapper.identity)
+  def apply[T: EntityField.Record]: EntityType[T] = EntityType(CaseMapper.identity)
 
   def apply[T](cm: CaseMapper)(implicit f: EntityField.Record[T]): EntityType[T] =
     new EntityType[T] {
@@ -59,14 +58,15 @@ sealed trait KeyField[T] extends Serializable { self =>
 }
 
 object KeyField {
-  implicit val longKeyField: KeyField[Long] = new KeyField[Long] {
+  val longKeyField: KeyField[Long] = new KeyField[Long] {
     override def setKey(b: Key.PathElement.Builder, key: Long): Key.PathElement.Builder =
       b.setId(key)
   }
-  implicit val stringKeyField: KeyField[String] = new KeyField[String] {
+  val stringKeyField: KeyField[String] = new KeyField[String] {
     override def setKey(b: Key.PathElement.Builder, key: String): Key.PathElement.Builder =
       b.setName(key)
   }
+  def notSupported[T]: KeyField[T] = new NotSupported
 
   def at[T]: FromWord[T] = new FromWord[T]
 
@@ -76,20 +76,18 @@ object KeyField {
 
   class NotSupported[T] extends KeyField[T] {
     override def setKey(b: Key.PathElement.Builder, key: T): Key.PathElement.Builder = ???
-    override def map[U](f: U => T): KeyField[U] = new NotSupported[U]
+    override def map[U](f: U => T): KeyField[U] = new NotSupported
   }
-
-  implicit def notSupportedKeyField[T]: KeyField[T] = new NotSupported[T]
 }
 
-sealed trait EntityField[T] extends Serializable {
-  val keyField: KeyField[T]
+trait EntityField[T] extends Serializable {
+  def keyField: KeyField[T]
   def from(v: Value)(cm: CaseMapper): T
   def to(v: T)(cm: CaseMapper): Value.Builder
 }
 
 object EntityField {
-  sealed trait Record[T] extends EntityField[T] {
+  trait Record[T] extends EntityField[T] {
     def fromEntity(v: Entity)(cm: CaseMapper): T
     def toEntity(v: T)(cm: CaseMapper): Entity.Builder
 
@@ -98,110 +96,11 @@ object EntityField {
       Value.newBuilder().setEntityValue(toEntity(v)(cm))
   }
 
-  // ////////////////////////////////////////////////
-
-  type Typeclass[T] = EntityField[T]
-
-  def join[T: KeyField](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    private val (keyIndex, keyOpt): (Int, Option[key]) = {
-      val keys = caseClass.parameters
-        .map(p => p -> getKey(p.annotations, s"${caseClass.typeName.full}#${p.label}"))
-        .filter(_._2.isDefined)
-      require(
-        keys.size <= 1,
-        s"More than one field with @key annotation: ${caseClass.typeName.full}#[${keys.map(_._1.label).mkString(", ")}]"
-      )
-      keys.headOption match {
-        case None => (-1, None)
-        case Some((p, k)) =>
-          require(
-            !p.typeclass.keyField.isInstanceOf[KeyField.NotSupported[_]],
-            s"No KeyField[T] instance: ${caseClass.typeName.full}#${p.label}"
-          )
-          (p.index, k)
-      }
-    }
-
-    private val excludeFromIndexes: Array[Boolean] = {
-      val a = new Array[Boolean](caseClass.parameters.length)
-      caseClass.parameters.foreach { p =>
-        a(p.index) = getExcludeFromIndexes(p.annotations, s"${caseClass.typeName.full}#${p.label}")
-      }
-      a
-    }
-
-    override val keyField: KeyField[T] = implicitly[KeyField[T]]
-
-    override def fromEntity(v: Entity)(cm: CaseMapper): T =
-      caseClass.construct { p =>
-        val f = v.getPropertiesOrDefault(cm.map(p.label), null)
-        if (f == null && p.default.isDefined) {
-          p.default.get
-        } else {
-          p.typeclass.from(f)(cm)
-        }
-      }
-
-    override def toEntity(v: T)(cm: CaseMapper): Entity.Builder =
-      caseClass.parameters.foldLeft(Entity.newBuilder()) { (eb, p) =>
-        val value = p.dereference(v)
-        val vb = p.typeclass.to(value)(cm)
-        if (vb != null) {
-          eb.putProperties(
-            cm.map(p.label),
-            vb.setExcludeFromIndexes(excludeFromIndexes(p.index))
-              .build()
-          )
-        }
-        if (p.index == keyIndex) {
-          val k = keyOpt.get
-          val partitionId = {
-            val b = PartitionId.newBuilder()
-            if (k.project != null) {
-              b.setProjectId(k.project)
-            }
-            b.setNamespaceId(if (k.namespace != null) k.namespace else caseClass.typeName.owner)
-          }
-          val path = {
-            val b = Key.PathElement.newBuilder()
-            b.setKind(if (k.kind != null) k.kind else caseClass.typeName.short)
-            p.typeclass.keyField.setKey(b, value)
-          }
-          val kb = Key
-            .newBuilder()
-            .setPartitionId(partitionId)
-            .addPath(path)
-          eb.setKey(kb)
-        }
-        eb
-      }
-
-    private def getKey(annotations: Seq[Any], name: String): Option[key] = {
-      val keys = annotations.collect { case k: key => k }
-      require(keys.size <= 1, s"More than one @key annotation: $name")
-      keys.headOption
-    }
-
-    private def getExcludeFromIndexes(annotations: Seq[Any], name: String): Boolean = {
-      val excludes = annotations.collect { case e: excludeFromIndexes => e.exclude }
-      require(excludes.size <= 1, s"More than one @excludeFromIndexes annotation: $name")
-      excludes.headOption.getOrElse(false)
-    }
-  }
-
-  @implicitNotFound("Cannot derive EntityField for sealed trait")
-  private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
-
-  implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
-
-  // ////////////////////////////////////////////////
-
   def apply[T](implicit f: EntityField[T]): EntityField[T] = f
 
   def at[T](f: Value => T)(g: T => Value.Builder)(implicit kf: KeyField[T]): EntityField[T] =
     new EntityField[T] {
-      override val keyField: KeyField[T] = kf
+      override def keyField: KeyField[T] = kf
       override def from(v: Value)(cm: CaseMapper): T = f(v)
       override def to(v: T)(cm: CaseMapper): Value.Builder = g(v)
     }
@@ -211,39 +110,36 @@ object EntityField {
   class FromWord[T] {
     def apply[U](f: T => U)(g: U => T)(implicit ef: EntityField[T]): EntityField[U] =
       new EntityField[U] {
-        override val keyField: KeyField[U] = ef.keyField.map(g)
+        override def keyField: KeyField[U] = ef.keyField.map(g)
         override def from(v: Value)(cm: CaseMapper): U = f(ef.from(v)(cm))
         override def to(v: U)(cm: CaseMapper): Value.Builder = ef.to(g(v))(cm)
       }
   }
 
-  // ////////////////////////////////////////////////
-
   // Entity key supports `Long` and `String` natively
-  implicit val efLong = at[Long](_.getIntegerValue)(makeValue)
-  implicit val efString = at[String](_.getStringValue)(makeValue)
+  val efLong = at[Long](_.getIntegerValue)(makeValue)(KeyField.longKeyField)
+  val efString = at[String](_.getStringValue)(makeValue)(KeyField.stringKeyField)
 
   // `Boolean`, `Double` and `Unit` should not be used as keys
-  implicit def efBool(implicit kf: KeyField[Boolean]) = at[Boolean](_.getBooleanValue)(makeValue)
-  implicit def efDouble(implicit kf: KeyField[Double]) = at[Double](_.getDoubleValue)(makeValue)
-  implicit def efUnit(implicit kf: KeyField[Unit]) =
+  def efBool(implicit kf: KeyField[Boolean]) = at[Boolean](_.getBooleanValue)(makeValue)
+  def efDouble(implicit kf: KeyField[Double]) = at[Double](_.getDoubleValue)(makeValue)
+  def efUnit(implicit kf: KeyField[Unit]) =
     at[Unit](_ => ())(_ => Value.newBuilder().setNullValue(NullValue.NULL_VALUE))
 
   // User must provide `KeyField[T]` instances for `ByteString` and `Array[Byte]`
-  implicit def efByteString(implicit kf: KeyField[ByteString]) =
+  def efByteString(implicit kf: KeyField[ByteString]) =
     at[ByteString](_.getBlobValue)(makeValue)
-  implicit def efByteArray(implicit kf: KeyField[Array[Byte]]) =
+  def efByteArray(implicit kf: KeyField[Array[Byte]]) =
     at[Array[Byte]](_.getBlobValue.toByteArray)(v => makeValue(ByteString.copyFrom(v)))
 
   // Encode `Instant` key as `Long`
-  implicit val efTimestamp = {
-    implicit val kfInstant = KeyField.at[Instant](_.toEpochMilli)
-    at(TimestampConverter.toInstant)(TimestampConverter.fromInstant)
-  }
+  val efTimestamp = at[Instant](TimestampConverter.toInstant)(TimestampConverter.fromInstant)(
+    KeyField.at[Instant](_.toEpochMilli)(KeyField.longKeyField)
+  )
 
-  implicit def efOption[T](implicit f: EntityField[T]): EntityField[Option[T]] =
+  def efOption[T](implicit f: EntityField[T]): EntityField[Option[T]] =
     new EntityField[Option[T]] {
-      override val keyField: KeyField[Option[T]] = new KeyField[Option[T]] {
+      override def keyField: KeyField[Option[T]] = new KeyField[Option[T]] {
         override def setKey(b: Key.PathElement.Builder, key: Option[T]): Key.PathElement.Builder =
           key match {
             case None    => b
@@ -259,30 +155,48 @@ object EntityField {
       }
     }
 
-  implicit def efIterable[T, C[_]](implicit
+  def efIterable[T, C[_]](implicit
     f: EntityField[T],
     kf: KeyField[C[T]],
     ti: C[T] => Iterable[T],
-    fc: FactoryCompat[T, C[T]]
+    fc: Factory[T, C[T]]
   ): EntityField[C[T]] =
     new EntityField[C[T]] {
       override val keyField: KeyField[C[T]] = kf
-      override def from(v: Value)(cm: CaseMapper): C[T] =
-        if (v == null) {
-          fc.newBuilder.result()
-        } else {
-          fc.build(v.getArrayValue.getValuesList.asScala.iterator.map(f.from(_)(cm)))
-        }
-      override def to(v: C[T])(cm: CaseMapper): Value.Builder =
-        if (v.isEmpty) {
+
+      override def from(v: Value)(cm: CaseMapper): C[T] = {
+        val b = fc.newBuilder
+        if (v != null) b ++= v.getArrayValue.getValuesList.asScala.iterator.map(f.from(_)(cm))
+        b.result()
+      }
+
+      override def to(v: C[T])(cm: CaseMapper): Value.Builder = {
+        val xs = ti(v)
+        if (xs.isEmpty) {
           null
         } else {
           Value
             .newBuilder()
             .setArrayValue(
-              v.foldLeft(ArrayValue.newBuilder())((b, x) => b.addValues(f.to(x)(cm)))
-                .build()
+              xs.foldLeft(ArrayValue.newBuilder()) { (b, x) =>
+                b.addValues(f.to(x)(cm))
+              }.build()
             )
         }
+      }
     }
+
+  // unsafe
+  val efByte = EntityField.from[Long](_.toByte)(_.toLong)(efLong)
+  val efChar = EntityField.from[Long](_.toChar)(_.toLong)(efLong)
+  val efShort = EntityField.from[Long](_.toShort)(_.toLong)(efLong)
+  val efInt = EntityField.from[Long](_.toInt)(_.toLong)(efLong)
+  def efFloat(implicit kf: KeyField[Double]) =
+    EntityField.from[Double](_.toFloat)(_.toDouble)(efDouble)
+
+  def efEnum[T](implicit et: EnumType[T]): EntityField[T] =
+    EntityField.from[String](et.from)(et.to)(efString)
+
+  def efUnsafeEnum[T](implicit et: EnumType[T]): EntityField[UnsafeEnum[T]] =
+    EntityField.from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))(efString)
 }

@@ -178,7 +178,7 @@ lazy val root: Project = project
     bigquery,
     bigtable,
     cats,
-//    datastore,
+    datastore,
     guava,
 //    parquet,
 //    protobuf,
@@ -342,23 +342,23 @@ lazy val bigtable: Project = project
     test % "test->test"
   )
 
-//lazy val datastore: Project = project
-//  .in(file("datastore"))
-//  .settings(
-//    commonSettings,
-//    moduleName := "magnolify-datastore",
-//    description := "Magnolia add-on for Google Cloud Datastore",
-//    libraryDependencies ++= Seq(
-//      "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Provided
-//    )
-//  )
-//  .dependsOn(
-//    shared,
-//    cats % Test,
-//    scalacheck % Test,
-//    test % "test->test"
-//  )
-//
+lazy val datastore: Project = project
+  .in(file("datastore"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-datastore",
+    description := "Magnolia add-on for Google Cloud Datastore",
+    libraryDependencies ++= Seq(
+      "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Provided
+    )
+  )
+  .dependsOn(
+    shared,
+    cats % "test->test",
+    scalacheck % "test->test",
+    test % "test->test"
+  )
+
 //lazy val parquet: Project = project
 //  .in(file("parquet"))
 //  .settings(
