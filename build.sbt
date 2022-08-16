@@ -15,7 +15,6 @@
  */
 import _root_.io.github.davidgregory084._
 import _root_.io.github.davidgregory084.ScalaVersion._
-import de.heikoseeberger.sbtheader.CommentCreator
 import scala.Ordering.Implicits._
 
 val magnoliaScala2Version = "1.1.2"
@@ -63,7 +62,7 @@ ThisBuild / tpolecatDevModeOptions ~= { opts =>
     // required by magnolia for accessing default values
     ScalacOptions.privateOption("retain-trees", _ >= V3_0_0),
     // allow some nested auto derivation
-    ScalacOptions.other("-Xmax-inlines", List("64"), _ >= V3_0_0),
+    ScalacOptions.advancedOption("max-inlines", List("64"), _ >= V3_0_0),
     ScalacOptions.other("-target:jvm-1.8"),
     ScalacOptions.warnOption("macros:after", _.isBetween(V2_13_0, V3_0_0)),
     ScalacOptions.privateWarnOption("macros:after", _.isBetween(V2_12_0, V2_13_0)),
