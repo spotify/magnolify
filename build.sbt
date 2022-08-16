@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import de.heikoseeberger.sbtheader.CommentCreator
+import _root_.io.github.davidgregory084._
+import _root_.io.github.davidgregory084.ScalaVersion._
+import scala.Ordering.Implicits._
 
-name := "magnolify"
-description := "A collection of Magnolia add-on modules"
-
-val magnoliaVersion = "1.1.2"
+val magnoliaScala2Version = "1.1.2"
+val magnoliaScala3Version = "1.1.4"
 
 val algebirdVersion = "0.13.9"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.0")
@@ -47,20 +47,52 @@ lazy val keepExistingHeader =
         .trim()
   )
 
+ThisBuild / tpolecatDefaultOptionsMode := DevMode
+ThisBuild / tpolecatDevModeOptions ~= { opts =>
+  val excludes = Set(
+    ScalacOptions.lintPackageObjectClasses,
+    ScalacOptions.privateWarnDeadCode,
+    ScalacOptions.privateWarnValueDiscard,
+    ScalacOptions.warnDeadCode,
+    ScalacOptions.warnValueDiscard
+  )
+
+  val parallelism = math.min(java.lang.Runtime.getRuntime.availableProcessors(), 16)
+  val extras = Set(
+    // required by magnolia for accessing default values
+    ScalacOptions.privateOption("retain-trees", _ >= V3_0_0),
+    // allow some nested auto derivation
+    ScalacOptions.advancedOption("max-inlines", List("64"), _ >= V3_0_0),
+    ScalacOptions.other("-target:jvm-1.8"),
+    ScalacOptions.warnOption("macros:after", _.isBetween(V2_13_0, V3_0_0)),
+    ScalacOptions.privateWarnOption("macros:after", _.isBetween(V2_12_0, V2_13_0)),
+    ScalacOptions.privateBackendParallelism(parallelism),
+    ScalacOptions.release("8")
+  )
+
+  opts.filterNot(excludes).union(extras)
+}
+
 val commonSettings = Seq(
   organization := "com.spotify",
-  scalaVersion := "2.13.8",
-  crossScalaVersions := Seq("2.12.16", "2.13.8"),
-  scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
-  scalacOptions ++= (scalaBinaryVersion.value match {
-    case "2.12" => Seq("-language:higherKinds")
-    case "2.13" => Nil
-  }),
-  libraryDependencies ++= Seq(
-    "com.softwaremill.magnolia1_2" %% "magnolia" % magnoliaVersion,
-    "com.chuusai" %% "shapeless" % shapelessVersion,
-    "org.scala-lang" % "scala-reflect" % scalaVersion.value
-  ),
+  crossScalaVersions := Seq("2.13.8", "2.12.16"),
+  scalaVersion := crossScalaVersions.value.head,
+  libraryDependencies ++= {
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((3, _)) =>
+        Seq(
+          "com.softwaremill.magnolia1_3" %% "magnolia" % magnoliaScala3Version
+        )
+      case Some((2, _)) =>
+        Seq(
+          "com.softwaremill.magnolia1_2" %% "magnolia" % magnoliaScala2Version,
+          "com.chuusai" %% "shapeless" % shapelessVersion,
+          "org.scala-lang" % "scala-reflect" % scalaVersion.value
+        )
+      case _ =>
+        throw new Exception("Unsupported scala version")
+    }
+  },
   // https://github.com/typelevel/scalacheck/pull/427#issuecomment-424330310
   // FIXME: workaround for Java serialization issues
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
@@ -137,7 +169,9 @@ lazy val root: Project = project
   .in(file("."))
   .settings(
     commonSettings,
-    noPublishSettings
+    noPublishSettings,
+    name := "magnolify",
+    description := "A collection of Magnolia add-on modules"
   )
   .aggregate(
     avro,
