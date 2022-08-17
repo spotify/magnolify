@@ -16,7 +16,6 @@
 
 package magnolify.parquet
 
-import magnolify.shims.JavaConverters._
 import org.apache.parquet.io.InvalidRecordException
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 import org.apache.parquet.schema.Type.Repetition
@@ -29,6 +28,7 @@ import org.apache.parquet.schema.{
   Types
 }
 import org.slf4j.LoggerFactory
+import scala.jdk.CollectionConverters._
 
 private object Schema {
   private lazy val logger = LoggerFactory.getLogger(this.getClass)

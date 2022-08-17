@@ -27,7 +27,6 @@ import magnolify.parquet._
 import magnolify.parquet.unsafe._
 import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
-import magnolify.shims.JavaConverters._
 import magnolify.test.Simple._
 import magnolify.test.Time._
 import magnolify.test._
@@ -35,6 +34,7 @@ import org.apache.parquet.io._
 import org.scalacheck._
 
 import scala.reflect.ClassTag
+import scala.jdk.CollectionConverters._
 
 class ParquetTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit

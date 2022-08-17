@@ -18,9 +18,9 @@ package magnolify.cats.semiauto
 
 import cats.Monoid
 import magnolia1._
-import magnolify.shims._
 
 import scala.annotation.implicitNotFound
+import scala.collection.compat.immutable.ArraySeq
 import scala.language.experimental.macros
 
 object MonoidDerivation {
@@ -74,19 +74,19 @@ private object MonoidMethods {
   ): IterableOnce[T] => T = {
     val combineImpl = SemigroupMethods.combine(caseClass)
     val emptyImpl = MonoidMethods.empty(caseClass)
-    as: IterableOnce[T] =>
-      as match {
-        case it: Iterable[T] if it.nonEmpty =>
-          // input is re-iterable and non-empty, combineAll on each field
-          val result = Array.fill[Any](caseClass.parameters.length)(null)
-          var i = 0
-          while (i < caseClass.parameters.length) {
-            val p = caseClass.parameters(i)
-            result(i) = p.typeclass.combineAll(it.iterator.map(p.dereference))
-            i += 1
-          }
-          caseClass.rawConstruct(unsafeWrapArray(result))
-        case xs => xs.foldLeft(emptyImpl())(combineImpl)
-      }
+
+    {
+      case it: Iterable[T] if it.nonEmpty =>
+        // input is re-iterable and non-empty, combineAll on each field
+        val result = Array.fill[Any](caseClass.parameters.length)(null)
+        var i = 0
+        while (i < caseClass.parameters.length) {
+          val p = caseClass.parameters(i)
+          result(i) = p.typeclass.combineAll(it.iterator.map(p.dereference))
+          i += 1
+        }
+        caseClass.rawConstruct(ArraySeq.unsafeWrapArray(result))
+      case xs => xs.foldLeft(emptyImpl())(combineImpl)
+    }
   }
 }

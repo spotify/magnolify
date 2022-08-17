@@ -26,7 +26,6 @@ import magnolify.scalacheck.auto._
 import magnolify.protobuf._
 import magnolify.protobuf.unsafe._
 import magnolify.shared._
-import magnolify.shims.JavaConverters._
 import magnolify.test.Proto2._
 import magnolify.test.Proto3._
 import magnolify.test.Simple._
@@ -34,6 +33,7 @@ import magnolify.test._
 import org.scalacheck._
 
 import scala.reflect._
+import scala.jdk.CollectionConverters._
 
 trait BaseProtobufTypeSuite extends MagnolifySuite {
   def test[T: ClassTag: Arbitrary, U <: Message: ClassTag](implicit

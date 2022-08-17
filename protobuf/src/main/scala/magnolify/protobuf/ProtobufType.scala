@@ -25,12 +25,13 @@ import com.google.protobuf.{ByteString, Message, ProtocolMessageEnum}
 import magnolia1._
 import magnolify.shared._
 import magnolify.shims.FactoryCompat
-import magnolify.shims.JavaConverters._
 
 import scala.annotation.implicitNotFound
 import scala.collection.concurrent
 import scala.language.experimental.macros
 import scala.reflect.ClassTag
+import scala.jdk.CollectionConverters._
+import scala.collection.compat._
 
 sealed trait ProtobufType[T, MsgT <: Message] extends Converter[T, MsgT, MsgT] {
   def apply(r: MsgT): T = from(r)
@@ -286,13 +287,15 @@ object ProtobufField {
   ): ProtobufField[C[T]] =
     new Aux[C[T], ju.List[f.FromT], ju.List[f.ToT]] {
       override val hasOptional: Boolean = false
-      override val default: Option[C[T]] = Some(fc.build(Nil))
-      override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] =
-        if (v == null) {
-          fc.newBuilder.result()
-        } else {
-          fc.build(v.asScala.iterator.map(f.from(_)(cm)))
+      override val default: Option[C[T]] = Some(fc.newBuilder.result())
+      override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] = {
+        val b = fc.newBuilder
+        if (v != null) {
+          b ++= v.asScala.iterator.map(f.from(_)(cm))
         }
+        b.result()
+      }
+
       override def to(v: C[T], b: Message.Builder)(cm: CaseMapper): ju.List[f.ToT] =
         if (v.isEmpty) null else v.iterator.map(f.to(_, b)(cm)).toList.asJava
     }

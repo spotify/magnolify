@@ -23,11 +23,12 @@ import com.google.common.io.BaseEncoding
 import magnolia1._
 import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
-import magnolify.shims.JavaConverters._
 
 import scala.collection.concurrent
 import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.language.experimental.macros
+import scala.jdk.CollectionConverters._
+import scala.collection.compat._
 
 class description(description: String) extends StaticAnnotation with Serializable {
   override def toString: String = description
@@ -201,12 +202,14 @@ object TableRowField {
     new Aux[C[T], ju.List[f.FromT], ju.List[f.ToT]] {
       override protected def buildSchema(cm: CaseMapper): TableFieldSchema =
         f.fieldSchema(cm).clone().setMode("REPEATED")
-      override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] =
-        if (v == null) {
-          fc.newBuilder.result()
-        } else {
-          fc.build(v.asScala.iterator.map(f.from(_)(cm)))
+      override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] = {
+        val b = fc.newBuilder
+        if (v != null) {
+          b ++= v.asScala.iterator.map(f.from(_)(cm))
         }
+        b.result()
+      }
+
       override def to(v: C[T])(cm: CaseMapper): ju.List[f.ToT] =
         if (v.isEmpty) null else v.iterator.map(f.to(_)(cm)).toList.asJava
     }

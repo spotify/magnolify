@@ -30,7 +30,6 @@ import magnolify.avro.unsafe._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
-import magnolify.shims.JavaConverters._
 import magnolify.test.Simple._
 import magnolify.test.Time._
 import magnolify.test._
@@ -46,6 +45,7 @@ import org.scalacheck._
 
 import scala.reflect._
 import scala.util.Try
+import scala.jdk.CollectionConverters._
 
 class AvroTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit

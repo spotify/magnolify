@@ -17,7 +17,6 @@
 package magnolify.scalacheck.semiauto
 
 import magnolia1._
-import magnolify.shims.Monadic
 import org.scalacheck.rng.Seed
 import org.scalacheck.{Arbitrary, Gen}
 
@@ -59,8 +58,8 @@ object ArbitraryDerivation {
 
   private val monadicGen: Monadic[Gen] = new Monadic[Gen] {
     override def point[A](value: A): Gen[A] = Gen.const(value)
-    override def flatMapS[A, B](from: Gen[A])(fn: A => Gen[B]): Gen[B] = from.flatMap(fn)
-    override def mapS[A, B](from: Gen[A])(fn: A => B): Gen[B] = from.map(fn)
+    override def map[A, B](from: Gen[A])(fn: A => B): Gen[B] = from.map(fn)
+    override def flatMap[A, B](from: Gen[A])(fn: A => Gen[B]): Gen[B] = from.flatMap(fn)
   }
 
   sealed trait Fallback[+T] extends Serializable {

@@ -16,10 +16,11 @@
 
 package magnolify.tools
 
-import magnolify.shims.JavaConverters._
 import org.apache.avro
 import org.apache.avro.LogicalTypes
 import org.apache.avro.Schema.Type
+
+import scala.jdk.CollectionConverters._
 
 object AvroParser extends SchemaParser[avro.Schema] {
   override def parse(schema: avro.Schema): Record =

@@ -46,6 +46,6 @@ object AnnotationType {
     val j = q"classOf[${annotated.typeSymbol.asClass}].getAnnotations.toList"
     val annotations = q"_root_.scala.List(..$trees) ++ $j"
 
-    q"_root_.magnolify.shared.AnnotationType[$wtt]($annotations)"
+    q"new _root_.magnolify.shared.AnnotationType[$wtt]($annotations)"
   }
 }
