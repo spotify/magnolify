@@ -14,32 +14,36 @@
  * limitations under the License.
  */
 
-package magnolify.shims
+package magnolify.shared
 
 import magnolify.test._
 import org.scalacheck._
 
-import scala.reflect._
+import scala.reflect.ClassTag
+import scala.collection.compat._
+import scala.collection.compat.immutable._
 
-class ShimsSuite extends MagnolifySuite {
+class CollectionSuite extends MagnolifySuite {
+
   private def test[C[_]](implicit
     ct: ClassTag[C[Int]],
     ti: C[Int] => Iterable[Int],
-    fc: FactoryCompat[Int, C[Int]]
+    fc: Factory[Int, C[Int]]
   ): Unit = {
     property(className[C[Int]]) {
-      Prop.forAll { xs: List[Int] => fc.build(xs).toList == xs }
+      Prop.forAll { (xs: List[Int]) =>
+        val b = fc.newBuilder
+        b ++= xs
+        ti(b.result()) == xs
+      }
     }
   }
 
   test[Array]
-  // Deprecated in 2.13
-  // test[Traversable]
   test[Iterable]
   test[Seq]
   test[IndexedSeq]
   test[List]
   test[Vector]
-  // Deprecated in 2.13
-  // test[Stream]
+  test[LazyList]
 }

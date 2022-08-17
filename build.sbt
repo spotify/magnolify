@@ -34,6 +34,7 @@ val paigesVersion = "0.4.2"
 val parquetVersion = "1.12.3"
 val protobufVersion = "3.21.5"
 val refinedVersion = "0.10.1"
+val scalaCollectionCompatVersion = "2.8.0"
 val scalacheckVersion = "1.16.0"
 val shapelessVersion = "2.3.9"
 val tensorflowVersion = "0.4.1"
@@ -63,7 +64,7 @@ ThisBuild / tpolecatDevModeOptions ~= { opts =>
     ScalacOptions.privateOption("retain-trees", _ >= V3_0_0),
     // allow some nested auto derivation
     ScalacOptions.advancedOption("max-inlines", List("64"), _ >= V3_0_0),
-    ScalacOptions.other("-target:jvm-1.8"),
+    ScalacOptions.other("-target:jvm-1.8", _ < V3_0_0),
     ScalacOptions.warnOption("macros:after", _.isBetween(V2_13_0, V3_0_0)),
     ScalacOptions.privateWarnOption("macros:after", _.isBetween(V2_12_0, V2_13_0)),
     ScalacOptions.privateBackendParallelism(parallelism),
@@ -81,13 +82,15 @@ val commonSettings = Seq(
     CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((3, _)) =>
         Seq(
-          "com.softwaremill.magnolia1_3" %% "magnolia" % magnoliaScala3Version
+          "com.softwaremill.magnolia1_3" %% "magnolia" % magnoliaScala3Version,
+          "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion
         )
       case Some((2, _)) =>
         Seq(
           "com.softwaremill.magnolia1_2" %% "magnolia" % magnoliaScala2Version,
           "com.chuusai" %% "shapeless" % shapelessVersion,
-          "org.scala-lang" % "scala-reflect" % scalaVersion.value
+          "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion,
+          "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided
         )
       case _ =>
         throw new Exception("Unsupported scala version")
@@ -237,7 +240,7 @@ lazy val cats: Project = project
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % catsVersion,
       "org.typelevel" %% "cats-laws" % catsVersion % Test,
-      "com.twitter" %% "algebird-core" % algebirdVersion % Test
+      // "com.twitter" %% "algebird-core" % algebirdVersion % Test
     )
   )
   .dependsOn(

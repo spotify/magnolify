@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Spotify AB
+ * Copyright 2022 Spotify AB
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package magnolify.shared
+package magnolify
 
-final case class AnnotationType[T](annotations: List[Any])
+import scala.collection.{mutable, Factory}
+import scala.util.hashing.MurmurHash3
 
-object AnnotationType extends AnnotationTypeCompanionMacros {
-  def apply[T](implicit et: AnnotationType[T]): AnnotationType[T] = et
-}
+package object shims:
+  object MurmurHash3Compat:
+    def seed(data: Int): Int = MurmurHash3.mix(MurmurHash3.productSeed, data)
