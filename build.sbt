@@ -30,7 +30,7 @@ val guavaVersion = "30.1.1-jre"
 val hadoopVersion = "3.3.4"
 val jacksonVersion = "2.13.3"
 val munitVersion = "0.7.29"
-val neo4jDriver = "4.4.9"
+val neo4jDriverVersion = "4.4.9"
 val paigesVersion = "0.4.2"
 val parquetVersion = "1.12.3"
 val protobufVersion = "3.21.5"
@@ -436,7 +436,7 @@ lazy val neo4j: Project = project
     moduleName := "magnolify-neo4j",
     description := "Magnolia add-on for Neo4j",
     libraryDependencies ++= Seq(
-      "org.neo4j.driver" % "neo4j-java-driver" % neo4jDriver % Provided
+      "org.neo4j.driver" % "neo4j-java-driver" % neo4jDriverVersion % Provided
     )
   )
   .dependsOn(
@@ -445,7 +445,6 @@ lazy val neo4j: Project = project
     scalacheck % Test,
     test % "test->test"
   )
-
 
 lazy val tools: Project = project
   .in(file("tools"))
