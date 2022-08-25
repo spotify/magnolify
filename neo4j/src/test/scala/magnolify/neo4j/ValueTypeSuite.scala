@@ -21,6 +21,7 @@ import magnolify.test.MagnolifySuite
 import magnolify.test.Simple._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
+import magnolify.shared.CaseMapper
 import org.scalacheck.{Arbitrary, Prop}
 
 import java.net.URI
@@ -65,4 +66,14 @@ class ValueTypeSuite extends MagnolifySuite {
     test[Custom]
   }
 
+  test("LowerCamel mapping") {
+    implicit val vt: ValueType[LowerCamel] = ValueType[LowerCamel](CaseMapper(_.toUpperCase))
+    test[LowerCamel]
+
+    val fields = LowerCamel.fields.map(_.toUpperCase)
+
+    val record = vt(LowerCamel.default)
+    assert(!fields.map(record.get).exists(_.isNull))
+    assert(!record.get("INNERFIELD").get("INNERFIRST").isNull)
+  }
 }
