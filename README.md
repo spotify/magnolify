@@ -13,25 +13,25 @@ A collection of [Magnolia](https://github.com/propensive/magnolia) add-ons for c
 
 This library includes the following modules.
 
+- `magnolify-avro` - conversion between Scala types and [Apache Avro](https://github.com/apache/avro) `GenericRecord`
+- `magnolify-bigquery` - conversion between Scala types and [Google Cloud BigQuery](https://cloud.google.com/bigquery/) `TableRow`
+- `magnolify-bigtable` - conversion between Scala types and [Google Cloud Bigtable](https://cloud.google.com/bigtable) to `Mutation`, from `Row`
 - `magnolify-cats` - type class derivation for [Cats](https://github.com/typelevel/cats), specifically
   - [`Eq[T]`](https://typelevel.org/cats/api/cats/kernel/Eq.html)
   - [`Hash[T]`](https://typelevel.org/cats/api/cats/kernel/Hash.html)
   - [`Semigroup[T]`](https://typelevel.org/cats/api/cats/kernel/Semigroup.html), [`CommutativeSemigroup[T]`](https://typelevel.org/cats/api/cats/kernel/CommutativeSemigroup.html), [`Band[T]`](https://typelevel.org/cats/api/cats/kernel/Band.html)
   - [`Monoid[T]`](https://typelevel.org/cats/api/cats/kernel/Monoid.html), [`CommutativeMonoid[T]`](https://typelevel.org/cats/api/cats/kernel/CommutativeMonoid.html)
   - [`Group[T]`](https://typelevel.org/cats/api/cats/kernel/Group.html), [`CommutativeGroup[T]`](https://typelevel.org/cats/api/cats/kernel/CommutativeGroup.html)
+- `magnolify-datastore` - conversion between Scala types and [Google Cloud Datastore](https://cloud.google.com/datastore/) `Entity`
+- `magnolify-guava` - type class derivation for [Guava](https://guava.dev)
+  - [`Funnel[T]`](https://guava.dev/releases/snapshot-jre/api/docs/com/google/common/hash/Funnel.html)
+- `magnolify-neo4j` - conversion between Scala types and [Value](https://neo4j.com/docs/driver-manual/1.7/cypher-values/)
+- `magnolify-parquet` - support for [Parquet](http://parquet.apache.org/) columnar storage format.
+- `magnolify-protobuf` - conversion between Scala types and [Google Protocol Buffer](https://developers.google.com/protocol-buffers/docs/overview) `Message`
+- `magnolify-refined` - support for simple refinement types from [Refined](https://github.com/fthomas/refined).
 - `magnolify-scalacheck` - type class derivation for [ScalaCheck](https://github.com/typelevel/scalacheck)
   - [`Arbitrary[T]`](https://github.com/typelevel/scalacheck/blob/master/doc/UserGuide.md#universally-quantified-properties)
   - [`Cogen[T]`](https://github.com/typelevel/scalacheck/blob/master/src/main/scala/org/scalacheck/Cogen.scala)
-- `magnolify-guava` - type class derivation for [Guava](https://guava.dev)
-  - [`Funnel[T]`](https://guava.dev/releases/snapshot-jre/api/docs/com/google/common/hash/Funnel.html)
-- `magnolify-parquet` - support for [Parquet](http://parquet.apache.org/) columnar storage format.
-- `magnolify-refined` - support for simple refinement types from [Refined](https://github.com/fthomas/refined).
-
-- `magnolify-avro` - conversion between Scala types and [Apache Avro](https://github.com/apache/avro) `GenericRecord`
-- `magnolify-bigquery` - conversion between Scala types and [Google Cloud BigQuery](https://cloud.google.com/bigquery/) `TableRow`
-- `magnolify-bigtable` - conversion between Scala types and [Google Cloud Bigtable](https://cloud.google.com/bigtable) to `Mutation`, from `Row`
-- `magnolify-datastore` - conversion between Scala types and [Google Cloud Datastore](https://cloud.google.com/datastore/) `Entity`
-- `magnolify-protobuf` - conversion between Scala types and [Google Protocol Buffer](https://developers.google.com/protocol-buffers/docs/overview) `Message`
 - `magnolify-tensorflow` - conversion between Scala types and [TensorFlow](https://www.tensorflow.org/) `Example`
 
 # Usage

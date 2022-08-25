@@ -30,6 +30,7 @@ val guavaVersion = "30.1.1-jre"
 val hadoopVersion = "3.3.4"
 val jacksonVersion = "2.13.3"
 val munitVersion = "0.7.29"
+val neo4jDriverVersion = "4.4.9"
 val paigesVersion = "0.4.2"
 val parquetVersion = "1.12.3"
 val protobufVersion = "3.21.5"
@@ -186,6 +187,7 @@ lazy val root: Project = project
     scalacheck,
     shared,
     tensorflow,
+    neo4j,
     test,
     tools
   )
@@ -426,6 +428,23 @@ lazy val tensorflow: Project = project
     test % "test->test"
   )
   .enablePlugins(ProtobufPlugin)
+
+lazy val neo4j: Project = project
+  .in(file("neo4j"))
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-neo4j",
+    description := "Magnolia add-on for Neo4j",
+    libraryDependencies ++= Seq(
+      "org.neo4j.driver" % "neo4j-java-driver" % neo4jDriverVersion % Provided
+    )
+  )
+  .dependsOn(
+    shared,
+    cats % Test,
+    scalacheck % Test,
+    test % "test->test"
+  )
 
 lazy val tools: Project = project
   .in(file("tools"))
