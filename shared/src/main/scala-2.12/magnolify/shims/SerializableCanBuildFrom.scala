@@ -21,9 +21,9 @@ import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
-// For scala 2.12, scala.collection.compat.Factor is an alias for scala.collection.generic.CanBuildFrom
+// For scala 2.12, scala.collection.compat.Factory is an alias for scala.collection.generic.CanBuildFrom
 // CanBuildFrom is not serializable
-// We need to create our own serializable factory
+// We need to create our own serializable factories
 trait SerializableCanBuildFrom[-From, -Elem, +To]
     extends CanBuildFrom[From, Elem, To]
     with Serializable
@@ -42,21 +42,21 @@ trait SerializableCanBuildFromInstances extends SerializableCanBuildFromLowPrio 
 }
 
 trait SerializableCanBuildFromLowPrio extends SerializableCanBuildFromLowPrio2 {
-  implicit def listCBF[A: ClassTag]: SerializableCanBuildFrom[Any, A, List[A]] =
+  implicit def listCBF[A]: SerializableCanBuildFrom[Any, A, List[A]] =
     SerializableCanBuildFrom(List.newBuilder[A])
 }
 
 trait SerializableCanBuildFromLowPrio2 extends SerializableCanBuildFromLowPrio3 {
-  implicit def vectorCBF[A: ClassTag]: SerializableCanBuildFrom[Any, A, Vector[A]] =
+  implicit def vectorCBF[A]: SerializableCanBuildFrom[Any, A, Vector[A]] =
     SerializableCanBuildFrom(Vector.newBuilder[A])
 }
 
 trait SerializableCanBuildFromLowPrio3 extends SerializableCanBuildFromLowPrio4 {
-  implicit def streamCBF[A: ClassTag]: SerializableCanBuildFrom[Any, A, Stream[A]] =
+  implicit def streamCBF[A]: SerializableCanBuildFrom[Any, A, Stream[A]] =
     SerializableCanBuildFrom(Stream.newBuilder[A])
 }
 
 trait SerializableCanBuildFromLowPrio4 {
-  implicit def lazyListCBF[A: ClassTag]: SerializableCanBuildFrom[Any, A, LazyList[A]] =
+  implicit def lazyListCBF[A]: SerializableCanBuildFrom[Any, A, LazyList[A]] =
     SerializableCanBuildFrom(LazyList.newBuilder[A])
 }
