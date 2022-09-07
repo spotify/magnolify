@@ -18,9 +18,9 @@ package magnolify.cats.semiauto
 
 import cats.Semigroup
 import magnolia1._
-import magnolify.shims._
 
 import scala.annotation.implicitNotFound
+import scala.collection.compat.immutable.ArraySeq
 import scala.language.experimental.macros
 
 object SemigroupDerivation {
@@ -70,20 +70,20 @@ private object SemigroupMethods {
     caseClass: CaseClass[Typeclass, T]
   ): IterableOnce[T] => Option[T] = {
     val combineImpl = combine(caseClass)
-    as: IterableOnce[T] =>
-      as match {
-        case it: Iterable[T] if it.nonEmpty =>
-          // input is re-iterable and non-empty, combineAllOption on each field
-          val result = Array.fill[Any](caseClass.parameters.length)(null)
-          var i = 0
-          while (i < caseClass.parameters.length) {
-            val p = caseClass.parameters(i)
-            result(i) = p.typeclass.combineAllOption(it.iterator.map(p.dereference)).get
-            i += 1
-          }
-          Some(caseClass.rawConstruct(unsafeWrapArray(result)))
-        case xs =>
-          xs.reduceOption(combineImpl)
-      }
+
+    {
+      case it: Iterable[T] if it.nonEmpty =>
+        // input is re-iterable and non-empty, combineAllOption on each field
+        val result = Array.fill[Any](caseClass.parameters.length)(null)
+        var i = 0
+        while (i < caseClass.parameters.length) {
+          val p = caseClass.parameters(i)
+          result(i) = p.typeclass.combineAllOption(it.iterator.map(p.dereference)).get
+          i += 1
+        }
+        Some(caseClass.rawConstruct(ArraySeq.unsafeWrapArray(result)))
+      case xs =>
+        xs.reduceOption(combineImpl)
+    }
   }
 }

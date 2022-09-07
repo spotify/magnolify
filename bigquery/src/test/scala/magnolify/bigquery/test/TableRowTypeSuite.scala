@@ -28,13 +28,13 @@ import magnolify.bigquery.unsafe._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
-import magnolify.shims.JavaConverters._
 import magnolify.test.Simple._
 import magnolify.test.Time._
 import magnolify.test._
 import org.scalacheck._
 
 import scala.reflect._
+import scala.jdk.CollectionConverters._
 
 class TableRowTypeSuite extends MagnolifySuite {
   private val mapper = new ObjectMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)

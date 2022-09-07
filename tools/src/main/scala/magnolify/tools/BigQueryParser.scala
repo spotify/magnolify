@@ -17,7 +17,8 @@
 package magnolify.tools
 
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableSchema}
-import magnolify.shims.JavaConverters._
+
+import scala.jdk.CollectionConverters._
 
 object BigQueryParser extends SchemaParser[TableSchema] {
   override def parse(schema: TableSchema): Record =

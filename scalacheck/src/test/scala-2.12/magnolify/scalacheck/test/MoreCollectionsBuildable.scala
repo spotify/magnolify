@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Spotify AB
+ * Copyright 2022 Spotify AB
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,22 @@
  * limitations under the License.
  */
 
-package magnolify
+package magnolify.scalacheck.test
 
-import scala.annotation.nowarn
-import scala.util.hashing.MurmurHash3
+import magnolify.shims._
+import org.scalacheck.util.Buildable
 
-package object shims extends SerializableCanBuildFromInstances {
+import scala.collection.immutable
 
-  type FactoryCompat[-A, +C] = SerializableCanBuildFrom[Nothing, A, C]
+object MoreCollectionsBuildable {
 
-  object MurmurHash3Compat {
-    @nowarn
-    def seed(data: Int): Int = MurmurHash3.productSeed
-  }
+  import Buildable._
+
+  implicit def buildableIterable[T]: Buildable[T, Iterable[T]] =
+    buildableCanBuildFrom(listCBF)
+  implicit def buildableImmutableSeq[T]: Buildable[T, immutable.Seq[T]] =
+    buildableCanBuildFrom(listCBF)
+  implicit def buildableIndexedSeq[T]: Buildable[Int, IndexedSeq[Int]] =
+    buildableCanBuildFrom(vectorCBF)
+
 }

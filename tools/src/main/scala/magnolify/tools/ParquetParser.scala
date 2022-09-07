@@ -16,7 +16,6 @@
 
 package magnolify.tools
 
-import magnolify.shims.JavaConverters._
 import org.apache.parquet.schema.LogicalTypeAnnotation.{DecimalLogicalTypeAnnotation, TimeUnit}
 import org.apache.parquet.schema.PrimitiveType.{PrimitiveTypeName => PTN}
 import org.apache.parquet.schema.{
@@ -26,6 +25,8 @@ import org.apache.parquet.schema.{
   PrimitiveType,
   Type
 }
+
+import scala.jdk.CollectionConverters._
 
 object ParquetParser extends SchemaParser[MessageType] {
   override def parse(schema: MessageType): Record = {

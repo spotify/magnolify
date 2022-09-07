@@ -35,6 +35,7 @@ val paigesVersion = "0.4.2"
 val parquetVersion = "1.12.3"
 val protobufVersion = "3.21.5"
 val refinedVersion = "0.10.1"
+val scalaCollectionCompatVersion = "2.8.1"
 val scalacheckVersion = "1.16.0"
 val shapelessVersion = "2.3.9"
 val tensorflowVersion = "0.4.1"
@@ -82,13 +83,15 @@ val commonSettings = Seq(
     CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((3, _)) =>
         Seq(
-          "com.softwaremill.magnolia1_3" %% "magnolia" % magnoliaScala3Version
+          "com.softwaremill.magnolia1_3" %% "magnolia" % magnoliaScala3Version,
+          "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion
         )
       case Some((2, _)) =>
         Seq(
           "com.softwaremill.magnolia1_2" %% "magnolia" % magnoliaScala2Version,
           "com.chuusai" %% "shapeless" % shapelessVersion,
-          "org.scala-lang" % "scala-reflect" % scalaVersion.value
+          "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion,
+          "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided
         )
       case _ =>
         throw new Exception("Unsupported scala version")

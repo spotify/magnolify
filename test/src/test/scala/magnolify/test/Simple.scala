@@ -18,12 +18,14 @@ package magnolify.test
 
 import java.net.URI
 import java.time.Duration
-
 import org.scalacheck._
+import org.scalacheck.util.Buildable
 import cats._
 import magnolify.shared.UnsafeEnum
+import magnolify.shims._
 
 import scala.annotation.StaticAnnotation
+import scala.collection.immutable.Seq
 
 object Simple {
   case class Integers(i: Int, l: Long)

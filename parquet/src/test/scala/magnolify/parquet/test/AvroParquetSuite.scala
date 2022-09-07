@@ -26,7 +26,6 @@ import magnolify.parquet._
 import magnolify.parquet.unsafe._
 import magnolify.parquet.ParquetArray.AvroCompat._
 import magnolify.scalacheck.auto._
-import magnolify.shims.JavaConverters._
 import magnolify.test._
 import magnolify.test.Simple._
 

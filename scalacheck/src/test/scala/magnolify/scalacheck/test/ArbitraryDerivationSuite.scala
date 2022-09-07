@@ -17,7 +17,7 @@
 package magnolify.scalacheck.test
 
 import magnolify.scalacheck.auto._
-import magnolify.shims.SerializableCanBuildFroms._
+import magnolify.shims._
 import magnolify.test.ADT._
 import magnolify.test.Simple._
 import magnolify.test._
@@ -57,8 +57,10 @@ class ArbitraryDerivationSuite extends MagnolifySuite {
 
   {
     import Collections._
+    import MoreCollectionsBuildable._ // scala 2.12 does not find implicit Buildable for some collections
     test[Repeated]
     test((c: Collections) => (c.a.toList, c.l, c.v))
+    test[MoreCollections]
   }
 
   test[Nested]

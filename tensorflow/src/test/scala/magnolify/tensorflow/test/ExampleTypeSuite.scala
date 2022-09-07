@@ -18,22 +18,21 @@ package magnolify.tensorflow.test
 
 import java.net.URI
 import java.time.Duration
-
 import cats._
 import com.google.protobuf.ByteString
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
-import magnolify.shims.JavaConverters._
 import magnolify.tensorflow._
 import magnolify.tensorflow.unsafe._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
 import org.tensorflow.proto.example.Example
-import scala.reflect._
-
 import org.tensorflow.metadata.v0.{Annotation, Feature, FeatureType, Schema}
+
+import scala.reflect._
+import scala.jdk.CollectionConverters._
 
 class ExampleTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit t: ExampleType[T], eq: Eq[T]): Unit = {

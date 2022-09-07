@@ -28,13 +28,13 @@ import magnolify.datastore.unsafe._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
-import magnolify.shims.JavaConverters._
 import magnolify.test.Simple._
 import magnolify.test.Time._
 import magnolify.test._
 import org.scalacheck._
 
 import scala.reflect._
+import scala.jdk.CollectionConverters._
 
 class EntityTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit t: EntityType[T], eq: Eq[T]): Unit = {

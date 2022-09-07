@@ -22,7 +22,6 @@ import java.{util => ju}
 import magnolia1._
 import magnolify.shared._
 import magnolify.shims.FactoryCompat
-import magnolify.shims.JavaConverters._
 import org.apache.avro.generic.GenericData.EnumSymbol
 import org.apache.avro.generic._
 import org.apache.avro.{JsonProperties, LogicalType, LogicalTypes, Schema}
@@ -32,6 +31,8 @@ import scala.collection.concurrent
 import scala.language.experimental.macros
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
+import scala.jdk.CollectionConverters._
+import scala.collection.compat._
 
 class doc(doc: String) extends StaticAnnotation with Serializable {
   override def toString: String = doc
@@ -236,7 +237,7 @@ object AvroField {
       override protected def buildSchema(cm: CaseMapper): Schema = Schema.createArray(f.schema(cm))
       override def fallbackDefault: ju.List[f.ToT] = ju.Collections.emptyList()
       override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] =
-        fc.build(v.asScala.iterator.map(p => f.from(p)(cm)))
+        fc.fromSpecific(v.asScala.iterator.map(p => f.from(p)(cm)))
       override def to(v: C[T])(cm: CaseMapper): GenericArray[f.ToT] =
         new GenericData.Array[f.ToT](schema(cm), v.iterator.map(f.to(_)(cm)).toList.asJava)
     }

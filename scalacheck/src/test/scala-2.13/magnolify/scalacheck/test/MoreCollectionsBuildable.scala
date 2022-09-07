@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Spotify AB
+ * Copyright 2022 Spotify AB
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,6 @@
  * limitations under the License.
  */
 
-package magnolify
+package magnolify.scalacheck.test
 
-import scala.annotation.nowarn
-import scala.util.hashing.MurmurHash3
-
-package object shims extends SerializableCanBuildFromInstances {
-
-  type FactoryCompat[-A, +C] = SerializableCanBuildFrom[Nothing, A, C]
-
-  object MurmurHash3Compat {
-    @nowarn
-    def seed(data: Int): Int = MurmurHash3.productSeed
-  }
-}
+object MoreCollectionsBuildable

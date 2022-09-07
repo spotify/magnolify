@@ -22,12 +22,13 @@ import com.google.protobuf.ByteString
 import magnolia1._
 import magnolify.shared._
 import magnolify.shims.FactoryCompat
-import magnolify.shims.JavaConverters._
 import org.tensorflow.metadata.v0.{Annotation, Feature => FeatureSchema, FeatureType, Schema}
 import org.tensorflow.proto.example._
 import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.collection.concurrent
 import scala.language.experimental.macros
+import scala.jdk.CollectionConverters._
+import scala.collection.compat._
 
 class doc(msg: String) extends StaticAnnotation with Serializable {
   override def toString: String = msg
@@ -265,8 +266,8 @@ object ExampleField {
   ): ExampleField[C[T]] = new ExampleField[C[T]] {
     override def get(f: Features, k: String)(cm: CaseMapper): Value[C[T]] = {
       val v = f.getFeatureOrDefault(k, null)
-      if (v == null) Value.Default(fc.build(Nil))
-      else Value.Some(fc.build(ef.fromFeature(v).asScala))
+      if (v == null) Value.Default(fc.newBuilder.result())
+      else Value.Some(fc.fromSpecific(ef.fromFeature(v).asScala))
     }
 
     override def put(f: Features.Builder, k: String, v: C[T])(cm: CaseMapper): Features.Builder =

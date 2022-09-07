@@ -21,7 +21,7 @@ import java.time.LocalDate
 import java.util.UUID
 import magnolia1._
 import magnolify.shared.{Converter => _, _}
-import magnolify.shims._
+import magnolify.shims.FactoryCompat
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.mapreduce.Job
 import org.apache.parquet.avro.AvroSchemaConverter
@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory
 import scala.annotation.implicitNotFound
 import scala.collection.concurrent
 import scala.language.experimental.macros
+import scala.collection.compat._
 
 sealed trait ParquetArray
 
@@ -434,7 +435,7 @@ object ParquetField {
           .asInstanceOf[TypeConverter.Buffered[T]]
           .withRepetition(Repetition.REPEATED)
         val arrayConverter = new TypeConverter.Delegate[T, C[T]](buffered) {
-          override def get: C[T] = inner.get(fc.build(_))
+          override def get: C[T] = inner.get(fc.fromSpecific)
         }
 
         if (hasAvroArray) {
@@ -445,7 +446,7 @@ object ParquetField {
             }
             override def start(): Unit = ()
             override def end(): Unit = addValue(arrayConverter.get)
-            override def get: C[T] = get(_.headOption.getOrElse(fc.build(Nil)))
+            override def get: C[T] = get(_.headOption.getOrElse(fc.newBuilder.result()))
           }
         } else {
           arrayConverter

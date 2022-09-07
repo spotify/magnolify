@@ -25,10 +25,12 @@ import com.google.protobuf.ByteString
 import magnolia1._
 import magnolify.shared._
 import magnolify.shims._
-import magnolify.shims.JavaConverters._
 
 import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
+
+import scala.jdk.CollectionConverters._
+import scala.collection.compat._
 
 sealed trait BigtableType[T] extends Converter[T, java.util.List[Column], Seq[SetCell.Builder]] {
   def apply(v: Row, columnFamily: String): T =
@@ -76,8 +78,10 @@ object BigtableType {
               )
               .build()
           }
+          .toSeq
         Family.newBuilder().setName(familyName).addAllColumns(columns.asJava).build()
       }
+      .toSeq
     Row.newBuilder().setKey(key).addAllFamilies(families.asJava).build()
   }
 

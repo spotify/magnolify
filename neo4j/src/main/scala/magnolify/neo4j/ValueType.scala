@@ -19,13 +19,14 @@ package magnolify.neo4j
 import magnolia1._
 import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
-import magnolify.shims.JavaConverters._
 import org.neo4j.driver.exceptions.value.ValueException
 import org.neo4j.driver.types.{IsoDuration, Point}
 import org.neo4j.driver.{Value, Values}
 
 import java.time._
 import scala.annotation.implicitNotFound
+import scala.jdk.CollectionConverters._
+import scala.collection.compat._
 
 trait ValueType[T] extends Converter[T, Value, Value] {
   def apply(r: Value): T = from(r)
@@ -161,7 +162,7 @@ object ValueField {
     fc: FactoryCompat[T, C[T]]
   ): ValueField[C[T]] = new ValueField[C[T]] {
     override def from(v: Value)(cm: CaseMapper): C[T] =
-      fc.build(v.asList[T]((v: Value) => f.from(v)(cm)).asScala)
+      fc.fromSpecific(v.asList[T]((v: Value) => f.from(v)(cm)).asScala)
 
     override def to(v: C[T])(cm: CaseMapper): Value =
       Values.value(v.iterator.map(f.to(_)(cm)).toList.asJava)

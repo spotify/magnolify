@@ -24,10 +24,11 @@ import com.google.protobuf.{ByteString, NullValue}
 import magnolia1._
 import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
-import magnolify.shims.JavaConverters._
 
 import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.language.experimental.macros
+import scala.jdk.CollectionConverters._
+import scala.collection.compat._
 
 sealed trait EntityType[T] extends Converter[T, Entity, Entity.Builder] {
   def apply(v: Entity): T = from(v)
@@ -268,12 +269,14 @@ object EntityField {
   ): EntityField[C[T]] =
     new EntityField[C[T]] {
       override val keyField: KeyField[C[T]] = kf
-      override def from(v: Value)(cm: CaseMapper): C[T] =
-        if (v == null) {
-          fc.newBuilder.result()
-        } else {
-          fc.build(v.getArrayValue.getValuesList.asScala.iterator.map(f.from(_)(cm)))
+      override def from(v: Value)(cm: CaseMapper): C[T] = {
+        val b = fc.newBuilder
+        if (v != null) {
+          b ++= v.getArrayValue.getValuesList.asScala.iterator.map(f.from(_)(cm))
         }
+        b.result()
+      }
+
       override def to(v: C[T])(cm: CaseMapper): Value.Builder =
         if (v.isEmpty) {
           null

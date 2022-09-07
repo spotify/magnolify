@@ -19,7 +19,6 @@ package magnolify.parquet.test
 import magnolify.parquet._
 import magnolify.parquet.unsafe._
 import magnolify.shared.UnsafeEnum
-import magnolify.shims.JavaConverters._
 import magnolify.test._
 import org.apache.avro.generic.{GenericRecord, GenericRecordBuilder}
 import org.apache.avro.{JsonProperties, Schema}
@@ -31,6 +30,8 @@ import org.apache.parquet.avro.{
   GenericDataSupplier
 }
 import org.apache.parquet.io.InvalidRecordException
+
+import scala.jdk.CollectionConverters._
 
 object SchemaEvolutionSuite {
   private val namespace = "magnolify.parquet"
