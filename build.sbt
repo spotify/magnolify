@@ -37,7 +37,7 @@ val protobufVersion = "3.21.5"
 val refinedVersion = "0.10.1"
 val scalaCollectionCompatVersion = "2.8.1"
 val scalacheckVersion = "1.16.0"
-val shapelessVersion = "2.3.9"
+val shapelessVersion = "2.3.10"
 val tensorflowVersion = "0.4.1"
 
 lazy val currentYear = java.time.LocalDate.now().getYear
