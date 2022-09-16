@@ -48,3 +48,14 @@ implicit val pfDecimalBinary = ParquetField.decimalBinary(20, 0)
 Among the date/time types, `DATE` maps to `java.time.LocalDate`. The other types, `TIME` and `TIMESTAMP`, map to `OffsetTime`/`LocalTime` and `Instant`/`LocalDateTime` with `isAdjustedToUTC` set to `true`/`false`. They can be in nano, micro, or milliseconds precision with `import magnolify.parquet.logical.{nanos,micros,millis}._`.
 
 Note that Parquet's official Avro support maps `REPEATED` fields to an `array` field inside a nested group. Use `import magnolify.parquet.ParquetArray.AvroCompat._` to ensure compatibility with Avro.
+
+The top level class and all fields (including nested class fields) can be annotated with `@doc` annotation. Note that nested classes annotations are ignored.
+
+```scala
+@doc("This is ignored")
+case class NestedClass(@doc("nested field annotation") i: Int)
+
+@doc("Top level annotation")
+case class TopLevelType(@doc("field annotation") pd: NestedClass, @doc("field annotation 2") i: 
+Integers)
+```
