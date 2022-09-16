@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Spotify AB
+ * Copyright 2022 Spotify AB
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package magnolify.parquet.test
 
 import java.time._
-
 import cats._
 import magnolify.cats.auto._
 import magnolify.avro._
@@ -25,11 +24,12 @@ import magnolify.avro.unsafe._
 import magnolify.parquet._
 import magnolify.parquet.unsafe._
 import magnolify.parquet.ParquetArray.AvroCompat._
+import magnolify.parquet.test.util.AvroSchemaComparer
 import magnolify.scalacheck.auto._
 import magnolify.test._
 import magnolify.test.Simple._
-
 import magnolify.test.Time._
+import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.hadoop.conf.Configuration
 import org.apache.parquet.avro.{
@@ -95,6 +95,12 @@ class AvroParquetSuite extends MagnolifySuite {
       parquet.checkContains(avro)
       avro.checkContains(parquet)
     }
+
+    test(s"$name.avroSchema") {
+      val results = avroSchemaComparer.compareEntireSchemas(at.schema, pt.avroSchema)
+
+      assertEquals(results, List())
+    }
   }
 
   test[Integers]
@@ -150,8 +156,65 @@ class AvroParquetSuite extends MagnolifySuite {
     import magnolify.parquet.logical.micros._
     test[AvroParquetTimeMicros]
   }
+
+  test[AvroParquetWithNestedAnnotations]
+  test[AvroParquetWithAnnotationsAndOptions]
+  test[AvroParquetWithAnnotationsAndLists]
+
+  val avroSchemaComparer = new AvroSchemaComparer {
+    override def compareRecordSchemas(s1: Schema, s2: Schema): List[String] = {
+      if (s1.getDoc == "Should be ignored" || s1.getDoc == s2.getDoc) {
+        List()
+      } else {
+        List(s"Record ${s1.getType} and ${s2.getType} annotations are not equal")
+      }
+    }
+
+    override def compareOtherSchemas(s1: Schema, s2: Schema): List[String] = {
+      if (
+        s1.getType == Schema.Type.ENUM && s2.getType == Schema.Type.STRING ||
+        s1.getType == s2.getType
+      ) {
+        List()
+      } else {
+        List(s"Schema types are not equal $s1 != $s2")
+      }
+    }
+
+    override def compareFields(f1: Schema.Field, f2: Schema.Field): List[String] = {
+      if (f1.doc() == f2.doc()) {
+        List()
+      } else {
+        List(s"Field ${f1.name()} annotations are not equal")
+      }
+    }
+  }
 }
 
 case class AvroParquetLogical(d: LocalDate)
 case class AvroParquetTimeMillis(i: Instant, dt: LocalDateTime, t: LocalTime)
 case class AvroParquetTimeMicros(i: Instant, dt: LocalDateTime, t: LocalTime)
+@doc("Should be ignored")
+case class AvroParquetWithAnnotations(
+  @doc("nested field policy") s: String,
+  s2: String
+)
+@doc("root level policy")
+case class AvroParquetWithNestedAnnotations(
+  @doc("string policy") s: String,
+  @doc("record policy") nested: AvroParquetWithAnnotations
+)
+
+@doc("root level policy")
+case class AvroParquetWithAnnotationsAndOptions(
+  @doc("string policy") s: String,
+  @doc("record policy")
+  nested: Option[AvroParquetWithAnnotations]
+)
+
+@doc("root level policy")
+case class AvroParquetWithAnnotationsAndLists(
+  @doc("string policy") s: String,
+  @doc("record policy")
+  nested: List[AvroParquetWithAnnotations]
+)

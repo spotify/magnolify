@@ -32,10 +32,6 @@ import scala.reflect.ClassTag
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
 
-class doc(doc: String) extends StaticAnnotation with Serializable {
-  override def toString: String = doc
-}
-
 sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
   val schema: Schema
   def apply(r: GenericRecord): T = from(r)
