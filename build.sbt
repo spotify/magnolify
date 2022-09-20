@@ -213,9 +213,7 @@ lazy val test: Project = project
       "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion % Test
     ),
-    ProtobufConfig / protobufRunProtoc := (args =>
-      com.github.os72.protocjar.Protoc.runProtoc(args.toArray)
-    )
+    ProtobufConfig / version := protobufVersion
   )
   .dependsOn(shared)
   .enablePlugins(ProtobufPlugin)

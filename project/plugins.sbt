@@ -9,10 +9,6 @@ addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.5.10")
 addSbtPlugin("de.heikoseeberger" % "sbt-header" % "5.7.0")
 addSbtPlugin("io.github.davidgregory084" % "sbt-tpolecat" % "0.4.1")
 
-libraryDependencies ++= Seq(
-  "com.github.os72" % "protoc-jar" % "3.11.4"
-)
-
 // force usage of scala-xml v2
 // See https://github.com/scoverage/sbt-scoverage/issues/439
 dependencyOverrides += "org.scala-lang.modules" %% "scala-xml" % "2.1.0"
