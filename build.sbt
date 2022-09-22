@@ -77,7 +77,7 @@ ThisBuild / tpolecatDevModeOptions ~= { opts =>
 
 val commonSettings = Seq(
   organization := "com.spotify",
-  crossScalaVersions := Seq("2.13.8", "2.12.16"),
+  crossScalaVersions := Seq("2.13.8", "2.12.17"),
   scalaVersion := crossScalaVersions.value.head,
   libraryDependencies ++= {
     CrossVersion.partialVersion(scalaVersion.value) match {
