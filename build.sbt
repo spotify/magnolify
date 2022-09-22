@@ -36,7 +36,7 @@ val parquetVersion = "1.12.3"
 val protobufVersion = "3.21.5"
 val refinedVersion = "0.10.1"
 val scalaCollectionCompatVersion = "2.8.1"
-val scalacheckVersion = "1.16.0"
+val scalacheckVersion = "1.17.0"
 val shapelessVersion = "2.3.10"
 val tensorflowVersion = "0.4.1"
 
