@@ -61,7 +61,10 @@ object ValueField {
     override def from(v: Value)(cm: CaseMapper): T =
       caseClass.construct { p =>
         val field = cm.map(p.label)
-        try p.typeclass.from(v.get(field))(cm)
+        try {
+          val value = if (caseClass.isValueClass) v else v.get(field)
+          p.typeclass.from(value)(cm)
+        }
         catch {
           case e: ValueException =>
             throw new RuntimeException(s"Failed to decode $field: ${e.getMessage}", e)
@@ -69,11 +72,16 @@ object ValueField {
       }
 
     override def to(v: T)(cm: CaseMapper): Value = {
-      val jmap = caseClass.parameters
-        .foldLeft(Map.newBuilder[String, AnyRef]) { (m, p) =>
-          m += cm.map(p.label) -> p.typeclass.to(p.dereference(v))(cm)
-          m
-        }
+      val jmap = if (caseClass.isValueClass) {
+        val p = caseClass.parameters.head
+        p.typeclass.to(p.dereference(v))(cm)
+      }
+      else
+        caseClass.parameters
+          .foldLeft(Map.newBuilder[String, AnyRef]) { (m, p) =>
+            m += cm.map(p.label) -> p.typeclass.to(p.dereference(v))(cm)
+            m
+          }
         .result()
         .asJava
       Values.value(jmap)
