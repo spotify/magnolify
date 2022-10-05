@@ -30,6 +30,7 @@ import scala.collection.compat._
 
 trait ValueType[T] extends Converter[T, Value, Value] {
   def apply(r: Value): T = from(r)
+
   def apply(t: T): Value = to(t)
 }
 
@@ -39,12 +40,15 @@ object ValueType {
 
   def apply[T](cm: CaseMapper)(implicit f: ValueField.Record[T]): ValueType[T] = new ValueType[T] {
     private val caseMapper: CaseMapper = cm
+
     override def from(v: Value): T = f.from(v)(caseMapper)
+
     override def to(v: T): Value = f.to(v)(caseMapper)
   }
 }
 
-sealed trait ValueField[T] extends Serializable { self =>
+sealed trait ValueField[T] extends Serializable {
+  self =>
 
   def from(v: Value)(cm: CaseMapper): T
 
@@ -64,8 +68,7 @@ object ValueField {
         try {
           val value = if (caseClass.isValueClass) v else v.get(field)
           p.typeclass.from(value)(cm)
-        }
-        catch {
+        } catch {
           case e: ValueException =>
             throw new RuntimeException(s"Failed to decode $field: ${e.getMessage}", e)
         }
@@ -75,15 +78,14 @@ object ValueField {
       val jmap = if (caseClass.isValueClass) {
         val p = caseClass.parameters.head
         p.typeclass.to(p.dereference(v))(cm)
-      }
-      else
+      } else
         caseClass.parameters
           .foldLeft(Map.newBuilder[String, AnyRef]) { (m, p) =>
             m += cm.map(p.label) -> p.typeclass.to(p.dereference(v))(cm)
             m
           }
-        .result()
-        .asJava
+          .result()
+          .asJava
       Values.value(jmap)
     }
   }
@@ -105,6 +107,7 @@ object ValueField {
     def apply[U](f: T => U)(g: U => T)(implicit af: ValueField[T]): ValueField[U] =
       new ValueField[U] {
         override def from(v: Value)(cm: CaseMapper): U = f(af.from(v)(cm))
+
         override def to(v: U)(cm: CaseMapper): Value = af.to(g(v))(cm)
       }
   }
@@ -116,6 +119,7 @@ object ValueField {
       if (v.isNull) throw new ValueException("Cannot convert null value")
       f(v)
     }
+
     override def to(v: T)(cm: CaseMapper): Value = Values.value(v)
   }
 
