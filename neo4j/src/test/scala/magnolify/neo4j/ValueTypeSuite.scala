@@ -81,7 +81,7 @@ class ValueTypeSuite extends MagnolifySuite {
   }
 
   test("AnyVal") {
-    val vt: ValueType[HasValueClass] = implicitly
+    implicit val vt: ValueType[HasValueClass] = ValueType[HasValueClass]
     test[HasValueClass]
 
     val record = vt(HasValueClass(ValueClass("String")))
