@@ -122,7 +122,10 @@ object EnumType {
   type Typeclass[T] = EnumType[T]
 
   def join[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
-    require(caseClass.isObject, s"Cannot derive EnumType[T] for case class ${caseClass.typeName}")
+    require(
+      caseClass.isObject,
+      s"Cannot derive EnumType[T] for case class ${caseClass.typeName.full}"
+    )
     val n = caseClass.typeName.short
     val ns = caseClass.typeName.owner
     EnumType.create(
