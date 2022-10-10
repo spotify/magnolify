@@ -17,15 +17,15 @@
 package magnolify.datastore
 
 import java.time.Instant
-
 import com.google.datastore.v1._
 import com.google.datastore.v1.client.DatastoreHelper.makeValue
 import com.google.protobuf.{ByteString, NullValue}
 import magnolia1._
+import magnolify.datastore.EntityField.{ProductRecord, ValueClassRecord}
 import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
 
-import scala.annotation.{implicitNotFound, StaticAnnotation}
+import scala.annotation.{StaticAnnotation, implicitNotFound}
 import scala.language.experimental.macros
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
@@ -43,12 +43,16 @@ class excludeFromIndexes(val exclude: Boolean = true) extends StaticAnnotation w
 object EntityType {
   implicit def apply[T: EntityField.Record]: EntityType[T] = EntityType(CaseMapper.identity)
 
-  def apply[T](cm: CaseMapper)(implicit f: EntityField.Record[T]): EntityType[T] =
-    new EntityType[T] {
-      private val caseMapper: CaseMapper = cm
-      override def from(v: Entity): T = f.fromEntity(v)(caseMapper)
-      override def to(v: T): Entity.Builder = f.toEntity(v)(caseMapper)
-    }
+  def apply[T](cm: CaseMapper)(implicit f: EntityField.Record[T]): EntityType[T] = f match {
+    case pr: ProductRecord[_] =>
+      new EntityType[T] {
+        private val caseMapper: CaseMapper = cm
+        override def from(v: Entity): T = pr.fromEntity(v)(caseMapper)
+        override def to(v: T): Entity.Builder = pr.toEntity(v)(caseMapper)
+      }
+    case _: ValueClassRecord[_] =>
+      throw new IllegalArgumentException("Value classes are not valid EntityType")
+  }
 }
 
 sealed trait KeyField[T] extends Serializable { self =>
@@ -91,7 +95,12 @@ sealed trait EntityField[T] extends Serializable {
 }
 
 object EntityField {
-  sealed trait Record[T] extends EntityField[T] {
+
+  sealed trait Record[T] extends EntityField[T]
+
+  sealed trait ValueClassRecord[T] extends Record[T]
+
+  sealed trait ProductRecord[T] extends Record[T] {
     def fromEntity(v: Entity)(cm: CaseMapper): T
     def toEntity(v: T)(cm: CaseMapper): Entity.Builder
 
@@ -104,90 +113,103 @@ object EntityField {
 
   type Typeclass[T] = EntityField[T]
 
-  def join[T: KeyField](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    private val (keyIndex, keyOpt): (Int, Option[key]) = {
-      val keys = caseClass.parameters
-        .map(p => p -> getKey(p.annotations, s"${caseClass.typeName.full}#${p.label}"))
-        .filter(_._2.isDefined)
-      require(
-        keys.size <= 1,
-        s"More than one field with @key annotation: ${caseClass.typeName.full}#[${keys.map(_._1.label).mkString(", ")}]"
-      )
-      keys.headOption match {
-        case None => (-1, None)
-        case Some((p, k)) =>
+  def join[T: KeyField](caseClass: CaseClass[Typeclass, T]): Record[T] = {
+    if (caseClass.isValueClass) {
+      val p = caseClass.parameters.head
+      val tc = p.typeclass
+      new ValueClassRecord[T] {
+        override lazy val keyField: KeyField[T] = tc.keyField.map(p.dereference)
+        override def from(v: Value)(cm: CaseMapper): T = caseClass.construct(_ => tc.from(v)(cm))
+        override def to(v: T)(cm: CaseMapper): Value.Builder = tc.to(p.dereference(v))(cm)
+      }
+    } else {
+      new ProductRecord[T] {
+        private val (keyIndex, keyOpt): (Int, Option[key]) = {
+          val keys = caseClass.parameters
+            .map(p => p -> getKey(p.annotations, s"${caseClass.typeName.full}#${p.label}"))
+            .filter(_._2.isDefined)
           require(
-            !p.typeclass.keyField.isInstanceOf[KeyField.NotSupported[_]],
-            s"No KeyField[T] instance: ${caseClass.typeName.full}#${p.label}"
+            keys.size <= 1,
+            s"More than one field with @key annotation: ${caseClass.typeName.full}#[${keys.map(_._1.label).mkString(", ")}]"
           )
-          (p.index, k)
-      }
-    }
-
-    private val excludeFromIndexes: Array[Boolean] = {
-      val a = new Array[Boolean](caseClass.parameters.length)
-      caseClass.parameters.foreach { p =>
-        a(p.index) = getExcludeFromIndexes(p.annotations, s"${caseClass.typeName.full}#${p.label}")
-      }
-      a
-    }
-
-    override val keyField: KeyField[T] = implicitly[KeyField[T]]
-
-    override def fromEntity(v: Entity)(cm: CaseMapper): T =
-      caseClass.construct { p =>
-        val f = v.getPropertiesOrDefault(cm.map(p.label), null)
-        if (f == null && p.default.isDefined) {
-          p.default.get
-        } else {
-          p.typeclass.from(f)(cm)
+          keys.headOption match {
+            case None => (-1, None)
+            case Some((p, k)) =>
+              require(
+                !p.typeclass.keyField.isInstanceOf[KeyField.NotSupported[_]],
+                s"No KeyField[T] instance: ${caseClass.typeName.full}#${p.label}"
+              )
+              (p.index, k)
+          }
         }
-      }
 
-    override def toEntity(v: T)(cm: CaseMapper): Entity.Builder =
-      caseClass.parameters.foldLeft(Entity.newBuilder()) { (eb, p) =>
-        val value = p.dereference(v)
-        val vb = p.typeclass.to(value)(cm)
-        if (vb != null) {
-          eb.putProperties(
-            cm.map(p.label),
-            vb.setExcludeFromIndexes(excludeFromIndexes(p.index))
-              .build()
-          )
+        private val excludeFromIndexes: Array[Boolean] = {
+          val a = new Array[Boolean](caseClass.parameters.length)
+          caseClass.parameters.foreach { p =>
+            a(p.index) =
+              getExcludeFromIndexes(p.annotations, s"${caseClass.typeName.full}#${p.label}")
+          }
+          a
         }
-        if (p.index == keyIndex) {
-          val k = keyOpt.get
-          val partitionId = {
-            val b = PartitionId.newBuilder()
-            if (k.project != null) {
-              b.setProjectId(k.project)
+
+        override val keyField: KeyField[T] = implicitly[KeyField[T]]
+
+        override def fromEntity(v: Entity)(cm: CaseMapper): T =
+          caseClass.construct { p =>
+            val f = v.getPropertiesOrDefault(cm.map(p.label), null)
+            if (f == null && p.default.isDefined) {
+              p.default.get
+            } else {
+              p.typeclass.from(f)(cm)
             }
-            b.setNamespaceId(if (k.namespace != null) k.namespace else caseClass.typeName.owner)
           }
-          val path = {
-            val b = Key.PathElement.newBuilder()
-            b.setKind(if (k.kind != null) k.kind else caseClass.typeName.short)
-            p.typeclass.keyField.setKey(b, value)
+
+        override def toEntity(v: T)(cm: CaseMapper): Entity.Builder =
+          caseClass.parameters.foldLeft(Entity.newBuilder()) { (eb, p) =>
+            val value = p.dereference(v)
+            val vb = p.typeclass.to(value)(cm)
+            if (vb != null) {
+              eb.putProperties(
+                cm.map(p.label),
+                vb.setExcludeFromIndexes(excludeFromIndexes(p.index))
+                  .build()
+              )
+            }
+            if (p.index == keyIndex) {
+              val k = keyOpt.get
+              val partitionId = {
+                val b = PartitionId.newBuilder()
+                if (k.project != null) {
+                  b.setProjectId(k.project)
+                }
+                b.setNamespaceId(if (k.namespace != null) k.namespace else caseClass.typeName.owner)
+              }
+              val path = {
+                val b = Key.PathElement.newBuilder()
+                b.setKind(if (k.kind != null) k.kind else caseClass.typeName.short)
+                p.typeclass.keyField.setKey(b, value)
+              }
+              val kb = Key
+                .newBuilder()
+                .setPartitionId(partitionId)
+                .addPath(path)
+              eb.setKey(kb)
+            }
+            eb
           }
-          val kb = Key
-            .newBuilder()
-            .setPartitionId(partitionId)
-            .addPath(path)
-          eb.setKey(kb)
+
+        private def getKey(annotations: Seq[Any], name: String): Option[key] = {
+          val keys = annotations.collect { case k: key => k }
+          require(keys.size <= 1, s"More than one @key annotation: $name")
+          keys.headOption
         }
-        eb
+
+        private def getExcludeFromIndexes(annotations: Seq[Any], name: String): Boolean = {
+          val excludes = annotations.collect { case e: excludeFromIndexes => e.exclude }
+          require(excludes.size <= 1, s"More than one @excludeFromIndexes annotation: $name")
+          excludes.headOption.getOrElse(false)
+        }
       }
-
-    private def getKey(annotations: Seq[Any], name: String): Option[key] = {
-      val keys = annotations.collect { case k: key => k }
-      require(keys.size <= 1, s"More than one @key annotation: $name")
-      keys.headOption
-    }
-
-    private def getExcludeFromIndexes(annotations: Seq[Any], name: String): Boolean = {
-      val excludes = annotations.collect { case e: excludeFromIndexes => e.exclude }
-      require(excludes.size <= 1, s"More than one @excludeFromIndexes annotation: $name")
-      excludes.headOption.getOrElse(false)
     }
   }
 
