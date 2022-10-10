@@ -82,6 +82,20 @@ class ExampleTypeSuite extends MagnolifySuite {
     test[Custom]
   }
 
+  test("AnyVal") {
+    implicit val et: ExampleType[HasValueClass] = ExampleType[HasValueClass]
+    test[HasValueClass]
+
+    val schema = et.schema
+    val feature = schema.getFeatureList.asScala.find(_.getName == "vc").get
+    assert(feature.getType == FeatureType.BYTES)
+
+    val record = et(HasValueClass(ValueClass("String")))
+    val value = record.getFeatures.getFeatureMap.get("vc")
+    assert(value.hasBytesList)
+    assert(value.getBytesList.getValue(0).toStringUtf8 == "String")
+  }
+
   {
     implicit val arbByteString: Arbitrary[ByteString] =
       Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
