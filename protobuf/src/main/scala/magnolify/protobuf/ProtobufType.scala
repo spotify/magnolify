@@ -68,31 +68,35 @@ object ProtobufType {
     f: ProtobufField.Record[T],
     ct: ClassTag[MsgT],
     po: ProtobufOption
-  ): ProtobufType[T, MsgT] =
-    new ProtobufType[T, MsgT] {
-      {
-        val descriptor = ct.runtimeClass
-          .getMethod("getDescriptor")
-          .invoke(null)
-          .asInstanceOf[Descriptor]
-        if (f.hasOptional) {
-          po.check(f, descriptor.getFile.getSyntax)
+  ): ProtobufType[T, MsgT] = f match {
+    case pr: ProtobufField.ProductRecord[_] =>
+      new ProtobufType[T, MsgT] {
+        {
+          val descriptor = ct.runtimeClass
+            .getMethod("getDescriptor")
+            .invoke(null)
+            .asInstanceOf[Descriptor]
+          if (pr.hasOptional) {
+            po.check(pr, descriptor.getFile.getSyntax)
+          }
+          pr.checkDefaults(descriptor)(cm)
         }
-        f.checkDefaults(descriptor)(cm)
-      }
 
-      @transient private var _newBuilder: Method = _
-      private def newBuilder: Message.Builder = {
-        if (_newBuilder == null) {
-          _newBuilder = ct.runtimeClass.getMethod("newBuilder")
+        @transient private var _newBuilder: Method = _
+        private def newBuilder: Message.Builder = {
+          if (_newBuilder == null) {
+            _newBuilder = ct.runtimeClass.getMethod("newBuilder")
+          }
+          _newBuilder.invoke(null).asInstanceOf[Message.Builder]
         }
-        _newBuilder.invoke(null).asInstanceOf[Message.Builder]
-      }
 
-      private val caseMapper: CaseMapper = cm
-      override def from(v: MsgT): T = f.from(v)(caseMapper)
-      override def to(v: T): MsgT = f.to(v, newBuilder)(caseMapper).asInstanceOf[MsgT]
-    }
+        private val caseMapper: CaseMapper = cm
+        override def from(v: MsgT): T = pr.from(v)(caseMapper)
+        override def to(v: T): MsgT = pr.to(v, newBuilder)(caseMapper).asInstanceOf[MsgT]
+      }
+    case _: ProtobufField.ValueClassRecord[_] =>
+      throw new IllegalArgumentException("Value classes are not valid ProtobufType")
+  }
 }
 
 sealed trait ProtobufField[T] extends Serializable {
@@ -115,7 +119,11 @@ object ProtobufField {
     override type ToT = To
   }
 
-  sealed trait Record[T] extends Aux[T, Message, Message] {
+  sealed trait Record[T] extends ProtobufField[T]
+  sealed trait ValueClassRecord[T] extends Record[T]
+  sealed trait ProductRecord[T] extends Record[T] {
+    override type FromT = Message
+    override type ToT = Message
     override val default: Option[T] = None
   }
 
@@ -123,79 +131,96 @@ object ProtobufField {
 
   type Typeclass[T] = ProtobufField[T]
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    // One Record[T] instance may be used for multiple Message types
-    @transient private lazy val fieldsCache: concurrent.Map[String, Array[FieldDescriptor]] =
-      concurrent.TrieMap.empty
-
-    private def getFields(descriptor: Descriptor)(cm: CaseMapper): Array[FieldDescriptor] =
-      fieldsCache.getOrElseUpdate(
-        descriptor.getFullName, {
-          val fields = new Array[FieldDescriptor](caseClass.parameters.size)
-          caseClass.parameters.foreach(p =>
-            fields(p.index) = descriptor.findFieldByName(cm.map(p.label))
-          )
-          fields
-        }
-      )
-
-    override val hasOptional: Boolean = caseClass.parameters.exists(_.typeclass.hasOptional)
-
-    override def checkDefaults(descriptor: Descriptor)(cm: CaseMapper): Unit = {
-      val syntax = descriptor.getFile.getSyntax
-      val fields = getFields(descriptor)(cm)
-      caseClass.parameters.foreach { p =>
-        val field = fields(p.index)
-        val protoDefault = if (syntax == Syntax.PROTO2 && field.hasDefaultValue) {
-          Some(p.typeclass.fromAny(field.getDefaultValue)(cm))
-        } else {
-          p.typeclass.default
-        }
-        p.default.foreach { d =>
-          require(
-            protoDefault.contains(d),
-            s"Default mismatch ${caseClass.typeName.full}#${p.label}: $d != ${protoDefault.orNull}"
-          )
-        }
-        if (field.getType == FieldDescriptor.Type.MESSAGE) {
-          p.typeclass.checkDefaults(field.getMessageType)(cm)
-        }
+  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = {
+    if (caseClass.isValueClass) {
+      val p = caseClass.parameters.head
+      val tc = p.typeclass
+      new ValueClassRecord[T] {
+        override type FromT = tc.FromT
+        override type ToT = tc.ToT
+        override val hasOptional: Boolean = tc.hasOptional
+        override val default: Option[T] = tc.default.map(x => caseClass.construct(_ => x))
+        override def from(v: FromT)(cm: CaseMapper): T = caseClass.construct(_ => tc.from(v)(cm))
+        override def to(v: T, b: Message.Builder)(cm: CaseMapper): ToT =
+          tc.to(p.dereference(v), b)(cm)
       }
-    }
 
-    override def from(v: Message)(cm: CaseMapper): T = {
-      val descriptor = v.getDescriptorForType
-      val syntax = descriptor.getFile.getSyntax
-      val fields = getFields(descriptor)(cm)
+    } else {
+      new ProductRecord[T] {
+        // One Record[T] instance may be used for multiple Message types
+        @transient private lazy val fieldsCache: concurrent.Map[String, Array[FieldDescriptor]] =
+          concurrent.TrieMap.empty
 
-      caseClass.construct { p =>
-        val field = fields(p.index)
-        // hasField behaves correctly on PROTO2 optional fields
-        val value = if (syntax == Syntax.PROTO2 && field.isOptional && !v.hasField(field)) {
-          null
-        } else {
-          v.getField(field)
-        }
-        p.typeclass.fromAny(value)(cm)
-      }
-    }
+        private def getFields(descriptor: Descriptor)(cm: CaseMapper): Array[FieldDescriptor] =
+          fieldsCache.getOrElseUpdate(
+            descriptor.getFullName, {
+              val fields = new Array[FieldDescriptor](caseClass.parameters.size)
+              caseClass.parameters.foreach(p =>
+                fields(p.index) = descriptor.findFieldByName(cm.map(p.label))
+              )
+              fields
+            }
+          )
 
-    override def to(v: T, bu: Message.Builder)(cm: CaseMapper): Message = {
-      val fields = getFields(bu.getDescriptorForType)(cm)
+        override val hasOptional: Boolean = caseClass.parameters.exists(_.typeclass.hasOptional)
 
-      caseClass.parameters
-        .foldLeft(bu) { (b, p) =>
-          val field = fields(p.index)
-          val value = if (field.getType == FieldDescriptor.Type.MESSAGE) {
-            // nested records
-            p.typeclass.to(p.dereference(v), b.newBuilderForField(field))(cm)
-          } else {
-            // non-nested
-            p.typeclass.to(p.dereference(v), null)(cm)
+        override def checkDefaults(descriptor: Descriptor)(cm: CaseMapper): Unit = {
+          val syntax = descriptor.getFile.getSyntax
+          val fields = getFields(descriptor)(cm)
+          caseClass.parameters.foreach { p =>
+            val field = fields(p.index)
+            val protoDefault = if (syntax == Syntax.PROTO2 && field.hasDefaultValue) {
+              Some(p.typeclass.fromAny(field.getDefaultValue)(cm))
+            } else {
+              p.typeclass.default
+            }
+            p.default.foreach { d =>
+              require(
+                protoDefault.contains(d),
+                s"Default mismatch ${caseClass.typeName.full}#${p.label}: $d != ${protoDefault.orNull}"
+              )
+            }
+            if (field.getType == FieldDescriptor.Type.MESSAGE) {
+              p.typeclass.checkDefaults(field.getMessageType)(cm)
+            }
           }
-          if (value == null) b else b.setField(field, value)
         }
-        .build()
+
+        override def from(v: Message)(cm: CaseMapper): T = {
+          val descriptor = v.getDescriptorForType
+          val syntax = descriptor.getFile.getSyntax
+          val fields = getFields(descriptor)(cm)
+
+          caseClass.construct { p =>
+            val field = fields(p.index)
+            // hasField behaves correctly on PROTO2 optional fields
+            val value = if (syntax == Syntax.PROTO2 && field.isOptional && !v.hasField(field)) {
+              null
+            } else {
+              v.getField(field)
+            }
+            p.typeclass.fromAny(value)(cm)
+          }
+        }
+
+        override def to(v: T, bu: Message.Builder)(cm: CaseMapper): Message = {
+          val fields = getFields(bu.getDescriptorForType)(cm)
+
+          caseClass.parameters
+            .foldLeft(bu) { (b, p) =>
+              val field = fields(p.index)
+              val value = if (field.getType == FieldDescriptor.Type.MESSAGE) {
+                // nested records
+                p.typeclass.to(p.dereference(v), b.newBuilderForField(field))(cm)
+              } else {
+                // non-nested
+                p.typeclass.to(p.dereference(v), null)(cm)
+              }
+              if (value == null) b else b.setField(field, value)
+            }
+            .build()
+        }
+      }
     }
   }
 
