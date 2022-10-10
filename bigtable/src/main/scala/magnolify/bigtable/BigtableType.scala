@@ -18,7 +18,6 @@ package magnolify.bigtable
 
 import java.nio.ByteBuffer
 import java.util.UUID
-
 import com.google.bigtable.v2.{Cell, Column, Family, Mutation, Row}
 import com.google.bigtable.v2.Mutation.SetCell
 import com.google.protobuf.ByteString
@@ -26,9 +25,9 @@ import magnolia1._
 import magnolify.shared._
 import magnolify.shims._
 
+import java.util
 import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
-
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
 
@@ -136,28 +135,41 @@ object BigtableField {
 
   type Typeclass[T] = BigtableField[T]
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    private def key(prefix: String, label: String): String =
-      if (prefix == null) label else s"$prefix.$label"
-
-    override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T] = {
-      var fallback = true
-      val r = caseClass.construct { p =>
-        val cq = key(k, cm.map(p.label))
-        val v = p.typeclass.get(xs, cq)(cm)
-        if (v.isSome) {
-          fallback = false
-        }
-        v.getOrElse(p.default)
+  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = {
+    if (caseClass.isValueClass) {
+      val p = caseClass.parameters.head
+      val tc = p.typeclass
+      new Record[T] {
+        override def get(xs: util.List[Column], k: String)(cm: CaseMapper): Value[T] =
+          tc.get(xs, k)(cm).map(x => caseClass.construct(_ => x))
+        override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
+          p.typeclass.put(k, p.dereference(v))(cm)
       }
-      // result is default if all fields are default
-      if (fallback) Value.Default(r) else Value.Some(r)
-    }
+    } else {
+      new Record[T] {
+        private def key(prefix: String, label: String): String =
+          if (prefix == null) label else s"$prefix.$label"
 
-    override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
-      caseClass.parameters.flatMap(p =>
-        p.typeclass.put(key(k, cm.map(p.label)), p.dereference(v))(cm)
-      )
+        override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T] = {
+          var fallback = true
+          val r = caseClass.construct { p =>
+            val cq = key(k, cm.map(p.label))
+            val v = p.typeclass.get(xs, cq)(cm)
+            if (v.isSome) {
+              fallback = false
+            }
+            v.getOrElse(p.default)
+          }
+          // result is default if all fields are default
+          if (fallback) Value.Default(r) else Value.Some(r)
+        }
+
+        override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
+          caseClass.parameters.flatMap(p =>
+            p.typeclass.put(key(k, cm.map(p.label)), p.dereference(v))(cm)
+          )
+      }
+    }
   }
 
   @implicitNotFound("Cannot derive BigtableField for sealed trait")

@@ -80,6 +80,14 @@ class BigtableTypeSuite extends MagnolifySuite {
     test[Custom]
   }
 
+  test("AnyVal") {
+    implicit val btt: BigtableType[HasValueClass] = BigtableType[HasValueClass]
+    test[HasValueClass]
+
+    val records = btt(HasValueClass(ValueClass("String")), "cf")
+    assert(records.head.getSetCell.getValue.toStringUtf8 == "String")
+  }
+
   {
     implicit val arbByteString: Arbitrary[ByteString] =
       Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
