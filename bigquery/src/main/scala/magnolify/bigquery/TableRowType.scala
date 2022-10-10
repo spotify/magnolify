@@ -17,10 +17,10 @@
 package magnolify.bigquery
 
 import java.{util => ju}
-
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.common.io.BaseEncoding
 import magnolia1._
+import magnolify.bigquery.TableRowField.{ProductRecord, ValueClassRecord}
 import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
 
@@ -45,14 +45,19 @@ object TableRowType {
   implicit def apply[T: TableRowField.Record]: TableRowType[T] = TableRowType(CaseMapper.identity)
 
   def apply[T](cm: CaseMapper)(implicit f: TableRowField.Record[T]): TableRowType[T] = {
-    f.fieldSchema(cm) // fail fast on bad annotations
-    new TableRowType[T] {
-      private val caseMapper: CaseMapper = cm
-      @transient override lazy val schema: TableSchema =
-        new TableSchema().setFields(f.fieldSchema(caseMapper).getFields)
-      override val description: String = f.fieldSchema(caseMapper).getDescription
-      override def from(v: TableRow): T = f.from(v)(caseMapper)
-      override def to(v: T): TableRow = f.to(v)(caseMapper)
+    f match {
+      case pr: ProductRecord[_] =>
+        pr.fieldSchema(cm) // fail fast on bad annotations
+        new TableRowType[T] {
+          private val caseMapper: CaseMapper = cm
+          @transient override lazy val schema: TableSchema =
+            new TableSchema().setFields(pr.fieldSchema(caseMapper).getFields)
+          override val description: String = pr.fieldSchema(caseMapper).getDescription
+          override def from(v: TableRow): T = pr.from(v)(caseMapper)
+          override def to(v: T): TableRow = pr.to(v)(caseMapper)
+        }
+      case _: ValueClassRecord[_] =>
+        throw new IllegalArgumentException("Value classes are not valid TableRowType")
     }
   }
 }
@@ -81,52 +86,74 @@ object TableRowField {
   }
 
   sealed trait Generic[T] extends Aux[T, Any, Any]
-  sealed trait Record[T] extends Aux[T, ju.Map[String, AnyRef], TableRow]
+
+  sealed trait Record[T] extends TableRowField[T]
+  sealed trait ValueClassRecord[T] extends Record[T]
+  sealed trait ProductRecord[T] extends Record[T] {
+    override type FromT = ju.Map[String, AnyRef]
+    override type ToT = TableRow
+  }
 
   // ////////////////////////////////////////////////
 
   type Typeclass[T] = TableRowField[T]
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    override protected def buildSchema(cm: CaseMapper): TableFieldSchema = {
-      // do not use a scala wrapper in the schema, so clone() works
-      val fields = new ju.ArrayList[TableFieldSchema](caseClass.parameters.size)
-      caseClass.parameters.foreach { p =>
-        val f = p.typeclass
-          .fieldSchema(cm)
-          .clone()
-          .setName(cm.map(p.label))
-          .setDescription(getDescription(p.annotations, s"${caseClass.typeName.full}#${p.label}"))
-        fields.add(f)
+  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = {
+    if (caseClass.isValueClass) {
+      val p = caseClass.parameters.head
+      val tc = p.typeclass
+      new ValueClassRecord[T] {
+        override type FromT = tc.FromT
+        override type ToT = tc.ToT
+        override protected def buildSchema(cm: CaseMapper): TableFieldSchema = tc.buildSchema(cm)
+        override def from(v: FromT)(cm: CaseMapper): T = caseClass.construct(_ => tc.from(v)(cm))
+        override def to(v: T)(cm: CaseMapper): ToT = tc.to(p.dereference(v))(cm)
       }
+    } else {
+      new ProductRecord[T] {
+        override protected def buildSchema(cm: CaseMapper): TableFieldSchema = {
+          // do not use a scala wrapper in the schema, so clone() works
+          val fields = new ju.ArrayList[TableFieldSchema](caseClass.parameters.size)
+          caseClass.parameters.foreach { p =>
+            val f = p.typeclass
+              .fieldSchema(cm)
+              .clone()
+              .setName(cm.map(p.label))
+              .setDescription(
+                getDescription(p.annotations, s"${caseClass.typeName.full}#${p.label}")
+              )
+            fields.add(f)
+          }
 
-      new TableFieldSchema()
-        .setType("STRUCT")
-        .setMode("REQUIRED")
-        .setDescription(getDescription(caseClass.annotations, caseClass.typeName.full))
-        .setFields(fields)
-    }
+          new TableFieldSchema()
+            .setType("STRUCT")
+            .setMode("REQUIRED")
+            .setDescription(getDescription(caseClass.annotations, caseClass.typeName.full))
+            .setFields(fields)
+        }
 
-    override def from(v: ju.Map[String, AnyRef])(cm: CaseMapper): T =
-      caseClass.construct { p =>
-        val f = v.get(cm.map(p.label))
-        if (f == null && p.default.isDefined) {
-          p.default.get
-        } else {
-          p.typeclass.fromAny(f)(cm)
+        override def from(v: ju.Map[String, AnyRef])(cm: CaseMapper): T =
+          caseClass.construct { p =>
+            val f = v.get(cm.map(p.label))
+            if (f == null && p.default.isDefined) {
+              p.default.get
+            } else {
+              p.typeclass.fromAny(f)(cm)
+            }
+          }
+
+        override def to(v: T)(cm: CaseMapper): TableRow =
+          caseClass.parameters.foldLeft(new TableRow) { (tr, p) =>
+            val f = p.typeclass.to(p.dereference(v))(cm)
+            if (f == null) tr else tr.set(cm.map(p.label), f)
+          }
+
+        private def getDescription(annotations: Seq[Any], name: String): String = {
+          val descs = annotations.collect { case d: description => d.toString }
+          require(descs.size <= 1, s"More than one @description annotation: $name")
+          descs.headOption.orNull
         }
       }
-
-    override def to(v: T)(cm: CaseMapper): TableRow =
-      caseClass.parameters.foldLeft(new TableRow) { (tr, p) =>
-        val f = p.typeclass.to(p.dereference(v))(cm)
-        if (f == null) tr else tr.set(cm.map(p.label), f)
-      }
-
-    private def getDescription(annotations: Seq[Any], name: String): String = {
-      val descs = annotations.collect { case d: description => d.toString }
-      require(descs.size <= 1, s"More than one @description annotation: $name")
-      descs.headOption.orNull
     }
   }
 
