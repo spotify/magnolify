@@ -82,6 +82,22 @@ ThisBuild / javacOptions ++= Seq(
   "1.8"
 )
 
+ThisBuild / PB.protocVersion := protobufVersion
+lazy val scopedProtobufSettings = Def.settings(
+  PB.targets := Seq(
+    PB.gens.java -> (ThisScope.copy(config = Zero) / sourceManaged).value /
+      "compiled_proto" /
+      configuration.value.name
+  ),
+  managedSourceDirectories ++= PB.targets.value.map(_.outputPath)
+)
+
+lazy val protobufSettings = Seq(
+  PB.additionalDependencies := Seq(
+    "com.google.protobuf" % "protobuf-java" % protobufVersion % "provided"
+  )
+) ++ Seq(Compile, Test).flatMap(c => inConfig(c)(scopedProtobufSettings))
+
 val commonSettings = Seq(
   organization := "com.spotify",
   crossScalaVersions := Seq("2.13.8", "2.12.17"),
@@ -219,13 +235,9 @@ lazy val test: Project = project
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion % Test
-    ),
-    ProtobufConfig / protobufRunProtoc := (args =>
-      com.github.os72.protocjar.Protoc.runProtoc(args.toArray)
     )
   )
   .dependsOn(shared)
-  .enablePlugins(ProtobufPlugin)
 
 lazy val scalacheck: Project = project
   .in(file("scalacheck"))
@@ -396,11 +408,9 @@ lazy val protobuf: Project = project
   .in(file("protobuf"))
   .settings(
     commonSettings,
+    protobufSettings,
     moduleName := "magnolify-protobuf",
-    description := "Magnolia add-on for Google Protocol Buffer",
-    libraryDependencies ++= Seq(
-      "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
-    )
+    description := "Magnolia add-on for Google Protocol Buffer"
   )
   .dependsOn(
     shared,
@@ -421,15 +431,7 @@ lazy val tensorflow: Project = project
       .filterNot(_.getPath.endsWith("/src_managed/main")),
     libraryDependencies ++= Seq(
       "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Provided
-    ),
-    // Protobuf plugin adds protobuf-java to Compile scope automatically; we want it to remain Provided
-    libraryDependencies := libraryDependencies.value.map { l =>
-      (l.organization, l.name) match {
-        case ("com.google.protobuf", "protobuf-java") =>
-          l.withConfigurations(Some("provided,protobuf"))
-        case _ => l
-      }
-    }
+    )
   )
   .dependsOn(
     shared,
@@ -437,7 +439,6 @@ lazy val tensorflow: Project = project
     scalacheck % Test,
     test % "test->test"
   )
-  .enablePlugins(ProtobufPlugin)
 
 lazy val neo4j: Project = project
   .in(file("neo4j"))
