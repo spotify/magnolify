@@ -15,6 +15,7 @@
  */
 import _root_.io.github.davidgregory084._
 import _root_.io.github.davidgregory084.ScalaVersion._
+import sbtprotoc.ProtocPlugin.ProtobufConfig
 import scala.Ordering.Implicits._
 
 val magnoliaScala2Version = "1.1.2"
@@ -95,7 +96,7 @@ lazy val scopedProtobufSettings = Def.settings(
 
 lazy val protobufSettings = Seq(
   PB.additionalDependencies := Seq(
-    "com.google.protobuf" % "protobuf-java" % protobufVersion % "provided"
+    "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
   )
 ) ++ Seq(Compile, Test).flatMap(c => inConfig(c)(scopedProtobufSettings))
 
@@ -430,7 +431,7 @@ lazy val tensorflow: Project = project
     moduleName := "magnolify-tensorflow",
     description := "Magnolia add-on for TensorFlow",
     libraryDependencies ++= Seq(
-      "com.google.protobuf" % "protobuf-java" % protobufVersion % "protobuf",
+      "com.google.protobuf" % "protobuf-java" % protobufVersion % ProtobufConfig,
       "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Provided
     ),
     // tensorflow metadata protos are not packaged into a jar. Manually extract them as external
