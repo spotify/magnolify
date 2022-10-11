@@ -27,7 +27,10 @@ package object unsafe {
     implicit val proto3Option: ProtobufOption = new ProtobufOption.Proto3Option
   }
 
-  implicit def pfUnsafeEnum[T](implicit et: EnumType[T]): ProtobufField[UnsafeEnum[T]] =
+  implicit def pfUnsafeEnum[T](implicit
+    et: EnumType[T],
+    lp: shapeless.LowPriority
+  ): ProtobufField[UnsafeEnum[T]] =
     ProtobufField
       .from[String](s => if (s == null || s.isEmpty) null else UnsafeEnum.from(s))(UnsafeEnum.to(_))
 }
