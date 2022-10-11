@@ -437,7 +437,9 @@ lazy val tensorflow: Project = project
     // tensorflow metadata protos are not packaged into a jar. Manually extract them as external
     unpackMetadata := {
       IO.unzipURL(
-        new URL(s"https://github.com/tensorflow/metadata/archive/refs/tags/v$tensorflowMetadataVersion.zip"),
+        new URL(
+          s"https://github.com/tensorflow/metadata/archive/refs/tags/v$tensorflowMetadataVersion.zip"
+        ),
         target.value,
         "**/*.proto"
       )
@@ -445,7 +447,9 @@ lazy val tensorflow: Project = project
       IO.listFiles(PB.externalSourcePath.value / s"metadata-$tensorflowMetadataVersion")
     },
     Compile / PB.generate := (Compile / PB.generate).dependsOn(unpackMetadata).value,
-    Compile / packageBin / mappings ~= { _.filterNot { case (_, n) => n.startsWith("org/tensorflow") } }
+    Compile / packageBin / mappings ~= {
+      _.filterNot { case (_, n) => n.startsWith("org/tensorflow") }
+    }
   )
   .dependsOn(
     shared,
