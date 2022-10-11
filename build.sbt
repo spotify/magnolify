@@ -311,7 +311,7 @@ lazy val refined: Project = project
     bigtable % Provided,
     datastore % Provided,
     guava % "provided,test->test",
-    protobuf % Provided,
+    protobuf % "provided,test->test",
     tensorflow % Provided,
     test % "test->test"
   )
