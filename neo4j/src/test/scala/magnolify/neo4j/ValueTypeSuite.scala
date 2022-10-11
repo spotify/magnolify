@@ -22,13 +22,10 @@ import magnolify.test.Simple._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
-import org.neo4j.driver.Value
-import org.neo4j.driver.internal.value.{MapValue, StringValue}
 import org.scalacheck.{Arbitrary, Prop}
 
 import java.net.URI
 import scala.reflect.ClassTag
-import scala.jdk.CollectionConverters._
 
 class ValueTypeSuite extends MagnolifySuite {
 
@@ -69,6 +66,14 @@ class ValueTypeSuite extends MagnolifySuite {
     test[Custom]
   }
 
+  test("AnyVal") {
+    implicit val vt: ValueType[HasValueClass] = ValueType[HasValueClass]
+    test[HasValueClass]
+
+    val record = vt(HasValueClass(ValueClass("String")))
+    assert(record.get("vc").asString() == "String")
+  }
+
   test("LowerCamel mapping") {
     implicit val vt: ValueType[LowerCamel] = ValueType[LowerCamel](CaseMapper(_.toUpperCase))
     test[LowerCamel]
@@ -78,18 +83,5 @@ class ValueTypeSuite extends MagnolifySuite {
     val record = vt(LowerCamel.default)
     assert(!fields.map(record.get).exists(_.isNull))
     assert(!record.get("INNERFIELD").get("INNERFIRST").isNull)
-  }
-
-  test("AnyVal") {
-    implicit val vt: ValueType[HasValueClass] = ValueType[HasValueClass]
-    test[HasValueClass]
-
-    val record = vt(HasValueClass(ValueClass("String")))
-    assert(record.get("vc").asString() == "String")
-
-    val v: Value = new StringValue("Hello, world")
-    val a = new MapValue(Map("vc" -> v).asJava)
-    val c = vt.from(a)
-    assert(c == HasValueClass(ValueClass("Hello, world")))
   }
 }

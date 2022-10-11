@@ -20,7 +20,6 @@ import java.{util => ju}
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.common.io.BaseEncoding
 import magnolia1._
-import magnolify.bigquery.TableRowField.{ProductRecord, ValueClassRecord}
 import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
 
@@ -42,11 +41,11 @@ sealed trait TableRowType[T] extends Converter[T, TableRow, TableRow] {
 }
 
 object TableRowType {
-  implicit def apply[T: TableRowField.Record]: TableRowType[T] = TableRowType(CaseMapper.identity)
+  implicit def apply[T: TableRowField]: TableRowType[T] = TableRowType(CaseMapper.identity)
 
-  def apply[T](cm: CaseMapper)(implicit f: TableRowField.Record[T]): TableRowType[T] = {
+  def apply[T](cm: CaseMapper)(implicit f: TableRowField[T]): TableRowType[T] = {
     f match {
-      case pr: ProductRecord[_] =>
+      case pr: TableRowField.Record[_] =>
         pr.fieldSchema(cm) // fail fast on bad annotations
         new TableRowType[T] {
           private val caseMapper: CaseMapper = cm
@@ -56,8 +55,8 @@ object TableRowType {
           override def from(v: TableRow): T = pr.from(v)(caseMapper)
           override def to(v: T): TableRow = pr.to(v)(caseMapper)
         }
-      case _: ValueClassRecord[_] =>
-        throw new IllegalArgumentException("Value classes are not valid TableRowType")
+      case _ =>
+        throw new IllegalArgumentException(s"TableRowType can only be created from Record. Got $f")
     }
   }
 }
@@ -86,23 +85,16 @@ object TableRowField {
   }
 
   sealed trait Generic[T] extends Aux[T, Any, Any]
-
-  sealed trait Record[T] extends TableRowField[T]
-  sealed trait ValueClassRecord[T] extends Record[T]
-  sealed trait ProductRecord[T] extends Record[T] {
-    override type FromT = ju.Map[String, AnyRef]
-    override type ToT = TableRow
-  }
+  sealed trait Record[T] extends Aux[T, ju.Map[String, AnyRef], TableRow]
 
   // ////////////////////////////////////////////////
-
   type Typeclass[T] = TableRowField[T]
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = {
+  def join[T](caseClass: CaseClass[Typeclass, T]): TableRowField[T] = {
     if (caseClass.isValueClass) {
       val p = caseClass.parameters.head
       val tc = p.typeclass
-      new ValueClassRecord[T] {
+      new TableRowField[T] {
         override type FromT = tc.FromT
         override type ToT = tc.ToT
         override protected def buildSchema(cm: CaseMapper): TableFieldSchema = tc.buildSchema(cm)
@@ -110,7 +102,7 @@ object TableRowField {
         override def to(v: T)(cm: CaseMapper): ToT = tc.to(p.dereference(v))(cm)
       }
     } else {
-      new ProductRecord[T] {
+      new Record[T] {
         override protected def buildSchema(cm: CaseMapper): TableFieldSchema = {
           // do not use a scala wrapper in the schema, so clone() works
           val fields = new ju.ArrayList[TableFieldSchema](caseClass.parameters.size)
@@ -159,9 +151,9 @@ object TableRowField {
 
   @implicitNotFound("Cannot derive TableRowField for sealed trait")
   private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): TableRowField[T] = ???
 
-  implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: TableRowField[T] = macro Magnolia.gen[T]
 
   // ////////////////////////////////////////////////
 

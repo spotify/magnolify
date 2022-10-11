@@ -20,14 +20,13 @@ import java.nio.ByteBuffer
 import java.time._
 import java.{util => ju}
 import magnolia1._
-import magnolify.avro.AvroField.{ProductRecord, ValueClassRecord}
 import magnolify.shared._
 import magnolify.shims.FactoryCompat
 import org.apache.avro.generic.GenericData.EnumSymbol
 import org.apache.avro.generic._
 import org.apache.avro.{JsonProperties, LogicalType, LogicalTypes, Schema}
 
-import scala.annotation.{StaticAnnotation, implicitNotFound}
+import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.collection.concurrent
 import scala.language.experimental.macros
 import scala.language.implicitConversions
@@ -46,20 +45,20 @@ sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
 }
 
 object AvroType {
-  implicit def apply[T: AvroField.Record]: AvroType[T] = AvroType(CaseMapper.identity)
+  implicit def apply[T: AvroField]: AvroType[T] = AvroType(CaseMapper.identity)
 
-  def apply[T](cm: CaseMapper)(implicit f: AvroField.Record[T]): AvroType[T] = {
+  def apply[T](cm: CaseMapper)(implicit f: AvroField[T]): AvroType[T] = {
     f match {
-      case pr: ProductRecord[_] =>
-        pr.schema(cm) // fail fast on bad annotations
+      case r: AvroField.Record[_] =>
+        r.schema(cm) // fail fast on bad annotations
         new AvroType[T] {
           private val caseMapper: CaseMapper = cm
-          @transient override lazy val schema: Schema = pr.schema(caseMapper)
-          override def from(v: GenericRecord): T = pr.from(v)(caseMapper)
-          override def to(v: T): GenericRecord = pr.to(v)(caseMapper)
+          @transient override lazy val schema: Schema = r.schema(caseMapper)
+          override def from(v: GenericRecord): T = r.from(v)(caseMapper)
+          override def to(v: T): GenericRecord = r.to(v)(caseMapper)
         }
-      case _: ValueClassRecord[_] =>
-        throw new IllegalArgumentException("Value classes are not valid AvroType")
+      case _ =>
+        throw new IllegalArgumentException(s"AvroType can only be created from Record. Got $f")
     }
   }
 }
@@ -92,35 +91,25 @@ object AvroField {
     override type FromT = From
     override type ToT = To
   }
-
-  sealed trait Record[T] extends AvroField[T]
-  sealed trait ValueClassRecord[T] extends Record[T]
-  sealed trait ProductRecord[T] extends Record[T] {
-    override type FromT = GenericRecord
-    override type ToT = GenericRecord
-  }
+  sealed trait Record[T] extends Aux[T, GenericRecord, GenericRecord]
 
   // ////////////////////////////////////////////////
 
   type Typeclass[T] = AvroField[T]
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = {
+  def join[T](caseClass: CaseClass[Typeclass, T]): AvroField[T] = {
     if (caseClass.isValueClass) {
       val p = caseClass.parameters.head
       val tc = p.typeclass
-      new ValueClassRecord[T] {
+      new AvroField[T] {
         override type FromT = tc.FromT
         override type ToT = tc.ToT
-
         override protected def buildSchema(cm: CaseMapper): Schema = tc.buildSchema(cm)
-        override def from(v: FromT)(cm: CaseMapper): T =
-          caseClass.construct(_ => tc.fromAny(v)(cm))
-        override def to(v: T)(cm: CaseMapper): ToT = {
-          tc.to(p.dereference(v))(cm)
-        }
+        override def from(v: FromT)(cm: CaseMapper): T = caseClass.construct(_ => tc.fromAny(v)(cm))
+        override def to(v: T)(cm: CaseMapper): ToT = tc.to(p.dereference(v))(cm)
       }
     } else {
-      new ProductRecord[T] {
+      new Record[T] {
         override protected def buildSchema(cm: CaseMapper): Schema = Schema
           .createRecord(
             caseClass.typeName.short,
@@ -173,9 +162,9 @@ object AvroField {
 
   @implicitNotFound("Cannot derive AvroField for sealed trait")
   private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): AvroField[T] = ???
 
-  implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: AvroField[T] = macro Magnolia.gen[T]
 
   // ////////////////////////////////////////////////
 
@@ -226,7 +215,7 @@ object AvroField {
     override def to(v: Array[Byte])(cm: CaseMapper): ByteBuffer = ByteBuffer.wrap(v)
   }
 
-  implicit def afEnum[T](implicit et: EnumType[T]): AvroField[T] =
+  implicit def afEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): AvroField[T] =
     // Avro 1.9+ added a type parameter for `GenericEnumSymbol`, breaking 1.8 compatibility
     // Some reader, i.e. `AvroParquetReader` reads enums as `Utf8`
     new Aux[T, AnyRef, EnumSymbol] {

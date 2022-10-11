@@ -41,16 +41,19 @@ sealed trait ExampleType[T] extends Converter[T, Example, Example.Builder] {
 }
 
 object ExampleType {
-  implicit def apply[T: ExampleField.Record]: ExampleType[T] = ExampleType(CaseMapper.identity)
+  implicit def apply[T: ExampleField]: ExampleType[T] = ExampleType(CaseMapper.identity)
 
-  def apply[T](cm: CaseMapper)(implicit f: ExampleField.Record[T]): ExampleType[T] =
-    new ExampleType[T] {
-      private val caseMapper: CaseMapper = cm
-      @transient override lazy val schema: Schema = f.schema(caseMapper)
-      override def from(v: Example): T = f.get(v.getFeatures, null)(caseMapper).get
-      override def to(v: T): Example.Builder =
-        Example.newBuilder().setFeatures(f.put(Features.newBuilder(), null, v)(caseMapper))
-    }
+  def apply[T](cm: CaseMapper)(implicit f: ExampleField[T]): ExampleType[T] = f match {
+    case r: ExampleField.Record[_] =>
+      new ExampleType[T] {
+        @transient override lazy val schema: Schema = r.schema(cm)
+        override def from(v: Example): T = r.get(v.getFeatures, null)(cm).get
+        override def to(v: T): Example.Builder =
+          Example.newBuilder().setFeatures(r.put(Features.newBuilder(), null, v)(cm))
+      }
+    case _ =>
+      throw new IllegalArgumentException(s"ExampleType can only be created from Record. Got $f")
+  }
 }
 
 sealed trait ExampleField[T] extends Serializable {
@@ -97,11 +100,11 @@ object ExampleField {
 
   type Typeclass[T] = ExampleField[T]
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = {
+  def join[T](caseClass: CaseClass[Typeclass, T]): ExampleField[T] = {
     if (caseClass.isValueClass) {
       val p = caseClass.parameters.head
       val tc = p.typeclass
-      new Record[T] {
+      new ExampleField[T] {
         override protected def buildSchema(cm: CaseMapper): Schema =
           tc.buildSchema(cm)
         override def get(f: Features, k: String)(cm: CaseMapper): Value[T] =
@@ -171,9 +174,9 @@ object ExampleField {
 
   @implicitNotFound("Cannot derive ExampleField for sealed trait")
   private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): ExampleField[T] = ???
 
-  implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: ExampleField[T] = macro Magnolia.gen[T]
 
   // ////////////////////////////////////////////////
 

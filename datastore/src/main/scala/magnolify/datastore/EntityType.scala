@@ -21,11 +21,10 @@ import com.google.datastore.v1._
 import com.google.datastore.v1.client.DatastoreHelper.makeValue
 import com.google.protobuf.{ByteString, NullValue}
 import magnolia1._
-import magnolify.datastore.EntityField.{ProductRecord, ValueClassRecord}
 import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
 
-import scala.annotation.{StaticAnnotation, implicitNotFound}
+import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.language.experimental.macros
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
@@ -41,17 +40,17 @@ class key(val project: String = null, val namespace: String = null, val kind: St
 class excludeFromIndexes(val exclude: Boolean = true) extends StaticAnnotation with Serializable
 
 object EntityType {
-  implicit def apply[T: EntityField.Record]: EntityType[T] = EntityType(CaseMapper.identity)
+  implicit def apply[T: EntityField]: EntityType[T] = EntityType(CaseMapper.identity)
 
-  def apply[T](cm: CaseMapper)(implicit f: EntityField.Record[T]): EntityType[T] = f match {
-    case pr: ProductRecord[_] =>
+  def apply[T](cm: CaseMapper)(implicit f: EntityField[T]): EntityType[T] = f match {
+    case r: EntityField.Record[_] =>
       new EntityType[T] {
         private val caseMapper: CaseMapper = cm
-        override def from(v: Entity): T = pr.fromEntity(v)(caseMapper)
-        override def to(v: T): Entity.Builder = pr.toEntity(v)(caseMapper)
+        override def from(v: Entity): T = r.fromEntity(v)(caseMapper)
+        override def to(v: T): Entity.Builder = r.toEntity(v)(caseMapper)
       }
-    case _: ValueClassRecord[_] =>
-      throw new IllegalArgumentException("Value classes are not valid EntityType")
+    case _ =>
+      throw new IllegalArgumentException(s"EntityType can only be created from Record. Got $f")
   }
 }
 
@@ -96,11 +95,7 @@ sealed trait EntityField[T] extends Serializable {
 
 object EntityField {
 
-  sealed trait Record[T] extends EntityField[T]
-
-  sealed trait ValueClassRecord[T] extends Record[T]
-
-  sealed trait ProductRecord[T] extends Record[T] {
+  sealed trait Record[T] extends EntityField[T] {
     def fromEntity(v: Entity)(cm: CaseMapper): T
     def toEntity(v: T)(cm: CaseMapper): Entity.Builder
 
@@ -113,17 +108,17 @@ object EntityField {
 
   type Typeclass[T] = EntityField[T]
 
-  def join[T: KeyField](caseClass: CaseClass[Typeclass, T]): Record[T] = {
+  def join[T: KeyField](caseClass: CaseClass[Typeclass, T]): EntityField[T] = {
     if (caseClass.isValueClass) {
       val p = caseClass.parameters.head
       val tc = p.typeclass
-      new ValueClassRecord[T] {
+      new EntityField[T] {
         override lazy val keyField: KeyField[T] = tc.keyField.map(p.dereference)
         override def from(v: Value)(cm: CaseMapper): T = caseClass.construct(_ => tc.from(v)(cm))
         override def to(v: T)(cm: CaseMapper): Value.Builder = tc.to(p.dereference(v))(cm)
       }
     } else {
-      new ProductRecord[T] {
+      new Record[T] {
         private val (keyIndex, keyOpt): (Int, Option[key]) = {
           val keys = caseClass.parameters
             .map(p => p -> getKey(p.annotations, s"${caseClass.typeName.full}#${p.label}"))
@@ -215,9 +210,9 @@ object EntityField {
 
   @implicitNotFound("Cannot derive EntityField for sealed trait")
   private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): EntityField[T] = ???
 
-  implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: EntityField[T] = macro Magnolia.gen[T]
 
   // ////////////////////////////////////////////////
 

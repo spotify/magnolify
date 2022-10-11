@@ -29,7 +29,6 @@ import magnolify.shared.CaseMapper
 import magnolify.test.Simple._
 import magnolify.test.Time._
 import magnolify.test._
-import org.apache.parquet.hadoop.ParquetFileReader
 import org.apache.parquet.io._
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 import org.scalacheck._

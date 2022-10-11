@@ -60,26 +60,26 @@ object ProtobufOption {
 }
 
 object ProtobufType {
-  implicit def apply[T: ProtobufField.Record, MsgT <: Message: ClassTag](implicit
+  implicit def apply[T: ProtobufField, MsgT <: Message: ClassTag](implicit
     po: ProtobufOption
   ): ProtobufType[T, MsgT] = ProtobufType(CaseMapper.identity)
 
   def apply[T, MsgT <: Message](cm: CaseMapper)(implicit
-    f: ProtobufField.Record[T],
+    f: ProtobufField[T],
     ct: ClassTag[MsgT],
     po: ProtobufOption
   ): ProtobufType[T, MsgT] = f match {
-    case pr: ProtobufField.ProductRecord[_] =>
+    case r: ProtobufField.Record[_] =>
       new ProtobufType[T, MsgT] {
         {
           val descriptor = ct.runtimeClass
             .getMethod("getDescriptor")
             .invoke(null)
             .asInstanceOf[Descriptor]
-          if (pr.hasOptional) {
-            po.check(pr, descriptor.getFile.getSyntax)
+          if (r.hasOptional) {
+            po.check(r, descriptor.getFile.getSyntax)
           }
-          pr.checkDefaults(descriptor)(cm)
+          r.checkDefaults(descriptor)(cm)
         }
 
         @transient private var _newBuilder: Method = _
@@ -91,11 +91,11 @@ object ProtobufType {
         }
 
         private val caseMapper: CaseMapper = cm
-        override def from(v: MsgT): T = pr.from(v)(caseMapper)
-        override def to(v: T): MsgT = pr.to(v, newBuilder)(caseMapper).asInstanceOf[MsgT]
+        override def from(v: MsgT): T = r.from(v)(caseMapper)
+        override def to(v: T): MsgT = r.to(v, newBuilder)(caseMapper).asInstanceOf[MsgT]
       }
-    case _: ProtobufField.ValueClassRecord[_] =>
-      throw new IllegalArgumentException("Value classes are not valid ProtobufType")
+    case _ =>
+      throw new IllegalArgumentException(s"ProtobufType can only be created from Record. Got $f")
   }
 }
 
@@ -119,11 +119,7 @@ object ProtobufField {
     override type ToT = To
   }
 
-  sealed trait Record[T] extends ProtobufField[T]
-  sealed trait ValueClassRecord[T] extends Record[T]
-  sealed trait ProductRecord[T] extends Record[T] {
-    override type FromT = Message
-    override type ToT = Message
+  sealed trait Record[T] extends Aux[T, Message, Message] {
     override val default: Option[T] = None
   }
 
@@ -131,11 +127,11 @@ object ProtobufField {
 
   type Typeclass[T] = ProtobufField[T]
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = {
+  def join[T](caseClass: CaseClass[Typeclass, T]): ProtobufField[T] = {
     if (caseClass.isValueClass) {
       val p = caseClass.parameters.head
       val tc = p.typeclass
-      new ValueClassRecord[T] {
+      new ProtobufField[T] {
         override type FromT = tc.FromT
         override type ToT = tc.ToT
         override val hasOptional: Boolean = tc.hasOptional
@@ -146,7 +142,7 @@ object ProtobufField {
       }
 
     } else {
-      new ProductRecord[T] {
+      new Record[T] {
         // One Record[T] instance may be used for multiple Message types
         @transient private lazy val fieldsCache: concurrent.Map[String, Array[FieldDescriptor]] =
           concurrent.TrieMap.empty
@@ -226,9 +222,9 @@ object ProtobufField {
 
   @implicitNotFound("Cannot derive ProtobufField for sealed trait")
   private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): ProtobufField[T] = ???
 
-  implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: ProtobufField[T] = macro Magnolia.gen[T]
 
   // ////////////////////////////////////////////////
 
