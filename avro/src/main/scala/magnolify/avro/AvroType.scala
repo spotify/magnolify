@@ -197,7 +197,7 @@ object AvroField {
     override def to(v: Array[Byte])(cm: CaseMapper): ByteBuffer = ByteBuffer.wrap(v)
   }
 
-  implicit def afEnum[T](implicit et: EnumType[T]): AvroField[T] =
+  implicit def afEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): AvroField[T] =
     // Avro 1.9+ added a type parameter for `GenericEnumSymbol`, breaking 1.8 compatibility
     // Some reader, i.e. `AvroParquetReader` reads enums as `Utf8`
     new Aux[T, AnyRef, EnumSymbol] {
