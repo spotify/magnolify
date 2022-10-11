@@ -75,6 +75,13 @@ ThisBuild / tpolecatDevModeOptions ~= { opts =>
   opts.filterNot(excludes).union(extras)
 }
 
+ThisBuild / javacOptions ++= Seq(
+  "-source",
+  "1.8",
+  "-target",
+  "1.8"
+)
+
 val commonSettings = Seq(
   organization := "com.spotify",
   crossScalaVersions := Seq("2.13.8", "2.12.17"),
