@@ -38,6 +38,7 @@ val refinedVersion = "0.10.1"
 val scalaCollectionCompatVersion = "2.8.1"
 val scalacheckVersion = "1.17.0"
 val shapelessVersion = "2.3.10"
+val tensorflowMetadataVersion = "1.10.0"
 val tensorflowVersion = "0.4.1"
 
 lazy val currentYear = java.time.LocalDate.now().getYear
@@ -419,19 +420,31 @@ lazy val protobuf: Project = project
     test % "test->test"
   )
 
+val unpackMetadata = taskKey[Seq[File]]("Unpack tensorflow metadata proto files.")
+
 lazy val tensorflow: Project = project
   .in(file("tensorflow"))
   .settings(
     commonSettings,
+    protobufSettings,
     moduleName := "magnolify-tensorflow",
     description := "Magnolia add-on for TensorFlow",
-    Compile / sourceDirectories := (Compile / sourceDirectories).value
-      .filterNot(_.getPath.endsWith("/src_managed/main")),
-    Compile / managedSourceDirectories := (Compile / managedSourceDirectories).value
-      .filterNot(_.getPath.endsWith("/src_managed/main")),
     libraryDependencies ++= Seq(
+      "com.google.protobuf" % "protobuf-java" % protobufVersion % "protobuf",
       "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Provided
-    )
+    ),
+    // tensorflow metadata protos are not packaged into a jar. Manually extract them as external
+    unpackMetadata := {
+      IO.unzipURL(
+        new URL(s"https://github.com/tensorflow/metadata/archive/refs/tags/v$tensorflowMetadataVersion.zip"),
+        target.value,
+        "**/*.proto"
+      )
+      IO.move(target.value / s"metadata-$tensorflowMetadataVersion", PB.externalSourcePath.value)
+      IO.listFiles(PB.externalSourcePath.value / s"metadata-$tensorflowMetadataVersion")
+    },
+    Compile / PB.generate := (Compile / PB.generate).dependsOn(unpackMetadata).value,
+    Compile / packageBin / mappings ~= { _.filterNot { case (_, n) => n.startsWith("org/tensorflow") } }
   )
   .dependsOn(
     shared,
