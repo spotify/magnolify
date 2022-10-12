@@ -19,11 +19,11 @@ package magnolify.shared
 import magnolify.test.ADT
 import magnolify.test.JavaEnums
 import magnolify.test.Simple.ScalaEnums
-
 object TestEnumType {
 
-  implicit val etJava: EnumType[JavaEnums.Color] = EnumType[JavaEnums.Color]
-  implicit val etScala: EnumType[ScalaEnums.Color.Type] = EnumType[ScalaEnums.Color.Type]
-  implicit val etAdt: EnumType[ADT.Color] = EnumType[ADT.Color]
+  implicit val etJava: EnumType[JavaEnums.Color] = EnumType.javaEnumType[JavaEnums.Color]
+  implicit val etScala: EnumType[ScalaEnums.Color.Type] =
+    EnumType.scalaEnumType[ScalaEnums.Color.Type]
+  implicit val etAdt: EnumType[ADT.Color] = EnumType.adtEnumType[ADT.Color]
 
 }

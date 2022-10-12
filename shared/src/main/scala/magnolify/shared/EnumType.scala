@@ -115,9 +115,9 @@ object EnumType {
   // ////////////////////////////////////////////////
 
   // Scala ADT
-  implicit def gen[T](implicit lp: shapeless.LowPriority): Typeclass[T] = macro lowPrioGen[T]
-
-  def lowPrioGen[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = Magnolia.gen[T](c)
+  def adtEnumType[T]: EnumType[T] = macro Magnolia.gen[T]
+  implicit def gen[T](implicit lp: shapeless.LowPriority): EnumType[T] = macro genMacro[T]
+  def genMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = Magnolia.gen[T](c)
 
   type Typeclass[T] = EnumType[T]
 

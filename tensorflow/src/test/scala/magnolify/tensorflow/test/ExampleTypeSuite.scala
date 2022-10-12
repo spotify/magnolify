@@ -46,7 +46,7 @@ class ExampleTypeSuite extends MagnolifySuite {
     }
   }
 
-  import magnolify.scalacheck.test.TestArbitrary._
+  import magnolify.scalacheck.test.TestArbitrary.{arbFloats => _, _}
   import magnolify.cats.test.TestEq._
   import magnolify.shared.TestEnumType._
   // workaround for Double to Float precision loss
