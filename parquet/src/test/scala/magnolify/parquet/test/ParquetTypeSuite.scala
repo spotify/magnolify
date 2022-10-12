@@ -28,7 +28,6 @@ import magnolify.parquet.unsafe._
 import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
 import magnolify.test.Simple._
-import magnolify.test.Time._
 import magnolify.test._
 import org.apache.parquet.io._
 import org.scalacheck._
@@ -59,6 +58,13 @@ class ParquetTypeSuite extends MagnolifySuite {
     }
   }
 
+  import magnolify.scalacheck.test.TestArbitrary._
+  import magnolify.cats.test.TestEq._
+  import magnolify.shared.TestEnumType._
+  implicit val pfUri: ParquetField[URI] = ParquetField.from[String](URI.create)(_.toString)
+  implicit val pfDuration: ParquetField[Duration] =
+    ParquetField.from[Long](Duration.ofMillis)(_.toMillis)
+
   test[Integers]
   test[Floats]
   test[Required]
@@ -67,31 +73,15 @@ class ParquetTypeSuite extends MagnolifySuite {
   test[Nested]
   test[Unsafe]
 
-  {
-    import Collections._
-    test[Collections]
-    test[MoreCollections]
-  }
+  test[Collections]
+  test[MoreCollections]
 
-  {
-    import Enums._
-    import UnsafeEnums._
-    test[Enums]
-    test[UnsafeEnums]
-  }
+  test[Enums]
+  test[UnsafeEnums]
 
-  {
-    import Custom._
-    implicit val pfUri: ParquetField[URI] = ParquetField.from[String](URI.create)(_.toString)
-    implicit val afDuration: ParquetField[Duration] =
-      ParquetField.from[Long](Duration.ofMillis)(_.toMillis)
-    test[Custom]
-  }
+  test[Custom]
 
-  {
-    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
-    test[ParquetTypes]
-  }
+  test[ParquetTypes]
 
   // Precision = number of digits, so 5 means -99999 to 99999
   private def decimal(precision: Int): Arbitrary[BigDecimal] = {

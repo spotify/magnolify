@@ -29,8 +29,11 @@ import cats.laws.discipline.arbitrary._
 import cats.laws.discipline.eq._
 import scala.reflect._
 
+import java.net.URI
+import java.time.Duration
+
 class ShowDerivationSuite extends MagnolifySuite {
-  private def test[T: Arbitrary: ClassTag: Cogen: Show]: Unit = {
+  private def test[T: Arbitrary: ClassTag: Show]: Unit = {
     val show = ensureSerializable(implicitly[Show[T]])
     val name = className[T]
     include(ContravariantTests[Show].contravariant[MiniInt, Int, Boolean].all, s"$name.")
@@ -44,21 +47,18 @@ class ShowDerivationSuite extends MagnolifySuite {
     }
   }
 
+  import magnolify.scalacheck.test.TestArbitrary._
+  implicit val showArray: Show[Array[Int]] = Show.fromToString
+  implicit val showUri: Show[URI] = Show.fromToString
+  implicit val showDuration: Show[Duration] = Show.fromToString
+
   test[Numbers]
   test[Required]
   test[Nullable]
   test[Repeated]
   test[Nested]
-
-  {
-    implicit val showArray: Show[Array[Int]] = Show.fromToString[Array[Int]]
-    test[Collections]
-  }
-
-  {
-    import Custom._
-    test[Custom]
-  }
+  test[Collections]
+  test[Custom]
 
   test[Node]
   test[GNode[Int]]

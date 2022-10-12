@@ -24,7 +24,6 @@ import magnolify.cats.auto._
 import magnolify.parquet._
 import magnolify.parquet.logical.millis._
 import magnolify.test._
-import magnolify.test.Time._
 import org.apache.parquet.io.InvalidRecordException
 
 import scala.reflect.ClassTag

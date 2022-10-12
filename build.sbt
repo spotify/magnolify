@@ -254,7 +254,7 @@ lazy val cats: Project = project
   )
   .dependsOn(
     shared,
-    scalacheck % Test,
+    scalacheck % "test->test",
     test % "test->test"
   )
 
@@ -270,7 +270,7 @@ lazy val guava: Project = project
   )
   .dependsOn(
     shared,
-    scalacheck % Test,
+    scalacheck % "test->test",
     test % "test->test"
   )
 
@@ -315,8 +315,8 @@ lazy val avro: Project = project
   )
   .dependsOn(
     shared,
-    cats % Test,
-    scalacheck % Test,
+    cats % "test->test",
+    scalacheck % "test->test",
     test % "test->test"
   )
 
@@ -333,8 +333,8 @@ lazy val bigquery: Project = project
   )
   .dependsOn(
     shared,
-    cats % Test,
-    scalacheck % Test,
+    cats % "test->test",
+    scalacheck % "test->test",
     test % "test->test"
   )
 
@@ -350,8 +350,8 @@ lazy val bigtable: Project = project
   )
   .dependsOn(
     shared,
-    cats % Test,
-    scalacheck % Test,
+    cats % "test->test",
+    scalacheck % "test->test",
     test % "test->test"
   )
 
@@ -367,8 +367,8 @@ lazy val datastore: Project = project
   )
   .dependsOn(
     shared,
-    cats % Test,
-    scalacheck % Test,
+    cats % "test->test",
+    scalacheck % "test->test",
     test % "test->test"
   )
 
@@ -387,8 +387,8 @@ lazy val parquet: Project = project
   .dependsOn(
     shared,
     avro % Test,
-    cats % Test,
-    scalacheck % Test,
+    cats % "test->test",
+    scalacheck % "test->test",
     test % "test->test"
   )
 
@@ -404,8 +404,8 @@ lazy val protobuf: Project = project
   )
   .dependsOn(
     shared,
-    cats % Test,
-    scalacheck % Test,
+    cats % "test->test",
+    scalacheck % "test->test",
     test % "test->test"
   )
 
@@ -433,8 +433,8 @@ lazy val tensorflow: Project = project
   )
   .dependsOn(
     shared,
-    cats % Test,
-    scalacheck % Test,
+    cats % "test->test",
+    scalacheck % "test->test",
     test % "test->test"
   )
   .enablePlugins(ProtobufPlugin)
@@ -451,8 +451,8 @@ lazy val neo4j: Project = project
   )
   .dependsOn(
     shared,
-    cats % Test,
-    scalacheck % Test,
+    cats % "test->test",
+    scalacheck % "test->test",
     test % "test->test"
   )
 

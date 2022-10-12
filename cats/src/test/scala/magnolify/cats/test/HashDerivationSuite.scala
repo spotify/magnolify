@@ -27,6 +27,9 @@ import org.scalacheck._
 
 import scala.reflect._
 
+import java.net.URI
+import java.time.Duration
+
 class HashDerivationSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag: Cogen: Hash]: Unit = test()
 
@@ -38,23 +41,22 @@ class HashDerivationSuite extends MagnolifySuite {
     }
   }
 
+  import cats.Eq._
+  import magnolify.scalacheck.test.TestArbitrary._
+  import magnolify.scalacheck.test.TestCogen._
+  // Use `scala.util.hashing.Hashing[T]` for `Array[Int]`, equivalent to `x.##` and `x.hashCode`
+  implicit val hash: Hash[Array[Int]] = Hash.fromHashing[Array[Int]]
+  implicit val hashUri: Hash[URI] = Hash.fromUniversalHashCode
+  implicit val hashDuration: Hash[Duration] = Hash.fromUniversalHashCode
+
   // Long.## != Long.hashCode for negative values
   test[Integers]("same as scala hashing", "same as universal hash")
   test[Required]
   test[Nullable]
   test[Repeated]
   test[Nested]
-
-  {
-    // Use `scala.util.hashing.Hashing[T]` for `Array[Int]`, equivalent to `x.##` and `x.hashCode`
-    implicit val hash: Hash[Array[Int]] = Hash.fromHashing[Array[Int]]
-    test[Collections]
-  }
-
-  {
-    import Custom._
-    test[Custom]
-  }
+  test[Collections]
+  test[Custom]
 
   test[Node]
   test[GNode[Int]]

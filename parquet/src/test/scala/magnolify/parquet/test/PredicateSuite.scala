@@ -23,7 +23,6 @@ import magnolify.cats.auto._
 import magnolify.parquet._
 import magnolify.parquet.logical.millis._
 import magnolify.test._
-import magnolify.test.Time._
 import org.apache.parquet.filter2.compat.FilterCompat
 import org.apache.parquet.filter2.predicate.{FilterApi, FilterPredicate}
 import org.apache.parquet.io.api.Binary
@@ -31,7 +30,8 @@ import org.apache.parquet.io.api.Binary
 import scala.reflect.ClassTag
 
 class PredicateSuite extends MagnolifySuite {
-  implicit val baEq: cats.Eq[Array[Byte]] = (x: Array[Byte], y: Array[Byte]) => x.diff(y).isEmpty
+
+  import magnolify.cats.test.TestEq._
   implicit val pfDecimal = ParquetField.decimal32(9)
   implicit val projectionT = ParquetType[Projection]
   implicit val projectionSubsetT = ParquetType[ProjectionSmall]

@@ -22,6 +22,7 @@ import magnolify.test.Simple._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
+import magnolify.neo4j.unsafe._
 import org.scalacheck.{Arbitrary, Prop}
 
 import java.net.URI
@@ -40,31 +41,24 @@ class ValueTypeSuite extends MagnolifySuite {
     }
   }
 
+  import magnolify.scalacheck.test.TestArbitrary._
+  import magnolify.cats.test.TestEq._
+  import magnolify.shared.TestEnumType._
+  implicit val nvUri: ValueField[URI] = ValueField.from[String](URI.create)(_.toString)
+
   test[Integers]
   test[Floats]
   test[Required]
   test[Nullable]
   test[Repeated]
 
-  {
-    import Collections._
-    test[Collections]
-    test[MoreCollections]
-  }
+  test[Collections]
+  test[MoreCollections]
 
-  {
-    import unsafe._
-    import Enums._
-    import UnsafeEnums._
-    test[Enums]
-    test[UnsafeEnums]
-  }
+  test[Enums]
+  test[UnsafeEnums]
 
-  {
-    import Custom._
-    implicit val nvUri: ValueField[URI] = ValueField.from[String](URI.create)(_.toString)
-    test[Custom]
-  }
+  test[Custom]
 
   test("LowerCamel mapping") {
     implicit val vt: ValueType[LowerCamel] = ValueType[LowerCamel](CaseMapper(_.toUpperCase))

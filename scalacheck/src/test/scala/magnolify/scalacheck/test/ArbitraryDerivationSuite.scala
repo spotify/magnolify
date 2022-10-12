@@ -51,18 +51,15 @@ class ArbitraryDerivationSuite extends MagnolifySuite {
     }
   }
 
+  import MoreCollectionsBuildable._ // scala 2.12 does not find implicit Buildable for some collections
+  import magnolify.scalacheck.test.TestArbitrary.{arbDuration, arbUri}
+
   test[Numbers]
   test[Required]
   test[Nullable]
-
-  {
-    import Collections._
-    import MoreCollectionsBuildable._ // scala 2.12 does not find implicit Buildable for some collections
-    test[Repeated]
-    test((c: Collections) => (c.a.toList, c.l, c.v))
-    test[MoreCollections]
-  }
-
+  test[Repeated]
+  test((c: Collections) => (c.a.toList, c.l, c.v))
+  test[MoreCollections]
   test[Nested]
 
   {
@@ -75,10 +72,7 @@ class ArbitraryDerivationSuite extends MagnolifySuite {
     }
   }
 
-  {
-    import Custom._
-    test[Custom]
-  }
+  test[Custom]
 
   {
     import magnolify.scalacheck.semiauto.ArbitraryDerivation.Fallback

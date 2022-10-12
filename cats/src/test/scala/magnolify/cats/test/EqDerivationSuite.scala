@@ -33,21 +33,18 @@ class EqDerivationSuite extends MagnolifySuite {
     include(EqTests[T](eq).eqv.all, className[T] + ".")
   }
 
+  // prefer cats Eq instance as auto derivation
+  import cats.Eq._
+  import magnolify.scalacheck.test.TestArbitrary._
+  import magnolify.scalacheck.test.TestCogen._
+  import magnolify.cats.test.TestEq.{eqArray, eqDuration, eqUri}
   test[Numbers]
   test[Required]
   test[Nullable]
   test[Repeated]
   test[Nested]
-
-  {
-    implicit val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
-    test[Collections]
-  }
-
-  {
-    import Custom._
-    test[Custom]
-  }
+  test[Collections]
+  test[Custom]
 
   test[Node]
   test[GNode[Int]]

@@ -29,7 +29,6 @@ import magnolify.scalacheck.auto._
 import magnolify.test._
 import magnolify.test.Simple._
 
-import magnolify.test.Time._
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.hadoop.conf.Configuration
@@ -98,35 +97,27 @@ class AvroParquetSuite extends MagnolifySuite {
     }
   }
 
+  import magnolify.scalacheck.test.TestArbitrary._
+  import magnolify.cats.test.TestEq._
+  import magnolify.shared.TestEnumType._
+
   test[Integers]
   test[Floats]
   test[Required]
   test[Nullable]
 
-  {
-    test[Repeated]
-    test[Nested]
-  }
+  test[Repeated]
+  test[Nested]
 
   test[Unsafe]
 
-  {
-    import Collections._
-    test[Collections]
-    test[MoreCollections]
-  }
+  test[Collections]
+  test[MoreCollections]
 
-  {
-    import Enums._
-    import UnsafeEnums._
-    test[Enums]
-    test[UnsafeEnums]
-  }
+  test[Enums]
+  test[UnsafeEnums]
 
-  {
-    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
-    test[ParquetTypes]
-  }
+  test[ParquetTypes]
 
   {
     import magnolify.avro.logical.bigquery._

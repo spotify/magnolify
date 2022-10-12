@@ -29,7 +29,6 @@ import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
 import magnolify.test.Simple._
-import magnolify.test.Time._
 import magnolify.test._
 import org.scalacheck._
 
@@ -48,6 +47,16 @@ class EntityTypeSuite extends MagnolifySuite {
     }
   }
 
+  import magnolify.scalacheck.test.TestArbitrary._
+  import magnolify.cats.test.TestEq._
+  import magnolify.shared.TestEnumType._
+  implicit val arbByteString: Arbitrary[ByteString] =
+    Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
+  implicit val eqByteString: Eq[ByteString] = Eq.fromUniversalEquals
+  implicit val efUri: EntityField[URI] = EntityField.from[String](URI.create)(_.toString)
+  implicit val efDuration: EntityField[Duration] =
+    EntityField.from[Long](Duration.ofMillis)(_.toMillis)
+
   test[Integers]
   test[Floats]
   test[Required]
@@ -56,40 +65,15 @@ class EntityTypeSuite extends MagnolifySuite {
   test[Nested]
   test[Unsafe]
 
-  {
-    import Collections._
-    test[Collections]
-    test[MoreCollections]
-  }
+  test[Collections]
+  test[MoreCollections]
 
-  {
-    import Enums._
-    import UnsafeEnums._
-    test[Enums]
-    test[UnsafeEnums]
-  }
+  test[Enums]
+  test[UnsafeEnums]
 
-  {
-    import Custom._
-    implicit val efUri: EntityField[URI] = EntityField.from[String](URI.create)(_.toString)
-    implicit val efDuration: EntityField[Duration] =
-      EntityField.from[Long](Duration.ofMillis)(_.toMillis)
-    test[Custom]
-  }
+  test[Custom]
 
-  {
-    implicit val arbByteString: Arbitrary[ByteString] =
-      Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
-    implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
-    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
-    test[DatastoreTypes]
-  }
-
-  {
-    implicit val efInt: EntityField[Int] =
-      EntityField.at[Int](_.getIntegerValue.toInt)(makeValue(_))
-    implicit val efUri: EntityField[URI] = EntityField.from[String](URI.create)(_.toString)
-  }
+  test[DatastoreTypes]
 
   test("DefaultInner") {
     val et = ensureSerializable(EntityType[DefaultInner])

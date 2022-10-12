@@ -29,7 +29,6 @@ import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
 import magnolify.test.Simple._
-import magnolify.test.Time._
 import magnolify.test._
 import org.scalacheck._
 
@@ -52,46 +51,35 @@ class TableRowTypeSuite extends MagnolifySuite {
     }
   }
 
+  import magnolify.scalacheck.test.TestArbitrary._
+  import magnolify.cats.test.TestEq._
+  import magnolify.shared.TestEnumType._
+  implicit val arbBigDecimal: Arbitrary[BigDecimal] =
+    Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(BigDecimal(_)))
+  // `TableRow` reserves field `f`
+  implicit val trtFloats: TableRowType[Floats] =
+    TableRowType[Floats](CaseMapper(s => if (s == "f") "float" else s))
+  implicit val trfUri: TableRowField[URI] = TableRowField.from[String](URI.create)(_.toString)
+  implicit val trfDuration: TableRowField[Duration] =
+    TableRowField.from[Long](Duration.ofMillis)(_.toMillis)
+
   test[Integers]
-
-  {
-    // `TableRow` reserves field `f`
-    implicit val trt = TableRowType[Floats](CaseMapper(s => if (s == "f") "float" else s))
-    test[Floats]
-  }
-
+  test[Floats]
   test[Required]
   test[Nullable]
   test[Repeated]
   test[Nested]
   test[Unsafe]
 
-  {
-    import Collections._
-    test[Collections]
-    test[MoreCollections]
-  }
+  test[Collections]
+  test[MoreCollections]
 
-  {
-    import Enums._
-    import UnsafeEnums._
-    test[Enums]
-    test[UnsafeEnums]
-  }
+  test[Enums]
+  test[UnsafeEnums]
 
-  {
-    import Custom._
-    implicit val trfUri: TableRowField[URI] = TableRowField.from[String](URI.create)(_.toString)
-    implicit val trfDuration: TableRowField[Duration] =
-      TableRowField.from[Long](Duration.ofMillis)(_.toMillis)
-    test[Custom]
-  }
+  test[Custom]
 
-  {
-    implicit val arbBigDecimal: Arbitrary[BigDecimal] =
-      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(BigDecimal(_)))
-    test[BigQueryTypes]
-  }
+  test[BigQueryTypes]
 
   test("BigDecimal") {
     val at: TableRowType[BigDec] = TableRowType[BigDec]

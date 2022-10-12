@@ -31,7 +31,6 @@ import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
 import magnolify.test.Simple._
-import magnolify.test.Time._
 import magnolify.test._
 import org.apache.avro.Schema
 import org.apache.avro.generic.{
@@ -98,6 +97,20 @@ class AvroTypeSuite extends MagnolifySuite {
     }
   }
 
+  import magnolify.scalacheck.test.TestArbitrary._
+  import magnolify.cats.test.TestEq._
+  import magnolify.shared.TestEnumType._
+  implicit val arbBigDecimal: Arbitrary[BigDecimal] =
+    Arbitrary(Gen.chooseNum(0L, Long.MaxValue).map(BigDecimal(_, 0)))
+  implicit val arbCountryCode: Arbitrary[CountryCode] = Arbitrary(
+    Gen.oneOf("US", "UK", "CA", "MX").map(CountryCode(_))
+  )
+  implicit val afUri: AvroField[URI] = AvroField.from[String](URI.create)(_.toString)
+  implicit val afDuration: AvroField[Duration] =
+    AvroField.from[Long](Duration.ofMillis)(_.toMillis)
+  implicit val afCountryCode: AvroField[CountryCode] =
+    AvroField.fixed[CountryCode](2)(bs => CountryCode(new String(bs)))(cc => cc.code.getBytes)
+
   test[Integers]
   test[Floats]
   test[Required]
@@ -105,35 +118,16 @@ class AvroTypeSuite extends MagnolifySuite {
   test[Repeated]
   test[Nested]
   test[Unsafe]
+  test[Collections]
+  test[MoreCollections]
+  test[Enums]
+  test[UnsafeEnums]
+  test[Custom]
+
+  test[AvroTypes]
 
   {
-    import Collections._
-    test[Collections]
-    test[MoreCollections]
-  }
-
-  {
-    import Enums._
-    import UnsafeEnums._
-    test[Enums]
-    test[UnsafeEnums]
-  }
-
-  {
-    import Custom._
-    implicit val afUri: AvroField[URI] = AvroField.from[String](URI.create)(_.toString)
-    implicit val afDuration: AvroField[Duration] =
-      AvroField.from[Long](Duration.ofMillis)(_.toMillis)
-    test[Custom]
-  }
-
-  {
-    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
-    test[AvroTypes]
-  }
-
-  {
-    def f[T](r: GenericRecord): List[(String, Any)] =
+    def f(r: GenericRecord): List[(String, Any)] =
       r.get("m")
         .asInstanceOf[java.util.Map[CharSequence, Any]]
         .asScala
@@ -148,50 +142,34 @@ class AvroTypeSuite extends MagnolifySuite {
   test[Logical]
 
   {
-    implicit val arbBigDecimal: Arbitrary[BigDecimal] =
-      Arbitrary(Gen.chooseNum(0L, Long.MaxValue).map(BigDecimal(_, 0)))
-
-    {
-      import magnolify.avro.logical.micros._
-      implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
-      test[LogicalMicros]
-    }
+    import magnolify.avro.logical.micros._
+    test[LogicalMicros]
 
     test("MicrosLogicalTypes") {
-      import magnolify.avro.logical.micros._
-      implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
-
       val schema = AvroType[LogicalMicros].schema
-      assertLogicalType(schema, "bd", "decimal")
       assertLogicalType(schema, "i", "timestamp-micros")
       assertLogicalType(schema, "dt", "local-timestamp-micros", false)
       assertLogicalType(schema, "t", "time-micros")
     }
+  }
 
-    {
-      import magnolify.avro.logical.millis._
-      implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
-      test[LogicalMillis]
-    }
+  {
+    import magnolify.avro.logical.millis._
+    test[LogicalMillis]
 
     test("MilliLogicalTypes") {
-      import magnolify.avro.logical.millis._
-      implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(19, 0)
-
       val schema = AvroType[LogicalMillis].schema
-      assertLogicalType(schema, "bd", "decimal")
       assertLogicalType(schema, "i", "timestamp-millis")
       assertLogicalType(schema, "dt", "local-timestamp-millis", false)
       assertLogicalType(schema, "t", "time-millis")
     }
+  }
 
-    {
-      import magnolify.avro.logical.bigquery._
-      test[LogicalBigQuery]
-    }
+  {
+    import magnolify.avro.logical.bigquery._
+    test[LogicalBigQuery]
 
     test("BigQueryLogicalTypes") {
-      import magnolify.avro.logical.bigquery._
       // `registerLogicalTypes()` is necessary to correctly parse a custom logical type from string.
       // if omitted, the returned string schema will be correct, but the logicalType field will be null.
       // this is unfortunately global mutable state
@@ -205,21 +183,13 @@ class AvroTypeSuite extends MagnolifySuite {
     }
   }
 
-  {
-    implicit val arbCountryCode: Arbitrary[CountryCode] = Arbitrary(
-      Gen.oneOf("US", "UK", "CA", "MX").map(CountryCode(_))
-    )
-    implicit val afCountryCode: AvroField[CountryCode] =
-      AvroField.fixed[CountryCode](2)(bs => CountryCode(new String(bs)))(cc => cc.code.getBytes)
-    test[Fixed]
-
-    test("FixedDoc") {
-      val at = ensureSerializable(AvroType[Fixed])
-      val schema = at.schema.getField("countryCode").schema
-      assertEquals(schema.getName, "CountryCode")
-      assertEquals(schema.getNamespace, "magnolify.avro.test")
-      assertEquals(schema.getDoc, "Fixed with doc")
-    }
+  test[Fixed]
+  test("FixedDoc") {
+    val at = ensureSerializable(AvroType[Fixed])
+    val schema = at.schema.getField("countryCode").schema
+    assertEquals(schema.getName, "CountryCode")
+    assertEquals(schema.getNamespace, "magnolify.avro.test")
+    assertEquals(schema.getDoc, "Fixed with doc")
   }
 
   test("AvroDoc") {
@@ -254,52 +224,51 @@ class AvroTypeSuite extends MagnolifySuite {
     assertEquals(at.schema.getField("p").schema().getDoc, "Avro enum")
   }
 
-  test("DefaultInner") {
+  {
     import magnolify.avro.logical.bigquery._
-    val at = ensureSerializable(AvroType[DefaultInner])
-    assertEquals(at(new GenericRecordBuilder(at.schema).build()), DefaultInner())
-    val inner = DefaultInner(
-      2,
-      Some(2),
-      List(2, 2),
-      Map("b" -> 2),
-      JavaEnums.Color.GREEN,
-      ScalaEnums.Color.Green,
-      BigDecimal(222.222),
-      UUID.fromString("22223333-abcd-abcd-abcd-222233334444"),
-      Instant.ofEpochSecond(22334455L),
-      LocalDate.ofEpochDay(2233),
-      LocalTime.of(2, 3, 4),
-      LocalDateTime.of(2002, 3, 4, 5, 6, 7)
-    )
-    assertEquals(at(at(inner)), inner)
+    test("DefaultInner") {
+      val at = ensureSerializable(AvroType[DefaultInner])
+      assertEquals(at(new GenericRecordBuilder(at.schema).build()), DefaultInner())
+      val inner = DefaultInner(
+        2,
+        Some(2),
+        List(2, 2),
+        Map("b" -> 2),
+        JavaEnums.Color.GREEN,
+        ScalaEnums.Color.Green,
+        BigDecimal(222.222),
+        UUID.fromString("22223333-abcd-abcd-abcd-222233334444"),
+        Instant.ofEpochSecond(22334455L),
+        LocalDate.ofEpochDay(2233),
+        LocalTime.of(2, 3, 4),
+        LocalDateTime.of(2002, 3, 4, 5, 6, 7)
+      )
+      assertEquals(at(at(inner)), inner)
+    }
+
+    test("DefaultOuter") {
+      val at = ensureSerializable(AvroType[DefaultOuter])
+      assertEquals(at(new GenericRecordBuilder(at.schema).build()), DefaultOuter())
+      val inner = DefaultInner(
+        3,
+        Some(3),
+        List(3, 3),
+        Map("c" -> 3),
+        JavaEnums.Color.BLUE,
+        ScalaEnums.Color.Blue,
+        BigDecimal(333.333),
+        UUID.fromString("33334444-abcd-abcd-abcd-333344445555"),
+        Instant.ofEpochSecond(33445566L),
+        LocalDate.ofEpochDay(3344),
+        LocalTime.of(3, 4, 5),
+        LocalDateTime.of(2003, 4, 5, 6, 7, 8)
+      )
+      val outer = DefaultOuter(inner, Some(inner))
+      assertEquals(at(at(outer)), outer)
+    }
   }
 
-  test("DefaultOuter") {
-    import magnolify.avro.logical.bigquery._
-    val at = ensureSerializable(AvroType[DefaultOuter])
-    assertEquals(at(new GenericRecordBuilder(at.schema).build()), DefaultOuter())
-    val inner = DefaultInner(
-      3,
-      Some(3),
-      List(3, 3),
-      Map("c" -> 3),
-      JavaEnums.Color.BLUE,
-      ScalaEnums.Color.Blue,
-      BigDecimal(333.333),
-      UUID.fromString("33334444-abcd-abcd-abcd-333344445555"),
-      Instant.ofEpochSecond(33445566L),
-      LocalDate.ofEpochDay(3344),
-      LocalTime.of(3, 4, 5),
-      LocalDateTime.of(2003, 4, 5, 6, 7, 8)
-    )
-    val outer = DefaultOuter(inner, Some(inner))
-    assertEquals(at(at(outer)), outer)
-  }
-
-  testFail(AvroType[SomeDefault])(
-    "Option[T] can only default to None"
-  )
+  testFail(AvroType[SomeDefault])("Option[T] can only default to None")
 
   {
     implicit val at: AvroType[LowerCamel] = AvroType[LowerCamel](CaseMapper(_.toUpperCase))
@@ -321,7 +290,7 @@ class AvroTypeSuite extends MagnolifySuite {
   }
 
   test("BigDecimal") {
-    import magnolify.avro.logical.bigquery._
+    implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(38, 9)
     val at: AvroType[BigDec] = AvroType[BigDec]
 
     val bigInt = "1234567890123456789012345678901234567890"
@@ -352,8 +321,8 @@ case class MapPrimitive(m: Map[String, Int])
 case class MapNested(m: Map[String, Nested])
 
 case class Logical(u: UUID, d: LocalDate)
-case class LogicalMicros(bd: BigDecimal, i: Instant, t: LocalTime, dt: LocalDateTime)
-case class LogicalMillis(bd: BigDecimal, i: Instant, t: LocalTime, dt: LocalDateTime)
+case class LogicalMicros(i: Instant, t: LocalTime, dt: LocalDateTime)
+case class LogicalMillis(i: Instant, t: LocalTime, dt: LocalDateTime)
 case class LogicalBigQuery(bd: BigDecimal, i: Instant, t: LocalTime, dt: LocalDateTime)
 case class BigDec(bd: BigDecimal)
 

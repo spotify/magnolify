@@ -53,6 +53,10 @@ trait BaseProtobufTypeSuite extends MagnolifySuite {
 }
 
 class ProtobufTypeSuite extends BaseProtobufTypeSuite {
+
+  import magnolify.scalacheck.test.TestArbitrary._
+  import magnolify.cats.test.TestEq.{eqNullable => _, _}
+
   test[Integers, IntegersP2]
   test[Integers, IntegersP3]
   test[Floats, FloatsP2]
@@ -60,6 +64,19 @@ class ProtobufTypeSuite extends BaseProtobufTypeSuite {
   test[Required, RequiredP2]
   test[Required, SingularP3]
   test[Nullable, NullableP2]
+
+  test[Repeated, RepeatedP2]
+  test[Repeated, RepeatedP3]
+  test[Nested, NestedP2]
+  test[NestedNoOption, NestedP3]
+  test[UnsafeByte, IntegersP2]
+  test[UnsafeChar, IntegersP2]
+  test[UnsafeShort, IntegersP2]
+
+  test[Collections, CollectionP2]
+  test[MoreCollections, MoreCollectionP2]
+  test[Collections, CollectionP3]
+  test[MoreCollections, MoreCollectionP3]
 
   // PROTO3 removes the notion of require vs optional fields.
   // By default `Option[T] are not supported`.
@@ -79,46 +96,30 @@ class ProtobufTypeSuite extends BaseProtobufTypeSuite {
     }
     test[Nullable, SingularP3]
   }
-
-  test[Repeated, RepeatedP2]
-  test[Repeated, RepeatedP3]
-  test[Nested, NestedP2]
-  test[NestedNoOption, NestedP3]
-  test[UnsafeByte, IntegersP2]
-  test[UnsafeChar, IntegersP2]
-  test[UnsafeShort, IntegersP2]
-
-  {
-    import Collections._
-    test[Collections, CollectionP2]
-    test[MoreCollections, MoreCollectionP2]
-    test[Collections, CollectionP3]
-    test[MoreCollections, MoreCollectionP3]
-  }
 }
 
 // Workaround for "Method too large: magnolify/protobuf/test/ProtobufTypeSuite.<init> ()V"
 class MoreProtobufTypeSuite extends BaseProtobufTypeSuite {
-  {
-    implicit val arbByteString: Arbitrary[ByteString] =
-      Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
-    implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
-    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
-    test[BytesA, BytesP2]
-    test[BytesB, BytesP3]
-  }
+
+  import magnolify.scalacheck.test.TestArbitrary._
+  import magnolify.cats.test.TestEq.{eqEnums => _, eqNullable => _, _}
+  implicit val arbByteString: Arbitrary[ByteString] =
+    Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
+  implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
+  implicit val pfUri: ProtobufField[URI] = ProtobufField.from[String](URI.create)(_.toString)
+  implicit val pfDuration: ProtobufField[Duration] =
+    ProtobufField.from[Long](Duration.ofMillis)(_.toMillis)
+
+  test[BytesA, BytesP2]
+  test[BytesB, BytesP3]
 
   {
-    import Enums._
-    import UnsafeEnums._
     import Proto2Enums._
     test[Enums, EnumsP2]
     test[UnsafeEnums, UnsafeEnumsP2]
   }
 
   {
-    import Enums._
-    import UnsafeEnums._
     import Proto3Enums._
     import magnolify.protobuf.unsafe.Proto3Option._
     // Enums are encoded as integers and default to zero value
@@ -140,14 +141,8 @@ class MoreProtobufTypeSuite extends BaseProtobufTypeSuite {
     test[UnsafeEnums, UnsafeEnumsP3]
   }
 
-  {
-    import Custom._
-    implicit val pfUri: ProtobufField[URI] = ProtobufField.from[String](URI.create)(_.toString)
-    implicit val pfDuration: ProtobufField[Duration] =
-      ProtobufField.from[Long](Duration.ofMillis)(_.toMillis)
-    test[Custom, CustomP2]
-    test[Custom, CustomP3]
-  }
+  test[Custom, CustomP2]
+  test[Custom, CustomP3]
 
   {
     implicit val pt: ProtobufType[LowerCamel, UpperCaseP3] =
@@ -156,38 +151,28 @@ class MoreProtobufTypeSuite extends BaseProtobufTypeSuite {
   }
 
   {
-    implicit val arbByteString: Arbitrary[ByteString] =
-      Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
-    implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
-    import Enums._
+    import Proto2Enums._
+    test[DefaultsRequired2, DefaultRequiredP2]
+    test[DefaultsNullable2, DefaultNullableP2]
+  }
 
-    {
-      import Proto2Enums._
-      test[DefaultsRequired2, DefaultRequiredP2]
-      test[DefaultsNullable2, DefaultNullableP2]
-    }
-
-    {
-      import Proto3Enums._
-      test[DefaultIntegers3, IntegersP3]
-      test[DefaultFloats3, FloatsP3]
-      test[DefaultRequired3, SingularP3]
-      test[DefaultEnums3, EnumsP3]
-    }
+  {
+    import Proto3Enums._
+    test[DefaultIntegers3, IntegersP3]
+    test[DefaultFloats3, FloatsP3]
+    test[DefaultRequired3, SingularP3]
+    test[DefaultEnums3, EnumsP3]
   }
 
   {
     import magnolify.protobuf.unsafe.Proto3Option._
-    val eq: Eq[DefaultNullable3] = Eq.by { x =>
+    implicit val eq: Eq[DefaultNullable3] = Eq.by { x =>
       Required(x.b.getOrElse(false), x.i.getOrElse(0), x.s.getOrElse(""))
     }
-    val arb: Arbitrary[DefaultNullable3] = implicitly[Arbitrary[DefaultNullable3]]
-    val pt = ProtobufType[DefaultNullable3, SingularP3]
-    test(classTag[DefaultNullable3], arb, classTag[SingularP3], pt, eq)
+    test[DefaultNullable3, SingularP3]
   }
 
   {
-    import Enums._
     import Proto2Enums._
     type F[T] = ProtobufType[T, _]
     testFail[F, DefaultMismatch2](ProtobufType[DefaultMismatch2, DefaultRequiredP2])(

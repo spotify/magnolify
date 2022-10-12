@@ -24,6 +24,7 @@ import org.scalacheck._
 import org.scalacheck.rng.Seed
 
 import scala.reflect._
+import java.net.URI
 
 class CogenDerivationSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag: Cogen]: Unit =
@@ -45,19 +46,16 @@ class CogenDerivationSuite extends MagnolifySuite {
     }
   }
 
+  import magnolify.scalacheck.test.TestArbitrary._
+  implicit val cogenUri: Cogen[URI] = Cogen(_.hashCode().toLong)
+
   test[Numbers]
   test[Required]
   test[Nullable]
 
-  {
-    import Collections._
-    test[Repeated]
-    test((c: Collections) => (c.a.toList, c.l, c.v))
-  }
-
+  test[Repeated]
+  test((c: Collections) => (c.a.toList, c.l, c.v))
   test[Nested]
-
-  import Custom._
   test[Custom]
 
   test[Node]

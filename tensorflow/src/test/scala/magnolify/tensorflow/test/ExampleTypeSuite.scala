@@ -46,9 +46,21 @@ class ExampleTypeSuite extends MagnolifySuite {
     }
   }
 
+  import magnolify.scalacheck.test.TestArbitrary._
+  import magnolify.cats.test.TestEq._
+  import magnolify.shared.TestEnumType._
   // workaround for Double to Float precision loss
   implicit val arbDouble: Arbitrary[Double] =
     Arbitrary(Arbitrary.arbFloat.arbitrary.map(_.toDouble))
+  implicit val arbByteString: Arbitrary[ByteString] =
+    Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
+  implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
+  implicit val efUri: ExampleField.Primitive[URI] =
+    ExampleField.from[ByteString](x => URI.create(x.toStringUtf8))(x =>
+      ByteString.copyFromUtf8(x.toString)
+    )
+  implicit val efDuration: ExampleField.Primitive[Duration] =
+    ExampleField.from[Long](Duration.ofMillis)(_.toMillis)
 
   test[Integers]
   test[Floats]
@@ -58,37 +70,15 @@ class ExampleTypeSuite extends MagnolifySuite {
   test[ExampleNested]
   test[Unsafe]
 
-  {
-    import Collections._
-    test[Collections]
-    test[MoreCollections]
-  }
+  test[Collections]
+  test[MoreCollections]
 
-  {
-    import Enums._
-    import UnsafeEnums._
-    test[Enums]
-    test[UnsafeEnums]
-  }
+  test[Enums]
+  test[UnsafeEnums]
 
-  {
-    import Custom._
-    implicit val efUri: ExampleField.Primitive[URI] =
-      ExampleField.from[ByteString](x => URI.create(x.toStringUtf8))(x =>
-        ByteString.copyFromUtf8(x.toString)
-      )
-    implicit val efDuration: ExampleField.Primitive[Duration] =
-      ExampleField.from[Long](Duration.ofMillis)(_.toMillis)
-    test[Custom]
-  }
+  test[Custom]
 
-  {
-    implicit val arbByteString: Arbitrary[ByteString] =
-      Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
-    implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
-    implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
-    test[ExampleTypes]
-  }
+  test[ExampleTypes]
 
   test("DefaultInner") {
     val et = ensureSerializable(ExampleType[DefaultInner])

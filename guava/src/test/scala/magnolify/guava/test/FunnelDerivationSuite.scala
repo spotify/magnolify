@@ -56,23 +56,18 @@ class FunnelDerivationSuite extends MagnolifySuite {
     sink.toBytes.toList
   }
 
+  import magnolify.scalacheck.test.TestArbitrary._
+  implicit val fUri: Funnel[URI] = FunnelDerivation.by(_.toString)
+  implicit val fDuration: Funnel[Duration] = FunnelDerivation.by(_.toMillis)
+
   test[Integers]
   test[Required]
   test[Nullable]
   test[FunnelTypes]
 
-  {
-    import Collections._
-    test[Repeated]
-    test((c: Collections) => (c.a.toList, c.l, c.v))
-  }
-
-  {
-    import Custom._
-    implicit val fUri: Funnel[URI] = FunnelDerivation.by(_.toString)
-    implicit val fDuration: Funnel[Duration] = FunnelDerivation.by(_.toMillis)
-    test[Custom]
-  }
+  test[Repeated]
+  test((c: Collections) => (c.a.toList, c.l, c.v))
+  test[Custom]
 
   test[Node]
   test[GNode[Int]]
