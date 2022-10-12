@@ -41,7 +41,6 @@ class TableRowTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit t: TableRowType[T], eq: Eq[T]): Unit = {
     val tpe = ensureSerializable(t)
     // FIXME: test schema
-    tpe.schema
     property(className[T]) {
       Prop.forAll { t: T =>
         val r = tpe(t)

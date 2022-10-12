@@ -17,6 +17,7 @@
 package magnolify.protobuf
 
 import magnolify.shared._
+import scala.annotation.nowarn
 
 package object unsafe {
   implicit val pfByte = ProtobufField.from[Int](_.toByte)(_.toInt)
@@ -27,6 +28,7 @@ package object unsafe {
     implicit val proto3Option: ProtobufOption = new ProtobufOption.Proto3Option
   }
 
+  @nowarn("msg=parameter value lp in method pfUnsafeEnum is never used")
   implicit def pfUnsafeEnum[T](implicit
     et: EnumType[T],
     lp: shapeless.LowPriority

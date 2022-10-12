@@ -95,7 +95,7 @@ class ParquetTypeSuite extends MagnolifySuite {
 
   // Precision = number of digits, so 5 means -99999 to 99999
   private def decimal(precision: Int): Arbitrary[BigDecimal] = {
-    val nines = math.pow(10, precision).toLong - 1
+    val nines = math.pow(10, precision.toDouble).toLong - 1
     Arbitrary(Gen.choose(-nines, nines).map(BigDecimal(_)))
   }
 
@@ -168,10 +168,10 @@ case class TimeNanos(i: Instant, dt: LocalDateTime, ot: OffsetTime, t: LocalTime
 
 class TestInputFile(ba: Array[Byte]) extends InputFile {
   private val bais = new ByteArrayInputStream(ba)
-  override def getLength: Long = ba.length
+  override def getLength: Long = ba.length.toLong
 
   override def newStream(): SeekableInputStream = new DelegatingSeekableInputStream(bais) {
-    override def getPos: Long = ba.length - bais.available()
+    override def getPos: Long = (ba.length - bais.available()).toLong
     override def seek(newPos: Long): Unit = {
       bais.reset()
       bais.skip(newPos)

@@ -17,6 +17,7 @@
 package magnolify.bigquery
 
 import magnolify.shared._
+import scala.annotation.nowarn
 
 package object unsafe {
   implicit val trfByte = TableRowField.from[Long](_.toByte)(_.toLong)
@@ -25,9 +26,11 @@ package object unsafe {
   implicit val trfInt = TableRowField.from[Long](_.toInt)(_.toLong)
   implicit val trfFloat = TableRowField.from[Double](_.toFloat)(_.toDouble)
 
+  @nowarn("msg=parameter value lp in method trfEnum is never used")
   implicit def trfEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): TableRowField[T] =
     TableRowField.from[String](et.from)(et.to)
 
+  @nowarn("msg=parameter value lp in method trfUnsafeEnum is never used")
   implicit def trfUnsafeEnum[T](implicit
     et: EnumType[T],
     lp: shapeless.LowPriority

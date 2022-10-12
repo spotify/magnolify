@@ -59,7 +59,6 @@ ThisBuild / tpolecatDevModeOptions ~= { opts =>
     ScalacOptions.warnValueDiscard
   )
 
-  val parallelism = math.min(java.lang.Runtime.getRuntime.availableProcessors(), 16)
   val extras = Set(
     // required by magnolia for accessing default values
     ScalacOptions.privateOption("retain-trees", _ >= V3_0_0),
@@ -68,8 +67,14 @@ ThisBuild / tpolecatDevModeOptions ~= { opts =>
     ScalacOptions.other("-target:jvm-1.8"),
     ScalacOptions.warnOption("macros:after", _.isBetween(V2_13_0, V3_0_0)),
     ScalacOptions.privateWarnOption("macros:after", _.isBetween(V2_12_0, V2_13_0)),
-    ScalacOptions.privateBackendParallelism(parallelism),
-    ScalacOptions.release("8")
+    ScalacOptions.privateBackendParallelism(),
+    ScalacOptions.release("8"),
+    // silence cross-build unused imports
+    ScalacOptions.warnOption(
+      "conf:cat=unused-imports&origin=scala\\.collection\\.compat\\..*:s" +
+        ",cat=unused-imports&origin=magnolify\\.shims\\..*:s",
+      _.isBetween(V2_13_2, V3_0_0)
+    )
   )
 
   opts.filterNot(excludes).union(extras)
@@ -84,7 +89,7 @@ ThisBuild / javacOptions ++= Seq(
 
 val commonSettings = Seq(
   organization := "com.spotify",
-  crossScalaVersions := Seq("2.13.8", "2.12.17"),
+  crossScalaVersions := Seq("2.13.10", "2.12.17"),
   scalaVersion := crossScalaVersions.value.head,
   libraryDependencies ++= {
     CrossVersion.partialVersion(scalaVersion.value) match {

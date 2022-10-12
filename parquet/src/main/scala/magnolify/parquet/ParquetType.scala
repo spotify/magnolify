@@ -41,8 +41,8 @@ import org.slf4j.LoggerFactory
 
 import scala.annotation.implicitNotFound
 import scala.collection.concurrent
-import scala.language.experimental.macros
 import scala.collection.compat._
+import scala.annotation.nowarn
 
 sealed trait ParquetArray
 
@@ -323,14 +323,14 @@ object ParquetField {
 
   implicit val pfByte =
     primitive[Byte, Integer](
-      c => v => c.addInteger(v),
+      c => v => c.addInteger(v.toInt),
       TypeConverter.newInt.map(_.toByte),
       PrimitiveTypeName.INT32,
       LogicalTypeAnnotation.intType(8, true)
     )
   implicit val pfShort =
     primitive[Short, Integer](
-      c => v => c.addInteger(v),
+      c => v => c.addInteger(v.toInt),
       TypeConverter.newInt.map(_.toShort),
       PrimitiveTypeName.INT32,
       LogicalTypeAnnotation.intType(16, true)
@@ -490,7 +490,7 @@ object ParquetField {
   }
 
   def decimalFixed(length: Int, precision: Int, scale: Int = 0): Primitive[BigDecimal] = {
-    val capacity = math.floor(math.log10(math.pow(2, 8 * length - 1) - 1)).toInt
+    val capacity = math.floor(math.log10(math.pow(2, (8 * length - 1).toDouble) - 1)).toInt
     require(
       1 <= precision && precision <= capacity,
       s"Precision for FIXED($length) not within [1, $capacity]"
@@ -523,6 +523,7 @@ object ParquetField {
     )(Decimal.toBytes(_, precision, scale))
   }
 
+  @nowarn("msg=parameter value lp in method pfEnum is never used")
   implicit def pfEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): Primitive[T] =
     logicalType[String](LogicalTypeAnnotation.enumType())(et.from)(et.to)
 
@@ -553,5 +554,7 @@ object ParquetField {
   }
 
   implicit val ptDate: Primitive[LocalDate] =
-    logicalType[Int](LogicalTypeAnnotation.dateType())(LocalDate.ofEpochDay(_))(_.toEpochDay.toInt)
+    logicalType[Int](LogicalTypeAnnotation.dateType())(i => LocalDate.ofEpochDay(i.toLong))(
+      _.toEpochDay.toInt
+    )
 }

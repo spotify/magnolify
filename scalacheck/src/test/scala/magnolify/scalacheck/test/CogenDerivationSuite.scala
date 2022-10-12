@@ -50,7 +50,6 @@ class CogenDerivationSuite extends MagnolifySuite {
   test[Nullable]
 
   {
-    import Collections._
     test[Repeated]
     test((c: Collections) => (c.a.toList, c.l, c.v))
   }

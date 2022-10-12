@@ -30,7 +30,6 @@ import magnolify.test._
 import magnolify.test.Simple._
 
 import magnolify.test.Time._
-import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.hadoop.conf.Configuration
 import org.apache.parquet.avro.{

@@ -44,7 +44,6 @@ class ScalaCheckBench {
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @State(Scope.Thread)
 class CatsBench {
-  import cats._
   import magnolify.cats.semiauto._
   import MagnolifyBench._
   private val integers = implicitly[Arbitrary[Integers]].arbitrary(prms, seed).get
@@ -150,7 +149,6 @@ class ProtobufBench {
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @State(Scope.Thread)
 class ExampleBench {
-  import com.google.protobuf.ByteString
   import magnolify.tensorflow._
   import magnolify.tensorflow.unsafe._
   import org.tensorflow.proto.example.Example

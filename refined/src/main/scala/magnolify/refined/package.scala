@@ -19,14 +19,12 @@ package magnolify
 import eu.timepit.refined._
 import eu.timepit.refined.api._
 
-import scala.language.implicitConversions
-
 package object refined {
   object guava {
     import com.google.common.hash.{Funnel, PrimitiveSink}
     implicit def refineFunnel[T, P](implicit
-      f: Funnel[T],
-      v: Validate[T, P]
+      f: Funnel[T]
+      // v: Validate[T, P]
     ): Funnel[Refined[T, P]] =
       new Funnel[Refined[T, P]] {
         override def funnel(from: Refined[T, P], into: PrimitiveSink): Unit =

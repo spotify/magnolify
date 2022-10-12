@@ -26,7 +26,6 @@ import magnolify.shims.FactoryCompat
 
 import scala.collection.concurrent
 import scala.annotation.{implicitNotFound, StaticAnnotation}
-import scala.language.experimental.macros
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
 

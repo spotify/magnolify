@@ -17,7 +17,6 @@
 package magnolify.cats.test
 
 import cats._
-import cats.kernel.laws.discipline._
 import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
 import magnolify.test.ADT._
@@ -30,7 +29,7 @@ import cats.laws.discipline.eq._
 import scala.reflect._
 
 class ShowDerivationSuite extends MagnolifySuite {
-  private def test[T: Arbitrary: ClassTag: Cogen: Show]: Unit = {
+  private def test[T: Arbitrary: ClassTag: Show]: Unit = {
     val show = ensureSerializable(implicitly[Show[T]])
     val name = className[T]
     include(ContravariantTests[Show].contravariant[MiniInt, Int, Boolean].all, s"$name.")

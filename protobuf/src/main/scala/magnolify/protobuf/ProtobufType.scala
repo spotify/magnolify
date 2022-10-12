@@ -28,11 +28,9 @@ import magnolify.shims.FactoryCompat
 
 import scala.annotation.implicitNotFound
 import scala.collection.concurrent
-import scala.language.experimental.macros
 import scala.reflect.ClassTag
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
-
 sealed trait ProtobufType[T, MsgT <: Message] extends Converter[T, MsgT, MsgT] {
   def apply(r: MsgT): T = from(r)
   def apply(t: T): MsgT = to(t)
@@ -101,6 +99,7 @@ sealed trait ProtobufField[T] extends Serializable {
 
   val hasOptional: Boolean
   val default: Option[T]
+
   def checkDefaults(descriptor: Descriptor)(cm: CaseMapper): Unit = ()
 
   def from(v: FromT)(cm: CaseMapper): T

@@ -21,7 +21,7 @@ import magnolia1._
 
 import scala.annotation.implicitNotFound
 import scala.collection.compat.immutable.ArraySeq
-import scala.language.experimental.macros
+import scala.collection.compat._
 
 object SemigroupDerivation {
   type Typeclass[T] = Semigroup[T]
@@ -83,7 +83,7 @@ private object SemigroupMethods {
         }
         Some(caseClass.rawConstruct(ArraySeq.unsafeWrapArray(result)))
       case xs =>
-        xs.reduceOption(combineImpl)
+        xs.iterator.reduceOption(combineImpl)
     }
   }
 }

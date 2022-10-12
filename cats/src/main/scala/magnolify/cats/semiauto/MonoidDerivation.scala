@@ -21,7 +21,7 @@ import magnolia1._
 
 import scala.annotation.implicitNotFound
 import scala.collection.compat.immutable.ArraySeq
-import scala.language.experimental.macros
+import scala.collection.compat._
 
 object MonoidDerivation {
   type Typeclass[T] = Monoid[T]
@@ -86,7 +86,7 @@ private object MonoidMethods {
           i += 1
         }
         caseClass.rawConstruct(ArraySeq.unsafeWrapArray(result))
-      case xs => xs.foldLeft(emptyImpl())(combineImpl)
+      case xs => xs.iterator.foldLeft(emptyImpl())(combineImpl)
     }
   }
 }
