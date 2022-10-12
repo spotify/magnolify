@@ -26,7 +26,7 @@ import magnolia1._
 import magnolify.shared._
 import magnolify.shims._
 
-import scala.annotation.{nowarn, implicitNotFound}
+import scala.annotation.{implicitNotFound, nowarn}
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
 
