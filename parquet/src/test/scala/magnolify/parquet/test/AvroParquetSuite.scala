@@ -29,7 +29,6 @@ import magnolify.scalacheck.auto._
 import magnolify.test._
 import magnolify.test.Simple._
 import magnolify.test.Time._
-import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.hadoop.conf.Configuration
 import org.apache.parquet.avro.{
@@ -44,7 +43,9 @@ import org.scalacheck._
 import scala.reflect.ClassTag
 
 class AvroParquetSuite extends MagnolifySuite {
-  private def test[T: Arbitrary: ClassTag](implicit
+  private def test[T: Arbitrary: ClassTag](
+    schemaErrors: Seq[String] = Seq.empty
+  )(implicit
     at: AvroType[T],
     pt: ParquetType[T],
     eq: Eq[T]
@@ -97,40 +98,52 @@ class AvroParquetSuite extends MagnolifySuite {
     }
 
     test(s"$name.avroSchema") {
-      val results = avroSchemaComparer.compareEntireSchemas(at.schema, pt.avroSchema)
-
-      assertEquals(results, List())
+      val results = AvroSchemaComparer.compareSchemas(at.schema, pt.avroSchema)
+      assertEquals(results, schemaErrors)
     }
   }
 
-  test[Integers]
-  test[Floats]
-  test[Required]
-  test[Nullable]
+  test[Integers]()
+  test[Floats]()
+  test[Required]()
+  test[Nullable]()
 
   {
-    test[Repeated]
-    test[Nested]
+    test[Repeated]()
+    test[Nested]()
   }
 
-  test[Unsafe]
+  test[Unsafe]()
 
   {
     import Collections._
-    test[Collections]
-    test[MoreCollections]
+    test[Collections]()
+    test[MoreCollections]()
   }
 
   {
     import Enums._
     import UnsafeEnums._
-    test[Enums]
-    test[UnsafeEnums]
+    // enums are always string in proto
+    test[Enums](
+      Seq(
+        "root.j schema types are not equal ENUM != STRING",
+        "root.s schema types are not equal ENUM != STRING",
+        "root.a schema types are not equal ENUM != STRING",
+        "root.jo schema types are not equal ENUM != STRING",
+        "root.so schema types are not equal ENUM != STRING",
+        "root.ao schema types are not equal ENUM != STRING",
+        "root.jr schema types are not equal ENUM != STRING",
+        "root.sr schema types are not equal ENUM != STRING",
+        "root.ar schema types are not equal ENUM != STRING"
+      )
+    )
+    test[UnsafeEnums]()
   }
 
   {
     implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
-    test[ParquetTypes]
+    test[ParquetTypes]()
   }
 
   {
@@ -140,55 +153,28 @@ class AvroParquetSuite extends MagnolifySuite {
     implicit val arbBigDecimal: Arbitrary[BigDecimal] =
       Arbitrary(Gen.choose(-nines, nines).map(BigDecimal(_)))
     implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimalBinary(38, 9)
-    test[DecimalBinary]
+    test[DecimalBinary]()
   }
 
-  test[AvroParquetLogical]
+  test[AvroParquetLogical]()
 
   {
     import magnolify.avro.logical.millis._
     import magnolify.parquet.logical.millis._
-    test[AvroParquetTimeMillis]
+    test[AvroParquetTimeMillis]()
   }
 
   {
     import magnolify.avro.logical.micros._
     import magnolify.parquet.logical.micros._
-    test[AvroParquetTimeMicros]
+    test[AvroParquetTimeMicros]()
   }
 
-  test[AvroParquetWithNestedAnnotations]
-  test[AvroParquetWithAnnotationsAndOptions]
-  test[AvroParquetWithAnnotationsAndLists]
-
-  val avroSchemaComparer = new AvroSchemaComparer {
-    override def compareRecordSchemas(s1: Schema, s2: Schema): List[String] = {
-      if (s1.getDoc == "Should be ignored" || s1.getDoc == s2.getDoc) {
-        List()
-      } else {
-        List(s"Record ${s1.getType} and ${s2.getType} annotations are not equal")
-      }
-    }
-
-    override def compareOtherSchemas(s1: Schema, s2: Schema): List[String] = {
-      if (
-        s1.getType == Schema.Type.ENUM && s2.getType == Schema.Type.STRING ||
-        s1.getType == s2.getType
-      ) {
-        List()
-      } else {
-        List(s"Schema types are not equal $s1 != $s2")
-      }
-    }
-
-    override def compareFields(f1: Schema.Field, f2: Schema.Field): List[String] = {
-      if (f1.doc() == f2.doc()) {
-        List()
-      } else {
-        List(s"Field ${f1.name()} annotations are not equal")
-      }
-    }
-  }
+  // nested record doc is lost
+  val schemaErrors = Seq("root.nested record docs are not equal 'Should be ignored' != 'null'")
+  test[AvroParquetWithNestedAnnotations](schemaErrors)
+  test[AvroParquetWithAnnotationsAndOptions](schemaErrors)
+  test[AvroParquetWithAnnotationsAndLists](schemaErrors)
 }
 
 case class AvroParquetLogical(d: LocalDate)

@@ -18,11 +18,26 @@ package magnolify.parquet
 
 import org.apache.avro.{Schema => AvroSchema}
 
-import java.util
+import scala.jdk.CollectionConverters._
 
 object SchemaUtil {
 
   type Path = String
+
+  object Union {
+    def unapply(schema: AvroSchema): Option[Seq[AvroSchema]] =
+      if (schema.isUnion) Some(schema.getTypes.asScala.toSeq) else None
+  }
+
+  object Array {
+    def unapply(schema: AvroSchema): Option[AvroSchema] =
+      if (schema.getType == AvroSchema.Type.ARRAY) Some(schema.getElementType) else None
+  }
+
+  object Record {
+    def unapply(schema: AvroSchema): Option[Seq[AvroSchema.Field]] =
+      if (schema.getType == AvroSchema.Type.RECORD) Some(schema.getFields.asScala.toSeq) else None
+  }
 
   def deepCopy(
     schema: AvroSchema,
@@ -34,45 +49,34 @@ object SchemaUtil {
     schema: AvroSchema,
     rootDoc: Option[String],
     getFieldDoc: Path => Option[String],
-    path: String
-  ): AvroSchema = {
-    if (schema.isUnion) {
-      val updatedSchemas = new util.ArrayList[AvroSchema]()
-      schema.getTypes.forEach(x => updatedSchemas.add(deepCopyInternal(x, None, getFieldDoc, path)))
-      return AvroSchema.createUnion(updatedSchemas)
-    }
-
-    if (schema.getType == AvroSchema.Type.ARRAY) {
-      return AvroSchema.createArray(
-        deepCopyInternal(schema.getElementType, None, getFieldDoc, path)
-      )
-    }
-
-    if (schema.getType != AvroSchema.Type.RECORD) {
-      return schema
-    }
-
-    val newFields = new java.util.ArrayList[AvroSchema.Field]()
-    schema.getFields.forEach { oldField =>
-      val newPath = if (path.isEmpty) oldField.name() else s"$path.${oldField.name()}"
-      val field =
-        new AvroSchema.Field(
-          oldField.name(),
-          deepCopyInternal(oldField.schema(), None, getFieldDoc, newPath),
-          getFieldDoc(newPath).orNull,
-          oldField
-            .defaultVal()
+    path: Path
+  ): AvroSchema = schema match {
+    case Union(ts) =>
+      val updatedTypes = ts.foldLeft(List.newBuilder[AvroSchema]) { (b, t) =>
+        b += deepCopyInternal(t, None, getFieldDoc, path)
+      }
+      AvroSchema.createUnion(updatedTypes.result().asJava)
+    case Array(t) =>
+      val updatedElementType = deepCopyInternal(t, None, getFieldDoc, path)
+      AvroSchema.createArray(updatedElementType)
+    case Record(fs) =>
+      val updatedFields = fs.foldLeft(List.newBuilder[AvroSchema.Field]) { (b, f) =>
+        val fieldPath = if (path.isEmpty) f.name() else s"$path.${f.name()}"
+        b += new AvroSchema.Field(
+          f.name(),
+          deepCopyInternal(f.schema(), None, getFieldDoc, fieldPath),
+          getFieldDoc(fieldPath).orNull,
+          f.defaultVal()
         )
-      newFields.add(field)
-    }
-
-    AvroSchema.createRecord(
-      schema.getName,
-      rootDoc.orNull,
-      schema.getNamespace,
-      schema.isError,
-      newFields
-    )
+      }
+      AvroSchema.createRecord(
+        schema.getName,
+        rootDoc.orNull,
+        schema.getNamespace,
+        schema.isError,
+        updatedFields.result().asJava
+      )
+    case _ =>
+      schema
   }
-
 }

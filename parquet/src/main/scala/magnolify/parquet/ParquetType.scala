@@ -47,17 +47,7 @@ sealed trait ParquetType[T] extends Serializable {
   import ParquetType._
 
   def schema: MessageType
-  def avroSchema: AvroSchema = {
-    val messageSchema = Schema.message(schema)
-    val avroSchema = new AvroSchemaConverter().convert(messageSchema)
-    SchemaUtil.deepCopy(
-      avroSchema,
-      typeAnnotation,
-      path => fieldAnnotations.get(path)
-    )
-  }
-  def fieldAnnotations: Map[String, String]
-  def typeAnnotation: Option[String]
+  def avroSchema: AvroSchema
   val avroCompat: Boolean
 
   def setupInput(job: Job): Unit = {
@@ -93,9 +83,14 @@ object ParquetType {
   )(implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] = f match {
     case r: ParquetField.Record[_] =>
       new ParquetType[T] {
-        override def schema: MessageType = Schema.message(r.schema(cm))
-        override def fieldAnnotations: Map[String, String] = f.fieldDocs
-        override def typeAnnotation: Option[String] = f.typeDoc
+        override lazy val schema: MessageType = Schema.message(r.schema(cm))
+
+        override lazy val avroSchema: AvroSchema = {
+          val s = new AvroSchemaConverter().convert(schema)
+          // add doc to avro schema
+          SchemaUtil.deepCopy(s, f.typeDoc, f.fieldDocs.get)
+        }
+
         override val avroCompat: Boolean =
           pa == ParquetArray.AvroCompat.avroCompat || f.hasAvroArray
         override def write(c: RecordConsumer, v: T): Unit = r.write(c, v)(cm)
