@@ -17,92 +17,54 @@
 package magnolify.parquet.test.util
 
 import org.apache.avro.Schema
-import cats.implicits._
-import scala.jdk.CollectionConverters._
+import magnolify.parquet.SchemaUtil._
 
-trait AvroSchemaComparer {
+object AvroSchemaComparer {
 
-  def compareRecordSchemas(s1: Schema, s2: Schema): List[String]
-
-  def compareOtherSchemas(s1: Schema, s2: Schema): List[String]
-
-  def compareFields(s1: Schema.Field, s2: Schema.Field): List[String]
-
-  private def tryToCompareUnions(s1: Schema, s2: Schema): Option[List[String]] = {
-    if (s1.isUnion && s2.isUnion) {
-      if (s1.getTypes.size() != s2.getTypes.size()) {
-        List(s"Size of union is different ${s1.getTypes.size()} != ${s2.getTypes.size()}").some
-      } else {
-        val unionTypes = s1.getTypes.asScala.zip(s2.getTypes.asScala)
-        unionTypes.flatMap { case (is1, is2) => compareEntireSchemas(is1, is2) }.toList.some
-      }
-    } else if (s1.isUnion || s2.isUnion) {
-      List("Only one type is union").some
-    } else {
-      none
-    }
-  }
-
-  private def tryToCompareArrays(s1: Schema, s2: Schema): Option[List[String]] = {
-    if (s1.getType == Schema.Type.ARRAY && s2.getType == Schema.Type.ARRAY) {
-      compareEntireSchemas(s1.getElementType, s2.getElementType).some
-    } else if (s1.getType == Schema.Type.ARRAY || s2.getType == Schema.Type.ARRAY) {
-      List("Only one type is array").some
-    } else {
-      none
-    }
-  }
-
-  private def tryToCompareRecords(s1: Schema, s2: Schema): Option[List[String]] = {
-    if (s1.getType == Schema.Type.RECORD && s2.getType == Schema.Type.RECORD) {
-      val fields1 = s1.getFields.asScala.map(_.name()).toSet
-      val fields2 = s2.getFields.asScala.map(_.name()).toSet
-
-      val fieldsEqualResults =
-        if (fields1.equals(fields2)) List()
-        else
-          List(s"Field set is not equal $fields1 != $fields2")
-
-      val results = fieldsEqualResults ++
-        compareRecordSchemas(s1, s2) ++
-        fields1
-          .intersect(fields2)
-          .toList
-          .flatMap { field =>
-            val field1 = s1.getField(field)
-            val field2 = s2.getField(field)
-            compareFields(field1, field2) ++ compareEntireSchemas(field1.schema(), field2.schema())
-          }
-      results.some
-    } else {
-      none
-    }
-  }
-
-  def compareEntireSchemas(
+  def compareSchemas(
     schema1: Schema,
-    schema2: Schema
-  ): List[String] = {
-    if (schema1 == null && schema2 == null) {
-      List()
-    } else if (schema1 == null && schema2 != null) {
-      List("schema1 is null")
-    } else if (schema1 != null && schema2 == null) {
-      List("schema2 is null")
-    } else {
-      tryToCompareUnions(schema1, schema2) match {
-        case Some(results) => results
-        case None =>
-          tryToCompareArrays(schema1, schema2) match {
-            case Some(results) => results
-            case None =>
-              tryToCompareRecords(schema1, schema2) match {
-                case Some(results) => results
-                case None =>
-                  compareOtherSchemas(schema1, schema2)
-              }
-          }
+    schema2: Schema,
+    path: String = "root"
+  ): Seq[String] = (schema1, schema2) match {
+    case (null, null) =>
+      Seq.empty
+    case (null, _) =>
+      Seq(s"left $path schema is null")
+    case (_, null) =>
+      Seq(s"right $path schema is null")
+    case (Union(ts1), Union(ts2)) =>
+      if (ts1.size != ts2.size) {
+        Seq(s"$path union of different sizes ${ts1.size} != ${ts2.size}")
+      } else {
+        ts1.zip(ts2).flatMap { case (l, r) => compareSchemas(l, r, path) }
       }
-    }
+    case (Array(t1), Array(t2)) =>
+      compareSchemas(t1, t2, path)
+    case (Record(fs1), Record(fs2)) =>
+      val ns1 = fs1.map(_.name)
+      val ns2 = fs2.map(_.name)
+      if (ns1 != ns2) {
+        Seq(s"$path record have different field names $ns1 != $ns2")
+      } else {
+        val d1 = schema1.getDoc()
+        val d2 = schema2.getDoc()
+        val docError =
+          if (d1 != d2) Some(s"$path record docs are not equal '$d1' != '$d2'") else None
+        docError.toSeq ++ ns1.flatMap { n =>
+          val p = s"$path.$n"
+          val f1 = schema1.getField(n)
+          val f2 = schema2.getField(n)
+          val fDocError =
+            if (f1.doc != f2.doc) Some(s"$p field docs are not equal '${f1.doc}' != '${f2.doc}'")
+            else None
+          fDocError ++ compareSchemas(f1.schema, f2.schema, p)
+        }
+      }
+    case _ =>
+      if (schema1.getType == schema2.getType) {
+        Seq.empty
+      } else {
+        Seq(s"$path schema types are not equal ${schema1.getType} != ${schema2.getType}")
+      }
   }
 }

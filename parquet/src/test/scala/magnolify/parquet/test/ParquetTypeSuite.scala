@@ -82,23 +82,25 @@ class ParquetTypeSuite extends MagnolifySuite {
   }
 
   test("ParquetDoc") {
-    val pt = ensureSerializable(ParquetType[ParquetNestedDoc])
+    ensureSerializable(ParquetType[ParquetNestedDoc])
+    val pf = ParquetField[ParquetNestedDoc]
 
-    assert(pt.fieldAnnotations("pd") == "nested")
-    assert(pt.fieldAnnotations("pd.i") == "integers")
-    assert(pt.fieldAnnotations("pd.s") == "string")
-    assert(pt.fieldAnnotations("i") == "integers")
-    assert(pt.typeAnnotation.contains("Parquet with doc"))
+    assert(pf.fieldDocs("pd") == "nested")
+    assert(pf.fieldDocs("pd.i") == "integers")
+    assert(pf.fieldDocs("pd.s") == "string")
+    assert(pf.fieldDocs("i") == "integers")
+    assert(pf.typeDoc.contains("Parquet with doc"))
   }
 
   test("ParquetDocWithNestedList") {
-    val pt = ensureSerializable(ParquetType[ParquetNestedListDoc])
+    ensureSerializable(ParquetType[ParquetNestedListDoc])
+    val pf = ParquetField[ParquetNestedListDoc]
 
-    assert(pt.fieldAnnotations("pd") == "nested")
-    assert(pt.fieldAnnotations("pd.i") == "integers")
-    assert(pt.fieldAnnotations("pd.s") == "string")
-    assert(pt.fieldAnnotations("i") == "integers")
-    assert(pt.typeAnnotation.contains("Parquet with doc with nested list"))
+    assert(pf.fieldDocs("pd") == "nested")
+    assert(pf.fieldDocs("pd.i") == "integers")
+    assert(pf.fieldDocs("pd.s") == "string")
+    assert(pf.fieldDocs("i") == "integers")
+    assert(pf.typeDoc.contains("Parquet with doc with nested list"))
   }
 
   {

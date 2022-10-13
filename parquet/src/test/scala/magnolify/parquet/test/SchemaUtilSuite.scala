@@ -24,18 +24,6 @@ import org.apache.avro.Schema
 class SchemaUtilSuite extends MagnolifySuite {
 
   test(s"schema") {
-    val comparer = new AvroSchemaComparer {
-      override def compareRecordSchemas(s1: Schema, s2: Schema): List[String] =
-        if (s2.getDoc == "root level") List() else List("type doc not set")
-
-      override def compareOtherSchemas(s1: Schema, s2: Schema): List[String] = if (s1.equals(s2))
-        List()
-      else List(s"$s1 != $s2")
-
-      override def compareFields(s1: Schema.Field, s2: Schema.Field): List[String] =
-        if (s2.doc() == "field level") List() else List("field doc not set")
-    }
-
     val nestedSchema =
       """
         |{
@@ -51,8 +39,7 @@ class SchemaUtilSuite extends MagnolifySuite {
         |  } ]
         |}
         |""".stripMargin
-    val parser = new Schema.Parser()
-    val inputSchema = parser.parse(nestedSchema)
+    val inputSchema = new Schema.Parser().parse(nestedSchema)
 
     val outputSchema = SchemaUtil.deepCopy(
       inputSchema,
@@ -60,7 +47,14 @@ class SchemaUtilSuite extends MagnolifySuite {
       _ => Some("field level")
     )
 
-    val results = comparer.compareEntireSchemas(inputSchema, outputSchema)
-    assertEquals(results, List())
+    val results = AvroSchemaComparer.compareSchemas(inputSchema, outputSchema)
+    assertEquals(
+      results,
+      List(
+        "root record docs are not equal 'null' != 'root level'",
+        "root.i field docs are not equal 'null' != 'field level'",
+        "root.l field docs are not equal 'null' != 'field level'"
+      )
+    )
   }
 }
