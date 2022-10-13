@@ -51,9 +51,9 @@ class SchemaUtilSuite extends MagnolifySuite {
     assertEquals(
       results,
       List(
-        "root record docs are not equal 'null' != 'root level'",
-        "root.i field docs are not equal 'null' != 'field level'",
-        "root.l field docs are not equal 'null' != 'field level'"
+        "root 'doc' are different 'null' != 'root level'",
+        "root.i field 'doc' are different 'null' != 'field level'",
+        "root.l field 'doc' are different 'null' != 'field level'"
       )
     )
   }

@@ -44,7 +44,7 @@ import scala.reflect.ClassTag
 
 class AvroParquetSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](
-    schemaErrors: Seq[String] = Seq.empty
+    schemaErrors: List[String] = List.empty
   )(implicit
     at: AvroType[T],
     pt: ParquetType[T],
@@ -110,7 +110,16 @@ class AvroParquetSuite extends MagnolifySuite {
 
   {
     test[Repeated]()
-    test[Nested]()
+    test[Nested](
+      List(
+        "root.r 'name' are different 'Required' != 'r'",
+        "root.r 'namespace' are different 'magnolify.test.Simple' != 'null'",
+        "root.o 'name' are different 'Required' != 'o'",
+        "root.o 'namespace' are different 'magnolify.test.Simple' != 'null'",
+        "root.l 'name' are different 'Required' != 'array'",
+        "root.l 'namespace' are different 'magnolify.test.Simple' != 'null'"
+      )
+    )
   }
 
   test[Unsafe]()
@@ -124,18 +133,26 @@ class AvroParquetSuite extends MagnolifySuite {
   {
     import Enums._
     import UnsafeEnums._
-    // enums are always string in proto
     test[Enums](
-      Seq(
-        "root.j schema types are not equal ENUM != STRING",
-        "root.s schema types are not equal ENUM != STRING",
-        "root.a schema types are not equal ENUM != STRING",
-        "root.jo schema types are not equal ENUM != STRING",
-        "root.so schema types are not equal ENUM != STRING",
-        "root.ao schema types are not equal ENUM != STRING",
-        "root.jr schema types are not equal ENUM != STRING",
-        "root.sr schema types are not equal ENUM != STRING",
-        "root.ar schema types are not equal ENUM != STRING"
+      List(
+        "root.j 'name' are different 'Color' != 'string'",
+        "root.j 'type' are different 'ENUM' != 'STRING'",
+        "root.s 'name' are different 'Color' != 'string'",
+        "root.s 'type' are different 'ENUM' != 'STRING'",
+        "root.a 'name' are different 'Color' != 'string'",
+        "root.a 'type' are different 'ENUM' != 'STRING'",
+        "root.jo 'name' are different 'Color' != 'string'",
+        "root.jo 'type' are different 'ENUM' != 'STRING'",
+        "root.so 'name' are different 'Color' != 'string'",
+        "root.so 'type' are different 'ENUM' != 'STRING'",
+        "root.ao 'name' are different 'Color' != 'string'",
+        "root.ao 'type' are different 'ENUM' != 'STRING'",
+        "root.jr 'name' are different 'Color' != 'string'",
+        "root.jr 'type' are different 'ENUM' != 'STRING'",
+        "root.sr 'name' are different 'Color' != 'string'",
+        "root.sr 'type' are different 'ENUM' != 'STRING'",
+        "root.ar 'name' are different 'Color' != 'string'",
+        "root.ar 'type' are different 'ENUM' != 'STRING'"
       )
     )
     test[UnsafeEnums]()
@@ -171,10 +188,27 @@ class AvroParquetSuite extends MagnolifySuite {
   }
 
   // nested record doc is lost
-  val schemaErrors = Seq("root.nested record docs are not equal 'Should be ignored' != 'null'")
-  test[AvroParquetWithNestedAnnotations](schemaErrors)
-  test[AvroParquetWithAnnotationsAndOptions](schemaErrors)
-  test[AvroParquetWithAnnotationsAndLists](schemaErrors)
+  test[AvroParquetWithNestedAnnotations](
+    List(
+      "root.nested 'name' are different 'AvroParquetWithAnnotations' != 'nested'",
+      "root.nested 'doc' are different 'Should be ignored' != 'null'",
+      "root.nested 'namespace' are different 'magnolify.parquet.test' != 'null'"
+    )
+  )
+  test[AvroParquetWithAnnotationsAndOptions](
+    List(
+      "root.nested 'name' are different 'AvroParquetWithAnnotations' != 'nested'",
+      "root.nested 'doc' are different 'Should be ignored' != 'null'",
+      "root.nested 'namespace' are different 'magnolify.parquet.test' != 'null'"
+    )
+  )
+  test[AvroParquetWithAnnotationsAndLists](
+    List(
+      "root.nested 'name' are different 'AvroParquetWithAnnotations' != 'array'",
+      "root.nested 'doc' are different 'Should be ignored' != 'null'",
+      "root.nested 'namespace' are different 'magnolify.parquet.test' != 'null'"
+    )
+  )
 }
 
 case class AvroParquetLogical(d: LocalDate)

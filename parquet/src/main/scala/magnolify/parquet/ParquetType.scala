@@ -35,6 +35,9 @@ import org.slf4j.LoggerFactory
 
 sealed trait ParquetArray
 
+/**
+ * Add `import magnolify.parquet.ParquetArray.AvroCompat._` to generate AVRO schema on write
+ */
 object ParquetArray {
   implicit case object default extends ParquetArray
 
@@ -84,7 +87,6 @@ object ParquetType {
     case r: ParquetField.Record[_] =>
       new ParquetType[T] {
         override lazy val schema: MessageType = Schema.message(r.schema(cm))
-
         override lazy val avroSchema: AvroSchema = {
           val s = new AvroSchemaConverter().convert(schema)
           // add doc to avro schema
@@ -173,13 +175,21 @@ object ParquetType {
       if (parquetType == null) {
         parquetType = SerializationUtils.fromBase64(configuration.get(WriteTypeKey))
       }
+
       val schema = Schema.message(parquetType.schema)
       val metadata = new java.util.HashMap[String, String]()
       if (parquetType.avroCompat) {
         // This overrides `WriteSupport#getName`
         metadata.put(ParquetWriter.OBJECT_MODEL_NAME_PROP, "avro")
         metadata.put(AVRO_SCHEMA_METADATA_KEY, parquetType.avroSchema.toString())
+      } else {
+        logger.warn(
+          "Parquet file is being written with no avro compatibility, this mode is not " +
+            "producing schema. Add `import magnolify.parquet.ParquetArray.AvroCompat._` to " +
+            "generate schema"
+        )
       }
+
       new hadoop.WriteSupport.WriteContext(schema, metadata)
     }
 

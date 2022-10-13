@@ -16,8 +16,9 @@
 
 package magnolify.parquet.test.util
 
-import org.apache.avro.Schema
 import magnolify.parquet.SchemaUtil._
+import org.apache.avro.Schema
+import scala.util.Try
 
 object AvroSchemaComparer {
 
@@ -25,46 +26,77 @@ object AvroSchemaComparer {
     schema1: Schema,
     schema2: Schema,
     path: String = "root"
-  ): Seq[String] = (schema1, schema2) match {
-    case (null, null) =>
-      Seq.empty
-    case (null, _) =>
-      Seq(s"left $path schema is null")
-    case (_, null) =>
-      Seq(s"right $path schema is null")
-    case (Union(ts1), Union(ts2)) =>
-      if (ts1.size != ts2.size) {
-        Seq(s"$path union of different sizes ${ts1.size} != ${ts2.size}")
-      } else {
-        ts1.zip(ts2).flatMap { case (l, r) => compareSchemas(l, r, path) }
+  ): List[String] = {
+    compareBasicTypeInfo(schema1, schema2, path) ++ {
+      (schema1, schema2) match {
+        case (null, null) => List()
+        case (null, _)    => List("schema2 is null")
+        case (_, null)    => List("schema1 is null")
+        case (Union(nestedTypes1), Union(nestedTypes2)) =>
+          if (nestedTypes1.size != nestedTypes2.size) {
+            List(s"Size of union is different ${nestedTypes1.size} != ${nestedTypes2.size}")
+          } else {
+            nestedTypes1
+              .zip(nestedTypes2)
+              .flatMap { case (is1, is2) => compareSchemas(is1, is2, path) }
+          }
+        case (Array(arrayEl1), Array(arrayEl2)) =>
+          compareSchemas(arrayEl1, arrayEl2, path)
+        case (Record(schemaFields1), Record(schemaFields2)) =>
+          val fields1 = schemaFields1.map(_.name())
+          val fields2 = schemaFields2.map(_.name())
+
+          val fieldsEqualResults = check(
+            !fields1.equals(fields2),
+            s"$path fields are not equal '$fields1' != '$fields2'"
+          )
+
+          fieldsEqualResults ++
+            fields1
+              .intersect(fields2)
+              .flatMap { f =>
+                val field1 = schema1.getField(f)
+                val field2 = schema2.getField(f)
+
+                check(
+                  field1.doc() != field2.doc(),
+                  s"$path.$f field 'doc' are different '${field1.doc}' != '${field2.doc}'"
+                ) ++ check(
+                  field1.pos() != field2.pos(),
+                  s"$path.$f field 'defaultVal' are different '${field1.pos}' != '${field2.pos}'"
+                ) ++ compareSchemas(field1.schema(), field2.schema(), s"$path.$f")
+              }
+        case _ =>
+          List.empty
       }
-    case (Array(t1), Array(t2)) =>
-      compareSchemas(t1, t2, path)
-    case (Record(fs1), Record(fs2)) =>
-      val ns1 = fs1.map(_.name)
-      val ns2 = fs2.map(_.name)
-      if (ns1 != ns2) {
-        Seq(s"$path record have different field names $ns1 != $ns2")
-      } else {
-        val d1 = schema1.getDoc()
-        val d2 = schema2.getDoc()
-        val docError =
-          if (d1 != d2) Some(s"$path record docs are not equal '$d1' != '$d2'") else None
-        docError.toSeq ++ ns1.flatMap { n =>
-          val p = s"$path.$n"
-          val f1 = schema1.getField(n)
-          val f2 = schema2.getField(n)
-          val fDocError =
-            if (f1.doc != f2.doc) Some(s"$p field docs are not equal '${f1.doc}' != '${f2.doc}'")
-            else None
-          fDocError ++ compareSchemas(f1.schema, f2.schema, p)
-        }
-      }
-    case _ =>
-      if (schema1.getType == schema2.getType) {
-        Seq.empty
-      } else {
-        Seq(s"$path schema types are not equal ${schema1.getType} != ${schema2.getType}")
-      }
+    }
+  }
+
+  private def check(condition: Boolean, error: => String): Option[String] = {
+    if (condition)
+      Some(error)
+    else None
+  }
+
+  private def compareBasicTypeInfo(s1: Schema, s2: Schema, path: String): List[String] = {
+    if (s1 != null && s2 != null) {
+      check(
+        s1.getName != s2.getName,
+        s"$path 'name' are different '${s1.getName}' != '${s2.getName}'"
+      ) ++ check(
+        s1.getType != s2.getType,
+        s"$path 'type' are different '${s1.getType}' != '${s2.getType}'"
+      ) ++ check(
+        s1.isNullable != s2.isNullable,
+        s"$path 'isNullable' are different '${s1.isNullable}' != '${s2.isNullable}'"
+      ) ++ check(
+        s1.getDoc != s2.getDoc,
+        s"$path 'doc' are different '${s1.getDoc}' != '${s2.getDoc}'"
+      ) ++ check(
+        Try(s1.getNamespace != s2.getNamespace).getOrElse(false),
+        s"$path 'namespace' are different '${s1.getNamespace}' != '${s2.getNamespace}'"
+      )
+    }.toList
+    else List()
   }
 }
