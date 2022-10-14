@@ -21,7 +21,7 @@ import magnolify.parquet.unsafe._
 import magnolify.shared.UnsafeEnum
 import magnolify.test._
 import org.apache.avro.generic.{GenericRecord, GenericRecordBuilder}
-import org.apache.avro.{JsonProperties, Schema}
+import org.apache.avro.{JsonProperties, Schema => AvroSchema}
 import org.apache.hadoop.conf.Configuration
 import org.apache.parquet.avro.{
   AvroParquetReader,
@@ -36,18 +36,18 @@ object SchemaEvolutionSuite {
   private val namespace = "magnolify.parquet"
   private val nullVal = JsonProperties.NULL_VALUE
 
-  private def nullableString: Schema =
-    Schema.createUnion(List(Schema.Type.NULL, Schema.Type.STRING).map(Schema.create).asJava)
+  private def nullableString: AvroSchema =
+    AvroSchema.createUnion(List(AvroSchema.Type.NULL, AvroSchema.Type.STRING).map(AvroSchema.create).asJava)
 
-  val (locationSchema1, locationSchema2): (Schema, Schema) = {
-    def country = new Schema.Field("country", Schema.create(Schema.Type.STRING), "", null)
-    def state = new Schema.Field("state", Schema.create(Schema.Type.STRING), "", null)
+  val (locationSchema1, locationSchema2): (AvroSchema, AvroSchema) = {
+    def country = new AvroSchema.Field("country", AvroSchema.create(AvroSchema.Type.STRING), "", null)
+    def state = new AvroSchema.Field("state", AvroSchema.create(AvroSchema.Type.STRING), "", null)
 
-    val v1 = Schema.createRecord("LocationV1", "", namespace, false)
+    val v1 = AvroSchema.createRecord("LocationV1", "", namespace, false)
     v1.setFields(List(country, state).asJava)
 
-    val v2 = Schema.createRecord("LocationV2", "", namespace, false)
-    val zip = new Schema.Field("zip", nullableString, "", nullVal)
+    val v2 = AvroSchema.createRecord("LocationV2", "", namespace, false)
+    val zip = new AvroSchema.Field("zip", nullableString, "", nullVal)
     v2.setFields(List(country, state, zip).asJava)
 
     (v1, v2)
@@ -60,21 +60,22 @@ object SchemaEvolutionSuite {
   - New top level nullable string field "email"
   - New top level repeated string field "aliases"
    */
-  val (userSchema1, userSchema2): (Schema, Schema) = {
-    def id = new Schema.Field("id", Schema.create(Schema.Type.LONG), "", null)
-    def name = new Schema.Field("name", Schema.create(Schema.Type.STRING), "", null)
-    def accountType = new Schema.Field("account_type", Schema.create(Schema.Type.STRING), "", null)
+  val (userSchema1, userSchema2): (AvroSchema, AvroSchema) = {
+    def id = new AvroSchema.Field("id", AvroSchema.create(AvroSchema.Type.LONG), "", null)
+    def name = new AvroSchema.Field("name", AvroSchema.create(AvroSchema.Type.STRING), "", null)
+    def accountType =
+      new AvroSchema.Field("account_type", AvroSchema.create(AvroSchema.Type.STRING), "", null)
 
-    val v1 = Schema.createRecord("UserV1", "", namespace, false)
-    val location1 = new Schema.Field("location", locationSchema1, "", null)
+    val v1 = AvroSchema.createRecord("UserV1", "", namespace, false)
+    val location1 = new AvroSchema.Field("location", locationSchema1, "", null)
     v1.setFields(List(id, name, accountType, location1).asJava)
 
-    val v2 = Schema.createRecord("UserV2", "", namespace, false)
-    val location2 = new Schema.Field("location", locationSchema2, "", null)
-    val email = new Schema.Field("email", nullableString, "", nullVal)
-    val aliases = new Schema.Field(
+    val v2 = AvroSchema.createRecord("UserV2", "", namespace, false)
+    val location2 = new AvroSchema.Field("location", locationSchema2, "", null)
+    val email = new AvroSchema.Field("email", nullableString, "", nullVal)
+    val aliases = new AvroSchema.Field(
       "aliases",
-      Schema.createArray(Schema.create(Schema.Type.STRING)),
+      AvroSchema.createArray(AvroSchema.create(AvroSchema.Type.STRING)),
       "",
       java.util.Collections.emptyList()
     )
@@ -83,18 +84,19 @@ object SchemaEvolutionSuite {
     (v1, v2)
   }
 
-  val (location1ProjectionSchema, user1ProjectionSchema): (Schema, Schema) = {
-    def id = new Schema.Field("id", Schema.create(Schema.Type.LONG), "", null)
-    def name = new Schema.Field("name", nullableString, "")
+  val (location1ProjectionSchema, user1ProjectionSchema): (AvroSchema, AvroSchema) = {
+    def id = new AvroSchema.Field("id", AvroSchema.create(AvroSchema.Type.LONG), "", null)
+    def name = new AvroSchema.Field("name", nullableString, "")
 
-    def country = new Schema.Field("country", Schema.create(Schema.Type.STRING), "", null)
-    def state = new Schema.Field("state", nullableString, "", null)
+    def country =
+      new AvroSchema.Field("country", AvroSchema.create(AvroSchema.Type.STRING), "", null)
+    def state = new AvroSchema.Field("state", nullableString, "", null)
 
-    val locationSchema1proj = Schema.createRecord("LocationV1", "", namespace, false)
+    val locationSchema1proj = AvroSchema.createRecord("LocationV1", "", namespace, false)
     locationSchema1proj.setFields(List(country, state).asJava)
 
-    val v1proj = Schema.createRecord("UserV1Projection", "", namespace, false)
-    val location1proj = new Schema.Field("location", locationSchema1proj, "", null)
+    val v1proj = AvroSchema.createRecord("UserV1Projection", "", namespace, false)
+    val location1proj = new AvroSchema.Field("location", locationSchema1proj, "", null)
     v1proj.setFields(List(id, name, location1proj).asJava)
 
     (locationSchema1proj, v1proj)
@@ -291,7 +293,7 @@ object SchemaEvolutionSuite {
 class SchemaEvolutionSuite extends MagnolifySuite {
   import SchemaEvolutionSuite._
 
-  private def writeAvro(xs: Seq[GenericRecord], schema: Schema): Array[Byte] = {
+  private def writeAvro(xs: Seq[GenericRecord], schema: AvroSchema): Array[Byte] = {
     val out = new TestOutputFile
     val writer = AvroParquetWriter.builder[GenericRecord](out).withSchema(schema).build()
     xs.foreach(writer.write)
@@ -299,7 +301,7 @@ class SchemaEvolutionSuite extends MagnolifySuite {
     out.getBytes
   }
 
-  private def readAvro(bytes: Array[Byte], schema: Schema): Seq[GenericRecord] = {
+  private def readAvro(bytes: Array[Byte], schema: AvroSchema): Seq[GenericRecord] = {
     val in = new TestInputFile(bytes)
     val conf = new Configuration()
     AvroReadSupport.setAvroDataSupplier(conf, classOf[GenericDataSupplier])

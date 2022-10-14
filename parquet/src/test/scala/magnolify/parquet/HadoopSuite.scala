@@ -16,7 +16,6 @@
 
 package magnolify.parquet
 
-import magnolify.parquet._
 import magnolify.scalacheck.auto._
 import magnolify.test.Simple._
 import munit._

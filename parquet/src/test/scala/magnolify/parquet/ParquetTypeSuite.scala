@@ -19,7 +19,6 @@ package magnolify.parquet
 import cats._
 import magnolify.cats.auto._
 import magnolify.cats.TestEq._
-import magnolify.parquet._
 import magnolify.parquet.unsafe._
 import magnolify.scalacheck.auto._
 import magnolify.scalacheck.TestArbitrary._

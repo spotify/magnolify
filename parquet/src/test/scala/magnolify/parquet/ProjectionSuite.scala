@@ -20,7 +20,6 @@ import java.time.Instant
 
 import cats._
 import magnolify.cats.auto._
-import magnolify.parquet._
 import magnolify.parquet.logical.millis._
 import magnolify.test._
 import org.apache.parquet.io.InvalidRecordException
