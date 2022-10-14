@@ -526,7 +526,7 @@ lazy val jmh: Project = project
     cats % Test,
     datastore % Test,
     guava % Test,
-    protobuf % Test,
+    protobuf % "test->test",
     scalacheck % Test,
     tensorflow % Test,
     test % "test->test"
