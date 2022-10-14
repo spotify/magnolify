@@ -18,10 +18,10 @@ package magnolify.neo4j
 
 import cats.Eq
 import magnolify.cats.auto._
-import magnolify.cats.test.TestEq._
+import magnolify.cats.TestEq._
 import magnolify.neo4j.unsafe._
 import magnolify.scalacheck.auto._
-import magnolify.scalacheck.test.TestArbitrary._
+import magnolify.scalacheck.TestArbitrary._
 import magnolify.shared.CaseMapper
 import magnolify.shared.TestEnumType._
 import magnolify.test.MagnolifySuite

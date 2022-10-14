@@ -22,7 +22,7 @@ import eu.timepit.refined.auto._
 import eu.timepit.refined.boolean._
 import eu.timepit.refined.numeric._
 import eu.timepit.refined.string._
-import magnolify.guava.test.BytesSink
+import magnolify.guava.BytesSink
 import magnolify.test._
 
 object RefinedSuite {
@@ -154,9 +154,9 @@ class RefinedSuite extends MagnolifySuite {
 
   test("protobuf") {
     import magnolify.protobuf._
+    import magnolify.protobuf.Proto3._
     import magnolify.protobuf.unsafe.Proto3Option._
     import magnolify.refined.protobuf._
-    import magnolify.test.Proto3._
     val tpe1 = ensureSerializable(ProtobufType[ProtoRequired, SingularP3])
     val required = ProtoRequired(true, record.pct, refineV.unsafeFrom(record.uuid.value))
     assertEquals(tpe1(tpe1(required)), required)

@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package magnolify.test;
+package magnolify.protobuf;
 
-option java_package = "magnolify.test";
+option java_package = "magnolify.protobuf";
 
 message IntegersP3 {
     int32 i = 1;

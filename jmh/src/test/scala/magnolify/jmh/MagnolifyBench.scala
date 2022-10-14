@@ -137,7 +137,7 @@ class EntityBench {
 @State(Scope.Thread)
 class ProtobufBench {
   import magnolify.protobuf._
-  import magnolify.test.Proto2._
+  import magnolify.protobuf.Proto2._
   import MagnolifyBench._
   private val protoType = ProtobufType[Nested, NestedP2]
   private val protoNested = protoType.to(nested)
