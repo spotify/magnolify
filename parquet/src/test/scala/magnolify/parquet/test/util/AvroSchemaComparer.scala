@@ -47,7 +47,7 @@ object AvroSchemaComparer {
           val fields2 = schemaFields2.map(_.name())
 
           val fieldsEqualResults = check(
-            !fields1.equals(fields2),
+            fields1 != fields2,
             s"$path fields are not equal '$fields1' != '$fields2'"
           )
 
@@ -63,7 +63,7 @@ object AvroSchemaComparer {
                   s"$path.$f field 'doc' are different '${field1.doc}' != '${field2.doc}'"
                 ) ++ check(
                   field1.pos() != field2.pos(),
-                  s"$path.$f field 'defaultVal' are different '${field1.pos}' != '${field2.pos}'"
+                  s"$path.$f field 'pos' are different '${field1.pos}' != '${field2.pos}'"
                 ) ++ compareSchemas(field1.schema(), field2.schema(), s"$path.$f")
               }
         case _ =>
