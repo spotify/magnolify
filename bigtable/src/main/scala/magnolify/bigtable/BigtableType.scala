@@ -142,7 +142,7 @@ object BigtableField {
       val p = caseClass.parameters.head
       val tc = p.typeclass
       new BigtableField[T] {
-        override def get(xs: util.List[Column], k: String)(cm: CaseMapper): Value[T] =
+        override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T] =
           tc.get(xs, k)(cm).map(x => caseClass.construct(_ => x))
         override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
           p.typeclass.put(k, p.dereference(v))(cm)
