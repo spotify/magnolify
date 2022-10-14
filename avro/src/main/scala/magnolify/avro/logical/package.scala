@@ -62,7 +62,7 @@ package object logical {
   object bigquery {
     // datetime is a custom logical type and must be registered
     private final val DateTimeTypeName = "datetime"
-    private final val DateTimeLogicalTypeFactory: LogicalTypeFactory = (schema: Schema) =>
+    private final val DateTimeLogicalTypeFactory: LogicalTypeFactory = (_: Schema) =>
       new org.apache.avro.LogicalType(DateTimeTypeName)
 
     /**

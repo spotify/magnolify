@@ -123,8 +123,17 @@ class AvroTypeSuite extends MagnolifySuite {
   test[Enums]
   test[UnsafeEnums]
   test[Custom]
-
   test[AvroTypes]
+
+  test("AnyVal") {
+    implicit val at: AvroType[HasValueClass] = AvroType[HasValueClass]
+    test[HasValueClass]
+
+    assert(at.schema.getField("vc").schema().getType == Schema.Type.STRING)
+
+    val record = at(HasValueClass(ValueClass("String")))
+    assert(record.get("vc") == "String")
+  }
 
   {
     def f(r: GenericRecord): List[(String, Any)] =

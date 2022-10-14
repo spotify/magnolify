@@ -20,7 +20,6 @@ import cats.kernel.Band
 import magnolia1._
 
 import scala.annotation.implicitNotFound
-import scala.language.experimental.macros
 
 object BandDerivation {
   type Typeclass[T] = Band[T]

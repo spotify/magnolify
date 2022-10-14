@@ -21,7 +21,6 @@ import java.time.{Duration, Instant}
 
 import cats._
 import com.google.datastore.v1.{Entity, Key}
-import com.google.datastore.v1.client.DatastoreHelper.makeValue
 import com.google.protobuf.ByteString
 import magnolify.datastore._
 import magnolify.datastore.unsafe._
@@ -74,6 +73,14 @@ class EntityTypeSuite extends MagnolifySuite {
   test[Custom]
 
   test[DatastoreTypes]
+
+  test("AnyVal") {
+    implicit val et: EntityType[HasValueClass] = EntityType[HasValueClass]
+    test[HasValueClass]
+
+    val record = et(HasValueClass(ValueClass("String")))
+    assert(record.getPropertiesOrThrow("vc").getStringValue == "String")
+  }
 
   test("DefaultInner") {
     val et = ensureSerializable(EntityType[DefaultInner])

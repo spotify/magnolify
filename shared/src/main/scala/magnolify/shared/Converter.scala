@@ -32,6 +32,12 @@ sealed trait Value[+T] {
   def isSome: Boolean = this.isInstanceOf[Value.Some[_]]
   def isEmpty: Boolean = this eq Value.None
 
+  def map[U](f: T => U): Value[U] = this match {
+    case Value.Some(x)    => Value.Some(f(x))
+    case Value.Default(x) => Value.Default(f(x))
+    case Value.None       => Value.None
+  }
+
   def getOrElse[U](fallback: Option[U])(implicit ev: T <:< U): U = (this, fallback) match {
     case (Value.Some(x), _)          => x
     case (Value.Default(_), Some(x)) => x

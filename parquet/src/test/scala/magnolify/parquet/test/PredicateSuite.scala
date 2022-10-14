@@ -43,7 +43,7 @@ class PredicateSuite extends MagnolifySuite {
       i.toString,
       (0 to i).toList,
       if (i % 2 == 0) Some(i) else None,
-      Instant.ofEpochMilli(i),
+      Instant.ofEpochMilli(i.toLong),
       ProjectionInner(i.toString, if (i % 2 == 0) Some(s"o$i") else None),
       i.toByte,
       i.toLong,

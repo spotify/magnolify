@@ -19,8 +19,6 @@ package magnolify.cats.semiauto
 import cats.Show
 import magnolia1._
 
-import scala.language.experimental.macros
-
 object ShowDerivation {
   type Typeclass[T] = Show[T]
 

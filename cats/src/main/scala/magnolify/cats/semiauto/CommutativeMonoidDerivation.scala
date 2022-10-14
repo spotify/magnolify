@@ -20,7 +20,6 @@ import cats.kernel.CommutativeMonoid
 import magnolia1._
 
 import scala.annotation.implicitNotFound
-import scala.language.experimental.macros
 
 object CommutativeMonoidDerivation {
   type Typeclass[T] = CommutativeMonoid[T]

@@ -33,7 +33,6 @@ import magnolify.test._
 import org.scalacheck._
 
 import scala.reflect._
-import scala.jdk.CollectionConverters._
 
 trait BaseProtobufTypeSuite extends MagnolifySuite {
   def test[T: ClassTag: Arbitrary, U <: Message: ClassTag](implicit
@@ -95,6 +94,10 @@ class ProtobufTypeSuite extends BaseProtobufTypeSuite {
       Required(x.b.getOrElse(false), x.i.getOrElse(0), x.s.getOrElse(""))
     }
     test[Nullable, SingularP3]
+  }
+
+  test("AnyVal") {
+    test[ProtoHasValueClass, IntegersP2]
   }
 }
 
@@ -204,6 +207,8 @@ object Proto3Enums {
     ProtobufField.enum[ADT.Color, EnumsP3.ScalaEnums]
 }
 
+case class ProtoValueClass(value: Long) extends AnyVal
+case class ProtoHasValueClass(i: Int, l: ProtoValueClass)
 case class UnsafeByte(i: Byte, l: Long)
 case class UnsafeChar(i: Char, l: Long)
 case class UnsafeShort(i: Short, l: Long)

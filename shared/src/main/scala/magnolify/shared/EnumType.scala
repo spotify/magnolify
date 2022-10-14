@@ -18,9 +18,9 @@ package magnolify.shared
 
 import magnolia1._
 
-import scala.language.experimental.macros
 import scala.reflect.ClassTag
 import scala.reflect.macros._
+import scala.annotation.nowarn
 
 sealed trait EnumType[T] extends Serializable { self =>
   val name: String
@@ -116,7 +116,9 @@ object EnumType {
 
   // Scala ADT
   def adtEnumType[T]: EnumType[T] = macro Magnolia.gen[T]
+
   implicit def gen[T](implicit lp: shapeless.LowPriority): EnumType[T] = macro genMacro[T]
+  @nowarn("msg=parameter value lp in method genMacro is never used")
   def genMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = Magnolia.gen[T](c)
 
   type Typeclass[T] = EnumType[T]

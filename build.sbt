@@ -15,6 +15,7 @@
  */
 import _root_.io.github.davidgregory084._
 import _root_.io.github.davidgregory084.ScalaVersion._
+import sbtprotoc.ProtocPlugin.ProtobufConfig
 import scala.Ordering.Implicits._
 
 val magnoliaScala2Version = "1.1.2"
@@ -38,6 +39,7 @@ val refinedVersion = "0.10.1"
 val scalaCollectionCompatVersion = "2.8.1"
 val scalacheckVersion = "1.17.0"
 val shapelessVersion = "2.3.10"
+val tensorflowMetadataVersion = "1.10.0"
 val tensorflowVersion = "0.4.1"
 
 lazy val currentYear = java.time.LocalDate.now().getYear
@@ -59,7 +61,6 @@ ThisBuild / tpolecatDevModeOptions ~= { opts =>
     ScalacOptions.warnValueDiscard
   )
 
-  val parallelism = math.min(java.lang.Runtime.getRuntime.availableProcessors(), 16)
   val extras = Set(
     // required by magnolia for accessing default values
     ScalacOptions.privateOption("retain-trees", _ >= V3_0_0),
@@ -68,8 +69,14 @@ ThisBuild / tpolecatDevModeOptions ~= { opts =>
     ScalacOptions.other("-target:jvm-1.8"),
     ScalacOptions.warnOption("macros:after", _.isBetween(V2_13_0, V3_0_0)),
     ScalacOptions.privateWarnOption("macros:after", _.isBetween(V2_12_0, V2_13_0)),
-    ScalacOptions.privateBackendParallelism(parallelism),
-    ScalacOptions.release("8")
+    ScalacOptions.privateBackendParallelism(),
+    ScalacOptions.release("8"),
+    // silence cross-build unused imports
+    ScalacOptions.warnOption(
+      "conf:cat=unused-imports&origin=scala\\.collection\\.compat\\..*:s" +
+        ",cat=unused-imports&origin=magnolify\\.shims\\..*:s",
+      _.isBetween(V2_13_2, V3_0_0)
+    )
   )
 
   opts.filterNot(excludes).union(extras)
@@ -82,9 +89,25 @@ ThisBuild / javacOptions ++= Seq(
   "1.8"
 )
 
+ThisBuild / PB.protocVersion := protobufVersion
+lazy val scopedProtobufSettings = Def.settings(
+  PB.targets := Seq(
+    PB.gens.java -> (ThisScope.copy(config = Zero) / sourceManaged).value /
+      "compiled_proto" /
+      configuration.value.name
+  ),
+  managedSourceDirectories ++= PB.targets.value.map(_.outputPath)
+)
+
+lazy val protobufSettings = Seq(
+  PB.additionalDependencies := Seq(
+    "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
+  )
+) ++ Seq(Compile, Test).flatMap(c => inConfig(c)(scopedProtobufSettings))
+
 val commonSettings = Seq(
   organization := "com.spotify",
-  crossScalaVersions := Seq("2.13.8", "2.12.17"),
+  crossScalaVersions := Seq("2.13.10", "2.12.17"),
   scalaVersion := crossScalaVersions.value.head,
   libraryDependencies ++= {
     CrossVersion.partialVersion(scalaVersion.value) match {
@@ -219,13 +242,9 @@ lazy val test: Project = project
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion % Test
-    ),
-    ProtobufConfig / protobufRunProtoc := (args =>
-      com.github.os72.protocjar.Protoc.runProtoc(args.toArray)
     )
   )
   .dependsOn(shared)
-  .enablePlugins(ProtobufPlugin)
 
 lazy val scalacheck: Project = project
   .in(file("scalacheck"))
@@ -233,7 +252,7 @@ lazy val scalacheck: Project = project
     commonSettings,
     moduleName := "magnolify-scalacheck",
     description := "Magnolia add-on for ScalaCheck",
-    libraryDependencies += "org.scalacheck" %% "scalacheck" % scalacheckVersion
+    libraryDependencies += "org.scalacheck" %% "scalacheck" % scalacheckVersion % Provided
   )
   .dependsOn(
     shared,
@@ -247,9 +266,9 @@ lazy val cats: Project = project
     moduleName := "magnolify-cats",
     description := "Magnolia add-on for Cats",
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-core" % catsVersion,
-      "org.typelevel" %% "cats-laws" % catsVersion % Test,
-      "com.twitter" %% "algebird-core" % algebirdVersion % Test
+      "org.typelevel" %% "cats-core" % catsVersion % Provided,
+      "com.twitter" %% "algebird-core" % algebirdVersion % Test,
+      "org.typelevel" %% "cats-laws" % catsVersion % Test
     )
   )
   .dependsOn(
@@ -297,7 +316,7 @@ lazy val refined: Project = project
     bigtable % Provided,
     datastore % Provided,
     guava % "provided,test->test",
-    protobuf % Provided,
+    protobuf % "provided,test->test",
     tensorflow % Provided,
     test % "test->test"
   )
@@ -396,11 +415,9 @@ lazy val protobuf: Project = project
   .in(file("protobuf"))
   .settings(
     commonSettings,
+    protobufSettings,
     moduleName := "magnolify-protobuf",
-    description := "Magnolia add-on for Google Protocol Buffer",
-    libraryDependencies ++= Seq(
-      "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
-    )
+    description := "Magnolia add-on for Google Protocol Buffer"
   )
   .dependsOn(
     shared,
@@ -409,26 +426,34 @@ lazy val protobuf: Project = project
     test % "test->test"
   )
 
+val unpackMetadata = taskKey[Seq[File]]("Unpack tensorflow metadata proto files.")
+
 lazy val tensorflow: Project = project
   .in(file("tensorflow"))
   .settings(
     commonSettings,
+    protobufSettings,
     moduleName := "magnolify-tensorflow",
     description := "Magnolia add-on for TensorFlow",
-    Compile / sourceDirectories := (Compile / sourceDirectories).value
-      .filterNot(_.getPath.endsWith("/src_managed/main")),
-    Compile / managedSourceDirectories := (Compile / managedSourceDirectories).value
-      .filterNot(_.getPath.endsWith("/src_managed/main")),
     libraryDependencies ++= Seq(
+      "com.google.protobuf" % "protobuf-java" % protobufVersion % ProtobufConfig,
       "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Provided
     ),
-    // Protobuf plugin adds protobuf-java to Compile scope automatically; we want it to remain Provided
-    libraryDependencies := libraryDependencies.value.map { l =>
-      (l.organization, l.name) match {
-        case ("com.google.protobuf", "protobuf-java") =>
-          l.withConfigurations(Some("provided,protobuf"))
-        case _ => l
-      }
+    // tensorflow metadata protos are not packaged into a jar. Manually extract them as external
+    unpackMetadata := {
+      IO.unzipURL(
+        new URL(
+          s"https://github.com/tensorflow/metadata/archive/refs/tags/v$tensorflowMetadataVersion.zip"
+        ),
+        target.value,
+        "**/*.proto"
+      )
+      IO.move(target.value / s"metadata-$tensorflowMetadataVersion", PB.externalSourcePath.value)
+      IO.listFiles(PB.externalSourcePath.value / s"metadata-$tensorflowMetadataVersion")
+    },
+    Compile / PB.generate := (Compile / PB.generate).dependsOn(unpackMetadata).value,
+    Compile / packageBin / mappings ~= {
+      _.filterNot { case (_, n) => n.startsWith("org/tensorflow") }
     }
   )
   .dependsOn(
@@ -437,7 +462,6 @@ lazy val tensorflow: Project = project
     scalacheck % "test->test",
     test % "test->test"
   )
-  .enablePlugins(ProtobufPlugin)
 
 lazy val neo4j: Project = project
   .in(file("neo4j"))
@@ -502,7 +526,7 @@ lazy val jmh: Project = project
     cats % Test,
     datastore % Test,
     guava % Test,
-    protobuf % Test,
+    protobuf % "test->test",
     scalacheck % Test,
     tensorflow % Test,
     test % "test->test"

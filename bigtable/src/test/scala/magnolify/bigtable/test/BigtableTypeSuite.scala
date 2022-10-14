@@ -76,6 +76,14 @@ class BigtableTypeSuite extends MagnolifySuite {
   test[Custom]
   test[BigtableTypes]
 
+  test("AnyVal") {
+    implicit val btt: BigtableType[HasValueClass] = BigtableType[HasValueClass]
+    test[HasValueClass]
+
+    val records = btt(HasValueClass(ValueClass("String")), "cf")
+    assert(records.head.getSetCell.getValue.toStringUtf8 == "String")
+  }
+
   test("DefaultInner") {
     val bt = ensureSerializable(BigtableType[DefaultInner])
     assertEquals(bt(Row.getDefaultInstance, "cf"), DefaultInner())

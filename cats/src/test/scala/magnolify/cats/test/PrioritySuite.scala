@@ -32,7 +32,7 @@ class PrioritySuite extends MagnolifySuite {
       assertEquals(sg.combine(x, y), expected)
     }
 
-  private def test[T: ClassTag: Eq: Hash: Show]: Unit =
+  private def test[T: ClassTag: Hash: Show]: Unit =
     test(s"Priority.${className[T]}") {
       ensureSerializable(implicitly[Eq[T]])
       ensureSerializable(implicitly[Hash[T]])
@@ -68,7 +68,6 @@ class PrioritySuite extends MagnolifySuite {
   }
 
   {
-    import Enums._
     implicit val hashScalaEnum: Hash[ScalaEnums.Color.Type] = Hash.by(_.toString)
     implicit val hashJavaEnum: Hash[JavaEnums.Color] = Hash.by(_.name())
     implicit val showScalaEnum: Show[ScalaEnums.Color.Type] = Show.show(_.toString)

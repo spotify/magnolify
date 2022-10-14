@@ -16,12 +16,11 @@
 
 package magnolify.guava.test
 
-import java.io.{ByteArrayOutputStream, ObjectOutputStream}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
 import java.net.URI
 import java.nio.ByteBuffer
-import java.nio.charset.Charset
+import java.nio.charset.{Charset, StandardCharsets}
 import java.time.Duration
-
 import com.google.common.hash.{Funnel, PrimitiveSink}
 import magnolify.guava.auto._
 import magnolify.scalacheck.auto._
@@ -69,6 +68,19 @@ class FunnelDerivationSuite extends MagnolifySuite {
   test((c: Collections) => (c.a.toList, c.l, c.v))
   test[Custom]
 
+  test("AnyVal") {
+    implicit val f: Funnel[HasValueClass] = FunnelDerivation[HasValueClass]
+    test[HasValueClass]
+
+    val sink = new BytesSink()
+    f.funnel(HasValueClass(ValueClass("String")), sink)
+
+    val ois = new ObjectInputStream(new ByteArrayInputStream(sink.toBytes))
+    assert(ois.readInt() == 0)
+    assert(ois.readUTF() == "String")
+    assert(ois.available() == 0)
+  }
+
   test[Node]
   test[GNode[Int]]
   test[Shape]
@@ -88,26 +100,26 @@ class BytesSink extends PrimitiveSink {
   }
 
   override def putByte(b: Byte): PrimitiveSink = {
-    oos.writeByte(b)
+    oos.writeByte(b.toInt)
     this
   }
 
   override def putBytes(bytes: Array[Byte]): PrimitiveSink = {
-    baos.write(bytes)
+    oos.write(bytes)
     this
   }
 
   override def putBytes(bytes: Array[Byte], off: Int, len: Int): PrimitiveSink = {
-    baos.write(bytes, off, len)
+    oos.write(bytes, off, len)
     this
   }
   override def putBytes(bytes: ByteBuffer): PrimitiveSink = {
-    baos.write(bytes.array(), bytes.position(), bytes.limit())
+    oos.write(bytes.array(), bytes.position(), bytes.limit())
     this
   }
 
   override def putShort(s: Short): PrimitiveSink = {
-    oos.writeShort(s)
+    oos.writeShort(s.toInt)
     this
   }
 
@@ -137,7 +149,7 @@ class BytesSink extends PrimitiveSink {
   }
 
   override def putChar(c: Char): PrimitiveSink = {
-    oos.writeChar(c)
+    oos.writeChar(c.toInt)
     this
   }
 
@@ -146,6 +158,9 @@ class BytesSink extends PrimitiveSink {
     this
   }
 
-  override def putString(charSequence: CharSequence, charset: Charset): PrimitiveSink =
-    putBytes(charset.encode(charSequence.toString))
+  override def putString(charSequence: CharSequence, charset: Charset): PrimitiveSink = {
+    require(charset == StandardCharsets.UTF_8)
+    oos.writeUTF(charSequence.toString)
+    this
+  }
 }

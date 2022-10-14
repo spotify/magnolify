@@ -81,6 +81,16 @@ class TableRowTypeSuite extends MagnolifySuite {
 
   test[BigQueryTypes]
 
+  test("AnyVal") {
+    implicit val trt: TableRowType[HasValueClass] = TableRowType[HasValueClass]
+    test[HasValueClass]
+
+    assert(trt.schema.getFields.asScala.head.getType == "STRING")
+
+    val record = trt(HasValueClass(ValueClass("String")))
+    assert(record.get("vc") == "String")
+  }
+
   test("BigDecimal") {
     val at: TableRowType[BigDec] = TableRowType[BigDec]
     val msg1 = "requirement failed: " +

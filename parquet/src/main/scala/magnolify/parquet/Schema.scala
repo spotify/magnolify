@@ -139,6 +139,8 @@ private object Schema {
               s"found; written file schema had type $wf"
           )
         }
+      case _ =>
+        throw new Exception(s"Unsupported type for $writer")
     }
   }
 }

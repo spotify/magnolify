@@ -18,7 +18,6 @@ package magnolify.bigtable
 
 import java.nio.ByteBuffer
 import java.util.UUID
-
 import com.google.bigtable.v2.{Cell, Column, Family, Mutation, Row}
 import com.google.bigtable.v2.Mutation.SetCell
 import com.google.protobuf.ByteString
@@ -26,9 +25,7 @@ import magnolia1._
 import magnolify.shared._
 import magnolify.shims._
 
-import scala.annotation.implicitNotFound
-import scala.language.experimental.macros
-
+import scala.annotation.{implicitNotFound, nowarn}
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
 
@@ -50,14 +47,18 @@ sealed trait BigtableType[T] extends Converter[T, java.util.List[Column], Seq[Se
 }
 
 object BigtableType {
-  implicit def apply[T: BigtableField.Record]: BigtableType[T] = BigtableType(CaseMapper.identity)
+  implicit def apply[T: BigtableField]: BigtableType[T] = BigtableType(CaseMapper.identity)
 
-  def apply[T](cm: CaseMapper)(implicit f: BigtableField.Record[T]): BigtableType[T] =
-    new BigtableType[T] {
-      private val caseMapper: CaseMapper = cm
-      override def from(xs: java.util.List[Column]): T = f.get(xs, null)(caseMapper).get
-      override def to(v: T): Seq[SetCell.Builder] = f.put(null, v)(caseMapper)
-    }
+  def apply[T](cm: CaseMapper)(implicit f: BigtableField[T]): BigtableType[T] = f match {
+    case r: BigtableField.Record[_] =>
+      new BigtableType[T] {
+        private val caseMapper: CaseMapper = cm
+        override def from(xs: java.util.List[Column]): T = r.get(xs, null)(caseMapper).get
+        override def to(v: T): Seq[SetCell.Builder] = r.put(null, v)(caseMapper)
+      }
+    case _ =>
+      throw new IllegalArgumentException(s"BigtableType can only be created from Record. Got $f")
+  }
 
   def mutationsToRow(key: ByteString, mutations: Seq[Mutation]): Row = {
     val families = mutations
@@ -136,35 +137,48 @@ object BigtableField {
 
   type Typeclass[T] = BigtableField[T]
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    private def key(prefix: String, label: String): String =
-      if (prefix == null) label else s"$prefix.$label"
-
-    override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T] = {
-      var fallback = true
-      val r = caseClass.construct { p =>
-        val cq = key(k, cm.map(p.label))
-        val v = p.typeclass.get(xs, cq)(cm)
-        if (v.isSome) {
-          fallback = false
-        }
-        v.getOrElse(p.default)
+  def join[T](caseClass: CaseClass[Typeclass, T]): BigtableField[T] = {
+    if (caseClass.isValueClass) {
+      val p = caseClass.parameters.head
+      val tc = p.typeclass
+      new BigtableField[T] {
+        override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T] =
+          tc.get(xs, k)(cm).map(x => caseClass.construct(_ => x))
+        override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
+          p.typeclass.put(k, p.dereference(v))(cm)
       }
-      // result is default if all fields are default
-      if (fallback) Value.Default(r) else Value.Some(r)
-    }
+    } else {
+      new Record[T] {
+        private def key(prefix: String, label: String): String =
+          if (prefix == null) label else s"$prefix.$label"
 
-    override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
-      caseClass.parameters.flatMap(p =>
-        p.typeclass.put(key(k, cm.map(p.label)), p.dereference(v))(cm)
-      )
+        override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T] = {
+          var fallback = true
+          val r = caseClass.construct { p =>
+            val cq = key(k, cm.map(p.label))
+            val v = p.typeclass.get(xs, cq)(cm)
+            if (v.isSome) {
+              fallback = false
+            }
+            v.getOrElse(p.default)
+          }
+          // result is default if all fields are default
+          if (fallback) Value.Default(r) else Value.Some(r)
+        }
+
+        override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
+          caseClass.parameters.flatMap(p =>
+            p.typeclass.put(key(k, cm.map(p.label)), p.dereference(v))(cm)
+          )
+      }
+    }
   }
 
   @implicitNotFound("Cannot derive BigtableField for sealed trait")
   private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): BigtableField[T] = ???
 
-  implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: BigtableField[T] = macro Magnolia.gen[T]
 
   def apply[T](implicit f: BigtableField[T]): BigtableField[T] = f
 
@@ -212,8 +226,11 @@ object BigtableField {
   implicit val btfByteArray = from[ByteString](_.toByteArray)(ByteString.copyFrom)
   implicit val btfString = from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
 
+  @nowarn("msg=parameter value lp in method btfEnum is never used")
   implicit def btfEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): Primitive[T] =
     from[String](et.from)(et.to)
+
+  @nowarn("msg=parameter value lp in method btfUnsafeEnum is never used")
   implicit def btfUnsafeEnum[T](implicit
     et: EnumType[T],
     lp: shapeless.LowPriority

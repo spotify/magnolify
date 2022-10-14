@@ -35,16 +35,22 @@ trait ValueType[T] extends Converter[T, Value, Value] {
 
 object ValueType {
 
-  implicit def apply[T: ValueField.Record]: ValueType[T] = ValueType(CaseMapper.identity)
+  implicit def apply[T: ValueField]: ValueType[T] = ValueType(CaseMapper.identity)
 
-  def apply[T](cm: CaseMapper)(implicit f: ValueField.Record[T]): ValueType[T] = new ValueType[T] {
-    private val caseMapper: CaseMapper = cm
-    override def from(v: Value): T = f.from(v)(caseMapper)
-    override def to(v: T): Value = f.to(v)(caseMapper)
+  def apply[T](cm: CaseMapper)(implicit f: ValueField[T]): ValueType[T] = f match {
+    case r: ValueField.Record[_] =>
+      new ValueType[T] {
+        private val caseMapper: CaseMapper = cm
+        override def from(v: Value): T = r.from(v)(caseMapper)
+        override def to(v: T): Value = r.to(v)(caseMapper)
+      }
+    case _ =>
+      throw new IllegalArgumentException(s"ValueType can only be created from Record. Got $f")
   }
 }
 
-sealed trait ValueField[T] extends Serializable { self =>
+sealed trait ValueField[T] extends Serializable {
+  self =>
 
   def from(v: Value)(cm: CaseMapper): T
 
@@ -57,35 +63,47 @@ object ValueField {
   // ////////////////////////////////////////////////
   type Typeclass[T] = ValueField[T]
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    override def from(v: Value)(cm: CaseMapper): T =
-      caseClass.construct { p =>
-        val field = cm.map(p.label)
-        try p.typeclass.from(v.get(field))(cm)
-        catch {
-          case e: ValueException =>
-            throw new RuntimeException(s"Failed to decode $field: ${e.getMessage}", e)
+  def join[T](caseClass: CaseClass[Typeclass, T]): ValueField[T] = {
+    if (caseClass.isValueClass) {
+      val p = caseClass.parameters.head
+      val tc = p.typeclass
+      new ValueField[T] {
+        override def from(v: Value)(cm: CaseMapper): T = caseClass.construct(_ => tc.from(v)(cm))
+        override def to(v: T)(cm: CaseMapper): Value = tc.to(p.dereference(v))(cm)
+      }
+    } else {
+      new Record[T] {
+        override def from(v: Value)(cm: CaseMapper): T =
+          caseClass.construct { p =>
+            val field = cm.map(p.label)
+            try {
+              p.typeclass.from(v.get(field))(cm)
+            } catch {
+              case e: ValueException =>
+                throw new RuntimeException(s"Failed to decode $field: ${e.getMessage}", e)
+            }
+          }
+
+        override def to(v: T)(cm: CaseMapper): Value = {
+          val jmap = caseClass.parameters
+            .foldLeft(Map.newBuilder[String, AnyRef]) { (m, p) =>
+              m += cm.map(p.label) -> p.typeclass.to(p.dereference(v))(cm)
+              m
+            }
+            .result()
+            .asJava
+          Values.value(jmap)
         }
       }
-
-    override def to(v: T)(cm: CaseMapper): Value = {
-      val jmap = caseClass.parameters
-        .foldLeft(Map.newBuilder[String, AnyRef]) { (m, p) =>
-          m += cm.map(p.label) -> p.typeclass.to(p.dereference(v))(cm)
-          m
-        }
-        .result()
-        .asJava
-      Values.value(jmap)
     }
   }
 
   @implicitNotFound("Cannot derive AvroField for sealed trait")
   private sealed trait Dispatchable[T]
 
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): ValueField[T] = ???
 
-  implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: ValueField[T] = macro Magnolia.gen[T]
 
   // ////////////////////////////////////////////////
 
