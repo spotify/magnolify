@@ -29,7 +29,6 @@ import org.apache.parquet.avro.{
   AvroReadSupport,
   GenericDataSupplier
 }
-import org.apache.parquet.io.InvalidRecordException
 
 import scala.jdk.CollectionConverters._
 

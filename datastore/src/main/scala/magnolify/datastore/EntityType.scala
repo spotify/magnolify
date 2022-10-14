@@ -25,7 +25,6 @@ import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
 
 import scala.annotation.{implicitNotFound, StaticAnnotation}
-import scala.language.experimental.macros
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
 

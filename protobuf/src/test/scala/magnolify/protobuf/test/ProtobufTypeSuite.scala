@@ -33,7 +33,6 @@ import magnolify.test._
 import org.scalacheck._
 
 import scala.reflect._
-import scala.jdk.CollectionConverters._
 
 trait BaseProtobufTypeSuite extends MagnolifySuite {
   def test[T: ClassTag: Arbitrary, U <: Message: ClassTag](implicit

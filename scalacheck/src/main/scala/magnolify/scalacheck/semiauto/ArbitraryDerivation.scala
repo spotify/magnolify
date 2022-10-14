@@ -20,8 +20,6 @@ import magnolia1._
 import org.scalacheck.rng.Seed
 import org.scalacheck.{Arbitrary, Gen}
 
-import scala.language.experimental.macros
-
 object ArbitraryDerivation {
   type Typeclass[T] = Arbitrary[T]
 

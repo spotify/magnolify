@@ -20,7 +20,6 @@ import cats.Group
 import magnolia1._
 
 import scala.annotation.implicitNotFound
-import scala.language.experimental.macros
 
 object GroupDerivation {
   type Typeclass[T] = Group[T]
@@ -58,7 +57,6 @@ private object GroupMethods {
     val combineImpl = SemigroupMethods.combine(caseClass)
     val f = SemigroupMethods.combineNBase(caseClass)
     val inverseImpl = inverse(caseClass)
-    val removeImpl = remove(caseClass)
     (a: T, n: Int) =>
       if (n > 0) {
         f(a, n)

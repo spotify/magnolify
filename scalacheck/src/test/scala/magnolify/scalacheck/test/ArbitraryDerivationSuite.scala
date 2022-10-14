@@ -56,7 +56,6 @@ class ArbitraryDerivationSuite extends MagnolifySuite {
   test[Nullable]
 
   {
-    import Collections._
     import MoreCollectionsBuildable._ // scala 2.12 does not find implicit Buildable for some collections
     test[Repeated]
     test((c: Collections) => (c.a.toList, c.l, c.v))

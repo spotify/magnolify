@@ -19,10 +19,8 @@ package magnolify.test
 import java.net.URI
 import java.time.Duration
 import org.scalacheck._
-import org.scalacheck.util.Buildable
 import cats._
 import magnolify.shared.UnsafeEnum
-import magnolify.shims._
 
 import scala.annotation.StaticAnnotation
 import scala.collection.immutable.Seq
@@ -109,8 +107,8 @@ object Simple {
     implicit val arbUri: Arbitrary[URI] =
       Arbitrary(Gen.alphaNumStr.map(URI.create))
     implicit val arbDuration: Arbitrary[Duration] =
-      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(Duration.ofMillis(_)))
-    implicit val coUri: Cogen[URI] = Cogen(_.toString.hashCode())
+      Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(_.toLong).map(Duration.ofMillis))
+    implicit val coUri: Cogen[URI] = Cogen(_.toString.hashCode.toLong)
     implicit val coDuration: Cogen[Duration] = Cogen(_.toMillis)
     implicit val hashUri: Hash[URI] = Hash.fromUniversalHashCode[URI]
     implicit val hashDuration: Hash[Duration] = Hash.fromUniversalHashCode[Duration]

@@ -20,8 +20,6 @@ import com.google.common.base.Charsets
 import com.google.common.hash.{Funnel, Funnels, PrimitiveSink}
 import magnolia1._
 
-import scala.language.experimental.macros
-
 object FunnelDerivation {
   type Typeclass[T] = Funnel[T]
 

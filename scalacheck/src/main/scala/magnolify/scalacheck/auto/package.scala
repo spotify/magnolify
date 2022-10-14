@@ -18,7 +18,6 @@ package magnolify.scalacheck
 
 import org.scalacheck._
 
-import scala.language.experimental.macros
 import scala.reflect.macros._
 
 package object auto {

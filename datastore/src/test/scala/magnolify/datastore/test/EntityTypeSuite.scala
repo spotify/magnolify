@@ -21,7 +21,6 @@ import java.time.{Duration, Instant}
 
 import cats._
 import com.google.datastore.v1.{Entity, Key}
-import com.google.datastore.v1.client.DatastoreHelper.makeValue
 import com.google.protobuf.ByteString
 import magnolify.datastore._
 import magnolify.datastore.unsafe._
@@ -91,12 +90,6 @@ class EntityTypeSuite extends MagnolifySuite {
     implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
     implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
     test[DatastoreTypes]
-  }
-
-  {
-    implicit val efInt: EntityField[Int] =
-      EntityField.at[Int](_.getIntegerValue.toInt)(makeValue(_))
-    implicit val efUri: EntityField[URI] = EntityField.from[String](URI.create)(_.toString)
   }
 
   test("DefaultInner") {

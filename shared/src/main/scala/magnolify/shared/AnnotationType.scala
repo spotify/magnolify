@@ -16,7 +16,6 @@
 
 package magnolify.shared
 
-import scala.language.experimental.macros
 import scala.reflect.macros._
 
 sealed case class AnnotationType[T](annotations: List[Any])

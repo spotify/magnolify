@@ -19,7 +19,6 @@ package magnolify.guava
 import com.google.common.hash.Funnel
 import magnolify.guava.semiauto.FunnelImplicits
 
-import scala.language.experimental.macros
 import scala.reflect.macros._
 
 package object auto extends FunnelImplicits {

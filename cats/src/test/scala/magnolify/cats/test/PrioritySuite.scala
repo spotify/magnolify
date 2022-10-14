@@ -32,7 +32,7 @@ class PrioritySuite extends MagnolifySuite {
       assertEquals(sg.combine(x, y), expected)
     }
 
-  private def test[T: ClassTag: Eq: Hash: Show]: Unit =
+  private def test[T: ClassTag: Hash: Show]: Unit =
     test(s"Priority.${className[T]}") {
       ensureSerializable(implicitly[Eq[T]])
       ensureSerializable(implicitly[Hash[T]])

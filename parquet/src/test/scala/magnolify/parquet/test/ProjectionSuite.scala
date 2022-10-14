@@ -16,7 +16,6 @@
 
 package magnolify.parquet.test
 
-import java.{lang => jl}
 import java.time.Instant
 
 import cats._
@@ -41,7 +40,7 @@ class ProjectionSuite extends MagnolifySuite {
       j.toString,
       if (i % 2 == 0) Some(i) else None,
       (1 to i).toList,
-      Instant.ofEpochMilli(i),
+      Instant.ofEpochMilli(i.toLong),
       WideInner(s"s$i", if (i % 2 == 0) Some(s"o$i") else None, (1 to i).map("r" + _).toList)
     )
   }

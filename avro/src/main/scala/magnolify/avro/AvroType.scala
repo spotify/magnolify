@@ -26,10 +26,8 @@ import org.apache.avro.generic.GenericData.EnumSymbol
 import org.apache.avro.generic._
 import org.apache.avro.{JsonProperties, LogicalType, LogicalTypes, Schema}
 
-import scala.annotation.{implicitNotFound, StaticAnnotation}
+import scala.annotation.{implicitNotFound, nowarn, StaticAnnotation}
 import scala.collection.concurrent
-import scala.language.experimental.macros
-import scala.language.implicitConversions
 import scala.reflect.ClassTag
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
@@ -215,6 +213,7 @@ object AvroField {
     override def to(v: Array[Byte])(cm: CaseMapper): ByteBuffer = ByteBuffer.wrap(v)
   }
 
+  @nowarn("msg=parameter value lp in method afEnum is never used")
   implicit def afEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): AvroField[T] =
     // Avro 1.9+ added a type parameter for `GenericEnumSymbol`, breaking 1.8 compatibility
     // Some reader, i.e. `AvroParquetReader` reads enums as `Utf8`
@@ -299,7 +298,7 @@ object AvroField {
   implicit val afUuid: AvroField[ju.UUID] =
     logicalType[String](LogicalTypes.uuid())(ju.UUID.fromString)(_.toString)
   implicit val afDate: AvroField[LocalDate] =
-    logicalType[Int](LogicalTypes.date())(LocalDate.ofEpochDay(_))(_.toEpochDay.toInt)
+    logicalType[Int](LogicalTypes.date())(x => LocalDate.ofEpochDay(x.toLong))(_.toEpochDay.toInt)
 
   def fixed[T: ClassTag](
     size: Int
