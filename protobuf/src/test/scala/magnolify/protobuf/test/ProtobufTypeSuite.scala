@@ -94,6 +94,10 @@ class ProtobufTypeSuite extends BaseProtobufTypeSuite {
     test[Collections, CollectionP3]
     test[MoreCollections, MoreCollectionP3]
   }
+
+  test("AnyVal") {
+    test[ProtoHasValueClass, IntegersP2]
+  }
 }
 
 // Workaround for "Method too large: magnolify/protobuf/test/ProtobufTypeSuite.<init> ()V"
@@ -218,6 +222,8 @@ object Proto3Enums {
     ProtobufField.enum[ADT.Color, EnumsP3.ScalaEnums]
 }
 
+case class ProtoValueClass(value: Long) extends AnyVal
+case class ProtoHasValueClass(i: Int, l: ProtoValueClass)
 case class UnsafeByte(i: Byte, l: Long)
 case class UnsafeChar(i: Char, l: Long)
 case class UnsafeShort(i: Short, l: Long)

@@ -20,7 +20,6 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.net.URI
 import java.time._
 import java.util.UUID
-
 import cats._
 import magnolify.cats.auto._
 import magnolify.parquet._
@@ -31,6 +30,7 @@ import magnolify.test.Simple._
 import magnolify.test.Time._
 import magnolify.test._
 import org.apache.parquet.io._
+import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 import org.scalacheck._
 
 import scala.reflect.ClassTag
@@ -86,6 +86,17 @@ class ParquetTypeSuite extends MagnolifySuite {
     implicit val afDuration: ParquetField[Duration] =
       ParquetField.from[Long](Duration.ofMillis)(_.toMillis)
     test[Custom]
+  }
+
+  test("AnyVal") {
+    implicit val pt: ParquetType[HasValueClass] = ParquetType[HasValueClass]
+    test[HasValueClass]
+
+    val schema = pt.schema
+    val index = schema.getFieldIndex("vc")
+    val field = schema.getFields.get(index)
+    assert(field.isPrimitive)
+    assert(field.asPrimitiveType().getPrimitiveTypeName == PrimitiveTypeName.BINARY)
   }
 
   {

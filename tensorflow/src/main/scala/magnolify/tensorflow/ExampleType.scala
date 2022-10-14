@@ -40,16 +40,19 @@ sealed trait ExampleType[T] extends Converter[T, Example, Example.Builder] {
 }
 
 object ExampleType {
-  implicit def apply[T: ExampleField.Record]: ExampleType[T] = ExampleType(CaseMapper.identity)
+  implicit def apply[T: ExampleField]: ExampleType[T] = ExampleType(CaseMapper.identity)
 
-  def apply[T](cm: CaseMapper)(implicit f: ExampleField.Record[T]): ExampleType[T] =
-    new ExampleType[T] {
-      private val caseMapper: CaseMapper = cm
-      @transient override lazy val schema: Schema = f.schema(caseMapper)
-      override def from(v: Example): T = f.get(v.getFeatures, null)(caseMapper).get
-      override def to(v: T): Example.Builder =
-        Example.newBuilder().setFeatures(f.put(Features.newBuilder(), null, v)(caseMapper))
-    }
+  def apply[T](cm: CaseMapper)(implicit f: ExampleField[T]): ExampleType[T] = f match {
+    case r: ExampleField.Record[_] =>
+      new ExampleType[T] {
+        @transient override lazy val schema: Schema = r.schema(cm)
+        override def from(v: Example): T = r.get(v.getFeatures, null)(cm).get
+        override def to(v: T): Example.Builder =
+          Example.newBuilder().setFeatures(r.put(Features.newBuilder(), null, v)(cm))
+      }
+    case _ =>
+      throw new IllegalArgumentException(s"ExampleType can only be created from Record. Got $f")
+  }
 }
 
 sealed trait ExampleField[T] extends Serializable {
@@ -65,7 +68,7 @@ sealed trait ExampleField[T] extends Serializable {
 }
 
 object ExampleField {
-  trait Primitive[T] extends ExampleField[T] {
+  sealed trait Primitive[T] extends ExampleField[T] {
     type ValueT
     def fromFeature(v: Feature): ju.List[T]
     def toFeature(v: Iterable[T]): Feature
@@ -90,60 +93,75 @@ object ExampleField {
     def featureSchema(cm: CaseMapper): FeatureSchema
   }
 
-  trait Record[T] extends ExampleField[T]
+  sealed trait Record[T] extends ExampleField[T]
 
   // ////////////////////////////////////////////////
 
   type Typeclass[T] = ExampleField[T]
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    private def key(prefix: String, label: String): String =
-      if (prefix == null) label else s"$prefix.$label"
+  def join[T](caseClass: CaseClass[Typeclass, T]): ExampleField[T] = {
+    if (caseClass.isValueClass) {
+      val p = caseClass.parameters.head
+      val tc = p.typeclass
+      new ExampleField[T] {
+        override protected def buildSchema(cm: CaseMapper): Schema =
+          tc.buildSchema(cm)
+        override def get(f: Features, k: String)(cm: CaseMapper): Value[T] =
+          tc.get(f, k)(cm).map(x => caseClass.construct(_ => x))
+        override def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder =
+          tc.put(f, k, p.dereference(v))(cm)
+      }
+    } else {
+      new Record[T] {
+        private def key(prefix: String, label: String): String =
+          if (prefix == null) label else s"$prefix.$label"
 
-    override def get(f: Features, k: String)(cm: CaseMapper): Value[T] = {
-      var fallback = true
-      val r = caseClass.construct { p =>
-        val fieldKey = key(k, cm.map(p.label))
-        val fieldValue = p.typeclass.get(f, fieldKey)(cm)
-        if (fieldValue.isSome) {
-          fallback = false
+        override def get(f: Features, k: String)(cm: CaseMapper): Value[T] = {
+          var fallback = true
+          val r = caseClass.construct { p =>
+            val fieldKey = key(k, cm.map(p.label))
+            val fieldValue = p.typeclass.get(f, fieldKey)(cm)
+            if (fieldValue.isSome) {
+              fallback = false
+            }
+            fieldValue.getOrElse(p.default)
+          }
+          // result is default if all fields are default
+          if (fallback) Value.Default(r) else Value.Some(r)
         }
-        fieldValue.getOrElse(p.default)
-      }
-      // result is default if all fields are default
-      if (fallback) Value.Default(r) else Value.Some(r)
-    }
 
-    override def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder =
-      caseClass.parameters.foldLeft(f) { (f, p) =>
-        val fieldKey = key(k, cm.map(p.label))
-        val fieldValue = p.dereference(v)
-        p.typeclass.put(f, fieldKey, fieldValue)(cm)
-        f
-      }
+        override def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder =
+          caseClass.parameters.foldLeft(f) { (f, p) =>
+            val fieldKey = key(k, cm.map(p.label))
+            val fieldValue = p.dereference(v)
+            p.typeclass.put(f, fieldKey, fieldValue)(cm)
+            f
+          }
 
-    override protected def buildSchema(cm: CaseMapper): Schema = {
-      val sb = Schema.newBuilder()
-      getDoc(caseClass.annotations, caseClass.typeName.full).foreach(sb.setAnnotation)
-      caseClass.parameters.foldLeft(sb) { (b, p) =>
-        val fieldNane = cm.map(p.label)
-        val fieldSchema = p.typeclass.schema(cm)
-        val fieldFeatures = fieldSchema.getFeatureList.asScala.map { f =>
-          val fb = f.toBuilder
-          // if schema does not have a name (eg. primitive), use the fieldNane
-          // otherwise prepend to the feature name (eg. nested records)
-          val fieldKey = if (f.hasName) key(fieldNane, f.getName) else fieldNane
-          fb.setName(fieldKey)
-          // if field already has a doc, keep it
-          // otherwise use the parameter annotation
-          val fieldDoc = getDoc(p.annotations, s"${caseClass.typeName.full}#$fieldKey")
-          if (!f.hasAnnotation) fieldDoc.foreach(fb.setAnnotation)
-          fb.build()
-        }.asJava
-        b.addAllFeature(fieldFeatures)
-        b
+        override protected def buildSchema(cm: CaseMapper): Schema = {
+          val sb = Schema.newBuilder()
+          getDoc(caseClass.annotations, caseClass.typeName.full).foreach(sb.setAnnotation)
+          caseClass.parameters.foldLeft(sb) { (b, p) =>
+            val fieldNane = cm.map(p.label)
+            val fieldSchema = p.typeclass.schema(cm)
+            val fieldFeatures = fieldSchema.getFeatureList.asScala.map { f =>
+              val fb = f.toBuilder
+              // if schema does not have a name (eg. primitive), use the fieldNane
+              // otherwise prepend to the feature name (eg. nested records)
+              val fieldKey = if (f.hasName) key(fieldNane, f.getName) else fieldNane
+              fb.setName(fieldKey)
+              // if field already has a doc, keep it
+              // otherwise use the parameter annotation
+              val fieldDoc = getDoc(p.annotations, s"${caseClass.typeName.full}#$fieldKey")
+              if (!f.hasAnnotation) fieldDoc.foreach(fb.setAnnotation)
+              fb.build()
+            }.asJava
+            b.addAllFeature(fieldFeatures)
+            b
+          }
+          sb.build()
+        }
       }
-      sb.build()
     }
   }
 
@@ -155,9 +173,9 @@ object ExampleField {
 
   @implicitNotFound("Cannot derive ExampleField for sealed trait")
   private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): ExampleField[T] = ???
 
-  implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: ExampleField[T] = macro Magnolia.gen[T]
 
   // ////////////////////////////////////////////////
 

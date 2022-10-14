@@ -43,15 +43,20 @@ sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
 }
 
 object AvroType {
-  implicit def apply[T: AvroField.Record]: AvroType[T] = AvroType(CaseMapper.identity)
+  implicit def apply[T: AvroField]: AvroType[T] = AvroType(CaseMapper.identity)
 
-  def apply[T](cm: CaseMapper)(implicit f: AvroField.Record[T]): AvroType[T] = {
-    f.schema(cm) // fail fast on bad annotations
-    new AvroType[T] {
-      private val caseMapper: CaseMapper = cm
-      @transient override lazy val schema: Schema = f.schema(caseMapper)
-      override def from(v: GenericRecord): T = f.from(v)(caseMapper)
-      override def to(v: T): GenericRecord = f.to(v)(caseMapper)
+  def apply[T](cm: CaseMapper)(implicit f: AvroField[T]): AvroType[T] = {
+    f match {
+      case r: AvroField.Record[_] =>
+        r.schema(cm) // fail fast on bad annotations
+        new AvroType[T] {
+          private val caseMapper: CaseMapper = cm
+          @transient override lazy val schema: Schema = r.schema(caseMapper)
+          override def from(v: GenericRecord): T = r.from(v)(caseMapper)
+          override def to(v: T): GenericRecord = r.to(v)(caseMapper)
+        }
+      case _ =>
+        throw new IllegalArgumentException(s"AvroType can only be created from Record. Got $f")
     }
   }
 }
@@ -84,54 +89,67 @@ object AvroField {
     override type FromT = From
     override type ToT = To
   }
-
   sealed trait Record[T] extends Aux[T, GenericRecord, GenericRecord]
 
   // ////////////////////////////////////////////////
 
   type Typeclass[T] = AvroField[T]
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    override protected def buildSchema(cm: CaseMapper): Schema = Schema
-      .createRecord(
-        caseClass.typeName.short,
-        getDoc(caseClass.annotations, caseClass.typeName.full),
-        caseClass.typeName.owner,
-        false,
-        caseClass.parameters.map { p =>
-          new Schema.Field(
-            cm.map(p.label),
-            p.typeclass.schema(cm),
-            getDoc(p.annotations, s"${caseClass.typeName.full}#${p.label}"),
-            p.default
-              .map(d => p.typeclass.makeDefault(d)(cm))
-              .getOrElse(p.typeclass.fallbackDefault)
+  def join[T](caseClass: CaseClass[Typeclass, T]): AvroField[T] = {
+    if (caseClass.isValueClass) {
+      val p = caseClass.parameters.head
+      val tc = p.typeclass
+      new AvroField[T] {
+        override type FromT = tc.FromT
+        override type ToT = tc.ToT
+        override protected def buildSchema(cm: CaseMapper): Schema = tc.buildSchema(cm)
+        override def from(v: FromT)(cm: CaseMapper): T = caseClass.construct(_ => tc.fromAny(v)(cm))
+        override def to(v: T)(cm: CaseMapper): ToT = tc.to(p.dereference(v))(cm)
+      }
+    } else {
+      new Record[T] {
+        override protected def buildSchema(cm: CaseMapper): Schema = Schema
+          .createRecord(
+            caseClass.typeName.short,
+            getDoc(caseClass.annotations, caseClass.typeName.full),
+            caseClass.typeName.owner,
+            false,
+            caseClass.parameters.map { p =>
+              new Schema.Field(
+                cm.map(p.label),
+                p.typeclass.schema(cm),
+                getDoc(p.annotations, s"${caseClass.typeName.full}#${p.label}"),
+                p.default
+                  .map(d => p.typeclass.makeDefault(d)(cm))
+                  .getOrElse(p.typeclass.fallbackDefault)
+              )
+            }.asJava
           )
-        }.asJava
-      )
 
-    // `JacksonUtils.toJson` expects `Map[String, Any]` for `RECORD` defaults
-    override def makeDefault(d: T)(cm: CaseMapper): ju.Map[String, Any] = {
-      caseClass.parameters
-        .map { p =>
-          val name = cm.map(p.label)
-          val value = p.typeclass.makeDefault(p.dereference(d))(cm)
-          name -> value
+        // `JacksonUtils.toJson` expects `Map[String, Any]` for `RECORD` defaults
+        override def makeDefault(d: T)(cm: CaseMapper): ju.Map[String, Any] = {
+          caseClass.parameters
+            .map { p =>
+              val name = cm.map(p.label)
+              val value = p.typeclass.makeDefault(p.dereference(d))(cm)
+              name -> value
+            }
+            .toMap
+            .asJava
         }
-        .toMap
-        .asJava
+
+        override def from(v: GenericRecord)(cm: CaseMapper): T =
+          caseClass.construct { p =>
+            p.typeclass.fromAny(v.get(p.index))(cm)
+          }
+
+        override def to(v: T)(cm: CaseMapper): GenericRecord =
+          caseClass.parameters.foldLeft(new GenericData.Record(schema(cm))) { (r, p) =>
+            r.put(p.index, p.typeclass.to(p.dereference(v))(cm))
+            r
+          }
+      }
     }
-
-    override def from(v: GenericRecord)(cm: CaseMapper): T =
-      caseClass.construct { p =>
-        p.typeclass.fromAny(v.get(p.index))(cm)
-      }
-
-    override def to(v: T)(cm: CaseMapper): GenericRecord =
-      caseClass.parameters.foldLeft(new GenericData.Record(schema(cm))) { (r, p) =>
-        r.put(p.index, p.typeclass.to(p.dereference(v))(cm))
-        r
-      }
   }
 
   private def getDoc(annotations: Seq[Any], name: String): String = {
@@ -142,9 +160,9 @@ object AvroField {
 
   @implicitNotFound("Cannot derive AvroField for sealed trait")
   private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Record[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): AvroField[T] = ???
 
-  implicit def gen[T]: Record[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: AvroField[T] = macro Magnolia.gen[T]
 
   // ////////////////////////////////////////////////
 

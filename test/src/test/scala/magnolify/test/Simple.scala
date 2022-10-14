@@ -121,4 +121,7 @@ object Simple {
     val fields: Seq[String] = Seq("firstField", "secondField", "innerField")
     val default: LowerCamel = LowerCamel("first", "second", LowerCamelInner("inner.first"))
   }
+
+  case class ValueClass(str: String) extends AnyVal
+  case class HasValueClass(vc: ValueClass)
 }
