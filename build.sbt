@@ -66,7 +66,6 @@ ThisBuild / tpolecatDevModeOptions ~= { opts =>
     ScalacOptions.privateOption("retain-trees", _ >= V3_0_0),
     // allow some nested auto derivation
     ScalacOptions.advancedOption("max-inlines", List("64"), _ >= V3_0_0),
-    ScalacOptions.other("-target:jvm-1.8"),
     ScalacOptions.warnOption("macros:after", _.isBetween(V2_13_0, V3_0_0)),
     ScalacOptions.privateWarnOption("macros:after", _.isBetween(V2_12_0, V2_13_0)),
     ScalacOptions.privateBackendParallelism(),
