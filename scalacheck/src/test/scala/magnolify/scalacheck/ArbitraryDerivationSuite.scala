@@ -17,7 +17,7 @@
 package magnolify.scalacheck
 
 import magnolify.scalacheck.auto._
-import magnolify.scalacheck.MoreCollectionsBuildable._
+import magnolify.scalacheck.MoreCollectionsBuildable._ // extra scala 2.12 Buildable
 import magnolify.scalacheck.TestArbitrary.arbDuration
 import magnolify.scalacheck.TestArbitrary.arbUri
 import magnolify.shims._

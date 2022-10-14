@@ -37,10 +37,13 @@ object SchemaEvolutionSuite {
   private val nullVal = JsonProperties.NULL_VALUE
 
   private def nullableString: AvroSchema =
-    AvroSchema.createUnion(List(AvroSchema.Type.NULL, AvroSchema.Type.STRING).map(AvroSchema.create).asJava)
+    AvroSchema.createUnion(
+      List(AvroSchema.Type.NULL, AvroSchema.Type.STRING).map(AvroSchema.create).asJava
+    )
 
   val (locationSchema1, locationSchema2): (AvroSchema, AvroSchema) = {
-    def country = new AvroSchema.Field("country", AvroSchema.create(AvroSchema.Type.STRING), "", null)
+    def country =
+      new AvroSchema.Field("country", AvroSchema.create(AvroSchema.Type.STRING), "", null)
     def state = new AvroSchema.Field("state", AvroSchema.create(AvroSchema.Type.STRING), "", null)
 
     val v1 = AvroSchema.createRecord("LocationV1", "", namespace, false)
