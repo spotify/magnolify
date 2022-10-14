@@ -16,23 +16,27 @@
 
 package magnolify.datastore.test
 
-import java.net.URI
-import java.time.{Duration, Instant}
-
 import cats._
-import com.google.datastore.v1.{Entity, Key}
+import com.google.datastore.v1.Entity
+import com.google.datastore.v1.Key
 import com.google.protobuf.ByteString
+import magnolify.cats.auto._
+import magnolify.cats.test.TestEq._
 import magnolify.datastore._
 import magnolify.datastore.unsafe._
-import magnolify.cats.auto._
 import magnolify.scalacheck.auto._
+import magnolify.scalacheck.test.TestArbitrary._
 import magnolify.shared.CaseMapper
+import magnolify.shared.TestEnumType._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
 
-import scala.reflect._
+import java.net.URI
+import java.time.Duration
+import java.time.Instant
 import scala.jdk.CollectionConverters._
+import scala.reflect._
 
 class EntityTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit t: EntityType[T], eq: Eq[T]): Unit = {
@@ -46,9 +50,6 @@ class EntityTypeSuite extends MagnolifySuite {
     }
   }
 
-  import magnolify.scalacheck.test.TestArbitrary._
-  import magnolify.cats.test.TestEq._
-  import magnolify.shared.TestEnumType._
   implicit val arbByteString: Arbitrary[ByteString] =
     Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
   implicit val eqByteString: Eq[ByteString] = Eq.fromUniversalEquals

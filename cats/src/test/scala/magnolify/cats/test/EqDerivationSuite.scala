@@ -16,10 +16,16 @@
 
 package magnolify.cats.test
 
+import cats.Eq._
 import cats._
 import cats.kernel.laws.discipline._
 import magnolify.cats.auto._
+import magnolify.cats.test.TestEq.eqArray
+import magnolify.cats.test.TestEq.eqDuration
+import magnolify.cats.test.TestEq.eqUri
 import magnolify.scalacheck.auto._
+import magnolify.scalacheck.test.TestArbitrary._
+import magnolify.scalacheck.test.TestCogen._
 import magnolify.test.ADT._
 import magnolify.test.Simple._
 import magnolify.test._
@@ -33,11 +39,6 @@ class EqDerivationSuite extends MagnolifySuite {
     include(EqTests[T](eq).eqv.all, className[T] + ".")
   }
 
-  // prefer cats Eq instance as auto derivation
-  import cats.Eq._
-  import magnolify.scalacheck.test.TestArbitrary._
-  import magnolify.scalacheck.test.TestCogen._
-  import magnolify.cats.test.TestEq.{eqArray, eqDuration, eqUri}
   test[Numbers]
   test[Required]
   test[Nullable]

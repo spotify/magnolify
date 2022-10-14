@@ -16,24 +16,27 @@
 
 package magnolify.bigquery.test
 
-import java.net.URI
-import java.time._
-import java.time.format.DateTimeFormatter
-
 import cats._
-import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
 import com.google.api.services.bigquery.model.TableRow
 import magnolify.bigquery._
 import magnolify.bigquery.unsafe._
 import magnolify.cats.auto._
+import magnolify.cats.test.TestEq._
 import magnolify.scalacheck.auto._
+import magnolify.scalacheck.test.TestArbitrary._
 import magnolify.shared.CaseMapper
+import magnolify.shared.TestEnumType._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
 
-import scala.reflect._
+import java.net.URI
+import java.time._
+import java.time.format.DateTimeFormatter
 import scala.jdk.CollectionConverters._
+import scala.reflect._
 
 class TableRowTypeSuite extends MagnolifySuite {
   private val mapper = new ObjectMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
@@ -51,9 +54,6 @@ class TableRowTypeSuite extends MagnolifySuite {
     }
   }
 
-  import magnolify.scalacheck.test.TestArbitrary._
-  import magnolify.cats.test.TestEq._
-  import magnolify.shared.TestEnumType._
   implicit val arbBigDecimal: Arbitrary[BigDecimal] =
     Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(BigDecimal(_)))
   // `TableRow` reserves field `f`

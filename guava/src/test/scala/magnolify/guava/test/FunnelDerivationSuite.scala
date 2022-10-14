@@ -16,19 +16,25 @@
 
 package magnolify.guava.test
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
-import java.net.URI
-import java.nio.ByteBuffer
-import java.nio.charset.{Charset, StandardCharsets}
-import java.time.Duration
-import com.google.common.hash.{Funnel, PrimitiveSink}
+import com.google.common.hash.Funnel
+import com.google.common.hash.PrimitiveSink
 import magnolify.guava.auto._
 import magnolify.scalacheck.auto._
+import magnolify.scalacheck.test.TestArbitrary._
 import magnolify.test.ADT._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
 
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
+import java.net.URI
+import java.nio.ByteBuffer
+import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
+import java.time.Duration
 import scala.reflect._
 
 class FunnelDerivationSuite extends MagnolifySuite {
@@ -55,7 +61,6 @@ class FunnelDerivationSuite extends MagnolifySuite {
     sink.toBytes.toList
   }
 
-  import magnolify.scalacheck.test.TestArbitrary._
   implicit val fUri: Funnel[URI] = FunnelDerivation.by(_.toString)
   implicit val fDuration: Funnel[Duration] = FunnelDerivation.by(_.toMillis)
 

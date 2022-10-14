@@ -17,13 +17,17 @@
 package magnolify.neo4j
 
 import cats.Eq
+import magnolify.cats.auto._
+import magnolify.cats.test.TestEq._
+import magnolify.neo4j.unsafe._
+import magnolify.scalacheck.auto._
+import magnolify.scalacheck.test.TestArbitrary._
+import magnolify.shared.CaseMapper
+import magnolify.shared.TestEnumType._
 import magnolify.test.MagnolifySuite
 import magnolify.test.Simple._
-import magnolify.cats.auto._
-import magnolify.scalacheck.auto._
-import magnolify.shared.CaseMapper
-import magnolify.neo4j.unsafe._
-import org.scalacheck.{Arbitrary, Prop}
+import org.scalacheck.Arbitrary
+import org.scalacheck.Prop
 
 import java.net.URI
 import scala.reflect.ClassTag
@@ -41,10 +45,7 @@ class ValueTypeSuite extends MagnolifySuite {
     }
   }
 
-  import magnolify.scalacheck.test.TestArbitrary._
-  import magnolify.cats.test.TestEq._
-  import magnolify.shared.TestEnumType._
-  implicit val nvUri: ValueField[URI] = ValueField.from[String](URI.create)(_.toString)
+  implicit val vfUri: ValueField[URI] = ValueField.from[String](URI.create)(_.toString)
 
   test[Integers]
   test[Floats]

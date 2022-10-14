@@ -31,6 +31,8 @@ import magnolify.test.Proto3._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
+import magnolify.scalacheck.test.TestArbitrary._
+import magnolify.cats.test.TestEq.{eqEnums => _, eqNullable => _, _}
 
 import scala.reflect._
 
@@ -52,9 +54,6 @@ trait BaseProtobufTypeSuite extends MagnolifySuite {
 }
 
 class ProtobufTypeSuite extends BaseProtobufTypeSuite {
-
-  import magnolify.scalacheck.test.TestArbitrary._
-  import magnolify.cats.test.TestEq.{eqNullable => _, _}
 
   test[Integers, IntegersP2]
   test[Integers, IntegersP3]
@@ -104,8 +103,6 @@ class ProtobufTypeSuite extends BaseProtobufTypeSuite {
 // Workaround for "Method too large: magnolify/protobuf/test/ProtobufTypeSuite.<init> ()V"
 class MoreProtobufTypeSuite extends BaseProtobufTypeSuite {
 
-  import magnolify.scalacheck.test.TestArbitrary._
-  import magnolify.cats.test.TestEq.{eqEnums => _, eqNullable => _, _}
   implicit val arbByteString: Arbitrary[ByteString] =
     Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
   implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)

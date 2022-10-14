@@ -17,6 +17,9 @@
 package magnolify.scalacheck.test
 
 import magnolify.scalacheck.auto._
+import magnolify.scalacheck.test.MoreCollectionsBuildable._
+import magnolify.scalacheck.test.TestArbitrary.arbDuration
+import magnolify.scalacheck.test.TestArbitrary.arbUri
 import magnolify.shims._
 import magnolify.test.ADT._
 import magnolify.test.Simple._
@@ -50,9 +53,6 @@ class ArbitraryDerivationSuite extends MagnolifySuite {
       }
     }
   }
-
-  import MoreCollectionsBuildable._ // scala 2.12 does not find implicit Buildable for some collections
-  import magnolify.scalacheck.test.TestArbitrary.{arbDuration, arbUri}
 
   test[Numbers]
   test[Required]

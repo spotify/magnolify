@@ -16,21 +16,23 @@
 
 package magnolify.bigtable.test
 
-import java.net.URI
-import java.time.Duration
-import java.util.UUID
-
 import cats._
 import com.google.bigtable.v2.Row
 import com.google.protobuf.ByteString
 import magnolify.bigtable._
 import magnolify.cats.auto._
+import magnolify.cats.test.TestEq._
 import magnolify.scalacheck.auto._
+import magnolify.scalacheck.test.TestArbitrary._
 import magnolify.shared.CaseMapper
+import magnolify.shared.TestEnumType._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
 
+import java.net.URI
+import java.time.Duration
+import java.util.UUID
 import scala.reflect._
 
 class BigtableTypeSuite extends MagnolifySuite {
@@ -52,9 +54,6 @@ class BigtableTypeSuite extends MagnolifySuite {
     }
   }
 
-  import magnolify.scalacheck.test.TestArbitrary._
-  import magnolify.cats.test.TestEq._
-  import magnolify.shared.TestEnumType._
   implicit val arbByteString: Arbitrary[ByteString] =
     Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
   implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)

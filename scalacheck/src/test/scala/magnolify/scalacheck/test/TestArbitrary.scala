@@ -27,10 +27,6 @@ import java.time._
 import java.net.URI
 
 object TestArbitrary {
-  // other
-  implicit lazy val arbUri: Arbitrary[URI] =
-    Arbitrary(Gen.alphaNumStr.map(URI.create))
-
   // time
   implicit lazy val arbInstant: Arbitrary[Instant] =
     Arbitrary(Gen.posNum[Long].map(Instant.ofEpochMilli))
@@ -83,4 +79,7 @@ object TestArbitrary {
   implicit lazy val arbLowerCamel: Arbitrary[LowerCamel] = ArbitraryDerivation[LowerCamel]
   implicit lazy val arbLowerCamelInner: Arbitrary[LowerCamelInner] =
     ArbitraryDerivation[LowerCamelInner]
+
+  // other
+  implicit lazy val arbUri: Arbitrary[URI] = Arbitrary(Gen.alphaNumStr.map(URI.create))
 }

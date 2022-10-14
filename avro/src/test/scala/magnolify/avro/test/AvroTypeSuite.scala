@@ -16,35 +16,43 @@
 
 package magnolify.avro.test
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
-import java.net.URI
-import java.nio.ByteBuffer
-import java.time.format.DateTimeFormatter
-import java.time.{Duration, Instant, LocalDate, LocalDateTime, LocalTime}
-import java.util.UUID
 import cats._
 import com.fasterxml.jackson.core.JsonFactory
-import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import magnolify.avro._
 import magnolify.avro.unsafe._
 import magnolify.cats.auto._
+import magnolify.cats.test.TestEq._
 import magnolify.scalacheck.auto._
+import magnolify.scalacheck.test.TestArbitrary._
 import magnolify.shared.CaseMapper
+import magnolify.shared.TestEnumType._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.apache.avro.Schema
-import org.apache.avro.generic.{
-  GenericDatumReader,
-  GenericDatumWriter,
-  GenericRecord,
-  GenericRecordBuilder
-}
-import org.apache.avro.io.{DecoderFactory, EncoderFactory}
+import org.apache.avro.generic.GenericDatumReader
+import org.apache.avro.generic.GenericDatumWriter
+import org.apache.avro.generic.GenericRecord
+import org.apache.avro.generic.GenericRecordBuilder
+import org.apache.avro.io.DecoderFactory
+import org.apache.avro.io.EncoderFactory
 import org.scalacheck._
 
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.net.URI
+import java.nio.ByteBuffer
+import java.time.Duration
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.util.UUID
+import scala.jdk.CollectionConverters._
 import scala.reflect._
 import scala.util.Try
-import scala.jdk.CollectionConverters._
 
 class AvroTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit
@@ -97,9 +105,6 @@ class AvroTypeSuite extends MagnolifySuite {
     }
   }
 
-  import magnolify.scalacheck.test.TestArbitrary._
-  import magnolify.cats.test.TestEq._
-  import magnolify.shared.TestEnumType._
   implicit val arbBigDecimal: Arbitrary[BigDecimal] =
     Arbitrary(Gen.chooseNum(0L, Long.MaxValue).map(BigDecimal(_, 0)))
   implicit val arbCountryCode: Arbitrary[CountryCode] = Arbitrary(

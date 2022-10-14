@@ -29,9 +29,11 @@ import scala.reflect._
 
 import java.net.URI
 import java.time.Duration
+import cats.Eq._
+import magnolify.scalacheck.test.TestArbitrary._
+import magnolify.scalacheck.test.TestCogen._
 
 class HashDerivationSuite extends MagnolifySuite {
-  private def test[T: Arbitrary: ClassTag: Cogen: Hash]: Unit = test()
 
   private def test[T: Arbitrary: ClassTag: Cogen: Hash](exclusions: String*): Unit = {
     val hash = ensureSerializable(implicitly[Hash[T]])
@@ -41,9 +43,6 @@ class HashDerivationSuite extends MagnolifySuite {
     }
   }
 
-  import cats.Eq._
-  import magnolify.scalacheck.test.TestArbitrary._
-  import magnolify.scalacheck.test.TestCogen._
   // Use `scala.util.hashing.Hashing[T]` for `Array[Int]`, equivalent to `x.##` and `x.hashCode`
   implicit val hash: Hash[Array[Int]] = Hash.fromHashing[Array[Int]]
   implicit val hashUri: Hash[URI] = Hash.fromUniversalHashCode
@@ -51,15 +50,15 @@ class HashDerivationSuite extends MagnolifySuite {
 
   // Long.## != Long.hashCode for negative values
   test[Integers]("same as scala hashing", "same as universal hash")
-  test[Required]
-  test[Nullable]
-  test[Repeated]
-  test[Nested]
-  test[Collections]
-  test[Custom]
+  test[Required]()
+  test[Nullable]()
+  test[Repeated]()
+  test[Nested]()
+  test[Collections]()
+  test[Custom]()
 
-  test[Node]
-  test[GNode[Int]]
-  test[Shape]
-  test[Color]
+  test[Node]()
+  test[GNode[Int]]()
+  test[Shape]()
+  test[Color]()
 }

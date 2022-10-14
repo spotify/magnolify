@@ -16,18 +16,20 @@
 
 package magnolify.cats.test
 
-import java.net.URI
-import java.time.Duration
-
+import cats.Eq._
 import cats._
 import cats.kernel.laws.discipline._
 import magnolify.cats.auto._
+import magnolify.cats.test.TestEq._
 import magnolify.cats.test.Types.MiniInt
 import magnolify.scalacheck.auto._
+import magnolify.scalacheck.test.TestArbitrary._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
 
+import java.net.URI
+import java.time.Duration
 import scala.reflect._
 
 class MonoidDerivationSuite extends MagnolifySuite {
@@ -38,9 +40,6 @@ class MonoidDerivationSuite extends MagnolifySuite {
     include(MonoidTests[T](mon).monoid.all, className[T] + ".")
   }
 
-  import cats.Eq._
-  import magnolify.scalacheck.test.TestArbitrary._
-  import magnolify.cats.test.TestEq._
   implicit val mBool: Monoid[Boolean] = Monoid.instance(false, _ || _)
   implicit val mUri: Monoid[URI] =
     Monoid.instance(URI.create(""), (x, y) => URI.create(x.toString + y.toString))

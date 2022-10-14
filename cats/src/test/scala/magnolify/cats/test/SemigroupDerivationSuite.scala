@@ -16,18 +16,20 @@
 
 package magnolify.cats.test
 
-import java.net.URI
-import java.time.Duration
-
+import cats.Eq._
 import cats._
 import cats.kernel.laws.discipline._
 import magnolify.cats.auto._
+import magnolify.cats.test.TestEq._
 import magnolify.cats.test.Types.MiniInt
 import magnolify.scalacheck.auto._
+import magnolify.scalacheck.test.TestArbitrary._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
 
+import java.net.URI
+import java.time.Duration
 import scala.reflect._
 
 class SemigroupDerivationSuite extends MagnolifySuite {
@@ -38,9 +40,6 @@ class SemigroupDerivationSuite extends MagnolifySuite {
     include(SemigroupTests[T](sg).semigroup.all, className[T] + ".")
   }
 
-  import cats.Eq._
-  import magnolify.scalacheck.test.TestArbitrary._
-  import magnolify.cats.test.TestEq._
   implicit val sgBool: Semigroup[Boolean] = Semigroup.instance(_ ^ _)
   implicit val sgUri: Semigroup[URI] =
     Semigroup.instance((x, y) => URI.create(x.toString + y.toString))

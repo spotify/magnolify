@@ -16,23 +16,29 @@
 
 package magnolify.tensorflow.test
 
-import java.net.URI
-import java.time.Duration
 import cats._
 import com.google.protobuf.ByteString
 import magnolify.cats.auto._
+import magnolify.cats.test.TestEq._
 import magnolify.scalacheck.auto._
+import magnolify.scalacheck.test.TestArbitrary.{arbFloats => _, _}
 import magnolify.shared.CaseMapper
+import magnolify.shared.TestEnumType._
 import magnolify.tensorflow._
 import magnolify.tensorflow.unsafe._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.scalacheck._
+import org.tensorflow.metadata.v0.Annotation
+import org.tensorflow.metadata.v0.Feature
+import org.tensorflow.metadata.v0.FeatureType
+import org.tensorflow.metadata.v0.Schema
 import org.tensorflow.proto.example.Example
-import org.tensorflow.metadata.v0.{Annotation, Feature, FeatureType, Schema}
 
-import scala.reflect._
+import java.net.URI
+import java.time.Duration
 import scala.jdk.CollectionConverters._
+import scala.reflect._
 
 class ExampleTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit t: ExampleType[T], eq: Eq[T]): Unit = {
@@ -46,9 +52,6 @@ class ExampleTypeSuite extends MagnolifySuite {
     }
   }
 
-  import magnolify.scalacheck.test.TestArbitrary.{arbFloats => _, _}
-  import magnolify.cats.test.TestEq._
-  import magnolify.shared.TestEnumType._
   // workaround for Double to Float precision loss
   implicit val arbDouble: Arbitrary[Double] =
     Arbitrary(Arbitrary.arbFloat.arbitrary.map(_.toDouble))

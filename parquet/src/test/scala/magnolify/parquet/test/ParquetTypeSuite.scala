@@ -16,24 +16,28 @@
 
 package magnolify.parquet.test
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
-import java.net.URI
-import java.time._
-import java.util.UUID
 import cats._
 import magnolify.cats.auto._
+import magnolify.cats.test.TestEq._
 import magnolify.parquet._
 import magnolify.parquet.unsafe._
 import magnolify.scalacheck.auto._
+import magnolify.scalacheck.test.TestArbitrary._
 import magnolify.shared.CaseMapper
+import magnolify.shared.TestEnumType._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.apache.parquet.io._
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 import org.scalacheck._
 
-import scala.reflect.ClassTag
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.net.URI
+import java.time._
+import java.util.UUID
 import scala.jdk.CollectionConverters._
+import scala.reflect.ClassTag
 
 class ParquetTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit
@@ -58,10 +62,8 @@ class ParquetTypeSuite extends MagnolifySuite {
     }
   }
 
-  import magnolify.scalacheck.test.TestArbitrary._
-  import magnolify.cats.test.TestEq._
-  import magnolify.shared.TestEnumType._
-  implicit val pfUri: ParquetField[URI] = ParquetField.from[String](URI.create)(_.toString)
+  implicit val pfUri: ParquetField[URI] =
+    ParquetField.from[String](URI.create)(_.toString)
   implicit val pfDuration: ParquetField[Duration] =
     ParquetField.from[Long](Duration.ofMillis)(_.toMillis)
 
