@@ -66,6 +66,14 @@ class ValueTypeSuite extends MagnolifySuite {
     test[Custom]
   }
 
+  test("AnyVal") {
+    implicit val vt: ValueType[HasValueClass] = ValueType[HasValueClass]
+    test[HasValueClass]
+
+    val record = vt(HasValueClass(ValueClass("String")))
+    assert(record.get("vc").asString() == "String")
+  }
+
   test("LowerCamel mapping") {
     implicit val vt: ValueType[LowerCamel] = ValueType[LowerCamel](CaseMapper(_.toUpperCase))
     test[LowerCamel]

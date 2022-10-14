@@ -77,6 +77,14 @@ class EntityTypeSuite extends MagnolifySuite {
     test[Custom]
   }
 
+  test("AnyVal") {
+    implicit val et: EntityType[HasValueClass] = EntityType[HasValueClass]
+    test[HasValueClass]
+
+    val record = et(HasValueClass(ValueClass("String")))
+    assert(record.getPropertiesOrThrow("vc").getStringValue == "String")
+  }
+
   {
     implicit val arbByteString: Arbitrary[ByteString] =
       Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))

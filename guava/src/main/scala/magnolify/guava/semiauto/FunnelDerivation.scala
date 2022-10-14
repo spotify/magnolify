@@ -27,7 +27,10 @@ object FunnelDerivation {
 
   def join[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] = new Funnel[T] {
     override def funnel(from: T, into: PrimitiveSink): Unit =
-      if (caseClass.parameters.isEmpty) {
+      if (caseClass.isValueClass) {
+        val p = caseClass.parameters.head
+        p.typeclass.funnel(p.dereference(from), into)
+      } else if (caseClass.parameters.isEmpty) {
         into.putString(caseClass.typeName.short, Charsets.UTF_8)
       } else {
         caseClass.parameters.foreach { p =>

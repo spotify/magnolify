@@ -85,19 +85,23 @@ sealed trait ParquetType[T] extends Serializable {
 object ParquetType {
   private val logger = LoggerFactory.getLogger(this.getClass)
 
-  implicit def apply[T](implicit f: ParquetField.Record[T], pa: ParquetArray): ParquetType[T] =
+  implicit def apply[T](implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] =
     ParquetType(CaseMapper.identity)
 
   def apply[T](
     cm: CaseMapper
-  )(implicit f: ParquetField.Record[T], pa: ParquetArray): ParquetType[T] =
-    new ParquetType[T] {
-      override def schema: MessageType = Schema.message(f.schema(cm))
-
-      override val avroCompat: Boolean = pa == ParquetArray.AvroCompat.avroCompat || f.hasAvroArray
-      override def write(c: RecordConsumer, v: T): Unit = f.write(c, v)(cm)
-      override def newConverter: TypeConverter[T] = f.newConverter
-    }
+  )(implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] = f match {
+    case r: ParquetField.Record[_] =>
+      new ParquetType[T] {
+        override def schema: MessageType = Schema.message(r.schema(cm))
+        override val avroCompat: Boolean =
+          pa == ParquetArray.AvroCompat.avroCompat || f.hasAvroArray
+        override def write(c: RecordConsumer, v: T): Unit = r.write(c, v)(cm)
+        override def newConverter: TypeConverter[T] = r.newConverter
+      }
+    case _ =>
+      throw new IllegalArgumentException(s"ParquetType can only be created from Record. Got $f")
+  }
 
   val ReadTypeKey = "parquet.type.read.type"
   val WriteTypeKey = "parquet.type.write.type"
@@ -223,61 +227,88 @@ sealed trait ParquetField[T] extends Serializable {
 }
 
 object ParquetField {
-  type Typeclass[T] = ParquetField[T]
-
   sealed trait Record[T] extends ParquetField[T] {
     override protected val isGroup: Boolean = true
     override protected def isEmpty(v: T): Boolean = false
   }
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Record[T] = new Record[T] {
-    override def buildSchema(cm: CaseMapper): Type =
-      caseClass.parameters
-        .foldLeft(Types.requiredGroup()) { (g, p) =>
-          g.addField(Schema.rename(p.typeclass.schema(cm), cm.map(p.label)))
-        }
-        .named(caseClass.typeName.full)
+  // ////////////////////////////////////////////
+  type Typeclass[T] = ParquetField[T]
 
-    override val hasAvroArray: Boolean = caseClass.parameters.exists(_.typeclass.hasAvroArray)
-
-    override def write(c: RecordConsumer, v: T)(cm: CaseMapper): Unit = {
-      caseClass.parameters.foreach { p =>
-        val x = p.dereference(v)
-        if (!p.typeclass.isEmpty(x)) {
-          val name = cm.map(p.label)
-          c.startField(name, p.index)
-          p.typeclass.writeGroup(c, x)(cm)
-          c.endField(name, p.index)
+  def join[T](caseClass: CaseClass[Typeclass, T]): ParquetField[T] = {
+    if (caseClass.isValueClass) {
+      val p = caseClass.parameters.head
+      val tc = p.typeclass
+      new ParquetField[T] {
+        override protected def buildSchema(cm: CaseMapper): Type = tc.buildSchema(cm)
+        override protected def isEmpty(v: T): Boolean = tc.isEmpty(p.dereference(v))
+        override def write(c: RecordConsumer, v: T)(cm: CaseMapper): Unit =
+          tc.writeGroup(c, p.dereference(v))(cm)
+        override def newConverter: TypeConverter[T] = {
+          val buffered = tc.newConverter
+            .asInstanceOf[TypeConverter.Buffered[p.PType]]
+          new TypeConverter.Delegate[p.PType, T](buffered) {
+            override def get: T = inner.get(b => caseClass.construct(_ => b.head))
+          }
         }
       }
-    }
+    } else {
+      new Record[T] {
+        override def buildSchema(cm: CaseMapper): Type =
+          caseClass.parameters
+            .foldLeft(Types.requiredGroup()) { (g, p) =>
+              g.addField(Schema.rename(p.typeclass.schema(cm), cm.map(p.label)))
+            }
+            .named(caseClass.typeName.full)
 
-    override def newConverter: TypeConverter[T] =
-      new GroupConverter with TypeConverter.Buffered[T] {
-        private val fieldConverters = caseClass.parameters.map(_.typeclass.newConverter)
-        override def isPrimitive: Boolean = false
-        override def getConverter(fieldIndex: Int): Converter = fieldConverters(fieldIndex)
-        override def start(): Unit = ()
-        override def end(): Unit = {
-          val value = caseClass.construct { p =>
-            try {
-              fieldConverters(p.index).get
-            } catch {
-              case e: IllegalArgumentException =>
-                val field = s"${caseClass.typeName.full}#${p.label}"
-                throw new ParquetDecodingException(s"Failed to decode $field: ${e.getMessage}", e)
+        override val hasAvroArray: Boolean = caseClass.parameters.exists(_.typeclass.hasAvroArray)
+
+        override def write(c: RecordConsumer, v: T)(cm: CaseMapper): Unit = {
+          caseClass.parameters.foreach { p =>
+            val x = p.dereference(v)
+            if (!p.typeclass.isEmpty(x)) {
+              val name = cm.map(p.label)
+              c.startField(name, p.index)
+              p.typeclass.writeGroup(c, x)(cm)
+              c.endField(name, p.index)
             }
           }
-          addValue(value)
         }
+
+        override def newConverter: TypeConverter[T] =
+          new GroupConverter with TypeConverter.Buffered[T] {
+            private val fieldConverters = caseClass.parameters.map(_.typeclass.newConverter)
+
+            override def isPrimitive: Boolean = false
+
+            override def getConverter(fieldIndex: Int): Converter = fieldConverters(fieldIndex)
+
+            override def start(): Unit = ()
+
+            override def end(): Unit = {
+              val value = caseClass.construct { p =>
+                try {
+                  fieldConverters(p.index).get
+                } catch {
+                  case e: IllegalArgumentException =>
+                    val field = s"${caseClass.typeName.full}#${p.label}"
+                    throw new ParquetDecodingException(
+                      s"Failed to decode $field: ${e.getMessage}",
+                      e
+                    )
+                }
+              }
+              addValue(value)
+            }
+          }
       }
+    }
   }
 
   @implicitNotFound("Cannot derive ParquetType for sealed trait")
   private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
-
-  implicit def apply[T]: Record[T] = macro Magnolia.gen[T]
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): ParquetField[T] = ???
+  implicit def apply[T]: ParquetField[T] = macro Magnolia.gen[T]
 
   // ////////////////////////////////////////////////
 

@@ -127,6 +127,16 @@ class AvroTypeSuite extends MagnolifySuite {
     test[Custom]
   }
 
+  test("AnyVal") {
+    implicit val at: AvroType[HasValueClass] = AvroType[HasValueClass]
+    test[HasValueClass]
+
+    assert(at.schema.getField("vc").schema().getType == Schema.Type.STRING)
+
+    val record = at(HasValueClass(ValueClass("String")))
+    assert(record.get("vc") == "String")
+  }
+
   {
     implicit val eqByteArray: Eq[Array[Byte]] = Eq.by(_.toList)
     test[AvroTypes]

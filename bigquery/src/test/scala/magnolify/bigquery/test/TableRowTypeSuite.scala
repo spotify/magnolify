@@ -87,6 +87,16 @@ class TableRowTypeSuite extends MagnolifySuite {
     test[Custom]
   }
 
+  test("AnyVal") {
+    implicit val trt: TableRowType[HasValueClass] = TableRowType[HasValueClass]
+    test[HasValueClass]
+
+    assert(trt.schema.getFields.asScala.head.getType == "STRING")
+
+    val record = trt(HasValueClass(ValueClass("String")))
+    assert(record.get("vc") == "String")
+  }
+
   {
     implicit val arbBigDecimal: Arbitrary[BigDecimal] =
       Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(BigDecimal(_)))
