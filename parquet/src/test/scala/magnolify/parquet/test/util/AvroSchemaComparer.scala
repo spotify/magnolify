@@ -97,6 +97,6 @@ object AvroSchemaComparer {
         s"$path 'namespace' are different '${s1.getNamespace}' != '${s2.getNamespace}'"
       )
     }.toList
-    else List()
+    else List.empty
   }
 }
