@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Spotify AB
+ * Copyright 2022 Spotify AB
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import magnolify.parquet._
 import magnolify.parquet.unsafe._
 import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
+import magnolify.shared.doc
 import magnolify.test.Simple._
 import magnolify.test.Time._
 import magnolify.test._
@@ -78,6 +79,28 @@ class ParquetTypeSuite extends MagnolifySuite {
     import UnsafeEnums._
     test[Enums]
     test[UnsafeEnums]
+  }
+
+  test("ParquetDoc") {
+    ensureSerializable(ParquetType[ParquetNestedDoc])
+    val pf = ParquetField[ParquetNestedDoc]
+
+    assert(pf.fieldDocs("pd") == "nested")
+    assert(pf.fieldDocs("pd.i") == "integers")
+    assert(pf.fieldDocs("pd.s") == "string")
+    assert(pf.fieldDocs("i") == "integers")
+    assert(pf.typeDoc.contains("Parquet with doc"))
+  }
+
+  test("ParquetDocWithNestedList") {
+    ensureSerializable(ParquetType[ParquetNestedListDoc])
+    val pf = ParquetField[ParquetNestedListDoc]
+
+    assert(pf.fieldDocs("pd") == "nested")
+    assert(pf.fieldDocs("pd.i") == "integers")
+    assert(pf.fieldDocs("pd.s") == "string")
+    assert(pf.fieldDocs("i") == "integers")
+    assert(pf.typeDoc.contains("Parquet with doc with nested list"))
   }
 
   {
@@ -176,6 +199,18 @@ case class Logical(u: UUID, d: LocalDate)
 case class TimeMillis(i: Instant, dt: LocalDateTime, ot: OffsetTime, t: LocalTime)
 case class TimeMicros(i: Instant, dt: LocalDateTime, ot: OffsetTime, t: LocalTime)
 case class TimeNanos(i: Instant, dt: LocalDateTime, ot: OffsetTime, t: LocalTime)
+@doc("Parquet with doc")
+case class ParquetDoc(@doc("string") s: String, @doc("integers") i: Integers)
+
+@doc("Parquet with doc")
+case class ParquetNestedDoc(@doc("nested") pd: ParquetDoc, @doc("integers") i: Integers)
+
+@doc("Parquet with doc with nested list")
+case class ParquetNestedListDoc(
+  @doc("nested") pd: List[ParquetDoc],
+  @doc("integers")
+  i: List[Integers]
+)
 
 class TestInputFile(ba: Array[Byte]) extends InputFile {
   private val bais = new ByteArrayInputStream(ba)
