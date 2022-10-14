@@ -46,8 +46,8 @@ object AvroSchemaComparer {
           val fields1 = schemaFields1.map(_.name())
           val fields2 = schemaFields2.map(_.name())
 
-          val fieldsEqualResults = check(
-            fields1 != fields2,
+          val fieldsEqualResults = require(
+            fields1 == fields2,
             s"$path fields are not equal '$fields1' != '$fields2'"
           )
 
@@ -58,11 +58,11 @@ object AvroSchemaComparer {
                 val field1 = schema1.getField(f)
                 val field2 = schema2.getField(f)
 
-                check(
-                  field1.doc() != field2.doc(),
+                require(
+                  field1.doc() == field2.doc(),
                   s"$path.$f field 'doc' are different '${field1.doc}' != '${field2.doc}'"
-                ) ++ check(
-                  field1.pos() != field2.pos(),
+                ) ++ require(
+                  field1.pos() == field2.pos(),
                   s"$path.$f field 'pos' are different '${field1.pos}' != '${field2.pos}'"
                 ) ++ compareSchemas(field1.schema(), field2.schema(), s"$path.$f")
               }
@@ -72,28 +72,28 @@ object AvroSchemaComparer {
     }
   }
 
-  private def check(condition: Boolean, error: => String): Option[String] = {
-    if (condition)
+  private def require(condition: Boolean, error: => String): Option[String] = {
+    if (!condition)
       Some(error)
     else None
   }
 
   private def compareBasicTypeInfo(s1: Schema, s2: Schema, path: String): List[String] = {
     if (s1 != null && s2 != null) {
-      check(
-        s1.getName != s2.getName,
+      require(
+        s1.getName == s2.getName,
         s"$path 'name' are different '${s1.getName}' != '${s2.getName}'"
-      ) ++ check(
-        s1.getType != s2.getType,
+      ) ++ require(
+        s1.getType == s2.getType,
         s"$path 'type' are different '${s1.getType}' != '${s2.getType}'"
-      ) ++ check(
-        s1.isNullable != s2.isNullable,
+      ) ++ require(
+        s1.isNullable == s2.isNullable,
         s"$path 'isNullable' are different '${s1.isNullable}' != '${s2.isNullable}'"
-      ) ++ check(
-        s1.getDoc != s2.getDoc,
+      ) ++ require(
+        s1.getDoc == s2.getDoc,
         s"$path 'doc' are different '${s1.getDoc}' != '${s2.getDoc}'"
-      ) ++ check(
-        Try(s1.getNamespace != s2.getNamespace).getOrElse(false),
+      ) ++ require(
+        Try(s1.getNamespace == s2.getNamespace).getOrElse(true),
         s"$path 'namespace' are different '${s1.getNamespace}' != '${s2.getNamespace}'"
       )
     }.toList
