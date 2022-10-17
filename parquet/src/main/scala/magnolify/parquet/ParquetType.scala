@@ -86,8 +86,8 @@ object ParquetType {
   )(implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] = f match {
     case r: ParquetField.Record[_] =>
       new ParquetType[T] {
-        override lazy val schema: MessageType = Schema.message(r.schema(cm))
-        override lazy val avroSchema: AvroSchema = {
+        @transient override lazy val schema: MessageType = Schema.message(r.schema(cm))
+        @transient override lazy val avroSchema: AvroSchema = {
           val s = new AvroSchemaConverter().convert(schema)
           // add doc to avro schema
           SchemaUtil.deepCopy(s, f.typeDoc, f.fieldDocs.get)
