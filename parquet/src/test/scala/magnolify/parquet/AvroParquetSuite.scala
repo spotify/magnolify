@@ -49,9 +49,14 @@ class AvroParquetSuite extends MagnolifySuite {
     schemaErrors: List[String] = List.empty
   )(implicit
     at: AvroType[T],
-    pt: ParquetType[T],
+    tpe: ParquetType[T],
     eq: Eq[T]
   ): Unit = {
+    // Ensure serializable even after evaluation of `schema` and `avroSchema`
+    val parquetSchema = tpe.schema
+    val avroSchema = tpe.avroSchema
+    val pt = ensureSerializable(tpe)
+
     val name = className[T]
 
     property(s"$name.avro2parquet") {
