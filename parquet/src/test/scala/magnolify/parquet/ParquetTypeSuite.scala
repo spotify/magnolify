@@ -46,9 +46,6 @@ class ParquetTypeSuite extends MagnolifySuite {
   ): Unit = {
     // Ensure serializable even after evaluation of `schema`
     val parquetSchema = t.schema
-    if (t.avroCompat) {
-      val avroSchema = t.avroSchema
-    }
     val tpe = ensureSerializable(t)
 
     property(className[T]) {
