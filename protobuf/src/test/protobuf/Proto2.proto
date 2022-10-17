@@ -1,8 +1,8 @@
 syntax = "proto2";
 
-package magnolify.test;
+package magnolify.protobuf;
 
-option java_package = "magnolify.test";
+option java_package = "magnolify.protobuf";
 
 message IntegersP2 {
     required int32 i = 1;

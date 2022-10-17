@@ -26,7 +26,7 @@ import org.apache.avro.generic.GenericData.EnumSymbol
 import org.apache.avro.generic._
 import org.apache.avro.{JsonProperties, LogicalType, LogicalTypes, Schema}
 
-import scala.annotation.{implicitNotFound, nowarn, StaticAnnotation}
+import scala.annotation.{implicitNotFound, nowarn}
 import scala.collection.concurrent
 import scala.reflect.ClassTag
 import scala.jdk.CollectionConverters._

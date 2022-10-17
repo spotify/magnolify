@@ -66,7 +66,6 @@ ThisBuild / tpolecatDevModeOptions ~= { opts =>
     ScalacOptions.privateOption("retain-trees", _ >= V3_0_0),
     // allow some nested auto derivation
     ScalacOptions.advancedOption("max-inlines", List("64"), _ >= V3_0_0),
-    ScalacOptions.other("-target:jvm-1.8"),
     ScalacOptions.warnOption("macros:after", _.isBetween(V2_13_0, V3_0_0)),
     ScalacOptions.privateWarnOption("macros:after", _.isBetween(V2_12_0, V2_13_0)),
     ScalacOptions.privateBackendParallelism(),
@@ -279,7 +278,7 @@ lazy val cats: Project = project
   )
   .dependsOn(
     shared,
-    scalacheck % Test,
+    scalacheck % "test->test",
     test % "test->test"
   )
 
@@ -295,7 +294,7 @@ lazy val guava: Project = project
   )
   .dependsOn(
     shared,
-    scalacheck % Test,
+    scalacheck % "test->test",
     test % "test->test"
   )
 
@@ -340,8 +339,8 @@ lazy val avro: Project = project
   )
   .dependsOn(
     shared,
-    cats % Test,
-    scalacheck % Test,
+    cats % "test->test",
+    scalacheck % "test->test",
     test % "test->test"
   )
 
@@ -358,8 +357,8 @@ lazy val bigquery: Project = project
   )
   .dependsOn(
     shared,
-    cats % Test,
-    scalacheck % Test,
+    cats % "test->test",
+    scalacheck % "test->test",
     test % "test->test"
   )
 
@@ -375,8 +374,8 @@ lazy val bigtable: Project = project
   )
   .dependsOn(
     shared,
-    cats % Test,
-    scalacheck % Test,
+    cats % "test->test",
+    scalacheck % "test->test",
     test % "test->test"
   )
 
@@ -392,8 +391,8 @@ lazy val datastore: Project = project
   )
   .dependsOn(
     shared,
-    cats % Test,
-    scalacheck % Test,
+    cats % "test->test",
+    scalacheck % "test->test",
     test % "test->test"
   )
 
@@ -412,8 +411,8 @@ lazy val parquet: Project = project
   .dependsOn(
     shared,
     avro % Test,
-    cats % Test,
-    scalacheck % Test,
+    cats % "test->test",
+    scalacheck % "test->test",
     test % "test->test"
   )
 
@@ -427,8 +426,8 @@ lazy val protobuf: Project = project
   )
   .dependsOn(
     shared,
-    cats % Test,
-    scalacheck % Test,
+    cats % "test->test",
+    scalacheck % "test->test",
     test % "test->test"
   )
 
@@ -464,8 +463,8 @@ lazy val tensorflow: Project = project
   )
   .dependsOn(
     shared,
-    cats % Test,
-    scalacheck % Test,
+    cats % "test->test",
+    scalacheck % "test->test",
     test % "test->test"
   )
 
@@ -481,8 +480,8 @@ lazy val neo4j: Project = project
   )
   .dependsOn(
     shared,
-    cats % Test,
-    scalacheck % Test,
+    cats % "test->test",
+    scalacheck % "test->test",
     test % "test->test"
   )
 

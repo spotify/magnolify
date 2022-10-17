@@ -17,12 +17,17 @@
 package magnolify.neo4j
 
 import cats.Eq
+import magnolify.cats.auto._
+import magnolify.cats.TestEq._
+import magnolify.neo4j.unsafe._
+import magnolify.scalacheck.auto._
+import magnolify.scalacheck.TestArbitrary._
+import magnolify.shared.CaseMapper
+import magnolify.shared.TestEnumType._
 import magnolify.test.MagnolifySuite
 import magnolify.test.Simple._
-import magnolify.cats.auto._
-import magnolify.scalacheck.auto._
-import magnolify.shared.CaseMapper
-import org.scalacheck.{Arbitrary, Prop}
+import org.scalacheck.Arbitrary
+import org.scalacheck.Prop
 
 import java.net.URI
 import scala.reflect.ClassTag
@@ -40,31 +45,21 @@ class ValueTypeSuite extends MagnolifySuite {
     }
   }
 
+  implicit val vfUri: ValueField[URI] = ValueField.from[String](URI.create)(_.toString)
+
   test[Integers]
   test[Floats]
   test[Required]
   test[Nullable]
   test[Repeated]
 
-  {
-    import Collections._
-    test[Collections]
-    test[MoreCollections]
-  }
+  test[Collections]
+  test[MoreCollections]
 
-  {
-    import unsafe._
-    import Enums._
-    import UnsafeEnums._
-    test[Enums]
-    test[UnsafeEnums]
-  }
+  test[Enums]
+  test[UnsafeEnums]
 
-  {
-    import Custom._
-    implicit val nvUri: ValueField[URI] = ValueField.from[String](URI.create)(_.toString)
-    test[Custom]
-  }
+  test[Custom]
 
   test("AnyVal") {
     implicit val vt: ValueType[HasValueClass] = ValueType[HasValueClass]
