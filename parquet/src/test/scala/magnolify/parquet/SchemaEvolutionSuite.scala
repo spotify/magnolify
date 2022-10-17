@@ -16,7 +16,6 @@
 
 package magnolify.parquet
 
-import magnolify.parquet._
 import magnolify.parquet.unsafe._
 import magnolify.shared.UnsafeEnum
 import magnolify.test._

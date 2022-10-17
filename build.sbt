@@ -188,6 +188,12 @@ val commonSettings = Seq(
       name = "Shameera Rathnayaka Yodage",
       email = "shameerayodage@gmail.com",
       url = url("https://twitter.com/syodage")
+    ),
+    Developer(
+      id = "shnapz",
+      name = "Andrew Kabas",
+      email = "akabas@spotify.com",
+      url = url("https://github.com/shnapz")
     )
   )
 )

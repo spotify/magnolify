@@ -26,15 +26,11 @@ import org.apache.avro.generic.GenericData.EnumSymbol
 import org.apache.avro.generic._
 import org.apache.avro.{JsonProperties, LogicalType, LogicalTypes, Schema}
 
-import scala.annotation.{implicitNotFound, nowarn, StaticAnnotation}
+import scala.annotation.{implicitNotFound, nowarn}
 import scala.collection.concurrent
 import scala.reflect.ClassTag
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
-
-class doc(doc: String) extends StaticAnnotation with Serializable {
-  override def toString: String = doc
-}
 
 sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
   val schema: Schema
