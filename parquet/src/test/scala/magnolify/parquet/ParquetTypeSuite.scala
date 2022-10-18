@@ -44,7 +44,10 @@ class ParquetTypeSuite extends MagnolifySuite {
     t: ParquetType[T],
     eq: Eq[T]
   ): Unit = {
+    // Ensure serializable even after evaluation of `schema`
+    val parquetSchema = t.schema
     val tpe = ensureSerializable(t)
+
     property(className[T]) {
       Prop.forAll { t: T =>
         val out = new TestOutputFile
