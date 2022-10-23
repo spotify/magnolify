@@ -40,7 +40,7 @@ val scalaCollectionCompatVersion = "2.8.1"
 val scalacheckVersion = "1.17.0"
 val shapelessVersion = "2.3.10"
 val tensorflowMetadataVersion = "1.10.0"
-val tensorflowVersion = "0.4.1"
+val tensorflowVersion = "0.4.2"
 
 lazy val currentYear = java.time.LocalDate.now().getYear
 lazy val keepExistingHeader =
