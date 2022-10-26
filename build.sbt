@@ -22,7 +22,7 @@ val magnoliaScala2Version = "1.1.2"
 val magnoliaScala3Version = "1.1.4"
 
 val algebirdVersion = "0.13.9"
-val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.0")
+val avroVersion = Option(sys.props("avro.version")).getOrElse("1.8.2")
 val bigqueryVersion = "v2-rev20220924-2.0.0"
 val bigtableVersion = "2.14.1"
 val catsVersion = "2.8.0"
@@ -404,7 +404,12 @@ lazy val parquet: Project = project
     description := "Magnolia add-on for Apache Parquet",
     libraryDependencies ++= Seq(
       "org.apache.hadoop" % "hadoop-client" % hadoopVersion % Provided,
-      "org.apache.parquet" % "parquet-avro" % parquetVersion % Provided,
+      "org.apache.parquet" % "parquet-avro" % parquetVersion % Provided excludeAll (
+        // parquet-avro depends on avro 1.10.x
+        ExclusionRule("org.apache.avro", "avro"),
+        ExclusionRule("org.apache.avro", "avro-compiler")
+      ),
+      "org.apache.avro" % "avro" % avroVersion % Test,
       "org.apache.parquet" % "parquet-hadoop" % parquetVersion % Provided
     )
   )

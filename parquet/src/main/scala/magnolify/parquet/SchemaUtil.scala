@@ -26,7 +26,7 @@ object SchemaUtil {
 
   object Union {
     def unapply(schema: AvroSchema): Option[Seq[AvroSchema]] =
-      if (schema.isUnion) Some(schema.getTypes.asScala.toSeq) else None
+      if (schema.getType == AvroSchema.Type.UNION) Some(schema.getTypes.asScala.toSeq) else None
   }
 
   object Array {
@@ -66,16 +66,17 @@ object SchemaUtil {
           f.name(),
           deepCopyInternal(f.schema(), None, getFieldDoc, fieldPath),
           getFieldDoc(fieldPath).orNull,
-          f.defaultVal()
+          f.defaultValue()
         )
       }
-      AvroSchema.createRecord(
+      val record = AvroSchema.createRecord(
         schema.getName,
         rootDoc.orNull,
         schema.getNamespace,
-        schema.isError,
-        updatedFields.result().asJava
+        schema.isError
       )
+      record.setFields(updatedFields.result().asJava)
+      record
     case _ =>
       schema
   }

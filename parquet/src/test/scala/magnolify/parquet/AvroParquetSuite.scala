@@ -20,9 +20,9 @@ import java.time._
 import cats._
 import magnolify.cats.auto._
 import magnolify.cats.TestEq._
-import magnolify.avro._
+import magnolify.avro.AvroType
+import magnolify.shared.doc
 import magnolify.avro.unsafe._
-import magnolify.parquet._
 import magnolify.parquet.unsafe._
 import magnolify.parquet.ParquetArray.AvroCompat._
 import magnolify.parquet.util.AvroSchemaComparer
