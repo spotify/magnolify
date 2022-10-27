@@ -51,6 +51,9 @@ lazy val keepExistingHeader =
         .trim()
   )
 
+ThisBuild / versionScheme := Some("early-semver")
+ThisBuild / versionPolicyIntention := Compatibility.BinaryAndSourceCompatible
+
 ThisBuild / tpolecatDefaultOptionsMode := DevMode
 ThisBuild / tpolecatDevModeOptions ~= { opts =>
   val excludes = Set(
