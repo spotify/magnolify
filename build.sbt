@@ -404,13 +404,12 @@ lazy val parquet: Project = project
     description := "Magnolia add-on for Apache Parquet",
     libraryDependencies ++= Seq(
       "org.apache.hadoop" % "hadoop-client" % hadoopVersion % Provided,
-      "org.apache.parquet" % "parquet-avro" % parquetVersion % Provided excludeAll (
-        // parquet-avro depends on avro 1.10.x
-        ExclusionRule("org.apache.avro", "avro"),
-        ExclusionRule("org.apache.avro", "avro-compiler")
-      ),
-      "org.apache.avro" % "avro" % avroVersion % Test,
+      "org.apache.parquet" % "parquet-avro" % parquetVersion % Provided,
       "org.apache.parquet" % "parquet-hadoop" % parquetVersion % Provided
+    ),
+    dependencyOverrides ++= Seq(
+      "org.apache.avro" % "avro" % avroVersion % Provided,
+      "org.apache.avro" % "avro" % avroVersion % Test
     )
   )
   .dependsOn(
