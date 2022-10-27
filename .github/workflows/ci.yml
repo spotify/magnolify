@@ -16,7 +16,7 @@ jobs:
         uses: olafurpg/setup-scala@v10
         with:
           java-version: 1.11.0
-      - run: sbt +versionPolicyCheck +headerCheckAll +scalafmtCheckAll scalafmtSbtCheck
+      - run: sbt +headerCheckAll +scalafmtCheckAll scalafmtSbtCheck
 
   test:
     runs-on: ubuntu-latest

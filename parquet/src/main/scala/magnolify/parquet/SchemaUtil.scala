@@ -66,7 +66,7 @@ object SchemaUtil {
           f.name(),
           deepCopyInternal(f.schema(), None, getFieldDoc, fieldPath),
           getFieldDoc(fieldPath).orNull,
-          f.defaultValue()
+          f.defaultVal()
         )
       }
       val record = AvroSchema.createRecord(

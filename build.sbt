@@ -22,7 +22,7 @@ val magnoliaScala2Version = "1.1.2"
 val magnoliaScala3Version = "1.1.4"
 
 val algebirdVersion = "0.13.9"
-val avroVersion = Option(sys.props("avro.version")).getOrElse("1.8.2")
+val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.0")
 val bigqueryVersion = "v2-rev20220924-2.0.0"
 val bigtableVersion = "2.14.1"
 val catsVersion = "2.8.0"
@@ -51,7 +51,6 @@ lazy val keepExistingHeader =
         .trim()
   )
 
-ThisBuild / versionPolicyIntention := Compatibility.BinaryAndSourceCompatible
 ThisBuild / tpolecatDefaultOptionsMode := DevMode
 ThisBuild / tpolecatDevModeOptions ~= { opts =>
   val excludes = Set(
