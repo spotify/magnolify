@@ -88,7 +88,7 @@ object SchemaEvolutionSuite {
 
   val (location1ProjectionSchema, user1ProjectionSchema): (AvroSchema, AvroSchema) = {
     def id = new AvroSchema.Field("id", AvroSchema.create(AvroSchema.Type.LONG), "", null)
-    def name = new AvroSchema.Field("name", nullableString, "")
+    def name = new AvroSchema.Field("name", nullableString, "", null)
 
     def country =
       new AvroSchema.Field("country", AvroSchema.create(AvroSchema.Type.STRING), "", null)

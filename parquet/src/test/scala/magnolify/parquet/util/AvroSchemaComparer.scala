@@ -87,9 +87,6 @@ object AvroSchemaComparer {
         s1.getType == s2.getType,
         s"$path 'type' are different '${s1.getType}' != '${s2.getType}'"
       ) ++ require(
-        s1.isNullable == s2.isNullable,
-        s"$path 'isNullable' are different '${s1.isNullable}' != '${s2.isNullable}'"
-      ) ++ require(
         s1.getDoc == s2.getDoc,
         s"$path 'doc' are different '${s1.getDoc}' != '${s2.getDoc}'"
       ) ++ require(
