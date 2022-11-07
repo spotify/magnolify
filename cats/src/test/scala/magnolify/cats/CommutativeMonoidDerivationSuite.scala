@@ -19,7 +19,9 @@ package magnolify.cats
 import cats._
 import cats.kernel.CommutativeMonoid
 import cats.kernel.laws.discipline._
-import magnolify.cats.auto._
+import magnolify.cats.Types.MiniInt
+import magnolify.cats.auto.genCommutativeMonoid
+import magnolify.cats.semiauto.EqDerivation
 import magnolify.scalacheck.auto._
 import magnolify.test._
 import org.scalacheck._
@@ -27,18 +29,20 @@ import org.scalacheck._
 import scala.reflect._
 
 class CommutativeMonoidDerivationSuite extends MagnolifySuite {
+  import CommutativeMonoidDerivationSuite._
+
   private def test[T: Arbitrary: ClassTag: Eq: CommutativeMonoid]: Unit = {
     val cm = ensureSerializable(implicitly[CommutativeMonoid[T]])
     include(CommutativeMonoidTests[T](cm).commutativeMonoid.all, className[T] + ".")
   }
 
-  import CommutativeMonoidDerivationSuite._
+  implicit val eqRecord: Eq[Record] = EqDerivation[Record]
+  implicit val cmMiniInt: CommutativeMonoid[MiniInt] =
+    CommutativeMonoid.instance(MiniInt(0), (x, y) => MiniInt(x.i + y.i))
+
   test[Record]
 }
 
 object CommutativeMonoidDerivationSuite {
-  import Types.MiniInt
-  implicit val cmMiniInt: CommutativeMonoid[MiniInt] =
-    CommutativeMonoid.instance(MiniInt(0), (x, y) => MiniInt(x.i + y.i))
   case class Record(i: Int, m: MiniInt)
 }

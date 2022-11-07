@@ -16,12 +16,12 @@
 
 package magnolify.cats
 
-import cats.Eq._
 import cats._
 import cats.kernel.laws.discipline._
-import magnolify.cats.auto._
+import magnolify.cats.auto.genSemigroup
 import magnolify.cats.TestEq._
 import magnolify.cats.Types.MiniInt
+import magnolify.cats.semiauto.EqDerivation
 import magnolify.scalacheck.auto._
 import magnolify.scalacheck.TestArbitrary._
 import magnolify.test.Simple._
@@ -40,6 +40,7 @@ class SemigroupDerivationSuite extends MagnolifySuite {
     include(SemigroupTests[T](sg).semigroup.all, className[T] + ".")
   }
 
+  implicit val eqRecord: Eq[Record] = EqDerivation[Record]
   implicit val sgBool: Semigroup[Boolean] = Semigroup.instance(_ ^ _)
   implicit val sgUri: Semigroup[URI] =
     Semigroup.instance((x, y) => URI.create(x.toString + y.toString))
@@ -52,7 +53,6 @@ class SemigroupDerivationSuite extends MagnolifySuite {
   test[Repeated]
   test[Nested]
   test[Custom]
-
   test[Record]
 }
 

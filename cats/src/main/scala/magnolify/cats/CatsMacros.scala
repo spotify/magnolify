@@ -14,10 +14,7 @@
  * limitations under the License.
  */
 
-package magnolify.cats.auto
-
-import cats._
-import cats.kernel.{Band, CommutativeGroup, CommutativeMonoid, CommutativeSemigroup}
+package magnolify.cats
 
 import scala.reflect.macros._
 import scala.annotation.nowarn
@@ -92,42 +89,4 @@ private object CatsMacros {
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.ShowDerivation.apply[$wtt]"""
   }
-}
-
-trait LowPriorityImplicits {
-  // Hash <: Eq
-  implicit def genHash[T](implicit lp: shapeless.LowPriority): Hash[T] =
-    macro CatsMacros.genHashMacro[T]
-  implicit def genEq[T](implicit lp: shapeless.LowPriority): Eq[T] = macro CatsMacros.genEqMacro[T]
-  implicit def genShow[T](implicit lp: shapeless.LowPriority): Show[T] =
-    macro CatsMacros.genShowMacro[T]
-
-  // CommutativeGroup <: Group | CommutativeMonoid
-  implicit def genCommutativeGroup[T](implicit lp: shapeless.LowPriority): CommutativeGroup[T] =
-    macro CatsMacros.genCommutativeGroupMacro[T]
-
-  // Group <: Monoid
-  implicit def genGroup[T](implicit lp: shapeless.LowPriority): Group[T] =
-    macro CatsMacros.genGroupMacro[T]
-
-  // CommutativeMonoid <: Monoid | CommutativeSemigroup
-  implicit def genCommutativeMonoid[T](implicit lp: shapeless.LowPriority): CommutativeMonoid[T] =
-    macro CatsMacros.genCommutativeMonoidMacro[T]
-
-  // Monoid <: Semigroup
-  implicit def genMonoid[T](implicit lp: shapeless.LowPriority): Monoid[T] =
-    macro CatsMacros.genMonoidMacro[T]
-
-  // Band <: Semigroup
-  implicit def genBand[T](implicit lp: shapeless.LowPriority): Band[T] =
-    macro CatsMacros.genBandMacro[T]
-
-  // CommutativeSemigroup <: Semigroup
-  implicit def genCommutativeSemigroup[T](implicit
-    lp: shapeless.LowPriority
-  ): CommutativeSemigroup[T] =
-    macro CatsMacros.genCommutativeSemigroupMacro[T]
-
-  implicit def genSemigroup[T](implicit lp: shapeless.LowPriority): Semigroup[T] =
-    macro CatsMacros.genSemigroupMacro[T]
 }

@@ -16,12 +16,12 @@
 
 package magnolify.cats
 
-import cats.Eq._
 import cats._
 import cats.kernel.laws.discipline._
-import magnolify.cats.auto._
+import magnolify.cats.auto.genMonoid
 import magnolify.cats.TestEq._
 import magnolify.cats.Types.MiniInt
+import magnolify.cats.semiauto.EqDerivation
 import magnolify.scalacheck.auto._
 import magnolify.scalacheck.TestArbitrary._
 import magnolify.test.Simple._
@@ -40,6 +40,7 @@ class MonoidDerivationSuite extends MagnolifySuite {
     include(MonoidTests[T](mon).monoid.all, className[T] + ".")
   }
 
+  implicit val eqRecord: Eq[Record] = EqDerivation[Record]
   implicit val mBool: Monoid[Boolean] = Monoid.instance(false, _ || _)
   implicit val mUri: Monoid[URI] =
     Monoid.instance(URI.create(""), (x, y) => URI.create(x.toString + y.toString))
@@ -51,7 +52,6 @@ class MonoidDerivationSuite extends MagnolifySuite {
   test[Nullable]
   test[Repeated]
   test[Nested]
-
   test[Custom]
 
   test[Record]
