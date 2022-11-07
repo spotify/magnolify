@@ -20,7 +20,7 @@ import magnolia1._
 
 import scala.reflect.ClassTag
 import scala.reflect.macros._
-import scala.annotation.nowarn
+import scala.annotation.{implicitNotFound, nowarn}
 
 sealed trait EnumType[T] extends Serializable { self =>
   val name: String
@@ -123,11 +123,22 @@ object EnumType {
 
   type Typeclass[T] = EnumType[T]
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
-    require(
-      caseClass.isObject,
-      s"Cannot derive EnumType[T] for case class ${caseClass.typeName.full}"
-    )
+  @implicitNotFound("Cannot derive EnumType value")
+  trait SumValue[T]
+  implicit def genSumValue[T]: SumValue[T] = macro genSumValueMacro[T]
+  def genSumValueMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
+    import c.universe._
+    val tpe = weakTypeOf[T]
+    val symbol = tpe.typeSymbol
+    if (symbol.isModuleClass) {
+      q"new _root_.magnolify.shared.EnumType.SumValue[$tpe] {}"
+    } else {
+      c.abort(c.enclosingPosition, "Sum type value must be an object")
+    }
+  }
+
+  @nowarn
+  def join[T: SumValue](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
     val n = caseClass.typeName.short
     val ns = caseClass.typeName.owner
     EnumType.create(

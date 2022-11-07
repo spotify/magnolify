@@ -21,7 +21,7 @@ import magnolify.test.Simple._
 
 class EnumTypeSuite extends MagnolifySuite {
   test("JavaEnums") {
-    val et = ensureSerializable(implicitly[EnumType[JavaEnums.Color]])
+    val et = ensureSerializable(EnumType[JavaEnums.Color])
     assertEquals(et.name, "Color")
     assertEquals(et.namespace, "magnolify.test.JavaEnums")
     assertEquals(et.values, List("RED", "GREEN", "BLUE"))
@@ -32,7 +32,7 @@ class EnumTypeSuite extends MagnolifySuite {
   }
 
   test("ScalaEnums") {
-    val et = ensureSerializable(implicitly[EnumType[ScalaEnums.Color.Type]])
+    val et = ensureSerializable(EnumType[ScalaEnums.Color.Type])
     assertEquals(et.name, "Color")
     assertEquals(et.namespace, "magnolify.test.Simple.ScalaEnums")
     assertEquals(et.values, List("Red", "Green", "Blue"))
@@ -45,7 +45,7 @@ class EnumTypeSuite extends MagnolifySuite {
   }
 
   test("ADT") {
-    val et = ensureSerializable(implicitly[EnumType[ADT.Color]])
+    val et = ensureSerializable(EnumType[ADT.Color])
     assertEquals(et.name, "Color")
     assertEquals(et.namespace, "magnolify.test.ADT")
     assertEquals(et.values, List("Blue", "Green", "Red")) // ADTs are ordered alphabetically
@@ -57,12 +57,22 @@ class EnumTypeSuite extends MagnolifySuite {
   }
 
   test("ADT No Default Constructor") {
-    val et = ensureSerializable(implicitly[EnumType[ADT.Person]])
+    val et = ensureSerializable(EnumType[ADT.Person])
     assertEquals(et.name, "Person")
     assertEquals(et.namespace, "magnolify.test.ADT")
     assertEquals(et.values, List("Aldrin", "Neil")) // ADTs are ordered alphabetically
     assertEquals(et.from("Aldrin"), ADT.Aldrin)
     assertEquals(et.to(ADT.Neil), "Neil")
+  }
+
+  test("ADT should not generate for invalid types") {
+    assertNoDiff(
+      compileErrors("EnumType[Option[ADT.Color]]"),
+      """|error: could not find implicit value for parameter et: magnolify.shared.EnumType[Option[magnolify.test.ADT.Color]]
+         |EnumType[Option[ADT.Color]]
+         |        ^
+         |""".stripMargin
+    )
   }
 
   test("JavaEnums CaseMapper") {
