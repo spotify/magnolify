@@ -19,6 +19,8 @@ package magnolify.cats
 import cats._
 import cats.kernel.{Band, CommutativeGroup, CommutativeMonoid, CommutativeSemigroup}
 
+// set implicit priority to avoid conflicts
+// see: https://typelevel.org/cats/guidelines.html#implicit-instance-priority
 // use shapeless.LowPriority so the
 // provided cats type classes are always preferred
 // triggers derivation as last resort
