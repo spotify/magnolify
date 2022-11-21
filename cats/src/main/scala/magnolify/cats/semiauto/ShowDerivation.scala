@@ -22,14 +22,15 @@ import magnolia1._
 object ShowDerivation {
   type Typeclass[T] = Show[T]
 
-  def join[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] = Show.show { x =>
-    caseClass.parameters
+  def join[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] = new Show[T] {
+    override def show(x: T): String = caseClass.parameters
       .map(p => s"${p.label} = ${p.typeclass.show(p.dereference(x))}")
       .mkString(s"${caseClass.typeName.full} {", ", ", "}")
   }
 
-  def split[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = Show.show { x =>
-    sealedTrait.split(x)(sub => sub.typeclass.show(sub.cast(x)))
+  def split[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = new Show[T] {
+    override def show(x: T): String =
+      sealedTrait.split(x)(sub => sub.typeclass.show(sub.cast(x)))
   }
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
