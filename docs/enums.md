@@ -21,5 +21,5 @@ An enum-like type can be wrapped inside a `magnolify.shared.UnsafeEnum[T]` to ha
 ```scala
 UnsafeEnum(Color.Red) // Known(Red)
 UnsafeEnum.from[Color.Type]("Red") // Known(Red)
-UnsafeEnum.from[Color.Type]("Purple") // Unknown(Red)
+UnsafeEnum.from[Color.Type]("Purple") // Unknown(Purple)
 ```
