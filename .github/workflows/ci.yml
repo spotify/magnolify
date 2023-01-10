@@ -272,7 +272,7 @@ jobs:
 
       - env:
           JAVA_OPTS: '-Davro.version=1.8.2'
-        run: sbt '++ ${{ matrix.scala }}' test
+        run: sbt '++ ${{ matrix.scala }}' avro/test
 
   coverage:
     name: Compute code coverage

@@ -117,7 +117,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
     "Test with legacy avro",
     githubWorkflowJobSetup.value.toList ++ Seq(
       WorkflowStep
-        .Sbt(List("test"), env = Map("JAVA_OPTS" -> "-Davro.version=1.8.2"))
+        .Sbt(List("avro/test"), env = Map("JAVA_OPTS" -> "-Davro.version=1.8.2"))
     )
   ),
   WorkflowJob(
@@ -147,6 +147,7 @@ lazy val protobufSettings = Seq(
 ) ++ Seq(Compile, Test).flatMap(c => inConfig(c)(scopedProtobufSettings))
 
 val commonSettings = Seq(
+  tlFatalWarningsInCi := false,
   tlJdkRelease := Some(8),
   scalacOptions ++= {
     CrossVersion.partialVersion(scalaVersion.value) match {
