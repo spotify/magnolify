@@ -115,18 +115,22 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
     "avro-legacy",
     "Test with legacy avro",
-    githubWorkflowJobSetup.value.toList ++ Seq(
+    githubWorkflowJobSetup.value.toList ::: List(
       WorkflowStep
         .Sbt(List("avro/test"), env = Map("JAVA_OPTS" -> "-Davro.version=1.8.2"))
-    )
+    ),
+    scalas = List(scalaVersion.value),
+    javas = List(JavaSpec.corretto("11"))
   ),
   WorkflowJob(
     "coverage",
     "Compute code coverage",
-    githubWorkflowJobSetup.value.toList ++ Seq(
+    githubWorkflowJobSetup.value.toList ::: List(
       WorkflowStep.Sbt(List("coverage", "test", "coverageAggregate")),
       WorkflowStep.Run(List("curl", "-s", "https://codecov.io/bash"))
-    )
+    ),
+    scalas = List(scalaVersion.value),
+    javas = List(JavaSpec.corretto("11"))
   )
 )
 
