@@ -334,7 +334,4 @@ jobs:
 
       - run: sbt '++ ${{ matrix.scala }}' coverage test coverageAggregate
 
-      - run: |
-          curl
-          -s
-          https://codecov.io/bash
+      - run: 'bash <(curl -s https://codecov.io/bash)'
