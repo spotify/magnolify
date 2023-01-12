@@ -497,7 +497,7 @@ lazy val tools: Project = project
     description := "Magnolia add-on for code generation",
     libraryDependencies ++= Seq(
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
-      "org.apache.avro" % "avro" % avroVersion,
+      "org.apache.avro" % "avro" % avroVersion % Provided,
       "org.apache.parquet" % "parquet-hadoop" % parquetVersion,
       "org.typelevel" %% "paiges-core" % paigesVersion
     )
