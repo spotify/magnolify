@@ -106,11 +106,22 @@ ThisBuild / developers := List(
 )
 
 // compiler options
-ThisBuild / crossScalaVersions := Seq("2.13.10", "2.12.17")
+val scala213 = "2.13.10"
+val scala212 = "2.12.17"
+ThisBuild / crossScalaVersions := Seq(scala213, scala212)
 ThisBuild / scalaVersion := crossScalaVersions.value.head
 
 // github actions
+val coverageCond = Seq(
+  s"matrix.scala == '$scala213'",
+  s"matrix.java == '${JavaSpec.corretto("11").render}'"
+).mkString(" && ")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.corretto("8"), JavaSpec.corretto("11"))
+ThisBuild / githubWorkflowBuild := Seq(
+  WorkflowStep.Sbt(List("coverage", "test", "coverageAggregate"), cond = Some(coverageCond)),
+  WorkflowStep.Run(List("bash <(curl -s https://codecov.io/bash)"), cond = Some(coverageCond)),
+  WorkflowStep.Sbt(List("test"), cond = Some(s"!($coverageCond)"))
+)
 ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
     "avro-legacy",
