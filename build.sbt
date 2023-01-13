@@ -205,7 +205,9 @@ val commonSettings = Seq(
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
 )
 
-lazy val root = tlCrossRootProject
+lazy val root = project
+  .in(file("."))
+  .enablePlugins(NoPublishPlugin)
   .settings(
     commonSettings,
     name := "magnolify",
