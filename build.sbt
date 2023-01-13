@@ -112,11 +112,13 @@ ThisBuild / crossScalaVersions := Seq(scala213, scala212)
 ThisBuild / scalaVersion := crossScalaVersions.value.head
 
 // github actions
+val java8 = JavaSpec.corretto("8")
+val java11 = JavaSpec.corretto("11")
 val coverageCond = Seq(
   s"matrix.scala == '$scala213'",
-  s"matrix.java == '${JavaSpec.corretto("11").render}'"
+  s"matrix.java == '${java11.render}'"
 ).mkString(" && ")
-ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.corretto("8"), JavaSpec.corretto("11"))
+ThisBuild / githubWorkflowJavaVersions := Seq(java8, java11)
 ThisBuild / githubWorkflowBuild := Seq(
   WorkflowStep.Sbt(List("coverage", "test", "coverageAggregate"), cond = Some(coverageCond)),
   WorkflowStep.Run(List("bash <(curl -s https://codecov.io/bash)"), cond = Some(coverageCond)),
@@ -132,18 +134,8 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
         env = Map("JAVA_OPTS" -> "-Davro.version=1.8.2")
       )
     ),
-    scalas = List(scalaVersion.value),
-    javas = List(JavaSpec.corretto("11"))
-  ),
-  WorkflowJob(
-    "coverage",
-    "Compute code coverage",
-    githubWorkflowJobSetup.value.toList ::: List(
-      WorkflowStep.Sbt(List("coverage", "test", "coverageAggregate")),
-      WorkflowStep.Run(List("bash <(curl -s https://codecov.io/bash)"))
-    ),
-    scalas = List(scalaVersion.value),
-    javas = List(JavaSpec.corretto("11"))
+    scalas = List(scala213),
+    javas = List(java11)
   )
 )
 
