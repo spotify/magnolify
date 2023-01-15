@@ -18,7 +18,7 @@ import _root_.io.github.davidgregory084.ScalaVersion._
 import sbtprotoc.ProtocPlugin.ProtobufConfig
 import scala.Ordering.Implicits._
 
-val magnoliaScala2Version = "1.1.2"
+val magnoliaScala2Version = "1.1.3"
 val magnoliaScala3Version = "1.1.4"
 
 val algebirdVersion = "0.13.9"
