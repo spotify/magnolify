@@ -39,15 +39,6 @@ val shapelessVersion = "2.3.10"
 val tensorflowMetadataVersion = "1.10.0"
 val tensorflowVersion = "0.4.2"
 
-lazy val currentYear = java.time.LocalDate.now().getYear
-lazy val keepExistingHeader =
-  HeaderCommentStyle.cStyleBlockComment.copy(commentCreator =
-    (text: String, existingText: Option[String]) =>
-      existingText
-        .getOrElse(HeaderCommentStyle.cStyleBlockComment.commentCreator(text))
-        .trim()
-  )
-
 // project
 ThisBuild / tlBaseVersion := "0.6"
 ThisBuild / organization := "com.spotify"
@@ -105,24 +96,40 @@ ThisBuild / developers := List(
   )
 )
 
-// compiler options
+// scala versions
+val scala3 = "3.2.1"
 val scala213 = "2.13.10"
 val scala212 = "2.12.17"
-ThisBuild / crossScalaVersions := Seq(scala213, scala212)
-ThisBuild / scalaVersion := crossScalaVersions.value.head
+val defaultScala = scala213
 
 // github actions
-val java8 = JavaSpec.corretto("8")
 val java11 = JavaSpec.corretto("11")
+val java8 = JavaSpec.corretto("8")
+val defaultJava = java11
 val coverageCond = Seq(
-  s"matrix.scala == '$scala213'",
-  s"matrix.java == '${java11.render}'"
+  s"matrix.scala == '$defaultScala'",
+  s"matrix.java == '${defaultJava.render}'"
 ).mkString(" && ")
-ThisBuild / githubWorkflowJavaVersions := Seq(java8, java11)
+
+ThisBuild / scalaVersion := defaultScala
+ThisBuild / crossScalaVersions := Seq(scala213, scala212)
+ThisBuild / githubWorkflowTargetBranches := Seq("main")
+ThisBuild / githubWorkflowJavaVersions := Seq(java11, java8)
 ThisBuild / githubWorkflowBuild := Seq(
-  WorkflowStep.Sbt(List("coverage", "test", "coverageAggregate"), cond = Some(coverageCond)),
-  WorkflowStep.Run(List("bash <(curl -s https://codecov.io/bash)"), cond = Some(coverageCond)),
-  WorkflowStep.Sbt(List("test"), cond = Some(s"!($coverageCond)"))
+  WorkflowStep.Sbt(
+    List("coverage", "test", "coverageAggregate"),
+    name = Some("Build project"),
+    cond = Some(coverageCond)
+  ),
+  WorkflowStep.Run(
+    List("bash <(curl -s https://codecov.io/bash)"),
+    name = Some("Upload coverage report"),
+    cond = Some(coverageCond)
+  ),
+  WorkflowStep.Sbt(
+    List("test"),
+    name = Some("Build project"),
+    cond = Some(s"!($coverageCond)"))
 )
 ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
@@ -131,11 +138,12 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
     githubWorkflowJobSetup.value.toList ::: List(
       WorkflowStep.Sbt(
         List("avro/test"),
-        env = Map("JAVA_OPTS" -> "-Davro.version=1.8.2")
+        env = Map("JAVA_OPTS" -> "-Davro.version=1.8.2"),
+        name = Some("Build project")
       )
     ),
-    scalas = List(scala213),
-    javas = List(java11)
+    scalas = List(defaultScala),
+    javas = List(defaultJava)
   )
 )
 
@@ -155,19 +163,32 @@ lazy val protobufSettings = Seq(
   )
 ) ++ Seq(Compile, Test).flatMap(c => inConfig(c)(scopedProtobufSettings))
 
+lazy val currentYear = java.time.LocalDate.now().getYear
+lazy val keepExistingHeader =
+  HeaderCommentStyle.cStyleBlockComment.copy(commentCreator =
+    (text: String, existingText: Option[String]) =>
+      existingText
+        .getOrElse(HeaderCommentStyle.cStyleBlockComment.commentCreator(text))
+        .trim()
+  )
+
 val commonSettings = Seq(
   tlFatalWarningsInCi := false,
   tlJdkRelease := Some(8),
+  tlSkipIrrelevantScalas := true,
   scalacOptions ++= {
     CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((3, _)) =>
         Seq(
-          "-Xretain-trees", // required by magnolia for accessing default values
+          // required by magnolia for accessing default values
+          "-Xretain-trees",
+          // tolerate some nested macro expansion
           "-Ymax-inlines",
-          "64" // tolerate some nested macro expansion
+          "64"
         )
       case Some((2, 13)) =>
         Seq(
+          // silence warnings
           "-Wmacros:after",
           "-Wconf:cat=unused-imports&origin=scala\\.collection\\.compat\\..*:s" +
             ",cat=unused-imports&origin=magnolify\\.shims\\..*:s"
