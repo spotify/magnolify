@@ -15,7 +15,7 @@
  */
 import sbtprotoc.ProtocPlugin.ProtobufConfig
 
-val magnoliaScala2Version = "1.1.2"
+val magnoliaScala2Version = "1.1.3"
 val magnoliaScala3Version = "1.1.4"
 
 val algebirdVersion = "0.13.9"
