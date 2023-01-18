@@ -30,7 +30,11 @@ class ShimsSuite extends MagnolifySuite {
     fc: FactoryCompat[Int, C[Int]]
   ): Unit = {
     property(className[C[Int]]) {
-      Prop.forAll((xs: List[Int]) => fc.fromSpecific(xs).toList == xs)
+      Prop.forAll { (xs: List[Int]) =>
+        val b = fc.newBuilder
+        b ++= xs
+        ti(b.result()) == xs
+      }
     }
   }
 

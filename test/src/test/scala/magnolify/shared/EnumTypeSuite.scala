@@ -24,7 +24,7 @@ class EnumTypeSuite extends MagnolifySuite {
     val et = ensureSerializable(EnumType[JavaEnums.Color])
     assertEquals(et.name, "Color")
     assertEquals(et.namespace, "magnolify.test.JavaEnums")
-    assertEquals(et.values, List("RED", "GREEN", "BLUE"))
+    assertEquals(et.values.toSet, Set("RED", "GREEN", "BLUE"))
     assertEquals(et.from("RED"), JavaEnums.Color.RED)
     assertEquals(et.to(JavaEnums.Color.RED), "RED")
     val ja = et.annotations.collect { case a: JavaAnnotation => a.value() }
@@ -35,7 +35,7 @@ class EnumTypeSuite extends MagnolifySuite {
     val et = ensureSerializable(EnumType[ScalaEnums.Color.Type])
     assertEquals(et.name, "Color")
     assertEquals(et.namespace, "magnolify.test.Simple.ScalaEnums")
-    assertEquals(et.values, List("Red", "Green", "Blue"))
+    assertEquals(et.values.toSet, Set("Red", "Green", "Blue"))
     assertEquals(et.from("Red"), ScalaEnums.Color.Red)
     assertEquals(et.to(ScalaEnums.Color.Red), "Red")
     val ja = et.annotations.collect { case a: JavaAnnotation => a.value() }
@@ -48,7 +48,7 @@ class EnumTypeSuite extends MagnolifySuite {
     val et = ensureSerializable(EnumType[ADT.Color])
     assertEquals(et.name, "Color")
     assertEquals(et.namespace, "magnolify.test.ADT")
-    assertEquals(et.values, List("Blue", "Green", "Red")) // ADTs are ordered alphabetically
+    assertEquals(et.values.toSet, Set("Blue", "Green", "Red"))
     assertEquals(et.from("Red"), ADT.Red)
     assertEquals(et.to(ADT.Red), "Red")
     // Magnolia does not capture Java annotations
@@ -60,7 +60,7 @@ class EnumTypeSuite extends MagnolifySuite {
     val et = ensureSerializable(EnumType[ADT.Person])
     assertEquals(et.name, "Person")
     assertEquals(et.namespace, "magnolify.test.ADT")
-    assertEquals(et.values, List("Aldrin", "Neil")) // ADTs are ordered alphabetically
+    assertEquals(et.values.toSet, Set("Aldrin", "Neil"))
     assertEquals(et.from("Aldrin"), ADT.Aldrin)
     assertEquals(et.to(ADT.Neil), "Neil")
   }

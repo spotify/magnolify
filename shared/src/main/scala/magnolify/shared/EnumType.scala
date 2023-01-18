@@ -16,11 +16,7 @@
 
 package magnolify.shared
 
-import magnolia1._
-
 import scala.reflect.ClassTag
-import scala.reflect.macros._
-import scala.annotation.{implicitNotFound, nowarn}
 
 sealed trait EnumType[T] extends Serializable { self =>
   val name: String
@@ -43,7 +39,7 @@ sealed trait EnumType[T] extends Serializable { self =>
   }
 }
 
-object EnumType {
+object EnumType extends EnumTypeCompanionMacros {
   def apply[T](implicit et: EnumType[T]): EnumType[T] = et
   def apply[T](cm: CaseMapper)(implicit et: EnumType[T]): EnumType[T] = et.map(cm)
 
@@ -70,101 +66,13 @@ object EnumType {
     override def to(v: T): String = gMap(v)
   }
 
-  // ////////////////////////////////////////////////
-
-  // Java `enum`
   implicit def javaEnumType[T <: Enum[T]](implicit ct: ClassTag[T]): EnumType[T] = {
-    val cls: Class[_] = ct.runtimeClass
+    val cls = ct.runtimeClass.asInstanceOf[Class[T]]
     val n = ReflectionUtils.name[T]
     val ns = ReflectionUtils.namespace[T]
-    val map: Map[String, T] = cls
-      .getMethod("values")
-      .invoke(null)
-      .asInstanceOf[Array[T]]
-      .iterator
+    val map: Map[String, T] = cls.getEnumConstants.iterator
       .map(v => v.name() -> v)
       .toMap
     EnumType.create(n, ns, map.keys.toList, cls.getAnnotations.toList, map(_))
-  }
-
-  // ////////////////////////////////////////////////
-
-  // Scala `Enumeration`
-  implicit def scalaEnumType[T <: Enumeration#Value: AnnotationType]: EnumType[T] =
-    macro scalaEnumTypeImpl[T]
-
-  def scalaEnumTypeImpl[T: c.WeakTypeTag](
-    c: whitebox.Context
-  )(annotations: c.Expr[AnnotationType[T]]): c.Tree = {
-    import c.universe._
-    val wtt = weakTypeTag[T]
-    val ref = wtt.tpe.asInstanceOf[TypeRef]
-    val fn = ref.pre.typeSymbol.asClass.fullName
-    val idx = fn.lastIndexOf('.')
-    val n = fn.drop(idx + 1) // `object <Namespace> extends Enumeration`
-    val ns = fn.take(idx)
-    val list = q"${ref.pre.termSymbol}.values.toList.sortBy(_.id).map(_.toString)"
-    val map = q"${ref.pre.termSymbol}.values.map(x => x.toString -> x).toMap"
-
-    q"""
-        _root_.magnolify.shared.EnumType.create[$wtt](
-          $n, $ns, $list, $annotations.annotations, $map.apply(_))
-     """
-  }
-
-  // ////////////////////////////////////////////////
-
-  // Scala ADT
-  def adtEnumType[T]: EnumType[T] = macro Magnolia.gen[T]
-
-  implicit def gen[T]: EnumType[T] = macro Magnolia.gen[T]
-
-  type Typeclass[T] = EnumType[T]
-
-  // EnumType can only be split into objects with fixed name
-  // Avoid invalid ADT derivation involving products by requiring
-  // implicit EnumValue type-class in magnolia join
-  @implicitNotFound("Cannot derive EnumType.EnumValue. EnumType only works for sum types")
-  trait EnumValue[T]
-  implicit def genEnumValue[T]: EnumValue[T] = macro genEnumValueMacro[T]
-  def genEnumValueMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
-    import c.universe._
-    val tpe = weakTypeOf[T]
-    val symbol = tpe.typeSymbol
-    if (symbol.isModuleClass) {
-      q"new _root_.magnolify.shared.EnumType.EnumValue[$tpe]{}"
-    } else {
-      c.abort(c.enclosingPosition, "EnumType value must be an object")
-    }
-  }
-
-  @nowarn
-  def join[T: EnumValue](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
-    val n = caseClass.typeName.short
-    val ns = caseClass.typeName.owner
-    EnumType.create(
-      n,
-      ns,
-      List(n),
-      caseClass.annotations.toList,
-      _ => caseClass.rawConstruct(Nil)
-    )
-  }
-
-  def split[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = {
-    val n = sealedTrait.typeName.short
-    val ns = sealedTrait.typeName.owner
-    val subs = sealedTrait.subtypes.map(_.typeclass)
-    val values = subs.flatMap(_.values).toList
-    val annotations = (sealedTrait.annotations ++ subs.flatMap(_.annotations)).toList
-    EnumType.create(
-      n,
-      ns,
-      values,
-      annotations,
-      // it is ok to use the inefficient find here because it will be called only once
-      // and cached inside an instance of EnumType
-      v => subs.find(_.name == v).get.from(v)
-    )
   }
 }
