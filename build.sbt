@@ -13,10 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import _root_.io.github.davidgregory084._
-import _root_.io.github.davidgregory084.ScalaVersion._
 import sbtprotoc.ProtocPlugin.ProtobufConfig
-import scala.Ordering.Implicits._
 
 val magnoliaScala2Version = "1.1.2"
 val magnoliaScala3Version = "1.1.4"
@@ -42,52 +39,115 @@ val shapelessVersion = "2.3.10"
 val tensorflowMetadataVersion = "1.10.0"
 val tensorflowVersion = "0.4.2"
 
-lazy val currentYear = java.time.LocalDate.now().getYear
-lazy val keepExistingHeader =
-  HeaderCommentStyle.cStyleBlockComment.copy(commentCreator =
-    (text: String, existingText: Option[String]) =>
-      existingText
-        .getOrElse(HeaderCommentStyle.cStyleBlockComment.commentCreator(text))
-        .trim()
+// project
+ThisBuild / tlBaseVersion := "0.6"
+ThisBuild / organization := "com.spotify"
+ThisBuild / organizationName := "Spotify AB"
+ThisBuild / startYear := Some(2016)
+ThisBuild / licenses := Seq(License.Apache2)
+ThisBuild / developers := List(
+  Developer(
+    id = "sinisa_lyh",
+    name = "Neville Li",
+    email = "neville.lyh@gmail.com",
+    url = url("https://twitter.com/sinisa_lyh")
+  ),
+  Developer(
+    id = "andrewsmartin",
+    name = "Andrew Martin",
+    email = "andrewsmartin.mg@gmail.com",
+    url = url("https://twitter.com/andrew_martin92")
+  ),
+  Developer(
+    id = "daikeshi",
+    name = "Keshi Dai",
+    email = "keshi.dai@gmail.com",
+    url = url("https://twitter.com/daikeshi")
+  ),
+  Developer(
+    id = "clairemcginty",
+    name = "Claire McGinty",
+    email = "clairem@spotify.com",
+    url = url("http://github.com/clairemcginty")
+  ),
+  Developer(
+    id = "anne-decusatis",
+    name = "Anne DeCusatis",
+    email = "anned@spotify.com",
+    url = url("http://twitter.com/precisememory")
+  ),
+  Developer(
+    id = "stormy-ua",
+    name = "Kirill Panarin",
+    email = "kirill.panarin@gmail.com",
+    url = url("https://twitter.com/panarin_kirill")
+  ),
+  Developer(
+    id = "syodage",
+    name = "Shameera Rathnayaka Yodage",
+    email = "shameerayodage@gmail.com",
+    url = url("https://twitter.com/syodage")
+  ),
+  Developer(
+    id = "shnapz",
+    name = "Andrew Kabas",
+    email = "akabas@spotify.com",
+    url = url("https://github.com/shnapz")
   )
-
-ThisBuild / tpolecatDefaultOptionsMode := DevMode
-ThisBuild / tpolecatDevModeOptions ~= { opts =>
-  val excludes = Set(
-    ScalacOptions.lintPackageObjectClasses,
-    ScalacOptions.privateWarnDeadCode,
-    ScalacOptions.privateWarnValueDiscard,
-    ScalacOptions.warnDeadCode,
-    ScalacOptions.warnValueDiscard
-  )
-
-  val extras = Set(
-    // required by magnolia for accessing default values
-    ScalacOptions.privateOption("retain-trees", _ >= V3_0_0),
-    // allow some nested auto derivation
-    ScalacOptions.advancedOption("max-inlines", List("64"), _ >= V3_0_0),
-    ScalacOptions.warnOption("macros:after", _.isBetween(V2_13_0, V3_0_0)),
-    ScalacOptions.privateWarnOption("macros:after", _.isBetween(V2_12_0, V2_13_0)),
-    ScalacOptions.privateBackendParallelism(),
-    ScalacOptions.release("8"),
-    // silence cross-build unused imports
-    ScalacOptions.warnOption(
-      "conf:cat=unused-imports&origin=scala\\.collection\\.compat\\..*:s" +
-        ",cat=unused-imports&origin=magnolify\\.shims\\..*:s",
-      _.isBetween(V2_13_2, V3_0_0)
-    )
-  )
-
-  opts.filterNot(excludes).union(extras)
-}
-
-ThisBuild / javacOptions ++= Seq(
-  "-source",
-  "1.8",
-  "-target",
-  "1.8"
 )
 
+// scala versions
+val scala3 = "3.2.1"
+val scala213 = "2.13.10"
+val scala212 = "2.12.17"
+val defaultScala = scala213
+
+// github actions
+val java11 = JavaSpec.corretto("11")
+val java8 = JavaSpec.corretto("8")
+val defaultJava = java11
+val coverageCond = Seq(
+  s"matrix.scala == '$defaultScala'",
+  s"matrix.java == '${defaultJava.render}'"
+).mkString(" && ")
+
+ThisBuild / scalaVersion := defaultScala
+ThisBuild / crossScalaVersions := Seq(scala213, scala212)
+ThisBuild / githubWorkflowTargetBranches := Seq("main")
+ThisBuild / githubWorkflowJavaVersions := Seq(java11, java8)
+ThisBuild / githubWorkflowBuild := Seq(
+  WorkflowStep.Sbt(
+    List("coverage", "test", "coverageAggregate"),
+    name = Some("Build project"),
+    cond = Some(coverageCond)
+  ),
+  WorkflowStep.Run(
+    List("bash <(curl -s https://codecov.io/bash)"),
+    name = Some("Upload coverage report"),
+    cond = Some(coverageCond)
+  ),
+  WorkflowStep.Sbt(
+    List("test"),
+    name = Some("Build project"),
+    cond = Some(s"!($coverageCond)"))
+)
+ThisBuild / githubWorkflowAddedJobs ++= Seq(
+  WorkflowJob(
+    "avro-legacy",
+    "Test with legacy avro",
+    githubWorkflowJobSetup.value.toList ::: List(
+      WorkflowStep.Sbt(
+        List("avro/test"),
+        env = Map("JAVA_OPTS" -> "-Davro.version=1.8.2"),
+        name = Some("Build project")
+      )
+    ),
+    scalas = List(defaultScala),
+    javas = List(defaultJava)
+  )
+)
+
+// protobuf
 ThisBuild / PB.protocVersion := protobufVersion
 lazy val scopedProtobufSettings = Def.settings(
   PB.targets := Seq(
@@ -97,17 +157,55 @@ lazy val scopedProtobufSettings = Def.settings(
   ),
   managedSourceDirectories ++= PB.targets.value.map(_.outputPath)
 )
-
 lazy val protobufSettings = Seq(
   PB.additionalDependencies := Seq(
     "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
   )
 ) ++ Seq(Compile, Test).flatMap(c => inConfig(c)(scopedProtobufSettings))
 
+lazy val currentYear = java.time.LocalDate.now().getYear
+lazy val keepExistingHeader =
+  HeaderCommentStyle.cStyleBlockComment.copy(commentCreator =
+    (text: String, existingText: Option[String]) =>
+      existingText
+        .getOrElse(HeaderCommentStyle.cStyleBlockComment.commentCreator(text))
+        .trim()
+  )
+
 val commonSettings = Seq(
-  organization := "com.spotify",
-  crossScalaVersions := Seq("2.13.10", "2.12.17"),
-  scalaVersion := crossScalaVersions.value.head,
+  tlFatalWarningsInCi := false,
+  tlJdkRelease := Some(8),
+  tlSkipIrrelevantScalas := true,
+  scalacOptions ++= {
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((3, _)) =>
+        Seq(
+          // required by magnolia for accessing default values
+          "-Xretain-trees",
+          // tolerate some nested macro expansion
+          "-Ymax-inlines",
+          "64"
+        )
+      case Some((2, 13)) =>
+        Seq(
+          // silence warnings
+          "-Wmacros:after",
+          "-Wconf:cat=unused-imports&origin=scala\\.collection\\.compat\\..*:s" +
+            ",cat=unused-imports&origin=magnolify\\.shims\\..*:s"
+        )
+      case Some((2, 12)) =>
+        Seq(
+          "-Ywarn-macros:after"
+        )
+      case _ =>
+        Seq.empty
+    }
+  },
+  headerLicense := Some(HeaderLicense.ALv2(currentYear.toString, organizationName.value)),
+  headerMappings ++= Map(
+    HeaderFileType.scala -> keepExistingHeader,
+    HeaderFileType.java -> keepExistingHeader
+  ),
   libraryDependencies ++= {
     CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((3, _)) =>
@@ -128,87 +226,14 @@ val commonSettings = Seq(
   },
   // https://github.com/typelevel/scalacheck/pull/427#issuecomment-424330310
   // FIXME: workaround for Java serialization issues
-  Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
-  Test / publishArtifact := false,
-  sonatypeProfileName := "com.spotify",
-  organizationName := "Spotify AB",
-  startYear := Some(2016),
-  licenses := Seq("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
-  headerLicense := Some(HeaderLicense.ALv2(currentYear.toString, "Spotify AB")),
-  headerMappings ++= Map(
-    HeaderFileType.scala -> keepExistingHeader,
-    HeaderFileType.java -> keepExistingHeader
-  ),
-  homepage := Some(url("https://github.com/spotify/magnolify")),
-  scmInfo := Some(
-    ScmInfo(
-      url("https://github.com/spotify/magnolify.git"),
-      "scm:git:git@github.com:spotify/magnolify.git"
-    )
-  ),
-  developers := List(
-    Developer(
-      id = "sinisa_lyh",
-      name = "Neville Li",
-      email = "neville.lyh@gmail.com",
-      url = url("https://twitter.com/sinisa_lyh")
-    ),
-    Developer(
-      id = "andrewsmartin",
-      name = "Andrew Martin",
-      email = "andrewsmartin.mg@gmail.com",
-      url = url("https://twitter.com/andrew_martin92")
-    ),
-    Developer(
-      id = "daikeshi",
-      name = "Keshi Dai",
-      email = "keshi.dai@gmail.com",
-      url = url("https://twitter.com/daikeshi")
-    ),
-    Developer(
-      id = "clairemcginty",
-      name = "Claire McGinty",
-      email = "clairem@spotify.com",
-      url = url("http://github.com/clairemcginty")
-    ),
-    Developer(
-      id = "anne-decusatis",
-      name = "Anne DeCusatis",
-      email = "anned@spotify.com",
-      url = url("http://twitter.com/precisememory")
-    ),
-    Developer(
-      id = "stormy-ua",
-      name = "Kirill Panarin",
-      email = "kirill.panarin@gmail.com",
-      url = url("https://twitter.com/panarin_kirill")
-    ),
-    Developer(
-      id = "syodage",
-      name = "Shameera Rathnayaka Yodage",
-      email = "shameerayodage@gmail.com",
-      url = url("https://twitter.com/syodage")
-    ),
-    Developer(
-      id = "shnapz",
-      name = "Andrew Kabas",
-      email = "akabas@spotify.com",
-      url = url("https://github.com/shnapz")
-    )
-  )
+  Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
 )
 
-val noPublishSettings = Seq(
-  publish := {},
-  publishLocal := {},
-  publishArtifact := false
-)
-
-lazy val root: Project = project
+lazy val root = project
   .in(file("."))
+  .enablePlugins(NoPublishPlugin)
   .settings(
     commonSettings,
-    noPublishSettings,
     name := "magnolify",
     description := "A collection of Magnolia add-on modules"
   )
@@ -230,7 +255,7 @@ lazy val root: Project = project
     tools
   )
 
-lazy val shared: Project = project
+lazy val shared = project
   .in(file("shared"))
   .settings(
     commonSettings,
@@ -239,33 +264,38 @@ lazy val shared: Project = project
   )
 
 // shared code for unit tests
-lazy val test: Project = project
+lazy val test = project
   .in(file("test"))
+  .enablePlugins(NoPublishPlugin)
+  .dependsOn(shared)
   .settings(
     commonSettings,
-    noPublishSettings,
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion % Test
     )
   )
-  .dependsOn(shared)
 
-lazy val scalacheck: Project = project
+lazy val scalacheck = project
   .in(file("scalacheck"))
+  .dependsOn(
+    shared,
+    test % "test->test"
+  )
   .settings(
     commonSettings,
     moduleName := "magnolify-scalacheck",
     description := "Magnolia add-on for ScalaCheck",
     libraryDependencies += "org.scalacheck" %% "scalacheck" % scalacheckVersion % Provided
   )
+
+lazy val cats = project
+  .in(file("cats"))
   .dependsOn(
     shared,
+    scalacheck % "test->test",
     test % "test->test"
   )
-
-lazy val cats: Project = project
-  .in(file("cats"))
   .settings(
     commonSettings,
     moduleName := "magnolify-cats",
@@ -276,14 +306,14 @@ lazy val cats: Project = project
       "org.typelevel" %% "cats-laws" % catsVersion % Test
     )
   )
+
+lazy val guava = project
+  .in(file("guava"))
   .dependsOn(
     shared,
     scalacheck % "test->test",
     test % "test->test"
   )
-
-lazy val guava: Project = project
-  .in(file("guava"))
   .settings(
     commonSettings,
     moduleName := "magnolify-guava",
@@ -292,14 +322,19 @@ lazy val guava: Project = project
       "com.google.guava" % "guava" % guavaVersion % Provided
     )
   )
+
+lazy val refined = project
+  .in(file("refined"))
   .dependsOn(
-    shared,
-    scalacheck % "test->test",
+    avro % Provided,
+    bigquery % Provided,
+    bigtable % Provided,
+    datastore % Provided,
+    guava % "provided,test->test",
+    protobuf % "provided,test->test",
+    tensorflow % Provided,
     test % "test->test"
   )
-
-lazy val refined: Project = project
-  .in(file("refined"))
   .settings(
     commonSettings,
     moduleName := "magnolify-refined",
@@ -315,19 +350,15 @@ lazy val refined: Project = project
       "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Test
     )
   )
+
+lazy val avro = project
+  .in(file("avro"))
   .dependsOn(
-    avro % Provided,
-    bigquery % Provided,
-    bigtable % Provided,
-    datastore % Provided,
-    guava % "provided,test->test",
-    protobuf % "provided,test->test",
-    tensorflow % Provided,
+    shared,
+    cats % "test->test",
+    scalacheck % "test->test",
     test % "test->test"
   )
-
-lazy val avro: Project = project
-  .in(file("avro"))
   .settings(
     commonSettings,
     moduleName := "magnolify-avro",
@@ -337,15 +368,15 @@ lazy val avro: Project = project
       "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
     )
   )
+
+lazy val bigquery = project
+  .in(file("bigquery"))
   .dependsOn(
     shared,
     cats % "test->test",
     scalacheck % "test->test",
     test % "test->test"
   )
-
-lazy val bigquery: Project = project
-  .in(file("bigquery"))
   .settings(
     commonSettings,
     moduleName := "magnolify-bigquery",
@@ -355,15 +386,15 @@ lazy val bigquery: Project = project
       "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
     )
   )
+
+lazy val bigtable: Project = project
+  .in(file("bigtable"))
   .dependsOn(
     shared,
     cats % "test->test",
     scalacheck % "test->test",
     test % "test->test"
   )
-
-lazy val bigtable: Project = project
-  .in(file("bigtable"))
   .settings(
     commonSettings,
     moduleName := "magnolify-bigtable",
@@ -372,15 +403,15 @@ lazy val bigtable: Project = project
       "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Provided
     )
   )
+
+lazy val datastore = project
+  .in(file("datastore"))
   .dependsOn(
     shared,
     cats % "test->test",
     scalacheck % "test->test",
     test % "test->test"
   )
-
-lazy val datastore: Project = project
-  .in(file("datastore"))
   .settings(
     commonSettings,
     moduleName := "magnolify-datastore",
@@ -389,15 +420,16 @@ lazy val datastore: Project = project
       "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Provided
     )
   )
+
+lazy val parquet = project
+  .in(file("parquet"))
   .dependsOn(
     shared,
+    avro % Test,
     cats % "test->test",
     scalacheck % "test->test",
     test % "test->test"
   )
-
-lazy val parquet: Project = project
-  .in(file("parquet"))
   .settings(
     commonSettings,
     moduleName := "magnolify-parquet",
@@ -412,33 +444,32 @@ lazy val parquet: Project = project
       "org.apache.avro" % "avro" % avroVersion % Test
     )
   )
+
+lazy val protobuf = project
+  .in(file("protobuf"))
   .dependsOn(
     shared,
-    avro % Test,
     cats % "test->test",
     scalacheck % "test->test",
     test % "test->test"
   )
-
-lazy val protobuf: Project = project
-  .in(file("protobuf"))
   .settings(
     commonSettings,
     protobufSettings,
     moduleName := "magnolify-protobuf",
     description := "Magnolia add-on for Google Protocol Buffer"
   )
+
+val unpackMetadata = taskKey[Seq[File]]("Unpack tensorflow metadata proto files.")
+
+lazy val tensorflow = project
+  .in(file("tensorflow"))
   .dependsOn(
     shared,
     cats % "test->test",
     scalacheck % "test->test",
     test % "test->test"
   )
-
-val unpackMetadata = taskKey[Seq[File]]("Unpack tensorflow metadata proto files.")
-
-lazy val tensorflow: Project = project
-  .in(file("tensorflow"))
   .settings(
     commonSettings,
     protobufSettings,
@@ -465,15 +496,15 @@ lazy val tensorflow: Project = project
       _.filterNot { case (_, n) => n.startsWith("org/tensorflow") }
     }
   )
+
+lazy val neo4j = project
+  .in(file("neo4j"))
   .dependsOn(
     shared,
     cats % "test->test",
     scalacheck % "test->test",
     test % "test->test"
   )
-
-lazy val neo4j: Project = project
-  .in(file("neo4j"))
   .settings(
     commonSettings,
     moduleName := "magnolify-neo4j",
@@ -482,15 +513,16 @@ lazy val neo4j: Project = project
       "org.neo4j.driver" % "neo4j-java-driver" % neo4jDriverVersion % Provided
     )
   )
+
+lazy val tools = project
+  .in(file("tools"))
   .dependsOn(
     shared,
-    cats % "test->test",
-    scalacheck % "test->test",
+    avro % Test,
+    bigquery % Test,
+    parquet % Test,
     test % "test->test"
   )
-
-lazy val tools: Project = project
-  .in(file("tools"))
   .settings(
     commonSettings,
     moduleName := "magnolify-tools",
@@ -502,16 +534,22 @@ lazy val tools: Project = project
       "org.typelevel" %% "paiges-core" % paigesVersion
     )
   )
-  .dependsOn(
-    shared,
-    avro % Test,
-    bigquery % Test,
-    parquet % Test,
-    test % "test->test"
-  )
 
 lazy val jmh: Project = project
   .in(file("jmh"))
+  .enablePlugins(JmhPlugin)
+  .dependsOn(
+    avro % Test,
+    bigquery % Test,
+    bigtable % Test,
+    cats % Test,
+    datastore % Test,
+    guava % Test,
+    protobuf % "test->test",
+    scalacheck % Test,
+    tensorflow % Test,
+    test % "test->test"
+  )
   .settings(
     commonSettings,
     Jmh / classDirectory := (Test / classDirectory).value,
@@ -528,16 +566,3 @@ lazy val jmh: Project = project
       "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Test
     )
   )
-  .dependsOn(
-    avro % Test,
-    bigquery % Test,
-    bigtable % Test,
-    cats % Test,
-    datastore % Test,
-    guava % Test,
-    protobuf % "test->test",
-    scalacheck % Test,
-    tensorflow % Test,
-    test % "test->test"
-  )
-  .enablePlugins(JmhPlugin)
