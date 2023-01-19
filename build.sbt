@@ -494,7 +494,10 @@ lazy val tensorflow = project
     Compile / PB.generate := (Compile / PB.generate).dependsOn(unpackMetadata).value,
     Compile / packageBin / mappings ~= {
       _.filterNot { case (_, n) => n.startsWith("org/tensorflow") }
-    }
+    },
+    // Something messes with Compile/packageSrc/mappings and adds protobuf managed sources
+    // Force back to original value from sbt
+    inConfig(Compile)(Defaults.packageTaskSettings(packageSrc, Defaults.packageSrcMappings)),
   )
 
 lazy val neo4j = project
