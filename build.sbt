@@ -126,10 +126,7 @@ ThisBuild / githubWorkflowBuild := Seq(
     name = Some("Upload coverage report"),
     cond = Some(coverageCond)
   ),
-  WorkflowStep.Sbt(
-    List("test"),
-    name = Some("Build project"),
-    cond = Some(s"!($coverageCond)"))
+  WorkflowStep.Sbt(List("test"), name = Some("Build project"), cond = Some(s"!($coverageCond)"))
 )
 ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
@@ -497,7 +494,7 @@ lazy val tensorflow = project
     },
     // Something messes with Compile/packageSrc/mappings and adds protobuf managed sources
     // Force back to original value from sbt
-    inConfig(Compile)(Defaults.packageTaskSettings(packageSrc, Defaults.packageSrcMappings)),
+    inConfig(Compile)(Defaults.packageTaskSettings(packageSrc, Defaults.packageSrcMappings))
   )
 
 lazy val neo4j = project
