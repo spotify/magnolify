@@ -20,7 +20,7 @@ val magnoliaScala3Version = "1.1.4"
 
 val algebirdVersion = "0.13.9"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.0")
-val bigqueryVersion = "v2-rev20221217-2.0.0"
+val bigqueryVersion = "v2-rev20230114-2.0.0"
 val bigtableVersion = "2.18.1"
 val catsVersion = "2.9.0"
 val datastoreVersion = "2.13.2"
@@ -126,10 +126,7 @@ ThisBuild / githubWorkflowBuild := Seq(
     name = Some("Upload coverage report"),
     cond = Some(coverageCond)
   ),
-  WorkflowStep.Sbt(
-    List("test"),
-    name = Some("Build project"),
-    cond = Some(s"!($coverageCond)"))
+  WorkflowStep.Sbt(List("test"), name = Some("Build project"), cond = Some(s"!($coverageCond)"))
 )
 ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
@@ -497,7 +494,7 @@ lazy val tensorflow = project
     },
     // Something messes with Compile/packageSrc/mappings and adds protobuf managed sources
     // Force back to original value from sbt
-    inConfig(Compile)(Defaults.packageTaskSettings(packageSrc, Defaults.packageSrcMappings)),
+    inConfig(Compile)(Defaults.packageTaskSettings(packageSrc, Defaults.packageSrcMappings))
   )
 
 lazy val neo4j = project
