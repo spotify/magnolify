@@ -132,11 +132,11 @@ object TableRowField {
 
         override def fields(cm: CaseMapper): Seq[String] = {
           for {
-            p <- caseClass.parameters.toList
+            p <- caseClass.parameters
             n = cm.map(p.label)
             f <- p.typeclass match {
               case r: Record[_] => r.fields(cm).map(child => n + "." + child)
-              case _            => List(n)
+              case _            => Seq(n)
             }
           } yield f
         }
