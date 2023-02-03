@@ -81,6 +81,8 @@ object Simple {
 
   object LowerCamel {
     val fields: Seq[String] = Seq("firstField", "secondField", "innerField")
+    val selectedFields: Seq[String] = Seq("firstField", "secondField", "innerField.innerFirst")
+
     val default: LowerCamel = LowerCamel("first", "second", LowerCamelInner("inner.first"))
   }
 
