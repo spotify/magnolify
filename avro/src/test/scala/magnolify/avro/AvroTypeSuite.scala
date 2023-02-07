@@ -327,8 +327,39 @@ class AvroTypeSuite extends MagnolifySuite {
       at(BigDec(BigDecimal("3.14159265358979323846")))
     }
   }
+
+  test("Properties") {
+    val at: AvroType[Properties] = AvroType[Properties]
+    val schema = at.schema
+
+    assert(
+      schema.toString ==
+        """
+        |{
+        |  "type":"record",
+        |  "name":"Properties",
+        |  "namespace":"magnolify.avro",
+        |    "fields":[
+        |       {"name":"str","type":["null",{"type":"string","a":"b","c":"d"}]},
+        |       {"name":"list","type":{"type":"array","items":{"type":"string","g":"h"}},"default":[]},
+        |       {"name":"map","type":{"type":"map","values":{"i":"j"}},"default":{}},
+        |       {"name":"nested","type":
+        |         {"type":"record","name":"PropertiesNested","fields":[
+        |           {"name":"int","type":{"type":"int","e":"f"}}
+        |         ]}
+        |    ]}
+        |""".stripMargin
+    )
+  }
 }
 
+case class PropertiesNested(@property("e" -> "f") int: Int)
+case class Properties(
+  @property("a" -> "b") @property("c" -> "d") str: Option[String],
+  @property("g" -> "h") list: List[String],
+  @property("i" -> "j") map: Map[String, String],
+  nested: PropertiesNested
+)
 case class Unsafe(b: Byte, c: Char, s: Short)
 case class AvroTypes(ba: Array[Byte], u: Unit)
 case class MapPrimitive(m: Map[String, Int])

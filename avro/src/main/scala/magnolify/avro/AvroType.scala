@@ -65,8 +65,25 @@ sealed trait AvroField[T] extends Serializable { self =>
     concurrent.TrieMap.empty
 
   protected def buildSchema(cm: CaseMapper): Schema
-  def schema(cm: CaseMapper): Schema =
-    schemaCache.getOrElseUpdate(cm.uuid, buildSchema(cm))
+
+  def schema(cm: CaseMapper): Schema = {
+    def hasProperties(schema: Schema): Boolean = schema.getType match {
+      case Schema.Type.ARRAY => schema.getElementType.hasProps
+      case Schema.Type.MAP   => schema.getValueType.hasProps
+      case Schema.Type.UNION => schema.getTypes.asScala.exists(_.hasProps)
+      case _                 => schema.hasProps
+    }
+
+    schemaCache.get(cm.uuid) match {
+      case Some(cachedSchema) => cachedSchema
+      case None =>
+        val schema = buildSchema(cm)
+        if (!hasProperties(schema)) {
+          schemaCache.put(cm.uuid, schema)
+        }
+        schema
+    }
+  }
 
   // Convert default `T` to Avro schema default value
   def makeDefault(d: T)(cm: CaseMapper): Any = to(d)(cm)
@@ -104,23 +121,24 @@ object AvroField {
       }
     } else {
       new Record[T] {
-        override protected def buildSchema(cm: CaseMapper): Schema = Schema
-          .createRecord(
-            caseClass.typeName.short,
-            getDoc(caseClass.annotations, caseClass.typeName.full),
-            caseClass.typeName.owner,
-            false,
-            caseClass.parameters.map { p =>
-              new Schema.Field(
-                cm.map(p.label),
-                p.typeclass.schema(cm),
-                getDoc(p.annotations, s"${caseClass.typeName.full}#${p.label}"),
-                p.default
-                  .map(d => p.typeclass.makeDefault(d)(cm))
-                  .getOrElse(p.typeclass.fallbackDefault)
-              )
-            }.asJava
-          )
+        override protected def buildSchema(cm: CaseMapper): Schema =
+          Schema
+            .createRecord(
+              caseClass.typeName.short,
+              getDoc(caseClass.annotations, caseClass.typeName.full),
+              caseClass.typeName.owner,
+              false,
+              caseClass.parameters.map { p =>
+                new Schema.Field(
+                  cm.map(p.label),
+                  attachProperties(p.typeclass.schema(cm), p.annotations),
+                  getDoc(p.annotations, s"${caseClass.typeName.full}#${p.label}"),
+                  p.default
+                    .map(d => p.typeclass.makeDefault(d)(cm))
+                    .getOrElse(p.typeclass.fallbackDefault)
+                )
+              }.asJava
+            )
 
         // `JacksonUtils.toJson` expects `Map[String, Any]` for `RECORD` defaults
         override def makeDefault(d: T)(cm: CaseMapper): ju.Map[String, Any] = {
@@ -152,6 +170,28 @@ object AvroField {
     val docs = annotations.collect { case d: doc => d.toString }
     require(docs.size <= 1, s"More than one @doc annotation: $name")
     docs.headOption.orNull
+  }
+
+  private def attachProperties(schema: Schema, annotations: Seq[Any]): Schema = {
+    lazy val attach: (Schema, (String, AnyRef)) => Unit = schema.getType match {
+      case Schema.Type.ARRAY => { case (s: Schema, (k: String, v: AnyRef)) =>
+        s.getElementType.addProp(k, v)
+      }
+      case Schema.Type.MAP => { case (s: Schema, (k: String, v: AnyRef)) =>
+        s.getValueType.addProp(k, v)
+      }
+      case Schema.Type.UNION => { case (s: Schema, (k: String, v: AnyRef)) =>
+        s.getTypes.asScala.filterNot(_.getType == Schema.Type.NULL).foreach(_.addProp(k, v))
+      }
+      case _ => { case (s: Schema, (k: String, v: AnyRef)) =>
+        s.addProp(k, v)
+      }
+    }
+
+    annotations
+      .collect { case d: property => d.kv }
+      .foreach(prop => attach(schema, prop))
+    schema
   }
 
   @implicitNotFound("Cannot derive AvroField for sealed trait")

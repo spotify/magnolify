@@ -18,4 +18,8 @@ package magnolify
 
 package object avro {
   type doc = shared.doc
+
+  case class property(kv: (String, AnyRef))
+      extends scala.annotation.StaticAnnotation
+      with Serializable
 }
