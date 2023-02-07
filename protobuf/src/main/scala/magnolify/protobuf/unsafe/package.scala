@@ -17,22 +17,21 @@
 package magnolify.protobuf
 
 import magnolify.shared._
-import scala.annotation.nowarn
 
-package object unsafe {
-  implicit val pfByte = ProtobufField.from[Int](_.toByte)(_.toInt)
-  implicit val pfChar = ProtobufField.from[Int](_.toChar)(_.toInt)
-  implicit val pfShort = ProtobufField.from[Int](_.toShort)(_.toInt)
-
+package object unsafe extends UnsafeProtobufFieldInstance0 {
   object Proto3Option {
     implicit val proto3Option: ProtobufOption = new ProtobufOption.Proto3Option
   }
+}
 
-  @nowarn("msg=parameter value lp in method pfUnsafeEnum is never used")
-  implicit def pfUnsafeEnum[T](implicit
-    et: EnumType[T],
-    lp: shapeless.LowPriority
-  ): ProtobufField[UnsafeEnum[T]] =
+trait UnsafeProtobufFieldInstance0 {
+  implicit val pfByte: ProtobufField[Byte] = ProtobufField.from[Int](_.toByte)(_.toInt)
+  implicit val pfChar: ProtobufField[Char] = ProtobufField.from[Int](_.toChar)(_.toInt)
+  implicit val pfShort: ProtobufField[Short] = ProtobufField.from[Int](_.toShort)(_.toInt)
+
+  implicit def pfUnsafeEnum[T: EnumType]: ProtobufField[UnsafeEnum[T]] =
     ProtobufField
-      .from[String](s => if (s == null || s.isEmpty) null else UnsafeEnum.from(s))(UnsafeEnum.to(_))
+      .from[String](s => Option(s).filter(_.nonEmpty).map(UnsafeEnum.from[T]).orNull)(
+        UnsafeEnum.to[T]
+      )
 }

@@ -18,11 +18,13 @@ package magnolify.avro
 
 import magnolify.shared._
 
-package object unsafe {
-  implicit val afByte = AvroField.from[Int](_.toByte)(_.toInt)
-  implicit val afChar = AvroField.from[Int](_.toChar)(_.toInt)
-  implicit val afShort = AvroField.from[Int](_.toShort)(_.toInt)
+package object unsafe extends UnsafeAvroFieldInstance0
 
-  implicit def afUnsafeEnum[T](implicit et: EnumType[T]): AvroField[UnsafeEnum[T]] =
+trait UnsafeAvroFieldInstance0 {
+  implicit val afByte: AvroField[Byte] = AvroField.from[Int](_.toByte)(_.toInt)
+  implicit val afChar: AvroField[Char] = AvroField.from[Int](_.toChar)(_.toInt)
+  implicit val afShort: AvroField[Short] = AvroField.from[Int](_.toShort)(_.toInt)
+
+  implicit def afUnsafeEnum[T: EnumType]: AvroField[UnsafeEnum[T]] =
     AvroField.from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))
 }

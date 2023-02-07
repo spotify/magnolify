@@ -17,15 +17,12 @@
 package magnolify.parquet
 
 import magnolify.shared._
-import scala.annotation.nowarn
 
-package object unsafe {
-  implicit val pfChar = ParquetField.from[Int](_.toChar)(_.toInt)
+package object unsafe extends UnsafeParquetFieldInstance0
 
-  @nowarn("msg=parameter value lp in method pfUnsafeEnum is never used")
-  implicit def pfUnsafeEnum[T](implicit
-    et: EnumType[T],
-    lp: shapeless.LowPriority
-  ): ParquetField[UnsafeEnum[T]] =
+trait UnsafeParquetFieldInstance0 {
+  implicit val pfChar: ParquetField.Primitive[Char] = ParquetField.from[Int](_.toChar)(_.toInt)
+
+  implicit def pfUnsafeEnum[T: EnumType]: ParquetField[UnsafeEnum[T]] =
     ParquetField.from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))
 }

@@ -72,7 +72,7 @@ sealed trait TableRowField[T] extends Serializable {
   @transient private lazy val schemaCache: concurrent.Map[ju.UUID, TableFieldSchema] =
     concurrent.TrieMap.empty
 
-  protected def buildSchema(cm: CaseMapper): TableFieldSchema
+  def buildSchema(cm: CaseMapper): TableFieldSchema
   def fieldSchema(cm: CaseMapper): TableFieldSchema =
     schemaCache.getOrElseUpdate(cm.uuid, buildSchema(cm))
 
@@ -82,7 +82,7 @@ sealed trait TableRowField[T] extends Serializable {
   def fromAny(v: Any)(cm: CaseMapper): T = from(v.asInstanceOf[FromT])(cm)
 }
 
-object TableRowField {
+object TableRowField extends TableRowFieldInstance0 {
   sealed trait Aux[T, From, To] extends TableRowField[T] {
     override type FromT = From
     override type ToT = To
@@ -93,7 +93,82 @@ object TableRowField {
     def fields(cm: CaseMapper): Seq[String]
   }
 
-  // ////////////////////////////////////////////////
+  def apply[T](implicit f: TableRowField[T]): TableRowField[T] = f
+
+  def from[T]: FromWord[T] = new FromWord[T]
+  class FromWord[T] {
+    def apply[U](f: T => U)(g: U => T)(implicit trf: TableRowField[T]): TableRowField[U] =
+      new TableRowField[U] {
+        override type FromT = trf.FromT
+        override type ToT = trf.ToT
+
+        override def buildSchema(cm: CaseMapper): TableFieldSchema =
+          trf.fieldSchema(cm)
+        override def from(v: FromT)(cm: CaseMapper): U = f(trf.from(v)(cm))
+        override def to(v: U)(cm: CaseMapper): ToT = trf.to(g(v))(cm)
+      }
+  }
+}
+
+trait TableRowFieldInstance0 extends TableRowFieldInstance1 {
+  private def at[T](tpe: String)(f: Any => T)(g: T => Any): TableRowField[T] =
+    new TableRowField.Generic[T] {
+      override def buildSchema(cm: CaseMapper): TableFieldSchema =
+        new TableFieldSchema().setType(tpe).setMode("REQUIRED")
+      override def from(v: Any)(cm: CaseMapper): T = f(v)
+      override def to(v: T)(cm: CaseMapper): Any = g(v)
+    }
+
+  implicit val trfBool = at[Boolean]("BOOL")(_.toString.toBoolean)(identity)
+  implicit val trfLong = at[Long]("INT64")(_.toString.toLong)(identity)
+  implicit val trfDouble = at[Double]("FLOAT64")(_.toString.toDouble)(identity)
+  implicit val trfString = at[String]("STRING")(_.toString)(identity)
+  implicit val trfNumeric =
+    at[BigDecimal]("NUMERIC")(NumericConverter.toBigDecimal)(NumericConverter.fromBigDecimal)
+  implicit val trfByteArray =
+    at[Array[Byte]]("BYTES")(x => BaseEncoding.base64().decode(x.toString))(x =>
+      BaseEncoding.base64().encode(x)
+    )
+
+  import TimestampConverter._
+  implicit val trfInstant = at("TIMESTAMP")(toInstant)(fromInstant)
+  implicit val trfDate = at("DATE")(toLocalDate)(fromLocalDate)
+  implicit val trfTime = at("TIME")(toLocalTime)(fromLocalTime)
+  implicit val trfDateTime = at("DATETIME")(toLocalDateTime)(fromLocalDateTime)
+
+  implicit def trfOption[T](implicit f: TableRowField[T]): TableRowField[Option[T]] =
+    new TableRowField.Aux[Option[T], f.FromT, f.ToT] {
+      override def buildSchema(cm: CaseMapper): TableFieldSchema =
+        f.fieldSchema(cm).clone().setMode("NULLABLE")
+      override def from(v: f.FromT)(cm: CaseMapper): Option[T] =
+        if (v == null) None else Some(f.from(v)(cm))
+      override def to(v: Option[T])(cm: CaseMapper): f.ToT = v match {
+        case None    => null.asInstanceOf[f.ToT]
+        case Some(x) => f.to(x)(cm)
+      }
+    }
+
+  implicit def trfIterable[T, C[_]](implicit
+    f: TableRowField[T],
+    ti: C[T] => Iterable[T],
+    fc: FactoryCompat[T, C[T]]
+  ): TableRowField[C[T]] =
+    new TableRowField.Aux[C[T], ju.List[f.FromT], ju.List[f.ToT]] {
+      override def buildSchema(cm: CaseMapper): TableFieldSchema =
+        f.fieldSchema(cm).clone().setMode("REPEATED")
+      override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] = {
+        val b = fc.newBuilder
+        if (v != null) {
+          b ++= v.asScala.iterator.map(f.from(_)(cm))
+        }
+        b.result()
+      }
+      override def to(v: C[T])(cm: CaseMapper): ju.List[f.ToT] =
+        if (v.isEmpty) null else v.iterator.map(f.to(_)(cm)).toList.asJava
+    }
+}
+
+trait TableRowFieldInstance1 {
   type Typeclass[T] = TableRowField[T]
 
   def join[T](caseClass: CaseClass[Typeclass, T]): TableRowField[T] = {
@@ -103,13 +178,16 @@ object TableRowField {
       new TableRowField[T] {
         override type FromT = tc.FromT
         override type ToT = tc.ToT
-        override protected def buildSchema(cm: CaseMapper): TableFieldSchema = tc.buildSchema(cm)
+
+        override def buildSchema(cm: CaseMapper): TableFieldSchema = tc.buildSchema(cm)
+
         override def from(v: FromT)(cm: CaseMapper): T = caseClass.construct(_ => tc.from(v)(cm))
+
         override def to(v: T)(cm: CaseMapper): ToT = tc.to(p.dereference(v))(cm)
       }
     } else {
-      new Record[T] {
-        override protected def buildSchema(cm: CaseMapper): TableFieldSchema = {
+      new TableRowField.Record[T] {
+        override def buildSchema(cm: CaseMapper): TableFieldSchema = {
           // do not use a scala wrapper in the schema, so clone() works
           val fields = new ju.ArrayList[TableFieldSchema](caseClass.parameters.size)
           caseClass.parameters.foreach { p =>
@@ -135,8 +213,8 @@ object TableRowField {
             p <- caseClass.parameters
             n = cm.map(p.label)
             f <- p.typeclass match {
-              case r: Record[_] => r.fields(cm).map(child => n + "." + child)
-              case _            => Seq(n)
+              case r: TableRowField.Record[_] => r.fields(cm).map(child => n + "." + child)
+              case _                          => Seq(n)
             }
           } yield f
         }
@@ -171,98 +249,4 @@ object TableRowField {
   def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): TableRowField[T] = ???
 
   implicit def gen[T]: TableRowField[T] = macro Magnolia.gen[T]
-
-  // ////////////////////////////////////////////////
-
-  def apply[T](implicit f: TableRowField[T]): TableRowField[T] = f
-
-  def from[T]: FromWord[T] = new FromWord[T]
-
-  class FromWord[T] {
-    def apply[U](f: T => U)(g: U => T)(implicit trf: TableRowField[T]): TableRowField[U] =
-      new TableRowField[U] {
-        override type FromT = trf.FromT
-        override type ToT = trf.ToT
-
-        override protected def buildSchema(cm: CaseMapper): TableFieldSchema =
-          trf.fieldSchema(cm)
-        override def from(v: FromT)(cm: CaseMapper): U = f(trf.from(v)(cm))
-        override def to(v: U)(cm: CaseMapper): ToT = trf.to(g(v))(cm)
-      }
-  }
-
-  // ////////////////////////////////////////////////
-
-  private def at[T](tpe: String)(f: Any => T)(g: T => Any): TableRowField[T] = new Generic[T] {
-    override protected def buildSchema(cm: CaseMapper): TableFieldSchema =
-      new TableFieldSchema().setType(tpe).setMode("REQUIRED")
-    override def from(v: Any)(cm: CaseMapper): T = f(v)
-    override def to(v: T)(cm: CaseMapper): Any = g(v)
-  }
-
-  implicit val trfBool = at[Boolean]("BOOL")(_.toString.toBoolean)(identity)
-  implicit val trfLong = at[Long]("INT64")(_.toString.toLong)(identity)
-  implicit val trfDouble = at[Double]("FLOAT64")(_.toString.toDouble)(identity)
-  implicit val trfString = at[String]("STRING")(_.toString)(identity)
-  implicit val trfNumeric =
-    at[BigDecimal]("NUMERIC")(NumericConverter.toBigDecimal)(NumericConverter.fromBigDecimal)
-
-  implicit val trfByteArray =
-    at[Array[Byte]]("BYTES")(x => BaseEncoding.base64().decode(x.toString))(x =>
-      BaseEncoding.base64().encode(x)
-    )
-
-  import TimestampConverter._
-  implicit val trfInstant = at("TIMESTAMP")(toInstant)(fromInstant)
-  implicit val trfDate = at("DATE")(toLocalDate)(fromLocalDate)
-  implicit val trfTime = at("TIME")(toLocalTime)(fromLocalTime)
-  implicit val trfDateTime = at("DATETIME")(toLocalDateTime)(fromLocalDateTime)
-
-  implicit def trfOption[T](implicit f: TableRowField[T]): TableRowField[Option[T]] =
-    new Aux[Option[T], f.FromT, f.ToT] {
-      override protected def buildSchema(cm: CaseMapper): TableFieldSchema =
-        f.fieldSchema(cm).clone().setMode("NULLABLE")
-      override def from(v: f.FromT)(cm: CaseMapper): Option[T] =
-        if (v == null) None else Some(f.from(v)(cm))
-      override def to(v: Option[T])(cm: CaseMapper): f.ToT = v match {
-        case None    => null.asInstanceOf[f.ToT]
-        case Some(x) => f.to(x)(cm)
-      }
-    }
-
-  implicit def trfIterable[T, C[_]](implicit
-    f: TableRowField[T],
-    ti: C[T] => Iterable[T],
-    fc: FactoryCompat[T, C[T]]
-  ): TableRowField[C[T]] =
-    new Aux[C[T], ju.List[f.FromT], ju.List[f.ToT]] {
-      override protected def buildSchema(cm: CaseMapper): TableFieldSchema =
-        f.fieldSchema(cm).clone().setMode("REPEATED")
-      override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] = {
-        val b = fc.newBuilder
-        if (v != null) {
-          b ++= v.asScala.iterator.map(f.from(_)(cm))
-        }
-        b.result()
-      }
-
-      override def to(v: C[T])(cm: CaseMapper): ju.List[f.ToT] =
-        if (v.isEmpty) null else v.iterator.map(f.to(_)(cm)).toList.asJava
-    }
-}
-
-private object NumericConverter {
-  // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
-  private val MaxPrecision = 38
-  private val MaxScale = 9
-
-  def toBigDecimal(v: Any): BigDecimal = BigDecimal(v.toString)
-  def fromBigDecimal(v: BigDecimal): Any = {
-    require(
-      v.precision <= MaxPrecision,
-      s"Cannot encode BigDecimal $v: precision ${v.precision} > $MaxPrecision"
-    )
-    require(v.scale <= MaxScale, s"Cannot encode BigDecimal $v: scale ${v.scale} > $MaxScale")
-    v.toString()
-  }
 }

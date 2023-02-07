@@ -19,21 +19,25 @@ package magnolify.bigquery
 import magnolify.shared._
 import scala.annotation.nowarn
 
-package object unsafe {
-  implicit val trfByte = TableRowField.from[Long](_.toByte)(_.toLong)
-  implicit val trfChar = TableRowField.from[Long](_.toChar)(_.toLong)
-  implicit val trfShort = TableRowField.from[Long](_.toShort)(_.toLong)
-  implicit val trfInt = TableRowField.from[Long](_.toInt)(_.toLong)
-  implicit val trfFloat = TableRowField.from[Double](_.toFloat)(_.toDouble)
+package object unsafe extends UnsafeTableRowFieldInstance0
 
-  @nowarn("msg=parameter value lp in method trfEnum is never used")
-  implicit def trfEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): TableRowField[T] =
+trait UnsafeTableRowFieldInstance0 extends UnsafeTableRowFieldInstance1 {
+  implicit val trfByte: TableRowField[Byte] = TableRowField.from[Long](_.toByte)(_.toLong)
+  implicit val trfChar: TableRowField[Char] = TableRowField.from[Long](_.toChar)(_.toLong)
+  implicit val trfShort: TableRowField[Short] = TableRowField.from[Long](_.toShort)(_.toLong)
+  implicit val trfInt: TableRowField[Int] = TableRowField.from[Long](_.toInt)(_.toLong)
+  implicit val trfFloat: TableRowField[Float] = TableRowField.from[Double](_.toFloat)(_.toDouble)
+}
+
+trait UnsafeTableRowFieldInstance1 {
+  def trfEnum[T](implicit et: EnumType[T]): TableRowField[T] =
     TableRowField.from[String](et.from)(et.to)
 
-  @nowarn("msg=parameter value lp in method trfUnsafeEnum is never used")
-  implicit def trfUnsafeEnum[T](implicit
-    et: EnumType[T],
-    lp: shapeless.LowPriority
-  ): TableRowField[UnsafeEnum[T]] =
+  // use shapeless.LowPriority so TableRowField.gen is preferred
+  @nowarn("msg=parameter value lp in method trfEnum0 is never used")
+  implicit def trfEnum0[T: EnumType](implicit lp: shapeless.LowPriority): TableRowField[T] =
+    trfEnum[T]
+
+  implicit def trfUnsafeEnum[T: EnumType]: TableRowField[UnsafeEnum[T]] =
     TableRowField.from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))
 }

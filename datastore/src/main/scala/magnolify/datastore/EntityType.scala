@@ -92,7 +92,7 @@ sealed trait EntityField[T] extends Serializable {
   def to(v: T)(cm: CaseMapper): Value.Builder
 }
 
-object EntityField {
+object EntityField extends EntityFieldInstance0 {
 
   sealed trait Record[T] extends EntityField[T] {
     def fromEntity(v: Entity)(cm: CaseMapper): T
@@ -103,8 +103,102 @@ object EntityField {
       Value.newBuilder().setEntityValue(toEntity(v)(cm))
   }
 
-  // ////////////////////////////////////////////////
+  def apply[T](implicit f: EntityField[T]): EntityField[T] = f
 
+  def at[T](f: Value => T)(g: T => Value.Builder)(implicit kf: KeyField[T]): EntityField[T] =
+    new EntityField[T] {
+      override val keyField: KeyField[T] = kf
+      override def from(v: Value)(cm: CaseMapper): T = f(v)
+      override def to(v: T)(cm: CaseMapper): Value.Builder = g(v)
+    }
+
+  def from[T]: FromWord[T] = new FromWord[T]
+  class FromWord[T] {
+    def apply[U](f: T => U)(g: U => T)(implicit ef: EntityField[T]): EntityField[U] =
+      new EntityField[U] {
+        override val keyField: KeyField[U] = ef.keyField.map(g)
+        override def from(v: Value)(cm: CaseMapper): U = f(ef.from(v)(cm))
+        override def to(v: U)(cm: CaseMapper): Value.Builder = ef.to(g(v))(cm)
+      }
+  }
+}
+
+trait EntityFieldInstance0 extends EntityFieldInstance1 {
+
+  // Entity key supports `Long` and `String` natively
+  implicit val efLong: EntityField[Long] = EntityField.at[Long](_.getIntegerValue)(makeValue)
+  implicit val efString: EntityField[String] = EntityField.at[String](_.getStringValue)(makeValue)
+
+  // `Boolean`, `Double` and `Unit` should not be used as keys
+  implicit def efBool(implicit kf: KeyField[Boolean]): EntityField[Boolean] =
+    EntityField.at[Boolean](_.getBooleanValue)(makeValue)
+  implicit def efDouble(implicit kf: KeyField[Double]): EntityField[Double] =
+    EntityField.at[Double](_.getDoubleValue)(makeValue)
+  implicit def efUnit(implicit kf: KeyField[Unit]): EntityField[Unit] =
+    EntityField.at[Unit](_ => ())(_ => Value.newBuilder().setNullValue(NullValue.NULL_VALUE))
+  // User must provide `KeyField[T]` instances for `ByteString` and `Array[Byte]`
+  implicit def efByteString(implicit kf: KeyField[ByteString]): EntityField[ByteString] =
+    EntityField.at[ByteString](_.getBlobValue)(makeValue)
+  implicit def efByteArray(implicit kf: KeyField[Array[Byte]]): EntityField[Array[Byte]] =
+    EntityField.at[Array[Byte]](_.getBlobValue.toByteArray)(v => makeValue(ByteString.copyFrom(v)))
+
+  // Encode `Instant` key as `Long`
+  implicit val efTimestamp: EntityField[Instant] = {
+    implicit val kfInstant = KeyField.at[Instant](_.toEpochMilli)
+    EntityField.at(TimestampConverter.toInstant)(TimestampConverter.fromInstant)
+  }
+
+  implicit def efOption[T](implicit f: EntityField[T]): EntityField[Option[T]] =
+    new EntityField[Option[T]] {
+      override val keyField: KeyField[Option[T]] = new KeyField[Option[T]] {
+        override def setKey(b: Key.PathElement.Builder, key: Option[T]): Key.PathElement.Builder =
+          key match {
+            case None    => b
+            case Some(k) => f.keyField.setKey(b, k)
+          }
+      }
+
+      override def from(v: Value)(cm: CaseMapper): Option[T] =
+        if (v == null) None else Some(f.from(v)(cm))
+
+      override def to(v: Option[T])(cm: CaseMapper): Value.Builder = v match {
+        case None    => null
+        case Some(x) => f.to(x)(cm)
+      }
+    }
+
+  implicit def efIterable[T, C[_]](implicit
+    f: EntityField[T],
+    kf: KeyField[C[T]],
+    ti: C[T] => Iterable[T],
+    fc: FactoryCompat[T, C[T]]
+  ): EntityField[C[T]] =
+    new EntityField[C[T]] {
+      override val keyField: KeyField[C[T]] = kf
+
+      override def from(v: Value)(cm: CaseMapper): C[T] = {
+        val b = fc.newBuilder
+        if (v != null) {
+          b ++= v.getArrayValue.getValuesList.asScala.iterator.map(f.from(_)(cm))
+        }
+        b.result()
+      }
+
+      override def to(v: C[T])(cm: CaseMapper): Value.Builder =
+        if (v.isEmpty) {
+          null
+        } else {
+          Value
+            .newBuilder()
+            .setArrayValue(
+              v.foldLeft(ArrayValue.newBuilder())((b, x) => b.addValues(f.to(x)(cm)))
+                .build()
+            )
+        }
+    }
+}
+
+trait EntityFieldInstance1 {
   type Typeclass[T] = EntityField[T]
 
   def join[T: KeyField](caseClass: CaseClass[Typeclass, T]): EntityField[T] = {
@@ -117,7 +211,7 @@ object EntityField {
         override def to(v: T)(cm: CaseMapper): Value.Builder = tc.to(p.dereference(v))(cm)
       }
     } else {
-      new Record[T] {
+      new EntityField.Record[T] {
         private val (keyIndex, keyOpt): (Int, Option[key]) = {
           val keys = caseClass.parameters
             .map(p => p -> getKey(p.annotations, s"${caseClass.typeName.full}#${p.label}"))
@@ -212,97 +306,4 @@ object EntityField {
   def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): EntityField[T] = ???
 
   implicit def gen[T]: EntityField[T] = macro Magnolia.gen[T]
-
-  // ////////////////////////////////////////////////
-
-  def apply[T](implicit f: EntityField[T]): EntityField[T] = f
-
-  def at[T](f: Value => T)(g: T => Value.Builder)(implicit kf: KeyField[T]): EntityField[T] =
-    new EntityField[T] {
-      override val keyField: KeyField[T] = kf
-      override def from(v: Value)(cm: CaseMapper): T = f(v)
-      override def to(v: T)(cm: CaseMapper): Value.Builder = g(v)
-    }
-
-  def from[T]: FromWord[T] = new FromWord[T]
-
-  class FromWord[T] {
-    def apply[U](f: T => U)(g: U => T)(implicit ef: EntityField[T]): EntityField[U] =
-      new EntityField[U] {
-        override val keyField: KeyField[U] = ef.keyField.map(g)
-        override def from(v: Value)(cm: CaseMapper): U = f(ef.from(v)(cm))
-        override def to(v: U)(cm: CaseMapper): Value.Builder = ef.to(g(v))(cm)
-      }
-  }
-
-  // ////////////////////////////////////////////////
-
-  // Entity key supports `Long` and `String` natively
-  implicit val efLong = at[Long](_.getIntegerValue)(makeValue)
-  implicit val efString = at[String](_.getStringValue)(makeValue)
-
-  // `Boolean`, `Double` and `Unit` should not be used as keys
-  implicit def efBool(implicit kf: KeyField[Boolean]) = at[Boolean](_.getBooleanValue)(makeValue)
-  implicit def efDouble(implicit kf: KeyField[Double]) = at[Double](_.getDoubleValue)(makeValue)
-  implicit def efUnit(implicit kf: KeyField[Unit]) =
-    at[Unit](_ => ())(_ => Value.newBuilder().setNullValue(NullValue.NULL_VALUE))
-
-  // User must provide `KeyField[T]` instances for `ByteString` and `Array[Byte]`
-  implicit def efByteString(implicit kf: KeyField[ByteString]) =
-    at[ByteString](_.getBlobValue)(makeValue)
-  implicit def efByteArray(implicit kf: KeyField[Array[Byte]]) =
-    at[Array[Byte]](_.getBlobValue.toByteArray)(v => makeValue(ByteString.copyFrom(v)))
-
-  // Encode `Instant` key as `Long`
-  implicit val efTimestamp = {
-    implicit val kfInstant = KeyField.at[Instant](_.toEpochMilli)
-    at(TimestampConverter.toInstant)(TimestampConverter.fromInstant)
-  }
-
-  implicit def efOption[T](implicit f: EntityField[T]): EntityField[Option[T]] =
-    new EntityField[Option[T]] {
-      override val keyField: KeyField[Option[T]] = new KeyField[Option[T]] {
-        override def setKey(b: Key.PathElement.Builder, key: Option[T]): Key.PathElement.Builder =
-          key match {
-            case None    => b
-            case Some(k) => f.keyField.setKey(b, k)
-          }
-      }
-
-      override def from(v: Value)(cm: CaseMapper): Option[T] =
-        if (v == null) None else Some(f.from(v)(cm))
-      override def to(v: Option[T])(cm: CaseMapper): Value.Builder = v match {
-        case None    => null
-        case Some(x) => f.to(x)(cm)
-      }
-    }
-
-  implicit def efIterable[T, C[_]](implicit
-    f: EntityField[T],
-    kf: KeyField[C[T]],
-    ti: C[T] => Iterable[T],
-    fc: FactoryCompat[T, C[T]]
-  ): EntityField[C[T]] =
-    new EntityField[C[T]] {
-      override val keyField: KeyField[C[T]] = kf
-      override def from(v: Value)(cm: CaseMapper): C[T] = {
-        val b = fc.newBuilder
-        if (v != null) {
-          b ++= v.getArrayValue.getValuesList.asScala.iterator.map(f.from(_)(cm))
-        }
-        b.result()
-      }
-
-      override def to(v: C[T])(cm: CaseMapper): Value.Builder =
-        if (v.isEmpty) {
-          null
-        } else {
-          Value
-            .newBuilder()
-            .setArrayValue(
-              v.foldLeft(ArrayValue.newBuilder())((b, x) => b.addValues(f.to(x)(cm)))
-                .build()
-            )
-        }
-    }
 }

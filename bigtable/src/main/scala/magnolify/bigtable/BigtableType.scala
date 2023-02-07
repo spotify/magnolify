@@ -109,7 +109,7 @@ sealed trait BigtableField[T] extends Serializable {
   def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder]
 }
 
-object BigtableField {
+object BigtableField extends BigtableFieldInstance0 {
   sealed trait Record[T] extends BigtableField[T]
 
   sealed trait Primitive[T] extends BigtableField[T] {
@@ -133,57 +133,9 @@ object BigtableField {
       )
   }
 
-  // ////////////////////////////////////////////////
-
-  type Typeclass[T] = BigtableField[T]
-
-  def join[T](caseClass: CaseClass[Typeclass, T]): BigtableField[T] = {
-    if (caseClass.isValueClass) {
-      val p = caseClass.parameters.head
-      val tc = p.typeclass
-      new BigtableField[T] {
-        override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T] =
-          tc.get(xs, k)(cm).map(x => caseClass.construct(_ => x))
-        override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
-          p.typeclass.put(k, p.dereference(v))(cm)
-      }
-    } else {
-      new Record[T] {
-        private def key(prefix: String, label: String): String =
-          if (prefix == null) label else s"$prefix.$label"
-
-        override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T] = {
-          var fallback = true
-          val r = caseClass.construct { p =>
-            val cq = key(k, cm.map(p.label))
-            val v = p.typeclass.get(xs, cq)(cm)
-            if (v.isSome) {
-              fallback = false
-            }
-            v.getOrElse(p.default)
-          }
-          // result is default if all fields are default
-          if (fallback) Value.Default(r) else Value.Some(r)
-        }
-
-        override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
-          caseClass.parameters.flatMap(p =>
-            p.typeclass.put(key(k, cm.map(p.label)), p.dereference(v))(cm)
-          )
-      }
-    }
-  }
-
-  @implicitNotFound("Cannot derive BigtableField for sealed trait")
-  private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): BigtableField[T] = ???
-
-  implicit def gen[T]: BigtableField[T] = macro Magnolia.gen[T]
-
   def apply[T](implicit f: BigtableField[T]): BigtableField[T] = f
 
   def from[T]: FromWord[T] = new FromWord
-
   class FromWord[T] {
     def apply[U](f: T => U)(g: U => T)(implicit btf: Primitive[T]): Primitive[U] =
       new Primitive[U] {
@@ -192,58 +144,65 @@ object BigtableField {
         def toByteString(v: U): ByteString = btf.toByteString(g(v))
       }
   }
+}
 
+trait BigtableFieldInstance0 extends BigtableFieldInstance1 {
   private def primitive[T](
     capacity: Int
-  )(f: ByteBuffer => T)(g: (ByteBuffer, T) => Unit): Primitive[T] = new Primitive[T] {
-    override val size: Option[Int] = Some(capacity)
-    override def fromByteString(v: ByteString): T = f(v.asReadOnlyByteBuffer())
-    override def toByteString(v: T): ByteString = {
-      val bb = ByteBuffer.allocate(capacity)
-      g(bb, v)
-      ByteString.copyFrom(bb.array())
+  )(f: ByteBuffer => T)(g: (ByteBuffer, T) => Unit): BigtableField.Primitive[T] =
+    new BigtableField.Primitive[T] {
+      override val size: Option[Int] = Some(capacity)
+
+      override def fromByteString(v: ByteString): T = f(v.asReadOnlyByteBuffer())
+
+      override def toByteString(v: T): ByteString = {
+        val bb = ByteBuffer.allocate(capacity)
+        g(bb, v)
+        ByteString.copyFrom(bb.array())
+      }
     }
-  }
 
-  implicit val btfByte = primitive[Byte](java.lang.Byte.BYTES)(_.get)(_.put(_))
-  implicit val btChar = primitive[Char](java.lang.Character.BYTES)(_.getChar)(_.putChar(_))
-  implicit val btfShort = primitive[Short](java.lang.Short.BYTES)(_.getShort)(_.putShort(_))
-  implicit val btfInt = primitive[Int](java.lang.Integer.BYTES)(_.getInt)(_.putInt(_))
-  implicit val btfLong = primitive[Long](java.lang.Long.BYTES)(_.getLong)(_.putLong(_))
-  implicit val btfFloat = primitive[Float](java.lang.Float.BYTES)(_.getFloat)(_.putFloat(_))
-  implicit val btfDouble = primitive[Double](java.lang.Double.BYTES)(_.getDouble)(_.putDouble(_))
-  implicit val btfBoolean = from[Byte](_ == 1)(if (_) 1 else 0)
-  implicit val btfUUID = primitive[UUID](16)(bb => new UUID(bb.getLong, bb.getLong)) { (bb, uuid) =>
-    bb.putLong(uuid.getMostSignificantBits)
-    bb.putLong(uuid.getLeastSignificantBits)
-  }
-
-  implicit val btfByteString = new Primitive[ByteString] {
-    override val size: Option[Int] = None
-    override def fromByteString(v: ByteString): ByteString = v
-    override def toByteString(v: ByteString): ByteString = v
-  }
-  implicit val btfByteArray = from[ByteString](_.toByteArray)(ByteString.copyFrom)
-  implicit val btfString = from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
-
-  @nowarn("msg=parameter value lp in method btfEnum is never used")
-  implicit def btfEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): Primitive[T] =
-    from[String](et.from)(et.to)
-
-  @nowarn("msg=parameter value lp in method btfUnsafeEnum is never used")
-  implicit def btfUnsafeEnum[T](implicit
-    et: EnumType[T],
-    lp: shapeless.LowPriority
-  ): Primitive[UnsafeEnum[T]] =
-    from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))
-
-  implicit val btfBigInt =
-    from[ByteString](bs => BigInt(bs.toByteArray))(bi => ByteString.copyFrom(bi.toByteArray))
-  implicit val btfBigDecimal = from[ByteString] { bs =>
-    val bb = bs.asReadOnlyByteBuffer()
-    val scale = bb.getInt
-    val unscaled = BigInt(bs.substring(java.lang.Integer.BYTES).toByteArray)
-    BigDecimal.apply(unscaled, scale)
+  implicit val btfByte: BigtableField.Primitive[Byte] =
+    primitive[Byte](java.lang.Byte.BYTES)(_.get)(_.put(_))
+  implicit val btChar: BigtableField.Primitive[Char] =
+    primitive[Char](java.lang.Character.BYTES)(_.getChar)(_.putChar(_))
+  implicit val btfShort: BigtableField.Primitive[Short] =
+    primitive[Short](java.lang.Short.BYTES)(_.getShort)(_.putShort(_))
+  implicit val btfInt: BigtableField.Primitive[Int] =
+    primitive[Int](java.lang.Integer.BYTES)(_.getInt)(_.putInt(_))
+  implicit val btfLong: BigtableField.Primitive[Long] =
+    primitive[Long](java.lang.Long.BYTES)(_.getLong)(_.putLong(_))
+  implicit val btfFloat: BigtableField.Primitive[Float] =
+    primitive[Float](java.lang.Float.BYTES)(_.getFloat)(_.putFloat(_))
+  implicit val btfDouble: BigtableField.Primitive[Double] =
+    primitive[Double](java.lang.Double.BYTES)(_.getDouble)(_.putDouble(_))
+  implicit val btfBoolean: BigtableField.Primitive[Boolean] =
+    BigtableField.from[Byte](_ == 1)(if (_) 1 else 0)
+  implicit val btfUUID: BigtableField.Primitive[UUID] =
+    primitive[UUID](16)(bb => new UUID(bb.getLong, bb.getLong)) { (bb, uuid) =>
+      bb.putLong(uuid.getMostSignificantBits)
+      bb.putLong(uuid.getLeastSignificantBits)
+    }
+  implicit val btfByteString: BigtableField.Primitive[ByteString] =
+    new BigtableField.Primitive[ByteString] {
+      override val size: Option[Int] = None
+      override def fromByteString(v: ByteString): ByteString = v
+      override def toByteString(v: ByteString): ByteString = v
+    }
+  implicit val btfByteArray: BigtableField.Primitive[Array[Byte]] =
+    BigtableField.from[ByteString](_.toByteArray)(ByteString.copyFrom)
+  implicit val btfString: BigtableField.Primitive[String] =
+    BigtableField.from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
+  implicit val btfBigInt: BigtableField.Primitive[BigInt] =
+    BigtableField.from[ByteString](bs => BigInt(bs.toByteArray))(bi =>
+      ByteString.copyFrom(bi.toByteArray)
+    )
+  implicit val btfBigDecimal: BigtableField.Primitive[BigDecimal] = BigtableField.from[ByteString] {
+    bs =>
+      val bb = bs.asReadOnlyByteBuffer()
+      val scale = bb.getInt
+      val unscaled = BigInt(bs.substring(java.lang.Integer.BYTES).toByteArray)
+      BigDecimal.apply(unscaled, scale)
   } { bd =>
     val scale = bd.bigDecimal.scale()
     val unscaled = bd.bigDecimal.unscaledValue().toByteArray
@@ -260,12 +219,12 @@ object BigtableField {
         v.toSeq.flatMap(btf.put(k, _)(cm))
     }
 
-  implicit def btfIterable[T, C[T]](implicit
-    btf: Primitive[T],
+  implicit def btfIterable[T, C[_]](implicit
+    btf: BigtableField.Primitive[T],
     ti: C[T] => Iterable[T],
     fc: FactoryCompat[T, C[T]]
-  ): Primitive[C[T]] =
-    new Primitive[C[T]] {
+  ): BigtableField.Primitive[C[T]] =
+    new BigtableField.Primitive[C[T]] {
       override val size: Option[Int] = None
 
       override def fromByteString(v: ByteString): C[T] = {
@@ -313,66 +272,69 @@ object BigtableField {
     }
 }
 
-private object Columns {
-  private def find(
-    xs: java.util.List[Column],
-    columnQualifier: String,
-    matchPrefix: Boolean
-  ): (Int, Int, Boolean) = {
-    val cq = ByteString.copyFromUtf8(columnQualifier)
-    val pre = if (matchPrefix) ByteString.copyFromUtf8(s"$columnQualifier.") else ByteString.EMPTY
-    var low = 0
-    var high = xs.size()
-    var idx = -1
-    var isNested = false
-    while (idx == -1 && low < high) {
-      val mid = (high + low) / 2
-      val current = xs.get(mid).getQualifier
-      if (matchPrefix && current.startsWith(pre)) {
-        idx = mid
-        isNested = true
-      } else {
-        val c = ByteStringComparator.INSTANCE.compare(current, cq)
-        if (c < 0) {
-          low = mid + 1
-        } else if (c == 0) {
-          idx = mid
-          low = mid + 1
-        } else {
-          high = mid
+trait BigtableFieldInstance1 extends BigtableFieldInstance2 {
+  type Typeclass[T] = BigtableField[T]
+
+  def join[T](caseClass: CaseClass[Typeclass, T]): BigtableField[T] = {
+    if (caseClass.isValueClass) {
+      val p = caseClass.parameters.head
+      p.typeclass match {
+        case primitive: BigtableField.Primitive[p.PType] =>
+          BigtableField.from[p.PType](x => caseClass.construct(_ => x))(p.dereference)(primitive)
+        case tc =>
+          new BigtableField[T] {
+            override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T] =
+              tc.get(xs, k)(cm).map(x => caseClass.construct(_ => x))
+            override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
+              p.typeclass.put(k, p.dereference(v))(cm)
+          }
+      }
+    } else {
+      new BigtableField.Record[T] {
+        private def key(prefix: String, label: String): String =
+          if (prefix == null) label else s"$prefix.$label"
+
+        override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T] = {
+          var fallback = true
+          val r = caseClass.construct { p =>
+            val cq = key(k, cm.map(p.label))
+            val v = p.typeclass.get(xs, cq)(cm)
+            if (v.isSome) {
+              fallback = false
+            }
+            v.getOrElse(p.default)
+          }
+          // result is default if all fields are default
+          if (fallback) Value.Default(r) else Value.Some(r)
         }
-      }
-    }
 
-    if (isNested) {
-      low = idx - 1
-      while (low >= 0 && xs.get(low).getQualifier.startsWith(pre)) {
-        low -= 1
+        override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
+          caseClass.parameters.flatMap(p =>
+            p.typeclass.put(key(k, cm.map(p.label)), p.dereference(v))(cm)
+          )
       }
-      high = idx + 1
-      while (high < xs.size() && xs.get(high).getQualifier.startsWith(pre)) {
-        high += 1
-      }
-      (low + 1, high, isNested)
-    } else {
-      (idx, idx, isNested)
     }
   }
 
-  def find(xs: java.util.List[Column], columnQualifier: String): Column = {
-    val (idx, _, _) = find(xs, columnQualifier, false)
-    if (idx == -1) null else xs.get(idx)
-  }
+  @implicitNotFound("Cannot derive BigtableField for sealed trait")
+  private sealed trait Dispatchable[T]
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): BigtableField[T] = ???
 
-  def findNullable(
-    xs: java.util.List[Column],
-    columnQualifier: String
-  ): Option[java.util.List[Column]] = {
-    val (low, high, isNested) = find(xs, columnQualifier, true)
-    if (isNested) {
-      Some(xs.subList(low, high))
-    } else {
-      if (low == -1) None else Some(java.util.Collections.singletonList(xs.get(low)))
-    }
-  }
+  implicit def gen[T]: BigtableField[T] = macro Magnolia.gen[T]
+}
+
+trait BigtableFieldInstance2 {
+  def btfEnum[T](implicit et: EnumType[T]): BigtableField.Primitive[T] =
+    BigtableField.from[String](et.from)(et.to)
+
+  // user shapeless.LowPriority because returned type BigtableField.Primitive
+  // is more specific than the one returned by BigtableField.gen
+  @nowarn("msg=parameter value lp in method btfEnum0 is never used")
+  implicit def btfEnum0[T: EnumType](implicit
+    lp: shapeless.LowPriority
+  ): BigtableField.Primitive[T] =
+    btfEnum[T]
+
+  implicit def btfUnsafeEnum[T: EnumType]: BigtableField.Primitive[UnsafeEnum[T]] =
+    BigtableField.from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))
 }

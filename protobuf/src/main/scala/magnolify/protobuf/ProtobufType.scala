@@ -112,7 +112,7 @@ sealed trait ProtobufField[T] extends Serializable {
   def fromAny(v: Any)(cm: CaseMapper): T = from(v.asInstanceOf[FromT])(cm)
 }
 
-object ProtobufField {
+object ProtobufField extends ProtobufFieldInstance0 {
   sealed trait Aux[T, From, To] extends ProtobufField[T] {
     override type FromT = From
     override type ToT = To
@@ -122,8 +122,111 @@ object ProtobufField {
     override val default: Option[T] = None
   }
 
-  // ////////////////////////////////////////////////
+  def apply[T](implicit f: ProtobufField[T]): ProtobufField[T] = f
 
+  def from[T]: FromWord[T] = new FromWord[T]
+
+  class FromWord[T] {
+    def apply[U](f: T => U)(g: U => T)(implicit pf: ProtobufField[T]): ProtobufField[U] =
+      new Aux[U, pf.FromT, pf.ToT] {
+        override val hasOptional: Boolean = pf.hasOptional
+        override val default: Option[U] = pf.default.map(f)
+        override def from(v: FromT)(cm: CaseMapper): U = f(pf.from(v)(cm))
+        override def to(v: U, b: Message.Builder)(cm: CaseMapper): ToT = pf.to(g(v), null)(cm)
+      }
+  }
+
+  def enum[T, E <: Enum[E] with ProtocolMessageEnum](implicit
+    et: EnumType[T],
+    ct: ClassTag[E]
+  ): ProtobufField[T] = new Aux[T, EnumValueDescriptor, EnumValueDescriptor] {
+    val map: Map[String, E] = ct.runtimeClass
+      .getMethod("values")
+      .invoke(null)
+      .asInstanceOf[Array[E]]
+      .map(e => e.name() -> e)
+      .toMap
+
+    override val hasOptional: Boolean = false
+    override val default: Option[T] = Some(et.from(map.values.find(_.getNumber == 0).get.name()))
+
+    override def from(v: EnumValueDescriptor)(cm: CaseMapper): T = et.from(v.getName)
+    override def to(v: T, b: Message.Builder)(cm: CaseMapper): EnumValueDescriptor = map(
+      et.to(v)
+    ).getValueDescriptor
+  }
+
+}
+
+trait ProtobufFieldInstance0 extends ProtobufFieldInstance1 {
+  private def aux[T, From, To](_default: T)(f: From => T)(g: T => To): ProtobufField[T] =
+    new ProtobufField.Aux[T, From, To] {
+      override val hasOptional: Boolean = false
+      override val default: Option[T] = Some(_default)
+
+      override def from(v: FromT)(cm: CaseMapper): T = f(v)
+
+      override def to(v: T, b: Message.Builder)(cm: CaseMapper): ToT = g(v)
+    }
+
+  private def aux2[T, Repr](_default: T)(f: Repr => T)(g: T => Repr): ProtobufField[T] =
+    aux[T, Repr, Repr](_default)(f)(g)
+
+  private def id[T](_default: T): ProtobufField[T] = aux[T, T, T](_default)(identity)(identity)
+
+  implicit val pfBoolean: ProtobufField[Boolean] = id[Boolean](false)
+  implicit val pfInt: ProtobufField[Int] = id[Int](0)
+  implicit val pfLong: ProtobufField[Long] = id[Long](0L)
+  implicit val pfFloat: ProtobufField[Float] = id[Float](0.0f)
+  implicit val pfDouble: ProtobufField[Double] = id[Double](0.0)
+  implicit val pfString: ProtobufField[String] = id[String]("")
+  implicit val pfByteString: ProtobufField[ByteString] = id[ByteString](ByteString.EMPTY)
+  implicit val pfByteArray: ProtobufField[Array[Byte]] =
+    aux2[Array[Byte], ByteString](Array.emptyByteArray)(_.toByteArray)(ByteString.copyFrom)
+
+  implicit def pfOption[T](implicit f: ProtobufField[T]): ProtobufField[Option[T]] =
+    new ProtobufField.Aux[Option[T], f.FromT, f.ToT] {
+      override val hasOptional: Boolean = true
+      override val default: Option[Option[T]] = f.default match {
+        case Some(v) => Some(Some(v))
+        case None    => None
+      }
+
+      // we must use Option instead of Some because
+      // the underlying field may interpret custom values as null
+      // eg. Unsafe enums are encoded as string and default "" is treated as None
+      override def from(v: f.FromT)(cm: CaseMapper): Option[T] =
+        if (v == null) None else Option(f.from(v)(cm))
+
+      override def to(v: Option[T], b: Message.Builder)(cm: CaseMapper): f.ToT = v match {
+        case None    => null.asInstanceOf[f.ToT]
+        case Some(x) => f.to(x, b)(cm)
+      }
+    }
+
+  implicit def pfIterable[T, C[_]](implicit
+    f: ProtobufField[T],
+    ti: C[T] => Iterable[T],
+    fc: FactoryCompat[T, C[T]]
+  ): ProtobufField[C[T]] =
+    new ProtobufField.Aux[C[T], ju.List[f.FromT], ju.List[f.ToT]] {
+      override val hasOptional: Boolean = false
+      override val default: Option[C[T]] = Some(fc.newBuilder.result())
+
+      override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] = {
+        val b = fc.newBuilder
+        if (v != null) {
+          b ++= v.asScala.iterator.map(f.from(_)(cm))
+        }
+        b.result()
+      }
+
+      override def to(v: C[T], b: Message.Builder)(cm: CaseMapper): ju.List[f.ToT] =
+        if (v.isEmpty) null else v.iterator.map(f.to(_, b)(cm)).toList.asJava
+    }
+}
+
+trait ProtobufFieldInstance1 {
   type Typeclass[T] = ProtobufField[T]
 
   def join[T](caseClass: CaseClass[Typeclass, T]): ProtobufField[T] = {
@@ -141,7 +244,7 @@ object ProtobufField {
       }
 
     } else {
-      new Record[T] {
+      new ProtobufField.Record[T] {
         // One Record[T] instance may be used for multiple Message types
         @transient private lazy val fieldsCache: concurrent.Map[String, Array[FieldDescriptor]] =
           concurrent.TrieMap.empty
@@ -224,99 +327,4 @@ object ProtobufField {
   def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): ProtobufField[T] = ???
 
   implicit def gen[T]: ProtobufField[T] = macro Magnolia.gen[T]
-
-  // ////////////////////////////////////////////////
-
-  def apply[T](implicit f: ProtobufField[T]): ProtobufField[T] = f
-
-  def from[T]: FromWord[T] = new FromWord[T]
-
-  class FromWord[T] {
-    def apply[U](f: T => U)(g: U => T)(implicit pf: ProtobufField[T]): ProtobufField[U] =
-      new Aux[U, pf.FromT, pf.ToT] {
-        override val hasOptional: Boolean = pf.hasOptional
-        override val default: Option[U] = pf.default.map(f)
-        override def from(v: FromT)(cm: CaseMapper): U = f(pf.from(v)(cm))
-        override def to(v: U, b: Message.Builder)(cm: CaseMapper): ToT = pf.to(g(v), null)(cm)
-      }
-  }
-
-  private def aux[T, From, To](_default: T)(f: From => T)(g: T => To): ProtobufField[T] =
-    new Aux[T, From, To] {
-      override val hasOptional: Boolean = false
-      override val default: Option[T] = Some(_default)
-      override def from(v: FromT)(cm: CaseMapper): T = f(v)
-      override def to(v: T, b: Message.Builder)(cm: CaseMapper): ToT = g(v)
-    }
-
-  private def aux2[T, Repr](_default: T)(f: Repr => T)(g: T => Repr): ProtobufField[T] =
-    aux[T, Repr, Repr](_default)(f)(g)
-
-  private def id[T](_default: T): ProtobufField[T] = aux[T, T, T](_default)(identity)(identity)
-
-  implicit val pfBoolean = id[Boolean](false)
-  implicit val pfInt = id[Int](0)
-  implicit val pfLong = id[Long](0L)
-  implicit val pfFloat = id[Float](0.0f)
-  implicit val pfDouble = id[Double](0.0)
-  implicit val pfString = id[String]("")
-  implicit val pfByteString = id[ByteString](ByteString.EMPTY)
-  implicit val pfByteArray =
-    aux2[Array[Byte], ByteString](Array.emptyByteArray)(_.toByteArray)(ByteString.copyFrom)
-
-  def enum[T, E <: Enum[E] with ProtocolMessageEnum](implicit
-    et: EnumType[T],
-    ct: ClassTag[E]
-  ): ProtobufField[T] = {
-    val map = ct.runtimeClass
-      .getMethod("values")
-      .invoke(null)
-      .asInstanceOf[Array[E]]
-      .map(e => e.name() -> e)
-      .toMap
-    val default = et.from(map.values.find(_.getNumber == 0).get.name())
-    aux2[T, EnumValueDescriptor](default)(e => et.from(e.getName))(e =>
-      map(et.to(e)).getValueDescriptor
-    )
-  }
-
-  implicit def pfOption[T](implicit f: ProtobufField[T]): ProtobufField[Option[T]] =
-    new Aux[Option[T], f.FromT, f.ToT] {
-      override val hasOptional: Boolean = true
-      override val default: Option[Option[T]] = f.default match {
-        case Some(v) => Some(Some(v))
-        case None    => None
-      }
-
-      // we must use Option instead of Some because
-      // the underlying field may interpret custom values as null
-      // eg. Unsafe enums are encoded as string and default "" is treated as None
-      override def from(v: f.FromT)(cm: CaseMapper): Option[T] =
-        if (v == null) None else Option(f.from(v)(cm))
-
-      override def to(v: Option[T], b: Message.Builder)(cm: CaseMapper): f.ToT = v match {
-        case None    => null.asInstanceOf[f.ToT]
-        case Some(x) => f.to(x, b)(cm)
-      }
-    }
-
-  implicit def pfIterable[T, C[_]](implicit
-    f: ProtobufField[T],
-    ti: C[T] => Iterable[T],
-    fc: FactoryCompat[T, C[T]]
-  ): ProtobufField[C[T]] =
-    new Aux[C[T], ju.List[f.FromT], ju.List[f.ToT]] {
-      override val hasOptional: Boolean = false
-      override val default: Option[C[T]] = Some(fc.newBuilder.result())
-      override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] = {
-        val b = fc.newBuilder
-        if (v != null) {
-          b ++= v.asScala.iterator.map(f.from(_)(cm))
-        }
-        b.result()
-      }
-
-      override def to(v: C[T], b: Message.Builder)(cm: CaseMapper): ju.List[f.ToT] =
-        if (v.isEmpty) null else v.iterator.map(f.to(_, b)(cm)).toList.asJava
-    }
 }

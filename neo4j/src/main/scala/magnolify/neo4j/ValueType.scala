@@ -57,55 +57,8 @@ sealed trait ValueField[T] extends Serializable {
   def to(v: T)(cm: CaseMapper): Value
 }
 
-object ValueField {
+object ValueField extends ValueFieldInstance0 {
   sealed trait Record[T] extends ValueField[T]
-
-  // ////////////////////////////////////////////////
-  type Typeclass[T] = ValueField[T]
-
-  def join[T](caseClass: CaseClass[Typeclass, T]): ValueField[T] = {
-    if (caseClass.isValueClass) {
-      val p = caseClass.parameters.head
-      val tc = p.typeclass
-      new ValueField[T] {
-        override def from(v: Value)(cm: CaseMapper): T = caseClass.construct(_ => tc.from(v)(cm))
-        override def to(v: T)(cm: CaseMapper): Value = tc.to(p.dereference(v))(cm)
-      }
-    } else {
-      new Record[T] {
-        override def from(v: Value)(cm: CaseMapper): T =
-          caseClass.construct { p =>
-            val field = cm.map(p.label)
-            try {
-              p.typeclass.from(v.get(field))(cm)
-            } catch {
-              case e: ValueException =>
-                throw new RuntimeException(s"Failed to decode $field: ${e.getMessage}", e)
-            }
-          }
-
-        override def to(v: T)(cm: CaseMapper): Value = {
-          val jmap = caseClass.parameters
-            .foldLeft(Map.newBuilder[String, AnyRef]) { (m, p) =>
-              m += cm.map(p.label) -> p.typeclass.to(p.dereference(v))(cm)
-              m
-            }
-            .result()
-            .asJava
-          Values.value(jmap)
-        }
-      }
-    }
-  }
-
-  @implicitNotFound("Cannot derive AvroField for sealed trait")
-  private sealed trait Dispatchable[T]
-
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): ValueField[T] = ???
-
-  implicit def gen[T]: ValueField[T] = macro Magnolia.gen[T]
-
-  // ////////////////////////////////////////////////
 
   def apply[T](implicit f: ValueField[T]): ValueField[T] = f
 
@@ -118,14 +71,16 @@ object ValueField {
         override def to(v: U)(cm: CaseMapper): Value = af.to(g(v))(cm)
       }
   }
+}
 
-  // ////////////////////////////////////////////////
+trait ValueFieldInstance0 extends ValueFieldInstance1 {
   private def primitive[T](f: Value => T): ValueField[T] = new ValueField[T] {
     override def from(v: Value)(cm: CaseMapper): T = {
       // ensured that v isn't null otherwise neo4j silently coerces
       if (v.isNull) throw new ValueException("Cannot convert null value")
       f(v)
     }
+
     override def to(v: T)(cm: CaseMapper): Value = Values.value(v)
   }
 
@@ -194,4 +149,50 @@ object ValueField {
       override def to(v: Map[String, T])(cm: CaseMapper): Value =
         Values.value(v.iterator.map(kv => (kv._1, f.to(kv._2)(cm))).toMap.asJava)
     }
+}
+
+trait ValueFieldInstance1 {
+  type Typeclass[T] = ValueField[T]
+
+  def join[T](caseClass: CaseClass[Typeclass, T]): ValueField[T] = {
+    if (caseClass.isValueClass) {
+      val p = caseClass.parameters.head
+      val tc = p.typeclass
+      new ValueField[T] {
+        override def from(v: Value)(cm: CaseMapper): T = caseClass.construct(_ => tc.from(v)(cm))
+
+        override def to(v: T)(cm: CaseMapper): Value = tc.to(p.dereference(v))(cm)
+      }
+    } else {
+      new ValueField.Record[T] {
+        override def from(v: Value)(cm: CaseMapper): T =
+          caseClass.construct { p =>
+            val field = cm.map(p.label)
+            try {
+              p.typeclass.from(v.get(field))(cm)
+            } catch {
+              case e: ValueException =>
+                throw new RuntimeException(s"Failed to decode $field: ${e.getMessage}", e)
+            }
+          }
+
+        override def to(v: T)(cm: CaseMapper): Value = {
+          val jmap = caseClass.parameters
+            .foldLeft(Map.newBuilder[String, AnyRef]) { (m, p) =>
+              m += cm.map(p.label) -> p.typeclass.to(p.dereference(v))(cm)
+              m
+            }
+            .result()
+            .asJava
+          Values.value(jmap)
+        }
+      }
+    }
+  }
+
+  @implicitNotFound("Cannot derive AvroField for sealed trait")
+  private sealed trait Dispatchable[T]
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): ValueField[T] = ???
+
+  implicit def gen[T]: ValueField[T] = macro Magnolia.gen[T]
 }

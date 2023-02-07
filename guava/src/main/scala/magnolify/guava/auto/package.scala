@@ -21,14 +21,22 @@ import magnolify.guava.semiauto.FunnelImplicits
 
 import scala.reflect.macros._
 
-package object auto extends FunnelImplicits {
+package object auto extends FunnelInstance0 {
+  val FunnelDerivation = semiauto.FunnelDerivation
+}
+
+object FunnelMacros {
   def genFunnelMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.guava.semiauto.FunnelDerivation.apply[$wtt]"""
   }
+}
 
-  implicit def genFunnel[T]: Funnel[T] = macro genFunnelMacro[T]
+trait FunnelInstance0 extends FunnelImplicits with FunnelInstance1
 
-  val FunnelDerivation = semiauto.FunnelDerivation
+trait FunnelInstance1 extends FunnelInstance2
+
+trait FunnelInstance2 {
+  implicit def genFunnel[T]: Funnel[T] = macro FunnelMacros.genFunnelMacro[T]
 }

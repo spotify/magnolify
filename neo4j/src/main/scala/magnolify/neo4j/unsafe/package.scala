@@ -19,19 +19,18 @@ package magnolify.neo4j
 import magnolify.shared._
 import scala.annotation.nowarn
 
-package object unsafe {
+package object unsafe extends UnsafeValueFieldInstance0
 
-  @nowarn("msg=parameter value lp in method vfEnum is never used")
-  implicit def vfEnum[T](implicit
-    et: EnumType[T],
-    lp: shapeless.LowPriority
-  ): ValueField[T] =
+trait UnsafeValueFieldInstance0 {
+
+  def vfEnum[T](implicit et: EnumType[T]): ValueField[T] =
     ValueField.from[String](et.from)(_.toString)
 
-  @nowarn("msg=parameter value lp in method vfUnsafeEnum is never used")
-  implicit def vfUnsafeEnum[T](implicit
-    et: EnumType[T],
-    lp: shapeless.LowPriority
-  ): ValueField[UnsafeEnum[T]] =
+  // use shapeless.LowPriority so ValueField.gen is preferred
+  @nowarn("msg=parameter value lp in method vfEnum0 is never used")
+  implicit def vfEnum0[T: EnumType](implicit lp: shapeless.LowPriority): ValueField[T] =
+    vfEnum[T]
+
+  implicit def vfUnsafeEnum[T: EnumType]: ValueField[UnsafeEnum[T]] =
     ValueField.from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))
 }

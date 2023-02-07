@@ -19,8 +19,6 @@ package magnolify.shared
 import magnolia1._
 
 import scala.reflect.ClassTag
-import scala.reflect.macros._
-import scala.annotation.nowarn
 
 sealed trait EnumType[T] extends Serializable { self =>
   val name: String
@@ -43,7 +41,7 @@ sealed trait EnumType[T] extends Serializable { self =>
   }
 }
 
-object EnumType {
+object EnumType extends EnumTypeInstance0 {
   def apply[T](implicit et: EnumType[T]): EnumType[T] = et
   def apply[T](cm: CaseMapper)(implicit et: EnumType[T]): EnumType[T] = et.map(cm)
 
@@ -69,10 +67,9 @@ object EnumType {
     override def from(v: String): T = fMap(v)
     override def to(v: T): String = gMap(v)
   }
+}
 
-  // ////////////////////////////////////////////////
-
-  // Java `enum`
+trait EnumTypeInstance0 extends EnumTypeInstance1 {
   implicit def javaEnumType[T <: Enum[T]](implicit ct: ClassTag[T]): EnumType[T] = {
     val cls: Class[_] = ct.runtimeClass
     val n = ReflectionUtils.name[T]
@@ -87,39 +84,11 @@ object EnumType {
     EnumType.create(n, ns, map.keys.toList, cls.getAnnotations.toList, map(_))
   }
 
-  // ////////////////////////////////////////////////
-
-  // Scala `Enumeration`
   implicit def scalaEnumType[T <: Enumeration#Value: AnnotationType]: EnumType[T] =
-    macro scalaEnumTypeImpl[T]
+    macro EnumTypeMacros.scalaEnumTypeImpl[T]
+}
 
-  def scalaEnumTypeImpl[T: c.WeakTypeTag](
-    c: whitebox.Context
-  )(annotations: c.Expr[AnnotationType[T]]): c.Tree = {
-    import c.universe._
-    val wtt = weakTypeTag[T]
-    val ref = wtt.tpe.asInstanceOf[TypeRef]
-    val fn = ref.pre.typeSymbol.asClass.fullName
-    val idx = fn.lastIndexOf('.')
-    val n = fn.drop(idx + 1) // `object <Namespace> extends Enumeration`
-    val ns = fn.take(idx)
-    val list = q"${ref.pre.termSymbol}.values.toList.sortBy(_.id).map(_.toString)"
-    val map = q"${ref.pre.termSymbol}.values.map(x => x.toString -> x).toMap"
-
-    q"""
-        _root_.magnolify.shared.EnumType.create[$wtt](
-          $n, $ns, $list, $annotations.annotations, $map.apply(_))
-     """
-  }
-
-  // ////////////////////////////////////////////////
-
-  // Scala ADT
-  def adtEnumType[T]: EnumType[T] = macro Magnolia.gen[T]
-
-  implicit def gen[T](implicit lp: shapeless.LowPriority): EnumType[T] = macro genMacro[T]
-  @nowarn("msg=parameter value lp in method genMacro is never used")
-  def genMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = Magnolia.gen[T](c)
+trait EnumTypeInstance1 {
 
   type Typeclass[T] = EnumType[T]
 
@@ -155,4 +124,9 @@ object EnumType {
       v => subs.find(_.name == v).get.from(v)
     )
   }
+
+  implicit def gen[T]: EnumType[T] = macro Magnolia.gen[T]
+
+  // here only for naming consistency
+  def adtEnumType[T]: EnumType[T] = macro Magnolia.gen[T]
 }
