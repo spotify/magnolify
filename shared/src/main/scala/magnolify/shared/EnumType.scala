@@ -123,22 +123,25 @@ object EnumType {
 
   type Typeclass[T] = EnumType[T]
 
+  // EnumType can only be split into objects with fixed name
+  // Avoid invalid ADT derivation involving products by requiring
+  // implicit EnumValue type-class in magnolia join
   @implicitNotFound("Cannot derive EnumType value")
-  trait SumValue[T]
-  implicit def genSumValue[T]: SumValue[T] = macro genSumValueMacro[T]
-  def genSumValueMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
+  trait EnumValue[T]
+  implicit def genEnumValue[T]: EnumValue[T] = macro genEnumValueMacro[T]
+  def genEnumValueMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
     import c.universe._
     val tpe = weakTypeOf[T]
     val symbol = tpe.typeSymbol
     if (symbol.isModuleClass) {
-      q"new _root_.magnolify.shared.EnumType.SumValue[$tpe] {}"
+      q"new _root_.magnolify.shared.EnumType.EnumValue[$tpe]{}"
     } else {
-      c.abort(c.enclosingPosition, "Sum type value must be an object")
+      c.abort(c.enclosingPosition, "EnumType value must be an object")
     }
   }
 
   @nowarn
-  def join[T: SumValue](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+  def join[T: EnumValue](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
     val n = caseClass.typeName.short
     val ns = caseClass.typeName.owner
     EnumType.create(
