@@ -17,21 +17,11 @@
 package magnolify.neo4j
 
 import magnolify.shared._
-import scala.annotation.nowarn
-
 package object unsafe {
 
-  @nowarn("msg=parameter value lp in method vfEnum is never used")
-  implicit def vfEnum[T](implicit
-    et: EnumType[T],
-    lp: shapeless.LowPriority
-  ): ValueField[T] =
+  implicit def vfEnum[T](implicit et: EnumType[T]): ValueField[T] =
     ValueField.from[String](et.from)(_.toString)
 
-  @nowarn("msg=parameter value lp in method vfUnsafeEnum is never used")
-  implicit def vfUnsafeEnum[T](implicit
-    et: EnumType[T],
-    lp: shapeless.LowPriority
-  ): ValueField[UnsafeEnum[T]] =
+  implicit def vfUnsafeEnum[T](implicit et: EnumType[T]): ValueField[UnsafeEnum[T]] =
     ValueField.from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))
 }

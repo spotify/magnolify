@@ -25,7 +25,7 @@ import magnolia1._
 import magnolify.shared._
 import magnolify.shims._
 
-import scala.annotation.{implicitNotFound, nowarn}
+import scala.annotation.implicitNotFound
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
 
@@ -226,16 +226,11 @@ object BigtableField {
   implicit val btfByteArray = from[ByteString](_.toByteArray)(ByteString.copyFrom)
   implicit val btfString = from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
 
-  @nowarn("msg=parameter value lp in method btfEnum is never used")
-  implicit def btfEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): Primitive[T] =
+  implicit def btfEnum[T](implicit et: EnumType[T]): Primitive[T] =
     from[String](et.from)(et.to)
 
-  @nowarn("msg=parameter value lp in method btfUnsafeEnum is never used")
-  implicit def btfUnsafeEnum[T](implicit
-    et: EnumType[T],
-    lp: shapeless.LowPriority
-  ): Primitive[UnsafeEnum[T]] =
-    from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))
+  implicit def btfUnsafeEnum[T: EnumType]: Primitive[UnsafeEnum[T]] =
+    from[String](UnsafeEnum.from[T])(UnsafeEnum.to[T])
 
   implicit val btfBigInt =
     from[ByteString](bs => BigInt(bs.toByteArray))(bi => ByteString.copyFrom(bi.toByteArray))

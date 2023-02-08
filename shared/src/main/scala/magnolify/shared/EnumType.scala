@@ -117,9 +117,7 @@ object EnumType {
   // Scala ADT
   def adtEnumType[T]: EnumType[T] = macro Magnolia.gen[T]
 
-  implicit def gen[T](implicit lp: shapeless.LowPriority): EnumType[T] = macro genMacro[T]
-  @nowarn("msg=parameter value lp in method genMacro is never used")
-  def genMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = Magnolia.gen[T](c)
+  implicit def gen[T]: EnumType[T] = macro Magnolia.gen[T]
 
   type Typeclass[T] = EnumType[T]
 
