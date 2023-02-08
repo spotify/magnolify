@@ -65,7 +65,6 @@ sealed trait AvroField[T] extends Serializable { self =>
     concurrent.TrieMap.empty
 
   protected def buildSchema(cm: CaseMapper): Schema
-
   def schema(cm: CaseMapper): Schema =
     schemaCache.get(cm.uuid) match {
       case Some(cachedSchema) => cachedSchema
@@ -122,8 +121,33 @@ object AvroField {
               false,
               caseClass.parameters.map { p =>
                 new Schema.Field(
-                  cm.map(p.label),
-                  attachProperties(p.typeclass.schema(cm), p.annotations),
+                  cm.map(p.label), {
+                    val fieldSchema = p.typeclass.schema(cm)
+                    lazy val attachPropertiesFn: (Schema, (String, AnyRef)) => Unit =
+                      fieldSchema.getType match {
+                        case Schema.Type.ARRAY => { case (s: Schema, (k: String, v: AnyRef)) =>
+                          s.getElementType.addProp(k, v)
+                        }
+                        case Schema.Type.MAP => { case (s: Schema, (k: String, v: AnyRef)) =>
+                          s.getValueType.addProp(k, v)
+                        }
+                        case Schema.Type.UNION => { case (s: Schema, (k: String, v: AnyRef)) =>
+                          s.getTypes.asScala
+                            .filterNot(_.getType == Schema.Type.NULL)
+                            .foreach(_.addProp(k, v))
+                        }
+                        case Schema.Type.RECORD => { case (_: Schema, (_: String, _: AnyRef)) =>
+                          ()
+                        }
+                        case _ => { case (s: Schema, (k: String, v: AnyRef)) => s.addProp(k, v) }
+                      }
+
+                    p.annotations
+                      .collect { case d: property => d.kv }
+                      .foreach(prop => attachPropertiesFn(fieldSchema, prop))
+
+                    fieldSchema
+                  },
                   getDoc(p.annotations, s"${caseClass.typeName.full}#${p.label}"),
                   p.default
                     .map(d => p.typeclass.makeDefault(d)(cm))
@@ -162,28 +186,6 @@ object AvroField {
     val docs = annotations.collect { case d: doc => d.toString }
     require(docs.size <= 1, s"More than one @doc annotation: $name")
     docs.headOption.orNull
-  }
-
-  private def attachProperties(schema: Schema, annotations: Seq[Any]): Schema = {
-    lazy val attach: (Schema, (String, AnyRef)) => Unit = schema.getType match {
-      case Schema.Type.ARRAY => { case (s: Schema, (k: String, v: AnyRef)) =>
-        s.getElementType.addProp(k, v)
-      }
-      case Schema.Type.MAP => { case (s: Schema, (k: String, v: AnyRef)) =>
-        s.getValueType.addProp(k, v)
-      }
-      case Schema.Type.UNION => { case (s: Schema, (k: String, v: AnyRef)) =>
-        s.getTypes.asScala.filterNot(_.getType == Schema.Type.NULL).foreach(_.addProp(k, v))
-      }
-      case _ => { case (s: Schema, (k: String, v: AnyRef)) =>
-        s.addProp(k, v)
-      }
-    }
-
-    annotations
-      .collect { case d: property => d.kv }
-      .foreach(prop => attach(schema, prop))
-    schema
   }
 
   @implicitNotFound("Cannot derive AvroField for sealed trait")

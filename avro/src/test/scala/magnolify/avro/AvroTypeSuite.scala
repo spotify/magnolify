@@ -330,10 +330,9 @@ class AvroTypeSuite extends MagnolifySuite {
 
   test("Properties") {
     val at: AvroType[Properties] = AvroType[Properties]
-    val schema = at.schema
 
     assert(
-      schema == Schema.parse("""
+      at.schema == new Schema.Parser().parse("""
         |{
         |  "type":"record",
         |  "name":"Properties",
