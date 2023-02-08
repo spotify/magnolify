@@ -23,6 +23,6 @@ package object unsafe {
   implicit val afChar = AvroField.from[Int](_.toChar)(_.toInt)
   implicit val afShort = AvroField.from[Int](_.toShort)(_.toInt)
 
-  implicit def afUnsafeEnum[T](implicit et: EnumType[T]): AvroField[UnsafeEnum[T]] =
-    AvroField.from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))
+  implicit def afUnsafeEnum[T: EnumType]: AvroField[UnsafeEnum[T]] =
+    AvroField.from[String](UnsafeEnum.from[T])(UnsafeEnum.to[T])
 }

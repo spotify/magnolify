@@ -26,7 +26,7 @@ package object unsafe {
     implicit val proto3Option: ProtobufOption = new ProtobufOption.Proto3Option
   }
 
-  implicit def pfUnsafeEnum[T](implicit et: EnumType[T]): ProtobufField[UnsafeEnum[T]] =
+  implicit def pfUnsafeEnum[T: EnumType]: ProtobufField[UnsafeEnum[T]] =
     ProtobufField
-      .from[String](s => if (s == null || s.isEmpty) null else UnsafeEnum.from(s))(UnsafeEnum.to(_))
+      .from[String](s => Option(s).filter(_.nonEmpty).map(UnsafeEnum.from[T]).orNull)(UnsafeEnum.to[T])
 }

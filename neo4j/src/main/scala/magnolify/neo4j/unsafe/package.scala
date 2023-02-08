@@ -22,6 +22,6 @@ package object unsafe {
   implicit def vfEnum[T](implicit et: EnumType[T]): ValueField[T] =
     ValueField.from[String](et.from)(_.toString)
 
-  implicit def vfUnsafeEnum[T](implicit et: EnumType[T]): ValueField[UnsafeEnum[T]] =
-    ValueField.from[String](UnsafeEnum.from(_))(UnsafeEnum.to(_))
+  implicit def vfUnsafeEnum[T: EnumType]: ValueField[UnsafeEnum[T]] =
+    ValueField.from[String](UnsafeEnum.from[T])(UnsafeEnum.to[T])
 }
