@@ -66,24 +66,16 @@ sealed trait AvroField[T] extends Serializable { self =>
 
   protected def buildSchema(cm: CaseMapper): Schema
 
-  def schema(cm: CaseMapper): Schema = {
-    def hasProperties(schema: Schema): Boolean = schema.getType match {
-      case Schema.Type.ARRAY => schema.getElementType.hasProps
-      case Schema.Type.MAP   => schema.getValueType.hasProps
-      case Schema.Type.UNION => schema.getTypes.asScala.exists(_.hasProps)
-      case _                 => schema.hasProps
-    }
-
+  def schema(cm: CaseMapper): Schema =
     schemaCache.get(cm.uuid) match {
       case Some(cachedSchema) => cachedSchema
       case None =>
         val schema = buildSchema(cm)
-        if (!hasProperties(schema)) {
+        if (schema.getType == Schema.Type.RECORD) {
           schemaCache.put(cm.uuid, schema)
         }
         schema
     }
-  }
 
   // Convert default `T` to Avro schema default value
   def makeDefault(d: T)(cm: CaseMapper): Any = to(d)(cm)

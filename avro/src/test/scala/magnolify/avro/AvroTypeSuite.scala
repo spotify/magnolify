@@ -333,22 +333,18 @@ class AvroTypeSuite extends MagnolifySuite {
     val schema = at.schema
 
     assert(
-      schema.toString ==
-        """
+      schema == Schema.parse("""
         |{
         |  "type":"record",
         |  "name":"Properties",
         |  "namespace":"magnolify.avro",
-        |    "fields":[
-        |       {"name":"str","type":["null",{"type":"string","a":"b","c":"d"}]},
-        |       {"name":"list","type":{"type":"array","items":{"type":"string","g":"h"}},"default":[]},
-        |       {"name":"map","type":{"type":"map","values":{"i":"j"}},"default":{}},
-        |       {"name":"nested","type":
-        |         {"type":"record","name":"PropertiesNested","fields":[
-        |           {"name":"int","type":{"type":"int","e":"f"}}
-        |         ]}
-        |    ]}
-        |""".stripMargin
+        |  "fields":[
+        |     {"name":"str","type":["null",{"type":"string","a":"b","c":"d"}]},
+        |     {"name":"list","type":{"type":"array","items":{"type":"string","g":"h"}},"default":[]},
+        |     {"name":"map","type":{"type":"map","values":{"type":"string","i":"j"}},"default":{}},
+        |     {"name":"nested","type":{"type":"record","name":"PropertiesNested","fields":[{"name":"int","type":{"type":"int","e":"f"}}]}}
+        |  ]}
+        |""".stripMargin)
     )
   }
 }
