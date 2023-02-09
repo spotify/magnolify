@@ -123,28 +123,9 @@ object AvroField {
                 new Schema.Field(
                   cm.map(p.label), {
                     val fieldSchema = p.typeclass.schema(cm)
-                    lazy val attachPropertiesFn: (Schema, (String, AnyRef)) => Unit =
-                      fieldSchema.getType match {
-                        case Schema.Type.ARRAY => { case (s: Schema, (k: String, v: AnyRef)) =>
-                          s.getElementType.addProp(k, v)
-                        }
-                        case Schema.Type.MAP => { case (s: Schema, (k: String, v: AnyRef)) =>
-                          s.getValueType.addProp(k, v)
-                        }
-                        case Schema.Type.UNION => { case (s: Schema, (k: String, v: AnyRef)) =>
-                          s.getTypes.asScala
-                            .filterNot(_.getType == Schema.Type.NULL)
-                            .foreach(_.addProp(k, v))
-                        }
-                        case Schema.Type.RECORD => { case (_: Schema, (_: String, _: AnyRef)) =>
-                          ()
-                        }
-                        case _ => { case (s: Schema, (k: String, v: AnyRef)) => s.addProp(k, v) }
-                      }
-
                     p.annotations
                       .collect { case d: property => d.kv }
-                      .foreach(prop => attachPropertiesFn(fieldSchema, prop))
+                      .foreach(prop => attachPropertiesFns(fieldSchema.getType)(fieldSchema, prop))
 
                     fieldSchema
                   },
@@ -180,6 +161,29 @@ object AvroField {
           }
       }
     }
+  }
+
+  private lazy val attachPropertiesFns: Map[Schema.Type, (Schema, (String, AnyRef)) => Unit] = {
+    def wrap(fn: (Schema, (String, AnyRef)) => Unit): (Schema, (String, AnyRef)) => Unit = fn
+
+    Map(
+      Schema.Type.ARRAY -> wrap { case (s: Schema, (k: String, v: AnyRef)) =>
+        s.getElementType.addProp(k, v)
+      },
+      Schema.Type.MAP -> wrap { case (s: Schema, (k: String, v: AnyRef)) =>
+        s.getValueType.addProp(k, v)
+      },
+      Schema.Type.UNION -> wrap { case (s: Schema, (k: String, v: AnyRef)) =>
+        s.getTypes.asScala
+          .filterNot(_.getType == Schema.Type.NULL)
+          .foreach(_.addProp(k, v))
+      },
+      Schema.Type.RECORD -> wrap { case (_: Schema, (_: String, _: AnyRef)) =>
+        ()
+      }
+    ).withDefaultValue(wrap { case (s: Schema, (k: String, v: AnyRef)) =>
+      s.addProp(k, v)
+    })
   }
 
   private def getDoc(annotations: Seq[Any], name: String): String = {
