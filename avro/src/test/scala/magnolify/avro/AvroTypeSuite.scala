@@ -31,12 +31,12 @@ import magnolify.shared.TestEnumType._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.apache.avro.Schema
+import org.apache.avro.generic.GenericData
 import org.apache.avro.generic.GenericDatumReader
 import org.apache.avro.generic.GenericDatumWriter
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.generic.GenericRecordBuilder
-import org.apache.avro.io.DecoderFactory
-import org.apache.avro.io.EncoderFactory
+import org.apache.avro.io.{DatumReader, DecoderFactory, EncoderFactory}
 import org.scalacheck._
 
 import java.io.ByteArrayInputStream
@@ -49,7 +49,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import java.util.UUID
+import java.util.{List => JList, Map => JMap, UUID}
 import scala.jdk.CollectionConverters._
 import scala.reflect._
 import scala.util.Try
@@ -332,27 +332,50 @@ class AvroTypeSuite extends MagnolifySuite {
     val at: AvroType[Properties] = AvroType[Properties]
 
     assert(
-      at.schema == new Schema.Parser().parse("""
+      at.schema == new Schema.Parser().parse(s"""
         |{
         |  "type":"record",
         |  "name":"Properties",
         |  "namespace":"magnolify.avro",
         |  "fields":[
-        |     {"name":"str","type":["null",{"type":"string","a":"b","c":"d"}]},
-        |     {"name":"list","type":{"type":"array","items":{"type":"string","g":"h"}},"default":[]},
-        |     {"name":"map","type":{"type":"map","values":{"type":"string","i":"j"}},"default":{}},
-        |     {"name":"nested","type":{"type":"record","name":"PropertiesNested","fields":[{"name":"int","type":{"type":"int","e":"f"}}]}}
+        |     {"name":"str","type":["null",{"type":"string","${GenericData.STRING_PROP}":"String","extraProp":"foo"}]},
+        |     {"name":"list","type":{"type":"array","items":{"type":"string","${GenericData.STRING_PROP}":"String"}},"default":[]},
+        |     {"name":"map","type":{"type":"map","values":{"type":"string","${GenericData.STRING_PROP}":"String"}},"default":{}},
+        |     {"name":"nested","type":{"type":"record","name":"PropertiesNested","fields":[
+        |       {"name":"str","type":{"type":"string","${GenericData.STRING_PROP}":"String"}}
+        |     ]}}
         |  ]}
         |""".stripMargin)
     )
+
+    // Assert that properties are set in correct position for complex types
+    val record = at.to(Properties(Some("a"), List("b"), Map("c" -> "d"), PropertiesNested("e")))
+    val roundTripped = {
+      val baos = new ByteArrayOutputStream()
+      val encoder = EncoderFactory.get().directBinaryEncoder(baos, null)
+      new GenericDatumWriter(at.schema).write(record, encoder)
+
+      val decoder =
+        DecoderFactory.get().directBinaryDecoder(new ByteArrayInputStream(baos.toByteArray), null)
+      val reader: DatumReader[GenericRecord] = new GenericDatumReader(at.schema)
+      reader.read(null, decoder)
+    }
+
+    def isJavaString(field: AnyRef): Boolean = field.getClass == classOf[String]
+    assert(isJavaString(roundTripped.get("str")))
+    assert(isJavaString(roundTripped.get("list").asInstanceOf[JList[CharSequence]].get(0)))
+    assert(isJavaString(roundTripped.get("map").asInstanceOf[JMap[String, String]].get("c")))
+    assert(isJavaString(roundTripped.get("nested").asInstanceOf[GenericRecord].get("str")))
   }
 }
 
-case class PropertiesNested(@property("e" -> "f") int: Int)
+case class PropertiesNested(@property(GenericData.STRING_PROP -> "String") str: String)
 case class Properties(
-  @property("a" -> "b") @property("c" -> "d") str: Option[String],
-  @property("g" -> "h") list: List[String],
-  @property("i" -> "j") map: Map[String, String],
+  @property(GenericData.STRING_PROP -> "String") @property("extraProp" -> "foo") str: Option[
+    String
+  ],
+  @property(GenericData.STRING_PROP -> "String") list: List[String],
+  @property(GenericData.STRING_PROP -> "String") map: Map[String, String],
   nested: PropertiesNested
 )
 case class Unsafe(b: Byte, c: Char, s: Short)

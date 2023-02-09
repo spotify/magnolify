@@ -112,7 +112,28 @@ object AvroField {
       }
     } else {
       new Record[T] {
-        override protected def buildSchema(cm: CaseMapper): Schema =
+        override protected def buildSchema(cm: CaseMapper): Schema = {
+          def attachProperties(schema: Schema, properties: Seq[(String, AnyRef)]): Unit = {
+            lazy val attach: (Schema, (String, AnyRef)) => Unit = schema.getType match {
+              case Schema.Type.ARRAY => { case (s: Schema, (k: String, v: AnyRef)) =>
+                s.getElementType.addProp(k, v)
+              }
+              case Schema.Type.MAP => { case (s: Schema, (k: String, v: AnyRef)) =>
+                s.getValueType.addProp(k, v)
+              }
+              case Schema.Type.UNION => { case (s: Schema, (k: String, v: AnyRef)) =>
+                s.getTypes.asScala.filterNot(_.getType == Schema.Type.NULL).foreach(_.addProp(k, v))
+              }
+              case Schema.Type.RECORD => { case (_: Schema, (_: String, _: AnyRef)) =>
+                () // Don't support record-level properties
+              }
+              case _ => { case (s: Schema, (k: String, v: AnyRef)) =>
+                s.addProp(k, v)
+              }
+            }
+            properties.foreach(p => attach(schema, p))
+          }
+
           Schema
             .createRecord(
               caseClass.typeName.short,
@@ -123,10 +144,10 @@ object AvroField {
                 new Schema.Field(
                   cm.map(p.label), {
                     val fieldSchema = p.typeclass.schema(cm)
-                    p.annotations
-                      .collect { case d: property => d.kv }
-                      .foreach(prop => attachPropertiesFns(fieldSchema.getType)(fieldSchema, prop))
-
+                    attachProperties(
+                      fieldSchema,
+                      p.annotations.collect { case d: property => d.kv }
+                    )
                     fieldSchema
                   },
                   getDoc(p.annotations, s"${caseClass.typeName.full}#${p.label}"),
@@ -136,6 +157,7 @@ object AvroField {
                 )
               }.asJava
             )
+        }
 
         // `JacksonUtils.toJson` expects `Map[String, Any]` for `RECORD` defaults
         override def makeDefault(d: T)(cm: CaseMapper): ju.Map[String, Any] = {
@@ -161,29 +183,6 @@ object AvroField {
           }
       }
     }
-  }
-
-  private lazy val attachPropertiesFns: Map[Schema.Type, (Schema, (String, AnyRef)) => Unit] = {
-    def wrap(fn: (Schema, (String, AnyRef)) => Unit): (Schema, (String, AnyRef)) => Unit = fn
-
-    Map(
-      Schema.Type.ARRAY -> wrap { case (s: Schema, (k: String, v: AnyRef)) =>
-        s.getElementType.addProp(k, v)
-      },
-      Schema.Type.MAP -> wrap { case (s: Schema, (k: String, v: AnyRef)) =>
-        s.getValueType.addProp(k, v)
-      },
-      Schema.Type.UNION -> wrap { case (s: Schema, (k: String, v: AnyRef)) =>
-        s.getTypes.asScala
-          .filterNot(_.getType == Schema.Type.NULL)
-          .foreach(_.addProp(k, v))
-      },
-      Schema.Type.RECORD -> wrap { case (_: Schema, (_: String, _: AnyRef)) =>
-        ()
-      }
-    ).withDefaultValue(wrap { case (s: Schema, (k: String, v: AnyRef)) =>
-      s.addProp(k, v)
-    })
   }
 
   private def getDoc(annotations: Seq[Any], name: String): String = {
