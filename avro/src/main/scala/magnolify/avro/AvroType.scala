@@ -119,7 +119,8 @@ object AvroField {
                 s.getElementType.addProp(k, v)
               }
               case Schema.Type.MAP => { case (s: Schema, (k: String, v: AnyRef)) =>
-                s.getValueType.addProp(k, v)
+                s.addProp(k, v) // Sets Key properties
+                s.getValueType.addProp(k, v) // Sets Value properties
               }
               case Schema.Type.UNION => { case (s: Schema, (k: String, v: AnyRef)) =>
                 s.getTypes.asScala.filterNot(_.getType == Schema.Type.NULL).foreach(_.addProp(k, v))

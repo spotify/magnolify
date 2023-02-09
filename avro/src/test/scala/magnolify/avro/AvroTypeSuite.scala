@@ -340,7 +340,7 @@ class AvroTypeSuite extends MagnolifySuite {
         |  "fields":[
         |     {"name":"str","type":["null",{"type":"string","${GenericData.STRING_PROP}":"String","extraProp":"foo"}]},
         |     {"name":"list","type":{"type":"array","items":{"type":"string","${GenericData.STRING_PROP}":"String"}},"default":[]},
-        |     {"name":"map","type":{"type":"map","values":{"type":"string","${GenericData.STRING_PROP}":"String"}},"default":{}},
+        |     {"name":"map","type":{"type":"map","values":{"type":"string","${GenericData.STRING_PROP}":"String"},"${GenericData.STRING_PROP}":"String"},"default":{}},
         |     {"name":"nested","type":{"type":"record","name":"PropertiesNested","fields":[
         |       {"name":"str","type":{"type":"string","${GenericData.STRING_PROP}":"String"}}
         |     ]}}
