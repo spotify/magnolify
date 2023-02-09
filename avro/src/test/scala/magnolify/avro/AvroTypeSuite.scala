@@ -329,7 +329,7 @@ class AvroTypeSuite extends MagnolifySuite {
   }
 
   test("Properties") {
-    val at: AvroType[Properties] = AvroType[Properties]
+    val at: AvroType[Properties] = ensureSerializable(AvroType[Properties])
 
     assert(
       at.schema == new Schema.Parser().parse(s"""
