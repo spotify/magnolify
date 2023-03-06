@@ -32,7 +32,7 @@ val munitVersion = "0.7.29"
 val neo4jDriverVersion = "4.4.9"
 val paigesVersion = "0.4.2"
 val parquetVersion = "1.12.3"
-val protobufVersion = "3.21.12"
+val protobufVersion = "3.22.0"
 val refinedVersion = "0.10.2"
 val scalaCollectionCompatVersion = "2.9.0"
 val scalacheckVersion = "1.17.0"
@@ -164,7 +164,8 @@ lazy val scopedProtobufSettings = Def.settings(
 )
 lazy val protobufSettings = Seq(
   PB.additionalDependencies := Seq(
-    "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
+    "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided,
+    "com.google.protobuf" % "protobuf-java" % protobufVersion % Test
   )
 ) ++ Seq(Compile, Test).flatMap(c => inConfig(c)(scopedProtobufSettings))
 
