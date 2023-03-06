@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import sbtprotoc.ProtocPlugin.ProtobufConfig
+import com.typesafe.tools.mima.core._
 
 val magnoliaScala2Version = "1.1.3"
 val magnoliaScala3Version = "1.1.4"
@@ -142,6 +143,13 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
     scalas = List(defaultScala),
     javas = List(defaultJava)
   )
+)
+
+// mima
+ThisBuild / mimaBinaryIssueFilters ++= Seq(
+  // new API
+  ProblemFilters.exclude[ReversedMissingMethodProblem]("magnolify.bigquery.TableRowField#Record.fields"),
+  ProblemFilters.exclude[ReversedMissingMethodProblem]("magnolify.bigquery.TableRowType.selectedFields")
 )
 
 // protobuf
