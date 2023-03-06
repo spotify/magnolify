@@ -156,7 +156,8 @@ lazy val scopedProtobufSettings = Def.settings(
 )
 lazy val protobufSettings = Seq(
   PB.additionalDependencies := Seq(
-    "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
+    "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided,
+    "com.google.protobuf" % "protobuf-java" % protobufVersion % Test
   )
 ) ++ Seq(Compile, Test).flatMap(c => inConfig(c)(scopedProtobufSettings))
 
