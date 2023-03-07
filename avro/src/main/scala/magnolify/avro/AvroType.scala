@@ -136,7 +136,7 @@ object AvroField {
 
         override def from(v: GenericRecord)(cm: CaseMapper): T =
           caseClass.construct { p =>
-            p.typeclass.fromAny(v.get(p.index))(cm)
+            p.typeclass.fromAny(v.get(cm.map(p.label)))(cm)
           }
 
         override def to(v: T)(cm: CaseMapper): GenericRecord =
