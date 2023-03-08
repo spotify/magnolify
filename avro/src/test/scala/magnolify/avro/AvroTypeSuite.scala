@@ -226,6 +226,36 @@ class AvroTypeSuite extends MagnolifySuite {
     assert(fields.find(_.name() == "i").exists(_.doc() == di))
   }
 
+  test("ReadRecordProducedByForeignEncoder") {
+    val at = ensureSerializable(AvroType[DocWithFieldOrder])
+    val schema =
+      """
+        |{
+        |  "type" : "record",
+        |  "name" : "DocWithFieldOrder",
+        |  "namespace" : "magnolify.avro",
+        |  "fields" : [{
+        |    "name" : "thirdField",
+        |    "type" : "boolean"
+        |  }, {
+        |    "name" : "secondField",
+        |    "type" : "string"
+        |  }, {
+        |    "name" : "firstField",
+        |    "type" : "int"
+        |  } ]
+        |}
+        |""".stripMargin
+    val genRecord = new GenericRecordBuilder((new Schema.Parser).parse(schema))
+      .set("firstField", 42)
+      .set("secondField", "text")
+      .set("thirdField", true)
+      .build()
+    val actualRecord = at.from(genRecord)
+    assert(actualRecord.firstField == 42)
+    assert(actualRecord.secondField == "text")
+  }
+
   testFail(AvroType[DoubleRecordDoc])(
     "More than one @doc annotation: magnolify.avro.DoubleRecordDoc"
   )
@@ -404,6 +434,8 @@ object Pet extends Enumeration {
   val Cat, Dog = Value
 }
 case class EnumDoc(p: Pet.Type)
+
+case class DocWithFieldOrder(firstField: Int, secondField: String)
 
 private class Copier(private val schema: Schema) {
   private val encoder = EncoderFactory.get
