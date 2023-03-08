@@ -32,7 +32,7 @@ val munitVersion = "0.7.29"
 val neo4jDriverVersion = "4.4.9"
 val paigesVersion = "0.4.2"
 val parquetVersion = "1.12.3"
-val protobufVersion = "3.22.0"
+val protobufVersion = "3.22.1"
 val refinedVersion = "0.10.2"
 val scalaCollectionCompatVersion = "2.9.0"
 val scalacheckVersion = "1.17.0"
@@ -148,8 +148,12 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 // mima
 ThisBuild / mimaBinaryIssueFilters ++= Seq(
   // new API
-  ProblemFilters.exclude[ReversedMissingMethodProblem]("magnolify.bigquery.TableRowField#Record.fields"),
-  ProblemFilters.exclude[ReversedMissingMethodProblem]("magnolify.bigquery.TableRowType.selectedFields")
+  ProblemFilters.exclude[ReversedMissingMethodProblem](
+    "magnolify.bigquery.TableRowField#Record.fields"
+  ),
+  ProblemFilters.exclude[ReversedMissingMethodProblem](
+    "magnolify.bigquery.TableRowType.selectedFields"
+  )
 )
 
 // protobuf
