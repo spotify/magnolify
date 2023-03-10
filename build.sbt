@@ -24,7 +24,7 @@ val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.0")
 val bigqueryVersion = "v2-rev20230210-2.0.0"
 val bigtableVersion = "2.20.0"
 val catsVersion = "2.9.0"
-val datastoreVersion = "2.13.6"
+val datastoreVersion = "2.14.0"
 val guavaVersion = "31.1-jre"
 val hadoopVersion = "3.3.4"
 val jacksonVersion = "2.14.2"
@@ -148,8 +148,12 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 // mima
 ThisBuild / mimaBinaryIssueFilters ++= Seq(
   // new API
-  ProblemFilters.exclude[ReversedMissingMethodProblem]("magnolify.bigquery.TableRowField#Record.fields"),
-  ProblemFilters.exclude[ReversedMissingMethodProblem]("magnolify.bigquery.TableRowType.selectedFields")
+  ProblemFilters.exclude[ReversedMissingMethodProblem](
+    "magnolify.bigquery.TableRowField#Record.fields"
+  ),
+  ProblemFilters.exclude[ReversedMissingMethodProblem](
+    "magnolify.bigquery.TableRowType.selectedFields"
+  )
 )
 
 // protobuf
