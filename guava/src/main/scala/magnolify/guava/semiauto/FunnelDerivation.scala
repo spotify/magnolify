@@ -59,13 +59,13 @@ trait FunnelImplicits {
   implicit val intFunnel: Funnel[Int] = Funnels.integerFunnel().asInstanceOf[Funnel[Int]]
   implicit val longFunnel: Funnel[Long] = Funnels.longFunnel().asInstanceOf[Funnel[Long]]
   implicit val bytesFunnel: Funnel[Array[Byte]] = Funnels.byteArrayFunnel()
-  implicit val charSequenceFunnel: Funnel[CharSequence] = Funnels.unencodedCharsFunnel()
-
   implicit val booleanFunnel: Funnel[Boolean] = funnel[Boolean](_.putBoolean(_))
-  implicit val stringFunnel: Funnel[String] = Funnels.unencodedCharsFunnel.asInstanceOf[Funnel[String]]
   implicit val byteFunnel: Funnel[Byte] = funnel[Byte](_.putByte(_))
   implicit val charFunnel: Funnel[Char] = funnel[Char](_.putChar(_))
   implicit val shortFunnel: Funnel[Short] = funnel[Short](_.putShort(_))
+
+  implicit def charSequenceFunnel[T <: CharSequence]: Funnel[T] =
+    Funnels.unencodedCharsFunnel().asInstanceOf[Funnel[T]]
 
   // There is an implicit Option[T] => Iterable[T]
   implicit def iterableFunnel[T, C[_]](implicit

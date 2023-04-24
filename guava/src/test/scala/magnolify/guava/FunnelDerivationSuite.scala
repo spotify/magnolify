@@ -82,7 +82,12 @@ class FunnelDerivationSuite extends MagnolifySuite {
 
     val ois = new ObjectInputStream(new ByteArrayInputStream(sink.toBytes))
     assert(ois.readInt() == 0)
-    assert(ois.readUTF() == "String")
+    assert(ois.readChar() == 'S')
+    assert(ois.readChar() == 't')
+    assert(ois.readChar() == 'r')
+    assert(ois.readChar() == 'i')
+    assert(ois.readChar() == 'n')
+    assert(ois.readChar() == 'g')
     assert(ois.available() == 0)
   }
 
