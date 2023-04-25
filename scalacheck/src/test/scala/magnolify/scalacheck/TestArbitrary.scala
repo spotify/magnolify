@@ -27,6 +27,15 @@ import java.time._
 import java.net.URI
 
 object TestArbitrary {
+  // java
+  implicit lazy val arbCharSequence: Arbitrary[CharSequence] = Arbitrary {
+    Gen.listOf(Gen.asciiChar).map { cs =>
+      val sb = new StringBuilder()
+      sb.appendAll(cs)
+      sb
+    }
+  }
+
   // time
   implicit lazy val arbInstant: Arbitrary[Instant] =
     Arbitrary(Gen.posNum[Long].map(Instant.ofEpochMilli))
@@ -42,12 +51,10 @@ object TestArbitrary {
     Arbitrary(Gen.posNum[Long].map(Duration.ofMillis))
 
   // enum
-  implicit lazy val arbJavaEnum: Arbitrary[JavaEnums.Color] = Arbitrary(
-    Gen.oneOf(JavaEnums.Color.values.toSeq)
-  )
-  implicit lazy val arbScalaEnums: Arbitrary[ScalaEnums.Color.Type] = Arbitrary(
-    Gen.oneOf(ScalaEnums.Color.values)
-  )
+  implicit lazy val arbJavaEnum: Arbitrary[JavaEnums.Color] =
+    Arbitrary(Gen.oneOf(JavaEnums.Color.values.toSeq))
+  implicit lazy val arbScalaEnums: Arbitrary[ScalaEnums.Color.Type] =
+    Arbitrary(Gen.oneOf(ScalaEnums.Color.values))
   implicit def arbUnsafeEnum[T](implicit arb: Arbitrary[T]): Arbitrary[UnsafeEnum[T]] = Arbitrary {
     Gen.oneOf(
       arb.arbitrary.map(UnsafeEnum.Known.apply),

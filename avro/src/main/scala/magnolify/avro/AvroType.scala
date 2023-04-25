@@ -190,23 +190,28 @@ object AvroField {
 
   private def id[T](tpe: Schema.Type): AvroField[T] = aux[T, T, T](tpe)(identity)(identity)
 
-  implicit val afBoolean = id[Boolean](Schema.Type.BOOLEAN)
-  implicit val afInt = id[Int](Schema.Type.INT)
-  implicit val afLong = id[Long](Schema.Type.LONG)
-  implicit val afFloat = id[Float](Schema.Type.FLOAT)
-  implicit val afDouble = id[Double](Schema.Type.DOUBLE)
-  implicit val afString =
-    aux[String, CharSequence, String](Schema.Type.STRING)(_.toString)(identity)
-  implicit val afUnit =
-    aux2[Unit, JsonProperties.Null](Schema.Type.NULL)(_ => ())(_ => JsonProperties.NULL_VALUE)
-
-  implicit val afBytes = new Aux[Array[Byte], ByteBuffer, ByteBuffer] {
+  implicit val afBoolean: AvroField[Boolean] = id[Boolean](Schema.Type.BOOLEAN)
+  implicit val afInt: AvroField[Int] = id[Int](Schema.Type.INT)
+  implicit val afLong: AvroField[Long] = id[Long](Schema.Type.LONG)
+  implicit val afFloat: AvroField[Float] = id[Float](Schema.Type.FLOAT)
+  implicit val afDouble: AvroField[Double] = id[Double](Schema.Type.DOUBLE)
+  implicit val afBytes: AvroField[Array[Byte]] = new Aux[Array[Byte], ByteBuffer, ByteBuffer] {
     override protected def buildSchema(cm: CaseMapper): Schema = Schema.create(Schema.Type.BYTES)
     // `JacksonUtils.toJson` expects `Array[Byte]` for `BYTES` defaults
     override def makeDefault(d: Array[Byte])(cm: CaseMapper): Array[Byte] = d
     override def from(v: ByteBuffer)(cm: CaseMapper): Array[Byte] =
       ju.Arrays.copyOfRange(v.array(), v.position(), v.limit())
     override def to(v: Array[Byte])(cm: CaseMapper): ByteBuffer = ByteBuffer.wrap(v)
+  }
+  implicit val afCharSequence: AvroField[CharSequence] = id[CharSequence](Schema.Type.STRING)
+  implicit val afString: AvroField[String] = new Aux[String, String, String] {
+    override protected def buildSchema(cm: CaseMapper): Schema = {
+      val schema = Schema.create(Schema.Type.STRING)
+      GenericData.setStringType(schema, GenericData.StringType.String)
+      schema
+    }
+    override def from(v: String)(cm: CaseMapper): String = v
+    override def to(v: String)(cm: CaseMapper): String = v
   }
 
   @nowarn("msg=parameter value lp in method afEnum is never used")
@@ -255,15 +260,30 @@ object AvroField {
         new GenericData.Array[f.ToT](schema(cm), v.iterator.map(f.to(_)(cm)).toList.asJava)
     }
 
-  implicit def afMap[T](implicit f: AvroField[T]): AvroField[Map[String, T]] =
-    new Aux[Map[String, T], ju.Map[CharSequence, f.FromT], ju.Map[String, f.ToT]] {
+  implicit def afCharSequenceMap[T](implicit f: AvroField[T]): AvroField[Map[CharSequence, T]] =
+    new Aux[Map[CharSequence, T], ju.Map[CharSequence, f.FromT], ju.Map[CharSequence, f.ToT]] {
       override protected def buildSchema(cm: CaseMapper): Schema = Schema.createMap(f.schema(cm))
-      override def fallbackDefault: ju.Map[String, f.ToT] = ju.Collections.emptyMap()
-      override def from(v: ju.Map[CharSequence, f.FromT])(cm: CaseMapper): Map[String, T] =
-        v.asScala.iterator.map(kv => (kv._1.toString, f.from(kv._2)(cm))).toMap
-      override def to(v: Map[String, T])(cm: CaseMapper): ju.Map[String, f.ToT] =
-        v.iterator.map(kv => (kv._1, f.to(kv._2)(cm))).toMap.asJava
+      override def fallbackDefault: ju.Map[CharSequence, f.ToT] = ju.Collections.emptyMap()
+      override def from(v: ju.Map[CharSequence, f.FromT])(cm: CaseMapper): Map[CharSequence, T] =
+        v.asScala.map { case (k, v) => k -> f.from(v)(cm) }.toMap
+      override def to(v: Map[CharSequence, T])(cm: CaseMapper): ju.Map[CharSequence, f.ToT] =
+        v.map { case (k, v) => k -> f.to(v)(cm) }.asJava
     }
+
+  implicit def afStringMap[T](implicit f: AvroField[T]): AvroField[Map[String, T]] =
+    new Aux[Map[String, T], ju.Map[String, f.FromT], ju.Map[String, f.ToT]] {
+      override protected def buildSchema(cm: CaseMapper): Schema = {
+        val schema = Schema.createMap(f.schema(cm))
+        GenericData.setStringType(schema, GenericData.StringType.String)
+        schema
+      }
+      override def fallbackDefault: ju.Map[String, f.ToT] = ju.Collections.emptyMap()
+      override def from(v: ju.Map[String, f.FromT])(cm: CaseMapper): Map[String, T] =
+        v.asScala.map { case (k, v) => k -> f.from(v)(cm) }.toMap
+      override def to(v: Map[String, T])(cm: CaseMapper): ju.Map[String, f.ToT] =
+        v.map { case (k, v) => k -> f.to(v)(cm) }.asJava
+    }
+  def afMap[T: AvroField]: AvroField[Map[String, T]] = afStringMap
 
   // ////////////////////////////////////////////////
 
@@ -292,7 +312,9 @@ object AvroField {
     )(Decimal.toBytes(_, precision, scale))
 
   implicit val afUuid: AvroField[ju.UUID] =
-    logicalType[String](LogicalTypes.uuid())(ju.UUID.fromString)(_.toString)
+    logicalType[CharSequence](LogicalTypes.uuid())(cs => ju.UUID.fromString(cs.toString))(
+      _.toString
+    )
   implicit val afDate: AvroField[LocalDate] =
     logicalType[Int](LogicalTypes.date())(x => LocalDate.ofEpochDay(x.toLong))(_.toEpochDay.toInt)
 

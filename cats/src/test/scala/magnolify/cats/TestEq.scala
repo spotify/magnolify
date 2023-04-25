@@ -38,6 +38,14 @@ object TestEq {
       xs.size == ys.size && (xs zip ys).forall((eq.eqv _).tupled)
     }
 
+  // java
+  implicit lazy val eqCharSequence: Eq[CharSequence] = Eq.by(_.toString)
+  implicit def eqCharSeqMap[T: Eq]: Eq[Map[CharSequence, T]] = Eq.by { m =>
+    // Map[CharSequence, T] should not be used for lookups as key equality is not guarantee
+    // Can only be used as a key value list
+    m.map { case (k, v) => k.toString -> v }
+  }
+
   // time
   implicit lazy val eqInstant: Eq[Instant] = Eq.by(_.toEpochMilli)
   implicit lazy val eqLocalDate: Eq[LocalDate] = Eq.by(_.toEpochDay)
