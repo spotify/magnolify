@@ -29,6 +29,7 @@ import java.time._
 object TestEq {
 
   // other
+  implicit lazy val eqNull: Eq[Null] = Eq.allEqual
   implicit lazy val eqUri: Eq[URI] = Eq.fromUniversalEquals
   implicit lazy val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
   implicit def eqIterable[T, C[_]](implicit eq: Eq[T], ti: C[T] => Iterable[T]): Eq[C[T]] =

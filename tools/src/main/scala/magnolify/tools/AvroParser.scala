@@ -103,7 +103,7 @@ object AvroParser extends SchemaParser[avro.Schema] {
     case Type.FLOAT   => Primitive.Float
     case Type.DOUBLE  => Primitive.Double
     case Type.BOOLEAN => Primitive.Boolean
-    case Type.NULL    => Primitive.Unit
+    case Type.NULL    => Primitive.Null
 
     case _ =>
       throw new IllegalArgumentException(s"Unsupported schema $schema")

@@ -27,6 +27,9 @@ import java.time._
 import java.net.URI
 
 object TestArbitrary {
+  // null
+  implicit lazy val arbNull: Arbitrary[Null] = Arbitrary(Gen.const(null))
+
   // java
   implicit lazy val arbCharSequence: Arbitrary[CharSequence] = Arbitrary {
     Gen.listOf(Gen.asciiChar).map { cs =>

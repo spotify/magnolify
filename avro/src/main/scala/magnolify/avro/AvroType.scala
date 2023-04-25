@@ -190,6 +190,7 @@ object AvroField {
 
   private def id[T](tpe: Schema.Type): AvroField[T] = aux[T, T, T](tpe)(identity)(identity)
 
+  implicit val afNull: AvroField[Null] = aux2[Null, Null](Schema.Type.NULL)(_ => null)(_ => null)
   implicit val afBoolean: AvroField[Boolean] = id[Boolean](Schema.Type.BOOLEAN)
   implicit val afInt: AvroField[Int] = id[Int](Schema.Type.INT)
   implicit val afLong: AvroField[Long] = id[Long](Schema.Type.LONG)

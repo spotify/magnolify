@@ -169,7 +169,7 @@ class AvroTypeSuite extends MagnolifySuite {
     val at: AvroType[AvroTypes] = AvroType[AvroTypes]
     val copier = new Copier(at.schema)
     // original uses String as CharSequence implementation
-    val original = AvroTypes("String", "CharSequence", Array.emptyByteArray)
+    val original = AvroTypes("String", "CharSequence", Array.emptyByteArray, null)
     val copy = at.from(copier.apply(at.to(original)))
     // copy uses avro Utf8 as CharSequence implementation
     assert(original != copy)
@@ -367,7 +367,7 @@ class AvroTypeSuite extends MagnolifySuite {
 }
 
 case class Unsafe(b: Byte, c: Char, s: Short)
-case class AvroTypes(str: String, cs: CharSequence, ba: Array[Byte])
+case class AvroTypes(str: String, cs: CharSequence, ba: Array[Byte], n: Null)
 case class MapPrimitive(strMap: Map[String, Int], charSeqMap: Map[CharSequence, Int])
 case class MapNested(m: Map[String, Nested], charSeqMap: Map[CharSequence, Nested])
 
