@@ -34,6 +34,7 @@ import org.apache.avro.Schema
 import org.apache.avro.generic._
 import org.apache.avro.io.DecoderFactory
 import org.apache.avro.io.EncoderFactory
+import org.apache.avro.util.Utf8
 import org.scalacheck._
 
 import java.io.ByteArrayInputStream
@@ -163,6 +164,18 @@ class AvroTypeSuite extends MagnolifySuite {
   test[UnsafeEnums]
   test[Custom]
   test[AvroTypes]
+
+  test("String vs CharSequence with avro.java.string property") {
+    val at: AvroType[AvroTypes] = AvroType[AvroTypes]
+    val copier = new Copier(at.schema)
+    // original uses String as CharSequence implementation
+    val original = AvroTypes("String", "CharSequence", Array.emptyByteArray)
+    val copy = at.from(copier.apply(at.to(original)))
+    // copy uses avro Utf8 as CharSequence implementation
+    assert(original != copy)
+    assert(copy.str.isInstanceOf[String])
+    assert(copy.cs.isInstanceOf[Utf8])
+  }
 
   test("AnyVal") {
     implicit val at: AvroType[HasValueClass] = AvroType[HasValueClass]
