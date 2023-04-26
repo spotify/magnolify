@@ -24,7 +24,7 @@ class SchemaPrinterSuite extends MagnolifySuite {
 
   test("Primitive") {
     List(
-      Primitive.Unit,
+      Primitive.Null,
       Primitive.Boolean,
       Primitive.Char,
       Primitive.Byte,

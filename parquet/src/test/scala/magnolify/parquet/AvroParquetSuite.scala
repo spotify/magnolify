@@ -30,8 +30,7 @@ import magnolify.scalacheck.auto._
 import magnolify.scalacheck.TestArbitrary._
 import magnolify.test._
 import magnolify.test.Simple._
-
-import org.apache.avro.generic.GenericRecord
+import org.apache.avro.generic.{GenericData, GenericDatumReader, GenericRecord}
 import org.apache.hadoop.conf.Configuration
 import org.apache.parquet.avro.{
   AvroParquetReader,
@@ -87,6 +86,8 @@ class AvroParquetSuite extends MagnolifySuite {
         val in = new TestInputFile(out.getBytes)
         val conf = new Configuration()
         AvroReadSupport.setAvroDataSupplier(conf, classOf[GenericDataSupplier])
+        // read with AvroType schema instead of parquet writer one
+        AvroReadSupport.setAvroReadSchema(conf, at.schema)
         val reader = AvroParquetReader.builder[GenericRecord](in).withConf(conf).build()
 
         val copy = reader.read()

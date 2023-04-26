@@ -51,7 +51,7 @@ class AvroParserSuite extends MagnolifySuite {
         "d" -> Primitive.Double,
         "ba" -> Primitive.Bytes,
         "s" -> Primitive.String,
-        "u" -> Primitive.Unit
+        "n" -> Primitive.Null
       ).map(kv => Field(kv._1, None, kv._2, Required))
     )
   )
@@ -179,7 +179,7 @@ object AvroParserSuite {
     d: Double,
     ba: Array[Byte],
     s: String,
-    u: Unit
+    n: Null
   )
 
   case class Enums(e: Color.Value)

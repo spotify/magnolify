@@ -50,7 +50,7 @@ case class Enum(
 ) extends Nested
 
 object Primitive {
-  case object Unit extends Primitive
+  case object Null extends Primitive
   case object Boolean extends Primitive
   case object Char extends Primitive
   case object Byte extends Primitive

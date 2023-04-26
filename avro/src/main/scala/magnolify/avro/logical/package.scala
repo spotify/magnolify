@@ -102,8 +102,8 @@ package object logical {
 
     // DATETIME -> sqlType: DATETIME
     implicit val afBigQueryDatetime: AvroField[LocalDateTime] =
-      AvroField.logicalType[String](new org.apache.avro.LogicalType(DateTimeTypeName))(s =>
-        LocalDateTime.from(DatetimeParser.parse(s))
+      AvroField.logicalType[CharSequence](new org.apache.avro.LogicalType(DateTimeTypeName))(cs =>
+        LocalDateTime.from(DatetimeParser.parse(cs))
       )(DatetimePrinter.format)
   }
 }
