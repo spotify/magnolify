@@ -33,7 +33,6 @@ import java.io.ObjectOutputStream
 import java.net.URI
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
-import java.nio.charset.StandardCharsets
 import java.time.Duration
 import scala.reflect._
 
@@ -82,7 +81,7 @@ class FunnelDerivationSuite extends MagnolifySuite {
 
     val ois = new ObjectInputStream(new ByteArrayInputStream(sink.toBytes))
     assert(ois.readInt() == 0)
-    assert(ois.readUTF() == "String")
+    "String".foreach(c => assert(ois.readChar() == c))
     assert(ois.available() == 0)
   }
 
@@ -163,9 +162,6 @@ class BytesSink extends PrimitiveSink {
     this
   }
 
-  override def putString(charSequence: CharSequence, charset: Charset): PrimitiveSink = {
-    require(charset == StandardCharsets.UTF_8)
-    oos.writeUTF(charSequence.toString)
-    this
-  }
+  override def putString(charSequence: CharSequence, charset: Charset): PrimitiveSink =
+    putBytes(charset.encode(charSequence.toString))
 }
