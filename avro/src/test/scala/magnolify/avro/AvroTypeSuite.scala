@@ -212,8 +212,10 @@ class AvroTypeSuite extends MagnolifySuite {
 
     test[Logical]
 
-    test("Duration") {
+    test("LogicalTypes") {
       val schema = AvroType[Logical].schema
+      assertLogicalType(schema, "ld", "date")
+      assertLogicalType(schema, "jld", "date")
       assertLogicalType(schema, "d", "duration")
     }
   }
