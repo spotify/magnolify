@@ -20,7 +20,7 @@ val magnoliaScala2Version = "1.1.3"
 val magnoliaScala3Version = "1.1.4"
 
 val algebirdVersion = "0.13.9"
-val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.0")
+val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.1")
 val bigqueryVersion = "v2-rev20230422-2.0.0"
 val bigtableVersion = "2.22.0"
 val catsVersion = "2.9.0"
@@ -28,6 +28,7 @@ val datastoreVersion = "2.14.5"
 val guavaVersion = "31.1-jre"
 val hadoopVersion = "3.3.5"
 val jacksonVersion = "2.15.0"
+val jodaTimeVersion = "2.12.5"
 val munitVersion = "0.7.29"
 val neo4jDriverVersion = "4.4.9"
 val paigesVersion = "0.4.2"
@@ -375,6 +376,7 @@ lazy val avro = project
     description := "Magnolia add-on for Apache Avro",
     libraryDependencies ++= Seq(
       "org.apache.avro" % "avro" % avroVersion % Provided,
+      "joda-time" % "joda-time" % jodaTimeVersion % Provided,
       "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
     )
   )

@@ -20,7 +20,6 @@ import cats._
 import com.fasterxml.jackson.core.JsonFactory
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import magnolify.avro._
 import magnolify.avro.unsafe._
 import magnolify.cats.auto._
 import magnolify.cats.TestEq._
@@ -140,11 +139,44 @@ class AvroTypeSuite extends MagnolifySuite {
     }
   }
 
-  implicit val arbBigDecimal: Arbitrary[BigDecimal] =
-    Arbitrary(Gen.chooseNum(0L, Long.MaxValue).map(BigDecimal(_, 0)))
+  implicit val arbJodaDate: Arbitrary[org.joda.time.LocalDate] = Arbitrary {
+    Arbitrary.arbitrary[LocalDate].map { ld =>
+      new org.joda.time.LocalDate(ld.getYear, ld.getMonthValue, ld.getDayOfMonth)
+    }
+  }
+  implicit val arbJodaDateTime: Arbitrary[org.joda.time.DateTime] = Arbitrary {
+    Arbitrary.arbitrary[Instant].map { i =>
+      new org.joda.time.DateTime(i.toEpochMilli, org.joda.time.DateTimeZone.UTC)
+    }
+  }
+  implicit val arbJodaLocalTime: Arbitrary[org.joda.time.LocalTime] = Arbitrary {
+    Arbitrary.arbitrary[LocalTime].map { lt =>
+      org.joda.time.LocalTime.fromMillisOfDay(lt.toNanoOfDay / 1000)
+    }
+  }
+  implicit val arbJodaLocalDateTime: Arbitrary[org.joda.time.LocalDateTime] = Arbitrary {
+    Arbitrary.arbitrary[LocalDateTime].map { ldt =>
+      org.joda.time.LocalDateTime.parse(ldt.toString)
+    }
+  }
+  implicit val arbByteBuffer: Arbitrary[ByteBuffer] = Arbitrary {
+    Arbitrary.arbitrary[Array[Byte]].map(ByteBuffer.wrap)
+  }
+  implicit val arbBigDecimal: Arbitrary[BigDecimal] = Arbitrary {
+    // bq logical type has precision of 38 and scale of 9
+    val max = BigInt(10).pow(38) - 1
+    Gen.choose(-max, max).map(BigDecimal(_, 9))
+  }
   implicit val arbCountryCode: Arbitrary[CountryCode] = Arbitrary(
-    Gen.oneOf("US", "UK", "CA", "MX").map(CountryCode(_))
+    Gen.oneOf("US", "UK", "CA", "MX").map(CountryCode.apply)
   )
+
+  implicit val eqJodaDate: Eq[org.joda.time.LocalDate] = Eq.fromUniversalEquals
+  implicit val eqJodaDateTime: Eq[org.joda.time.DateTime] = Eq.fromUniversalEquals
+  implicit val eqJodaLocalTime: Eq[org.joda.time.LocalTime] = Eq.fromUniversalEquals
+  implicit val eqJodaLocalDateTime: Eq[org.joda.time.LocalDateTime] = Eq.fromUniversalEquals
+  implicit val eqByteBuffer: Eq[ByteBuffer] = Eq.by(_.array())
+
   implicit val afUri: AvroField[URI] = AvroField.from[String](URI.create)(_.toString)
   implicit val afDuration: AvroField[Duration] =
     AvroField.from[Long](Duration.ofMillis)(_.toMillis)
@@ -169,7 +201,13 @@ class AvroTypeSuite extends MagnolifySuite {
     val at: AvroType[AvroTypes] = AvroType[AvroTypes]
     val copier = new Copier(at.schema)
     // original uses String as CharSequence implementation
-    val original = AvroTypes("String", "CharSequence", Array.emptyByteArray, null)
+    val original = AvroTypes(
+      "String",
+      "CharSequence",
+      Array.emptyByteArray,
+      ByteBuffer.allocate(0),
+      null
+    )
     val copy = at.from(copier.apply(at.to(original)))
     // copy uses avro Utf8 as CharSequence implementation
     assert(original != copy)
@@ -199,8 +237,10 @@ class AvroTypeSuite extends MagnolifySuite {
     test("MicrosLogicalTypes") {
       val schema = AvroType[LogicalMicros].schema
       assertLogicalType(schema, "i", "timestamp-micros")
-      assertLogicalType(schema, "dt", "local-timestamp-micros", false)
-      assertLogicalType(schema, "t", "time-micros")
+      assertLogicalType(schema, "ldt", "local-timestamp-micros", false)
+      assertLogicalType(schema, "lt", "time-micros")
+      assertLogicalType(schema, "jdt", "timestamp-micros")
+      assertLogicalType(schema, "jlt", "time-micros")
     }
   }
 
@@ -211,8 +251,10 @@ class AvroTypeSuite extends MagnolifySuite {
     test("MilliLogicalTypes") {
       val schema = AvroType[LogicalMillis].schema
       assertLogicalType(schema, "i", "timestamp-millis")
-      assertLogicalType(schema, "dt", "local-timestamp-millis", false)
-      assertLogicalType(schema, "t", "time-millis")
+      assertLogicalType(schema, "ldt", "local-timestamp-millis", false)
+      assertLogicalType(schema, "lt", "time-millis")
+      assertLogicalType(schema, "jdt", "timestamp-millis")
+      assertLogicalType(schema, "jlt", "time-millis")
     }
   }
 
@@ -229,8 +271,11 @@ class AvroTypeSuite extends MagnolifySuite {
       val schema = AvroType[LogicalBigQuery].schema
       assertLogicalType(schema, "bd", "decimal")
       assertLogicalType(schema, "i", "timestamp-micros")
-      assertLogicalType(schema, "dt", "datetime")
-      assertLogicalType(schema, "t", "time-micros")
+      assertLogicalType(schema, "lt", "time-micros")
+      assertLogicalType(schema, "ldt", "datetime")
+      assertLogicalType(schema, "jdt", "timestamp-micros")
+      assertLogicalType(schema, "jlt", "time-micros")
+      assertLogicalType(schema, "jldt", "datetime")
     }
   }
 
@@ -367,14 +412,34 @@ class AvroTypeSuite extends MagnolifySuite {
 }
 
 case class Unsafe(b: Byte, c: Char, s: Short)
-case class AvroTypes(str: String, cs: CharSequence, ba: Array[Byte], n: Null)
+case class AvroTypes(str: String, cs: CharSequence, ba: Array[Byte], bb: ByteBuffer, n: Null)
 case class MapPrimitive(strMap: Map[String, Int], charSeqMap: Map[CharSequence, Int])
 case class MapNested(m: Map[String, Nested], charSeqMap: Map[CharSequence, Nested])
 
-case class Logical(u: UUID, d: LocalDate)
-case class LogicalMicros(i: Instant, t: LocalTime, dt: LocalDateTime)
-case class LogicalMillis(i: Instant, t: LocalTime, dt: LocalDateTime)
-case class LogicalBigQuery(bd: BigDecimal, i: Instant, t: LocalTime, dt: LocalDateTime)
+case class Logical(u: UUID, ld: LocalDate, jld: org.joda.time.LocalDate)
+case class LogicalMicros(
+  i: Instant,
+  lt: LocalTime,
+  ldt: LocalDateTime,
+  jdt: org.joda.time.DateTime,
+  jlt: org.joda.time.LocalTime
+)
+case class LogicalMillis(
+  i: Instant,
+  lt: LocalTime,
+  ldt: LocalDateTime,
+  jdt: org.joda.time.DateTime,
+  jlt: org.joda.time.LocalTime
+)
+case class LogicalBigQuery(
+  bd: BigDecimal,
+  i: Instant,
+  lt: LocalTime,
+  ldt: LocalDateTime,
+  jdt: org.joda.time.DateTime,
+  jlt: org.joda.time.LocalTime,
+  jldt: org.joda.time.LocalDateTime
+)
 case class BigDec(bd: BigDecimal)
 
 @doc("Fixed with doc")
@@ -412,9 +477,9 @@ case class DefaultInner(
   bd: BigDecimal = BigDecimal(111.111),
   u: UUID = UUID.fromString("11112222-abcd-abcd-abcd-111122223333"),
   ts: Instant = Instant.ofEpochSecond(11223344),
-  d: LocalDate = LocalDate.ofEpochDay(1122),
-  t: LocalTime = LocalTime.of(1, 2, 3),
-  dt: LocalDateTime = LocalDateTime.of(2001, 2, 3, 4, 5, 6)
+  ld: LocalDate = LocalDate.ofEpochDay(1122),
+  lt: LocalTime = LocalTime.of(1, 2, 3),
+  ldt: LocalDateTime = LocalDateTime.of(2001, 2, 3, 4, 5, 6)
 )
 case class DefaultOuter(
   i: DefaultInner = DefaultInner(

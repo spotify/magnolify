@@ -196,6 +196,7 @@ object AvroField {
   implicit val afLong: AvroField[Long] = id[Long](Schema.Type.LONG)
   implicit val afFloat: AvroField[Float] = id[Float](Schema.Type.FLOAT)
   implicit val afDouble: AvroField[Double] = id[Double](Schema.Type.DOUBLE)
+  implicit val afByteBuffer: AvroField[ByteBuffer] = id[ByteBuffer](Schema.Type.BYTES)
   implicit val afBytes: AvroField[Array[Byte]] = new Aux[Array[Byte], ByteBuffer, ByteBuffer] {
     override protected def buildSchema(cm: CaseMapper): Schema = Schema.create(Schema.Type.BYTES)
     // `JacksonUtils.toJson` expects `Array[Byte]` for `BYTES` defaults
@@ -318,6 +319,13 @@ object AvroField {
     )
   implicit val afDate: AvroField[LocalDate] =
     logicalType[Int](LogicalTypes.date())(x => LocalDate.ofEpochDay(x.toLong))(_.toEpochDay.toInt)
+  private val epochJodaDate = new org.joda.time.LocalDate(1970, 1, 1);
+  implicit val afJodaDate: AvroField[org.joda.time.LocalDate] =
+    logicalType[Int](LogicalTypes.date()) { daysFromEpoch =>
+      epochJodaDate.plusDays(daysFromEpoch)
+    } { date =>
+      org.joda.time.Days.daysBetween(epochJodaDate, date).getDays
+    }
 
   def fixed[T: ClassTag](
     size: Int
