@@ -321,12 +321,12 @@ object AvroField {
   // date
   implicit val afDate: AvroField[LocalDate] =
     logicalType[Int](LogicalTypes.date())(x => LocalDate.ofEpochDay(x.toLong))(_.toEpochDay.toInt)
-  private val epochJodaDate = new org.joda.time.LocalDate(1970, 1, 1)
+  private val EpochJodaDate = new org.joda.time.LocalDate(1970, 1, 1)
   implicit val afJodaDate: AvroField[org.joda.time.LocalDate] =
     logicalType[Int](LogicalTypes.date()) { daysFromEpoch =>
-      epochJodaDate.plusDays(daysFromEpoch)
+      EpochJodaDate.plusDays(daysFromEpoch)
     } { date =>
-      org.joda.time.Days.daysBetween(epochJodaDate, date).getDays
+      org.joda.time.Days.daysBetween(EpochJodaDate, date).getDays
     }
 
   // duration, as in the avro spec. do not make implicit as there is not a specific type for it
