@@ -196,7 +196,15 @@ class AvroTypeSuite extends MagnolifySuite {
   test[MapPrimitive]
   test[MapNested]
 
-  test[Logical]
+  {
+    implicit val afDuration: AvroField[(Int, Int, Int)] = AvroField.afDuration
+    test[Logical]
+
+    test("Duration") {
+      val schema = AvroType[Logical].schema
+      assertLogicalType(schema, "d", "duration")
+    }
+  }
 
   {
     import magnolify.avro.logical.micros._
@@ -384,7 +392,7 @@ case class AvroTypes(str: String, cs: CharSequence, ba: Array[Byte], bb: ByteBuf
 case class MapPrimitive(strMap: Map[String, Int], charSeqMap: Map[CharSequence, Int])
 case class MapNested(m: Map[String, Nested], charSeqMap: Map[CharSequence, Nested])
 
-case class Logical(u: UUID, ld: LocalDate, jld: org.joda.time.LocalDate)
+case class Logical(u: UUID, ld: LocalDate, jld: org.joda.time.LocalDate, d: (Int, Int, Int))
 case class LogicalMicros(
   i: Instant,
   lt: LocalTime,

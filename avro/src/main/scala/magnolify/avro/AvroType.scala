@@ -329,6 +329,24 @@ object AvroField {
       org.joda.time.Days.daysBetween(epochJodaDate, date).getDays
     }
 
+  // duration, as in the avro spec. do not make implicit as there is not a specific type for it
+  // A duration logical type annotates Avro fixed type of size 12, which stores three little-endian unsigned integers
+  // that represent durations at different granularities of time.
+  // The first stores a number in months, the second stores a number in days, and the third stores a number in milliseconds.
+  val afDuration: AvroField[(Int, Int, Int)] =
+    logicalType[ByteBuffer](new LogicalType("duration")) { bs =>
+      val months = bs.getInt
+      val days = bs.getInt
+      val millis = bs.getInt
+      (months, days, millis)
+    } { case (months, days, millis) =>
+      val bs = ByteBuffer.allocate(12)
+      bs.putInt(months)
+      bs.putInt(days)
+      bs.putInt(millis)
+      bs
+    }(AvroField.fixed(12)(ByteBuffer.wrap)(_.array()))
+
   def fixed[T: ClassTag](
     size: Int
   )(f: Array[Byte] => T)(g: T => Array[Byte])(implicit an: AnnotationType[T]): AvroField[T] =
