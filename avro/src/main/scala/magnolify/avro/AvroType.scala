@@ -16,7 +16,7 @@
 
 package magnolify.avro
 
-import java.nio.ByteBuffer
+import java.nio.{ByteBuffer, ByteOrder}
 import java.time._
 import java.{util => ju}
 import magnolia1._
@@ -333,18 +333,20 @@ object AvroField {
   // A duration logical type annotates Avro fixed type of size 12, which stores three little-endian unsigned integers
   // that represent durations at different granularities of time.
   // The first stores a number in months, the second stores a number in days, and the third stores a number in milliseconds.
-  val afDuration: AvroField[(Int, Int, Int)] =
+  val afDuration: AvroField[(Long, Long, Long)] =
     logicalType[ByteBuffer](new LogicalType("duration")) { bs =>
-      val months = bs.getInt
-      val days = bs.getInt
-      val millis = bs.getInt
+      bs.order(ByteOrder.LITTLE_ENDIAN)
+      val months = java.lang.Integer.toUnsignedLong(bs.getInt)
+      val days = java.lang.Integer.toUnsignedLong(bs.getInt)
+      val millis = java.lang.Integer.toUnsignedLong(bs.getInt)
       (months, days, millis)
     } { case (months, days, millis) =>
-      val bs = ByteBuffer.allocate(12)
-      bs.putInt(months)
-      bs.putInt(days)
-      bs.putInt(millis)
-      bs
+      ByteBuffer
+        .allocate(12)
+        .order(ByteOrder.LITTLE_ENDIAN)
+        .putInt(months.toInt)
+        .putInt(days.toInt)
+        .putInt(millis.toInt)
     }(AvroField.fixed(12)(ByteBuffer.wrap)(_.array()))
 
   def fixed[T: ClassTag](

@@ -197,7 +197,19 @@ class AvroTypeSuite extends MagnolifySuite {
   test[MapNested]
 
   {
-    implicit val afDuration: AvroField[(Int, Int, Int)] = AvroField.afDuration
+    // generate unsigned-int duration values
+    implicit val arbAvroDuration: Arbitrary[AvroDuration] = Arbitrary {
+      for {
+        months <- Gen.chooseNum(0L, 0xffffffffL)
+        days <- Gen.chooseNum(0L, 0xffffffffL)
+        millis <- Gen.chooseNum(0L, 0xffffffffL)
+      } yield AvroDuration(months, days, millis)
+    }
+
+    implicit val afAvroDuration: AvroField[AvroDuration] = AvroField.from[(Long, Long, Long)] {
+      case (months, days, millis) => AvroDuration(months, days, millis)
+    }(d => (d.months, d.days, d.millis))(AvroField.afDuration)
+
     test[Logical]
 
     test("Duration") {
@@ -392,7 +404,8 @@ case class AvroTypes(str: String, cs: CharSequence, ba: Array[Byte], bb: ByteBuf
 case class MapPrimitive(strMap: Map[String, Int], charSeqMap: Map[CharSequence, Int])
 case class MapNested(m: Map[String, Nested], charSeqMap: Map[CharSequence, Nested])
 
-case class Logical(u: UUID, ld: LocalDate, jld: org.joda.time.LocalDate, d: (Int, Int, Int))
+case class AvroDuration(months: Long, days: Long, millis: Long)
+case class Logical(u: UUID, ld: LocalDate, jld: org.joda.time.LocalDate, d: AvroDuration)
 case class LogicalMicros(
   i: Instant,
   lt: LocalTime,
