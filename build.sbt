@@ -217,24 +217,23 @@ val commonSettings = Seq(
     HeaderFileType.scala -> keepExistingHeader,
     HeaderFileType.java -> keepExistingHeader
   ),
-  libraryDependencies ++= {
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _)) =>
-        Seq(
-          "com.softwaremill.magnolia1_3" %% "magnolia" % magnoliaScala3Version,
-          "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion
-        )
-      case Some((2, _)) =>
-        Seq(
-          "com.softwaremill.magnolia1_2" %% "magnolia" % magnoliaScala2Version,
-          "com.chuusai" %% "shapeless" % shapelessVersion,
-          "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion,
-          "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided
-        )
-      case _ =>
-        throw new Exception("Unsupported scala version")
-    }
-  },
+  libraryDependencies ++= Seq(
+    "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion,
+    "joda-time" % "joda-time" % jodaTimeVersion % Provided
+  ) ++ (CrossVersion.partialVersion(scalaVersion.value) match {
+    case Some((3, _)) =>
+      Seq(
+        "com.softwaremill.magnolia1_3" %% "magnolia" % magnoliaScala3Version
+      )
+    case Some((2, _)) =>
+      Seq(
+        "com.softwaremill.magnolia1_2" %% "magnolia" % magnoliaScala2Version,
+        "com.chuusai" %% "shapeless" % shapelessVersion,
+        "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided
+      )
+    case _ =>
+      throw new Exception("Unsupported scala version")
+  }),
   // https://github.com/typelevel/scalacheck/pull/427#issuecomment-424330310
   // FIXME: workaround for Java serialization issues
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
@@ -376,7 +375,6 @@ lazy val avro = project
     description := "Magnolia add-on for Apache Avro",
     libraryDependencies ++= Seq(
       "org.apache.avro" % "avro" % avroVersion % Provided,
-      "joda-time" % "joda-time" % jodaTimeVersion % Provided,
       "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
     )
   )

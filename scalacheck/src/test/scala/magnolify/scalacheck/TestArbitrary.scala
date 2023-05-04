@@ -25,6 +25,7 @@ import org.scalacheck._
 
 import java.time._
 import java.net.URI
+import java.nio.ByteBuffer
 
 object TestArbitrary {
   // null
@@ -38,8 +39,11 @@ object TestArbitrary {
       sb
     }
   }
+  implicit val arbByteBuffer: Arbitrary[ByteBuffer] = Arbitrary {
+    Arbitrary.arbitrary[Array[Byte]].map(ByteBuffer.wrap)
+  }
 
-  // time
+  // java-time
   implicit lazy val arbInstant: Arbitrary[Instant] =
     Arbitrary(Gen.posNum[Long].map(Instant.ofEpochMilli))
   implicit lazy val arbLocalDate: Arbitrary[LocalDate] =
@@ -52,6 +56,28 @@ object TestArbitrary {
     Arbitrary(arbInstant.arbitrary.map(_.atOffset(ZoneOffset.UTC).toOffsetTime))
   implicit lazy val arbDuration: Arbitrary[Duration] =
     Arbitrary(Gen.posNum[Long].map(Duration.ofMillis))
+
+  // joda-time
+  implicit val arbJodaDate: Arbitrary[org.joda.time.LocalDate] = Arbitrary {
+    Arbitrary.arbitrary[LocalDate].map { ld =>
+      new org.joda.time.LocalDate(ld.getYear, ld.getMonthValue, ld.getDayOfMonth)
+    }
+  }
+  implicit val arbJodaDateTime: Arbitrary[org.joda.time.DateTime] = Arbitrary {
+    Arbitrary.arbitrary[Instant].map { i =>
+      new org.joda.time.DateTime(i.toEpochMilli, org.joda.time.DateTimeZone.UTC)
+    }
+  }
+  implicit val arbJodaLocalTime: Arbitrary[org.joda.time.LocalTime] = Arbitrary {
+    Arbitrary.arbitrary[LocalTime].map { lt =>
+      org.joda.time.LocalTime.fromMillisOfDay(lt.toNanoOfDay / 1000)
+    }
+  }
+  implicit val arbJodaLocalDateTime: Arbitrary[org.joda.time.LocalDateTime] = Arbitrary {
+    Arbitrary.arbitrary[LocalDateTime].map { ldt =>
+      org.joda.time.LocalDateTime.parse(ldt.toString)
+    }
+  }
 
   // enum
   implicit lazy val arbJavaEnum: Arbitrary[JavaEnums.Color] =

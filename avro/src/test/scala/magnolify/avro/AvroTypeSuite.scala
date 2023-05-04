@@ -40,11 +40,7 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.net.URI
 import java.nio.ByteBuffer
-import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
+import java.time.{Duration, Instant, LocalDate, LocalDateTime, LocalTime}
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 import scala.jdk.CollectionConverters._
@@ -139,29 +135,6 @@ class AvroTypeSuite extends MagnolifySuite {
     }
   }
 
-  implicit val arbJodaDate: Arbitrary[org.joda.time.LocalDate] = Arbitrary {
-    Arbitrary.arbitrary[LocalDate].map { ld =>
-      new org.joda.time.LocalDate(ld.getYear, ld.getMonthValue, ld.getDayOfMonth)
-    }
-  }
-  implicit val arbJodaDateTime: Arbitrary[org.joda.time.DateTime] = Arbitrary {
-    Arbitrary.arbitrary[Instant].map { i =>
-      new org.joda.time.DateTime(i.toEpochMilli, org.joda.time.DateTimeZone.UTC)
-    }
-  }
-  implicit val arbJodaLocalTime: Arbitrary[org.joda.time.LocalTime] = Arbitrary {
-    Arbitrary.arbitrary[LocalTime].map { lt =>
-      org.joda.time.LocalTime.fromMillisOfDay(lt.toNanoOfDay / 1000)
-    }
-  }
-  implicit val arbJodaLocalDateTime: Arbitrary[org.joda.time.LocalDateTime] = Arbitrary {
-    Arbitrary.arbitrary[LocalDateTime].map { ldt =>
-      org.joda.time.LocalDateTime.parse(ldt.toString)
-    }
-  }
-  implicit val arbByteBuffer: Arbitrary[ByteBuffer] = Arbitrary {
-    Arbitrary.arbitrary[Array[Byte]].map(ByteBuffer.wrap)
-  }
   implicit val arbBigDecimal: Arbitrary[BigDecimal] = Arbitrary {
     // bq logical type has precision of 38 and scale of 9
     val max = BigInt(10).pow(38) - 1
@@ -171,13 +144,8 @@ class AvroTypeSuite extends MagnolifySuite {
     Gen.oneOf("US", "UK", "CA", "MX").map(CountryCode.apply)
   )
 
-  implicit val eqJodaDate: Eq[org.joda.time.LocalDate] = Eq.fromUniversalEquals
-  implicit val eqJodaDateTime: Eq[org.joda.time.DateTime] = Eq.fromUniversalEquals
-  implicit val eqJodaLocalTime: Eq[org.joda.time.LocalTime] = Eq.fromUniversalEquals
-  implicit val eqJodaLocalDateTime: Eq[org.joda.time.LocalDateTime] = Eq.fromUniversalEquals
-  implicit val eqByteBuffer: Eq[ByteBuffer] = Eq.by(_.array())
-
-  implicit val afUri: AvroField[URI] = AvroField.from[String](URI.create)(_.toString)
+  implicit val afUri: AvroField[URI] =
+    AvroField.from[String](URI.create)(_.toString)
   implicit val afDuration: AvroField[Duration] =
     AvroField.from[Long](Duration.ofMillis)(_.toMillis)
   implicit val afCountryCode: AvroField[CountryCode] =

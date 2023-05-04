@@ -24,6 +24,7 @@ import magnolify.test.Simple._
 import magnolify.shared.UnsafeEnum
 
 import java.net.URI
+import java.nio.ByteBuffer
 import java.time._
 
 object TestEq {
@@ -43,14 +44,21 @@ object TestEq {
     // Can only be used as a key value list
     m.map { case (k, v) => k.toString -> v }
   }
+  implicit val eqByteBuffer: Eq[ByteBuffer] = Eq.by(_.array())
 
-  // time
+  // java-time
   implicit lazy val eqInstant: Eq[Instant] = Eq.fromUniversalEquals
   implicit lazy val eqLocalDate: Eq[LocalDate] = Eq.fromUniversalEquals
   implicit lazy val eqLocalTime: Eq[LocalTime] = Eq.fromUniversalEquals
   implicit lazy val eqLocalDateTime: Eq[LocalDateTime] = Eq.fromUniversalEquals
   implicit lazy val eqOffsetTime: Eq[OffsetTime] = Eq.fromUniversalEquals
   implicit lazy val eqDuration: Eq[Duration] = Eq.fromUniversalEquals
+
+  // joda-time
+  implicit val eqJodaDate: Eq[org.joda.time.LocalDate] = Eq.fromUniversalEquals
+  implicit val eqJodaDateTime: Eq[org.joda.time.DateTime] = Eq.fromUniversalEquals
+  implicit val eqJodaLocalTime: Eq[org.joda.time.LocalTime] = Eq.fromUniversalEquals
+  implicit val eqJodaLocalDateTime: Eq[org.joda.time.LocalDateTime] = Eq.fromUniversalEquals
 
   // enum
   implicit lazy val eqJavaEnum: Eq[JavaEnums.Color] = Eq.fromUniversalEquals

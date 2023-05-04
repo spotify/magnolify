@@ -317,9 +317,11 @@ object AvroField {
     logicalType[CharSequence](LogicalTypes.uuid())(cs => ju.UUID.fromString(cs.toString))(
       _.toString
     )
+
+  // date
   implicit val afDate: AvroField[LocalDate] =
     logicalType[Int](LogicalTypes.date())(x => LocalDate.ofEpochDay(x.toLong))(_.toEpochDay.toInt)
-  private val epochJodaDate = new org.joda.time.LocalDate(1970, 1, 1);
+  private val epochJodaDate = new org.joda.time.LocalDate(1970, 1, 1)
   implicit val afJodaDate: AvroField[org.joda.time.LocalDate] =
     logicalType[Int](LogicalTypes.date()) { daysFromEpoch =>
       epochJodaDate.plusDays(daysFromEpoch)
