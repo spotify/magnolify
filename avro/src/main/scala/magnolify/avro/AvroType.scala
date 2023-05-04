@@ -31,6 +31,7 @@ import scala.collection.concurrent
 import scala.reflect.ClassTag
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
+import scala.util.chaining._
 
 sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
   val schema: Schema
@@ -196,15 +197,14 @@ object AvroField {
   implicit val afLong: AvroField[Long] = id[Long](Schema.Type.LONG)
   implicit val afFloat: AvroField[Float] = id[Float](Schema.Type.FLOAT)
   implicit val afDouble: AvroField[Double] = id[Double](Schema.Type.DOUBLE)
-  implicit val afByteBuffer: AvroField[ByteBuffer] = id[ByteBuffer](Schema.Type.BYTES)
-  implicit val afBytes: AvroField[Array[Byte]] = new Aux[Array[Byte], ByteBuffer, ByteBuffer] {
+  implicit val afByteBuffer: AvroField[ByteBuffer] = new Aux[ByteBuffer, ByteBuffer, ByteBuffer] {
     override protected def buildSchema(cm: CaseMapper): Schema = Schema.create(Schema.Type.BYTES)
     // `JacksonUtils.toJson` expects `Array[Byte]` for `BYTES` defaults
-    override def makeDefault(d: Array[Byte])(cm: CaseMapper): Array[Byte] = d
-    override def from(v: ByteBuffer)(cm: CaseMapper): Array[Byte] =
-      ju.Arrays.copyOfRange(v.array(), v.position(), v.limit())
-    override def to(v: Array[Byte])(cm: CaseMapper): ByteBuffer = ByteBuffer.wrap(v)
+    override def makeDefault(d: ByteBuffer)(cm: CaseMapper): Array[Byte] = d.array()
+    override def from(v: ByteBuffer)(cm: CaseMapper): ByteBuffer = v
+    override def to(v: ByteBuffer)(cm: CaseMapper): ByteBuffer = v
   }
+  implicit val afBytes: AvroField[Array[Byte]] = from[ByteBuffer](_.array())(ByteBuffer.wrap)
   implicit val afCharSequence: AvroField[CharSequence] = id[CharSequence](Schema.Type.STRING)
   implicit val afString: AvroField[String] = new Aux[String, String, String] {
     override protected def buildSchema(cm: CaseMapper): Schema = {

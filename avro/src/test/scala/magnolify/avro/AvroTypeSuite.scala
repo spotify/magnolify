@@ -322,7 +322,7 @@ class AvroTypeSuite extends MagnolifySuite {
         Map("b" -> 2),
         JavaEnums.Color.GREEN,
         ScalaEnums.Color.Green,
-        BigDecimal(222.222),
+        BigDecimal(222.222222222), // scale is 9
         UUID.fromString("22223333-abcd-abcd-abcd-222233334444"),
         Instant.ofEpochSecond(22334455L),
         LocalDate.ofEpochDay(2233),
@@ -342,7 +342,7 @@ class AvroTypeSuite extends MagnolifySuite {
         Map("c" -> 3),
         JavaEnums.Color.BLUE,
         ScalaEnums.Color.Blue,
-        BigDecimal(333.333),
+        BigDecimal(333.333333333), // scale is 9
         UUID.fromString("33334444-abcd-abcd-abcd-333344445555"),
         Instant.ofEpochSecond(33445566L),
         LocalDate.ofEpochDay(3344),
@@ -354,7 +354,13 @@ class AvroTypeSuite extends MagnolifySuite {
     }
   }
 
-  testFail(AvroType[SomeDefault])("Option[T] can only default to None")
+  test("ArrayDefault") {
+    val at = ensureSerializable(AvroType[DefaultBytes])
+    // array use reference equality, convert to Seq
+    assertEquals(at(new GenericRecordBuilder(at.schema).build()).a.toSeq, DefaultBytes().a.toSeq)
+  }
+
+  testFail(AvroType[DefaultSome])("Option[T] can only default to None")
 
   {
     implicit val at: AvroType[LowerCamel] = AvroType[LowerCamel](CaseMapper(_.toUpperCase))
@@ -465,7 +471,7 @@ case class DefaultInner(
   m: Map[String, Int] = Map("a" -> 1),
   je: JavaEnums.Color = JavaEnums.Color.RED,
   se: ScalaEnums.Color.Type = ScalaEnums.Color.Red,
-  bd: BigDecimal = BigDecimal(111.111),
+  bd: BigDecimal = BigDecimal(111.111111111), // scale is 9
   u: UUID = UUID.fromString("11112222-abcd-abcd-abcd-111122223333"),
   ts: Instant = Instant.ofEpochSecond(11223344),
   ld: LocalDate = LocalDate.ofEpochDay(1122),
@@ -480,7 +486,7 @@ case class DefaultOuter(
     Map("b" -> 2),
     JavaEnums.Color.GREEN,
     ScalaEnums.Color.Green,
-    BigDecimal(222.222),
+    BigDecimal(222.222222222), // scale is 9
     UUID.fromString("22223333-abcd-abcd-abcd-222233334444"),
     Instant.ofEpochSecond(22334455L),
     LocalDate.ofEpochDay(2233),
@@ -489,7 +495,13 @@ case class DefaultOuter(
   ),
   o: Option[DefaultInner] = None
 )
-case class SomeDefault(o: Option[Int] = Some(1))
+case class DefaultSome(o: Option[Int] = Some(1))
+
+case class DefaultBytes(
+  a: Array[Byte] = Array(2, 2)
+  // ByteBuffer is not serializable and can't be used as default value
+  // bb: ByteBuffer = ByteBuffer.allocate(2).put(2.toByte).put(2.toByte)
+)
 
 @doc("Avro enum")
 object Pet extends Enumeration {
