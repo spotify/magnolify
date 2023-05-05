@@ -162,11 +162,12 @@ class AvroParquetSuite extends MagnolifySuite {
   {
     import magnolify.avro.logical.bigquery._
     // Precision = number of digits, so 5 means -99999 to 99999
-    val nines = math.pow(10, 38).toLong - 1
+    val precision = 38
+    val max = BigInt(10).pow(precision) - 1
     implicit val arbBigDecimal: Arbitrary[BigDecimal] =
-      Arbitrary(Gen.choose(-nines, nines).map(BigDecimal(_)))
-    implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimalBinary(38, 9)
-    test[DecimalBinary]()
+      Arbitrary(Gen.choose(-max, max).map(BigDecimal.apply))
+    implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimalBinary(precision, 9)
+    test[Decimal]()
   }
 
   test[AvroParquetLogical]()

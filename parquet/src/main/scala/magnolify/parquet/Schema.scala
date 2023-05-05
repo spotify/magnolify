@@ -57,6 +57,7 @@ private object Schema {
     if (schema.isPrimitive) {
       Types
         .primitive(schema.asPrimitiveType().getPrimitiveTypeName, repetition)
+        .length(schema.asPrimitiveType().getTypeLength)
         .as(schema.getLogicalTypeAnnotation)
         .named(schema.getName)
     } else {
