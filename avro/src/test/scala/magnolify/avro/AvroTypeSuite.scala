@@ -42,7 +42,8 @@ import java.net.URI
 import java.nio.ByteBuffer
 import java.time.{Duration, Instant, LocalDate, LocalDateTime, LocalTime}
 import java.time.format.DateTimeFormatter
-import java.util.UUID
+import java.util
+import java.util.{Objects, UUID}
 import scala.jdk.CollectionConverters._
 import scala.reflect._
 import scala.util.Try
@@ -354,10 +355,9 @@ class AvroTypeSuite extends MagnolifySuite {
     }
   }
 
-  test("ArrayDefault") {
+  test("DefaultBytes") {
     val at = ensureSerializable(AvroType[DefaultBytes])
-    // array use reference equality, convert to Seq
-    assertEquals(at(new GenericRecordBuilder(at.schema).build()).a.toSeq, DefaultBytes().a.toSeq)
+    assertEquals(at(new GenericRecordBuilder(at.schema).build()), DefaultBytes())
   }
 
   testFail(AvroType[DefaultSome])("Option[T] can only default to None")
@@ -501,7 +501,17 @@ case class DefaultBytes(
   a: Array[Byte] = Array(2, 2)
   // ByteBuffer is not serializable and can't be used as default value
   // bb: ByteBuffer = ByteBuffer.allocate(2).put(2.toByte).put(2.toByte)
-)
+) {
+
+  override def hashCode(): Int =
+    util.Arrays.hashCode(a)
+
+  override def equals(obj: Any): Boolean = obj match {
+    case that: DefaultBytes => Objects.deepEquals(this.a, that.a)
+    case _                  => false
+  }
+
+}
 
 @doc("Avro enum")
 object Pet extends Enumeration {

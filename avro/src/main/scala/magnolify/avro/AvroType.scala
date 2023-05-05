@@ -31,7 +31,6 @@ import scala.collection.concurrent
 import scala.reflect.ClassTag
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
-import scala.util.chaining._
 
 sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
   val schema: Schema
