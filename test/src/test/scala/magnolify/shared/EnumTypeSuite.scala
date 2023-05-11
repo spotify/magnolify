@@ -66,6 +66,15 @@ class EnumTypeSuite extends MagnolifySuite {
   }
 
   test("ADT should not generate for invalid types") {
+    // explicit
+    assertNoDiff(
+      compileErrors("EnumType.gen[Option[ADT.Color]]"),
+      """|error: Cannot derive EnumType.EnumValue. EnumType only works for sum types
+         |EnumType.gen[Option[ADT.Color]]
+         |            ^
+         |""".stripMargin
+    )
+    // implicit
     assertNoDiff(
       compileErrors("EnumType[Option[ADT.Color]]"),
       """|error: could not find implicit value for parameter et: magnolify.shared.EnumType[Option[magnolify.test.ADT.Color]]

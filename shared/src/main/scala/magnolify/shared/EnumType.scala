@@ -124,7 +124,7 @@ object EnumType {
   // EnumType can only be split into objects with fixed name
   // Avoid invalid ADT derivation involving products by requiring
   // implicit EnumValue type-class in magnolia join
-  @implicitNotFound("Cannot derive EnumType value")
+  @implicitNotFound("Cannot derive EnumType.EnumValue. EnumType only works for sum types")
   trait EnumValue[T]
   implicit def genEnumValue[T]: EnumValue[T] = macro genEnumValueMacro[T]
   def genEnumValueMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
