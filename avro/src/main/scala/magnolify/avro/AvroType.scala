@@ -16,21 +16,22 @@
 
 package magnolify.avro
 
-import java.nio.{ByteBuffer, ByteOrder}
-import java.time._
-import java.{util => ju}
 import magnolia1._
 import magnolify.shared._
 import magnolify.shims.FactoryCompat
 import org.apache.avro.generic.GenericData.EnumSymbol
 import org.apache.avro.generic._
 import org.apache.avro.{JsonProperties, LogicalType, LogicalTypes, Schema}
+import org.joda.{time => joda}
 
+import java.nio.{ByteBuffer, ByteOrder}
+import java.time._
+import java.{util => ju}
 import scala.annotation.{implicitNotFound, nowarn}
 import scala.collection.concurrent
-import scala.reflect.ClassTag
-import scala.jdk.CollectionConverters._
 import scala.collection.compat._
+import scala.jdk.CollectionConverters._
+import scala.reflect.ClassTag
 
 sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
   val schema: Schema
@@ -320,12 +321,12 @@ object AvroField {
   // date
   implicit val afDate: AvroField[LocalDate] =
     logicalType[Int](LogicalTypes.date())(x => LocalDate.ofEpochDay(x.toLong))(_.toEpochDay.toInt)
-  private val EpochJodaDate = new org.joda.time.LocalDate(1970, 1, 1)
-  implicit val afJodaDate: AvroField[org.joda.time.LocalDate] =
+  private lazy val EpochJodaDate = new joda.LocalDate(1970, 1, 1)
+  implicit val afJodaDate: AvroField[joda.LocalDate] =
     logicalType[Int](LogicalTypes.date()) { daysFromEpoch =>
       EpochJodaDate.plusDays(daysFromEpoch)
     } { date =>
-      org.joda.time.Days.daysBetween(EpochJodaDate, date).getDays
+      joda.Days.daysBetween(EpochJodaDate, date).getDays
     }
 
   // duration, as in the avro spec. do not make implicit as there is not a specific type for it

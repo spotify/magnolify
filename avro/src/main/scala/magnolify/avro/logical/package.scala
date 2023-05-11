@@ -17,11 +17,11 @@
 package magnolify.avro
 
 import org.apache.avro.LogicalTypes.LogicalTypeFactory
-
-import java.time.{Instant, LocalDateTime, LocalTime, ZoneOffset}
-import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
 import org.apache.avro.{LogicalType, LogicalTypes, Schema}
+import org.joda.{time => joda}
 
+import java.time._
+import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
 import java.util.concurrent.TimeUnit
 
 package object logical {
@@ -70,16 +70,16 @@ package object logical {
       }
 
     // avro 1.8 uses joda-time
-    implicit val afJodaTimestampMicros: AvroField[org.joda.time.DateTime] =
+    implicit val afJodaTimestampMicros: AvroField[joda.DateTime] =
       AvroField.logicalType[Long](LogicalTypes.timestampMicros()) { microsFromEpoch =>
-        new org.joda.time.DateTime(microsFromEpoch / 1000, org.joda.time.DateTimeZone.UTC)
+        new joda.DateTime(microsFromEpoch / 1000, joda.DateTimeZone.UTC)
       } { timestamp =>
         1000 * timestamp.getMillis
       }
 
-    implicit val afJodaTimeMicros: AvroField[org.joda.time.LocalTime] =
+    implicit val afJodaTimeMicros: AvroField[joda.LocalTime] =
       AvroField.logicalType[Long](LogicalTypes.timeMicros()) { microsFromMidnight =>
-        org.joda.time.LocalTime.fromMillisOfDay(microsFromMidnight / 1000)
+        joda.LocalTime.fromMillisOfDay(microsFromMidnight / 1000)
       } { time =>
         // from LossyTimeMicrosConversion
         1000L * time.millisOfDay().get()
@@ -112,16 +112,16 @@ package object logical {
       }
 
     // avro 1.8 uses joda-time
-    implicit val afJodaTimestampMillis: AvroField[org.joda.time.DateTime] =
+    implicit val afJodaTimestampMillis: AvroField[joda.DateTime] =
       AvroField.logicalType[Long](LogicalTypes.timestampMillis()) { millisFromEpoch =>
-        new org.joda.time.DateTime(millisFromEpoch, org.joda.time.DateTimeZone.UTC)
+        new joda.DateTime(millisFromEpoch, joda.DateTimeZone.UTC)
       } { timestamp =>
         timestamp.getMillis
       }
 
-    implicit val afJodaTimeMillis: AvroField[org.joda.time.LocalTime] =
+    implicit val afJodaTimeMillis: AvroField[joda.LocalTime] =
       AvroField.logicalType[Int](LogicalTypes.timeMillis()) { millisFromMidnight =>
-        org.joda.time.LocalTime.fromMillisOfDay(millisFromMidnight.toLong)
+        joda.LocalTime.fromMillisOfDay(millisFromMidnight.toLong)
       } { time =>
         time.millisOfDay().get()
       }
@@ -166,18 +166,18 @@ package object logical {
       .toFormatter
       .withZone(ZoneOffset.UTC)
 
-    private val JodaDatetimePrinter = new org.joda.time.format.DateTimeFormatterBuilder()
+    private val JodaDatetimePrinter = new joda.format.DateTimeFormatterBuilder()
       .appendPattern(DatetimePattern)
       .toFormatter
 
-    private val JodaDatetimeParser = new org.joda.time.format.DateTimeFormatterBuilder()
+    private val JodaDatetimeParser = new joda.format.DateTimeFormatterBuilder()
       .appendPattern(DatePattern)
       .appendOptional(
-        new org.joda.time.format.DateTimeFormatterBuilder()
+        new joda.format.DateTimeFormatterBuilder()
           .appendLiteral(' ')
           .appendPattern(TimePattern)
           .appendOptional(
-            new org.joda.time.format.DateTimeFormatterBuilder()
+            new joda.format.DateTimeFormatterBuilder()
               .appendLiteral('.')
               .appendPattern(DecimalPattern)
               .toParser
@@ -185,7 +185,7 @@ package object logical {
           .toParser
       )
       .toFormatter
-      .withZone(org.joda.time.DateTimeZone.UTC)
+      .withZone(joda.DateTimeZone.UTC)
 
     // NUMERIC
     // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
@@ -193,14 +193,14 @@ package object logical {
 
     // TIMESTAMP
     implicit val afBigQueryTimestamp: AvroField[Instant] = micros.afTimestampMicros
-    implicit val afBigQueryJodaTimestamp: AvroField[org.joda.time.DateTime] =
+    implicit val afBigQueryJodaTimestamp: AvroField[joda.DateTime] =
       micros.afJodaTimestampMicros
 
     // DATE: `AvroField.afDate`
 
     // TIME
     implicit val afBigQueryTime: AvroField[LocalTime] = micros.afTimeMicros
-    implicit val afBigQueryJodaTime: AvroField[org.joda.time.LocalTime] = micros.afJodaTimeMicros
+    implicit val afBigQueryJodaTime: AvroField[joda.LocalTime] = micros.afJodaTimeMicros
 
     // DATETIME -> sqlType: DATETIME
     implicit val afBigQueryDatetime: AvroField[LocalDateTime] =
@@ -209,9 +209,9 @@ package object logical {
       } { datetime =>
         DatetimePrinter.format(datetime)
       }
-    implicit val afBigQueryJodaDatetime: AvroField[org.joda.time.LocalDateTime] =
+    implicit val afBigQueryJodaDatetime: AvroField[joda.LocalDateTime] =
       AvroField.logicalType[CharSequence](new org.apache.avro.LogicalType(DateTimeTypeName)) { cs =>
-        org.joda.time.LocalDateTime.parse(cs.toString, JodaDatetimeParser)
+        joda.LocalDateTime.parse(cs.toString, JodaDatetimeParser)
       } { datetime =>
         JodaDatetimePrinter.print(datetime)
       }

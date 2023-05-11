@@ -21,11 +21,12 @@ import magnolify.shared.UnsafeEnum
 import magnolify.test.ADT._
 import magnolify.test.JavaEnums
 import magnolify.test.Simple._
+import org.joda.{time => joda}
 import org.scalacheck._
 
-import java.time._
 import java.net.URI
 import java.nio.ByteBuffer
+import java.time._
 
 object TestArbitrary {
   // null
@@ -58,24 +59,24 @@ object TestArbitrary {
     Arbitrary(Gen.posNum[Long].map(Duration.ofMillis))
 
   // joda-time
-  implicit val arbJodaDate: Arbitrary[org.joda.time.LocalDate] = Arbitrary {
+  implicit val arbJodaDate: Arbitrary[joda.LocalDate] = Arbitrary {
     Arbitrary.arbitrary[LocalDate].map { ld =>
-      new org.joda.time.LocalDate(ld.getYear, ld.getMonthValue, ld.getDayOfMonth)
+      new joda.LocalDate(ld.getYear, ld.getMonthValue, ld.getDayOfMonth)
     }
   }
-  implicit val arbJodaDateTime: Arbitrary[org.joda.time.DateTime] = Arbitrary {
+  implicit val arbJodaDateTime: Arbitrary[joda.DateTime] = Arbitrary {
     Arbitrary.arbitrary[Instant].map { i =>
-      new org.joda.time.DateTime(i.toEpochMilli, org.joda.time.DateTimeZone.UTC)
+      new joda.DateTime(i.toEpochMilli, joda.DateTimeZone.UTC)
     }
   }
-  implicit val arbJodaLocalTime: Arbitrary[org.joda.time.LocalTime] = Arbitrary {
+  implicit val arbJodaLocalTime: Arbitrary[joda.LocalTime] = Arbitrary {
     Arbitrary.arbitrary[LocalTime].map { lt =>
-      org.joda.time.LocalTime.fromMillisOfDay(lt.toNanoOfDay / 1000)
+      joda.LocalTime.fromMillisOfDay(lt.toNanoOfDay / 1000)
     }
   }
-  implicit val arbJodaLocalDateTime: Arbitrary[org.joda.time.LocalDateTime] = Arbitrary {
+  implicit val arbJodaLocalDateTime: Arbitrary[joda.LocalDateTime] = Arbitrary {
     Arbitrary.arbitrary[LocalDateTime].map { ldt =>
-      org.joda.time.LocalDateTime.parse(ldt.toString)
+      joda.LocalDateTime.parse(ldt.toString)
     }
   }
 

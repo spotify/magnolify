@@ -18,29 +18,27 @@ package magnolify.avro
 
 import cats._
 import com.fasterxml.jackson.core.JsonFactory
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import magnolify.avro.unsafe._
-import magnolify.cats.auto._
 import magnolify.cats.TestEq._
-import magnolify.scalacheck.auto._
+import magnolify.cats.auto._
 import magnolify.scalacheck.TestArbitrary._
+import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
 import magnolify.shared.TestEnumType._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.apache.avro.Schema
 import org.apache.avro.generic._
-import org.apache.avro.io.DecoderFactory
-import org.apache.avro.io.EncoderFactory
+import org.apache.avro.io.{DecoderFactory, EncoderFactory}
 import org.apache.avro.util.Utf8
+import org.joda.{time => joda}
 import org.scalacheck._
 
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.net.URI
 import java.nio.ByteBuffer
-import java.time.{Duration, Instant, LocalDate, LocalDateTime, LocalTime}
+import java.time._
 import java.time.format.DateTimeFormatter
 import java.util
 import java.util.{Objects, UUID}
@@ -413,29 +411,29 @@ case class MapPrimitive(strMap: Map[String, Int], charSeqMap: Map[CharSequence, 
 case class MapNested(m: Map[String, Nested], charSeqMap: Map[CharSequence, Nested])
 
 case class AvroDuration(months: Long, days: Long, millis: Long)
-case class Logical(u: UUID, ld: LocalDate, jld: org.joda.time.LocalDate, d: AvroDuration)
+case class Logical(u: UUID, ld: LocalDate, jld: joda.LocalDate, d: AvroDuration)
 case class LogicalMicros(
   i: Instant,
   lt: LocalTime,
   ldt: LocalDateTime,
-  jdt: org.joda.time.DateTime,
-  jlt: org.joda.time.LocalTime
+  jdt: joda.DateTime,
+  jlt: joda.LocalTime
 )
 case class LogicalMillis(
   i: Instant,
   lt: LocalTime,
   ldt: LocalDateTime,
-  jdt: org.joda.time.DateTime,
-  jlt: org.joda.time.LocalTime
+  jdt: joda.DateTime,
+  jlt: joda.LocalTime
 )
 case class LogicalBigQuery(
   bd: BigDecimal,
   i: Instant,
   lt: LocalTime,
   ldt: LocalDateTime,
-  jdt: org.joda.time.DateTime,
-  jlt: org.joda.time.LocalTime,
-  jldt: org.joda.time.LocalDateTime
+  jdt: joda.DateTime,
+  jlt: joda.LocalTime,
+  jldt: joda.LocalDateTime
 )
 case class BigDec(bd: BigDecimal)
 

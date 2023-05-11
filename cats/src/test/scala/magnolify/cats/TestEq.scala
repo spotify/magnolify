@@ -18,10 +18,11 @@ package magnolify.cats
 
 import cats.Eq
 import magnolify.cats.semiauto.EqDerivation
+import magnolify.shared.UnsafeEnum
 import magnolify.test.ADT._
 import magnolify.test.JavaEnums
 import magnolify.test.Simple._
-import magnolify.shared.UnsafeEnum
+import org.joda.{time => joda}
 
 import java.net.URI
 import java.nio.ByteBuffer
@@ -55,10 +56,10 @@ object TestEq {
   implicit lazy val eqDuration: Eq[Duration] = Eq.fromUniversalEquals
 
   // joda-time
-  implicit val eqJodaDate: Eq[org.joda.time.LocalDate] = Eq.fromUniversalEquals
-  implicit val eqJodaDateTime: Eq[org.joda.time.DateTime] = Eq.fromUniversalEquals
-  implicit val eqJodaLocalTime: Eq[org.joda.time.LocalTime] = Eq.fromUniversalEquals
-  implicit val eqJodaLocalDateTime: Eq[org.joda.time.LocalDateTime] = Eq.fromUniversalEquals
+  implicit val eqJodaDate: Eq[joda.LocalDate] = Eq.fromUniversalEquals
+  implicit val eqJodaDateTime: Eq[joda.DateTime] = Eq.fromUniversalEquals
+  implicit val eqJodaLocalTime: Eq[joda.LocalTime] = Eq.fromUniversalEquals
+  implicit val eqJodaLocalDateTime: Eq[joda.LocalDateTime] = Eq.fromUniversalEquals
 
   // enum
   implicit lazy val eqJavaEnum: Eq[JavaEnums.Color] = Eq.fromUniversalEquals
