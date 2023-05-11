@@ -123,50 +123,50 @@ class ParquetTypeSuite extends MagnolifySuite {
 
   // Precision = number of digits, so 5 means -99999 to 99999
   private def decimal(precision: Int): Arbitrary[BigDecimal] = {
-    val nines = math.pow(10, precision.toDouble).toLong - 1
-    Arbitrary(Gen.choose(-nines, nines).map(BigDecimal(_)))
+    val max = BigInt(10).pow(precision) - 1
+    Arbitrary(Gen.choose(-max, max).map(BigDecimal.apply))
   }
 
   {
     implicit val arbBigDecimal: Arbitrary[BigDecimal] = decimal(9)
     implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimal32(9, 0)
-    test[Decimal32]
+    test[Decimal]
   }
 
   {
     implicit val arbBigDecimal: Arbitrary[BigDecimal] = decimal(18)
     implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimal64(18, 0)
-    test[Decimal64]
+    test[Decimal]
   }
 
   {
     implicit val arbBigDecimal: Arbitrary[BigDecimal] = decimal(18)
     // math.floor(math.log10(math.pow(2, 8*8-1) - 1)) = 18 digits
     implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimalFixed(8, 18, 0)
-    test[DecimalFixed]
+    test[Decimal]
   }
 
   {
     implicit val arbBigDecimal: Arbitrary[BigDecimal] = decimal(20)
     implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimalBinary(20, 0)
-    test[DecimalBinary]
+    test[Decimal]
   }
 
   test[Logical]
 
   {
     import magnolify.parquet.logical.millis._
-    test[TimeMillis]
+    test[Time]
   }
 
   {
     import magnolify.parquet.logical.micros._
-    test[TimeMicros]
+    test[Time]
   }
 
   {
     import magnolify.parquet.logical.nanos._
-    test[TimeNanos]
+    test[Time]
   }
 
   {
@@ -185,14 +185,9 @@ class ParquetTypeSuite extends MagnolifySuite {
 
 case class Unsafe(c: Char)
 case class ParquetTypes(b: Byte, s: Short, ba: Array[Byte])
-case class Decimal32(bd: BigDecimal)
-case class Decimal64(bd: BigDecimal)
-case class DecimalFixed(bd: BigDecimal)
-case class DecimalBinary(bd: BigDecimal)
+case class Decimal(bd: BigDecimal, bdo: Option[BigDecimal])
 case class Logical(u: UUID, d: LocalDate)
-case class TimeMillis(i: Instant, dt: LocalDateTime, ot: OffsetTime, t: LocalTime)
-case class TimeMicros(i: Instant, dt: LocalDateTime, ot: OffsetTime, t: LocalTime)
-case class TimeNanos(i: Instant, dt: LocalDateTime, ot: OffsetTime, t: LocalTime)
+case class Time(i: Instant, dt: LocalDateTime, ot: OffsetTime, t: LocalTime)
 @doc("Parquet with doc")
 case class ParquetDoc(@doc("string") s: String, @doc("integers") i: Integers)
 

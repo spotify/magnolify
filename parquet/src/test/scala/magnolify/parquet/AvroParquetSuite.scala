@@ -30,7 +30,7 @@ import magnolify.scalacheck.auto._
 import magnolify.scalacheck.TestArbitrary._
 import magnolify.test._
 import magnolify.test.Simple._
-import org.apache.avro.generic.{GenericData, GenericDatumReader, GenericRecord}
+import org.apache.avro.generic.GenericRecord
 import org.apache.hadoop.conf.Configuration
 import org.apache.parquet.avro.{
   AvroParquetReader,
@@ -162,11 +162,14 @@ class AvroParquetSuite extends MagnolifySuite {
   {
     import magnolify.avro.logical.bigquery._
     // Precision = number of digits, so 5 means -99999 to 99999
-    val nines = math.pow(10, 38).toLong - 1
+    val precision = 38
+    val scale = 9
+    val max = BigInt(10).pow(precision) - 1
     implicit val arbBigDecimal: Arbitrary[BigDecimal] =
-      Arbitrary(Gen.choose(-nines, nines).map(BigDecimal(_)))
-    implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimalBinary(38, 9)
-    test[DecimalBinary]()
+      Arbitrary(Gen.choose(-max, max).map(BigDecimal(_, scale)))
+    implicit val pfBigDecimal: ParquetField[BigDecimal] =
+      ParquetField.decimalBinary(precision, scale)
+    test[Decimal]()
   }
 
   test[AvroParquetLogical]()
