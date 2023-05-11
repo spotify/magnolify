@@ -104,8 +104,8 @@ val scala212 = "2.12.17"
 val defaultScala = scala213
 
 // github actions
+val java17 = JavaSpec.corretto("17")
 val java11 = JavaSpec.corretto("11")
-val java8 = JavaSpec.corretto("8")
 val defaultJava = java11
 val coverageCond = Seq(
   s"matrix.scala == '$defaultScala'",
@@ -115,7 +115,7 @@ val coverageCond = Seq(
 ThisBuild / scalaVersion := defaultScala
 ThisBuild / crossScalaVersions := Seq(scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
-ThisBuild / githubWorkflowJavaVersions := Seq(java11, java8)
+ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
 ThisBuild / githubWorkflowBuild := Seq(
   WorkflowStep.Sbt(
     List("coverage", "test", "coverageAggregate"),
