@@ -29,16 +29,32 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         scala: [2.13.10, 2.12.17]
-        java: [corretto@11, corretto@8]
+        java: [corretto@17, corretto@11]
         exclude:
           - scala: 2.12.17
-            java: corretto@8
+            java: corretto@11
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout current branch (full)
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+
+      - name: Download Java (corretto@17)
+        id: download-java-corretto-17
+        if: matrix.java == 'corretto@17'
+        uses: typelevel/download-java@v2
+        with:
+          distribution: corretto
+          java-version: 17
+
+      - name: Setup Java (corretto@17)
+        if: matrix.java == 'corretto@17'
+        uses: actions/setup-java@v3
+        with:
+          distribution: jdkfile
+          java-version: 17
+          jdkFile: ${{ steps.download-java-corretto-17.outputs.jdkFile }}
 
       - name: Download Java (corretto@11)
         id: download-java-corretto-11
@@ -55,22 +71,6 @@ jobs:
           distribution: jdkfile
           java-version: 11
           jdkFile: ${{ steps.download-java-corretto-11.outputs.jdkFile }}
-
-      - name: Download Java (corretto@8)
-        id: download-java-corretto-8
-        if: matrix.java == 'corretto@8'
-        uses: typelevel/download-java@v2
-        with:
-          distribution: corretto
-          java-version: 8
-
-      - name: Setup Java (corretto@8)
-        if: matrix.java == 'corretto@8'
-        uses: actions/setup-java@v3
-        with:
-          distribution: jdkfile
-          java-version: 8
-          jdkFile: ${{ steps.download-java-corretto-8.outputs.jdkFile }}
 
       - name: Cache sbt
         uses: actions/cache@v3
@@ -122,13 +122,29 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         scala: [2.13.10]
-        java: [corretto@11]
+        java: [corretto@17]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout current branch (full)
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+
+      - name: Download Java (corretto@17)
+        id: download-java-corretto-17
+        if: matrix.java == 'corretto@17'
+        uses: typelevel/download-java@v2
+        with:
+          distribution: corretto
+          java-version: 17
+
+      - name: Setup Java (corretto@17)
+        if: matrix.java == 'corretto@17'
+        uses: actions/setup-java@v3
+        with:
+          distribution: jdkfile
+          java-version: 17
+          jdkFile: ${{ steps.download-java-corretto-17.outputs.jdkFile }}
 
       - name: Download Java (corretto@11)
         id: download-java-corretto-11
@@ -145,22 +161,6 @@ jobs:
           distribution: jdkfile
           java-version: 11
           jdkFile: ${{ steps.download-java-corretto-11.outputs.jdkFile }}
-
-      - name: Download Java (corretto@8)
-        id: download-java-corretto-8
-        if: matrix.java == 'corretto@8'
-        uses: typelevel/download-java@v2
-        with:
-          distribution: corretto
-          java-version: 8
-
-      - name: Setup Java (corretto@8)
-        if: matrix.java == 'corretto@8'
-        uses: actions/setup-java@v3
-        with:
-          distribution: jdkfile
-          java-version: 8
-          jdkFile: ${{ steps.download-java-corretto-8.outputs.jdkFile }}
 
       - name: Cache sbt
         uses: actions/cache@v3
@@ -206,7 +206,7 @@ jobs:
           (echo "$PGP_PASSPHRASE"; echo; echo) | gpg --command-fd 0 --pinentry-mode loopback --change-passphrase $(gpg --list-secret-keys --with-colons 2> /dev/null | grep '^sec:' | cut --delimiter ':' --fields 5 | tail -n 1)
 
       - name: Publish
-        run: sbt '++ ${{ matrix.scala }}' tlRelease
+        run: sbt '++ ${{ matrix.scala }}' tlCiRelease
 
   avro-legacy:
     name: Test with legacy avro
@@ -221,6 +221,22 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+
+      - name: Download Java (corretto@17)
+        id: download-java-corretto-17
+        if: matrix.java == 'corretto@17'
+        uses: typelevel/download-java@v2
+        with:
+          distribution: corretto
+          java-version: 17
+
+      - name: Setup Java (corretto@17)
+        if: matrix.java == 'corretto@17'
+        uses: actions/setup-java@v3
+        with:
+          distribution: jdkfile
+          java-version: 17
+          jdkFile: ${{ steps.download-java-corretto-17.outputs.jdkFile }}
 
       - name: Download Java (corretto@11)
         id: download-java-corretto-11
@@ -237,22 +253,6 @@ jobs:
           distribution: jdkfile
           java-version: 11
           jdkFile: ${{ steps.download-java-corretto-11.outputs.jdkFile }}
-
-      - name: Download Java (corretto@8)
-        id: download-java-corretto-8
-        if: matrix.java == 'corretto@8'
-        uses: typelevel/download-java@v2
-        with:
-          distribution: corretto
-          java-version: 8
-
-      - name: Setup Java (corretto@8)
-        if: matrix.java == 'corretto@8'
-        uses: actions/setup-java@v3
-        with:
-          distribution: jdkfile
-          java-version: 8
-          jdkFile: ${{ steps.download-java-corretto-8.outputs.jdkFile }}
 
       - name: Cache sbt
         uses: actions/cache@v3

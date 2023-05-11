@@ -18,9 +18,10 @@ package magnolify.test
 
 import java.net.URI
 import java.time.Duration
-
 import magnolify.shared.UnsafeEnum
 
+import java.util
+import java.util.Objects
 import scala.annotation.StaticAnnotation
 import scala.collection.immutable.Seq
 
@@ -50,7 +51,24 @@ object Simple {
     o: Option[Required],
     l: List[Required]
   )
-  case class Collections(a: Array[Int], l: List[Int], v: Vector[Int])
+  case class Collections(a: Array[Int], l: List[Int], v: Vector[Int]) {
+
+    override def hashCode(): Int = {
+      var hash = 1
+      hash = 31 * hash + util.Arrays.hashCode(a)
+      hash = 31 * hash + Objects.hashCode(l)
+      hash = 31 * hash + Objects.hashCode(v)
+      hash
+    }
+
+    override def equals(obj: Any): Boolean = obj match {
+      case that: Collections =>
+        Objects.deepEquals(this.a, that.a) &&
+        Objects.equals(this.l, that.l) &&
+        Objects.equals(this.v, that.v)
+      case _ => false
+    }
+  }
   case class MoreCollections(i: Iterable[Int], s: Seq[Int], is: IndexedSeq[Int])
   case class Enums(
     j: JavaEnums.Color,

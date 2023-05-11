@@ -1,7 +1,7 @@
 magnolify
 =========
 
-[![Build Status](https://img.shields.io/github/workflow/status/spotify/magnolify/CI)](https://github.com/spotify/magnolify/actions?query=workflow%3ACI)
+[![Build Status](https://github.com/spotify/magnolify/actions/workflows/ci.yml/badge.svg)](https://github.com/spotify/magnolify/actions/workflows/ci.yml)
 [![codecov.io](https://codecov.io/github/spotify/magnolify/coverage.svg?branch=master)](https://codecov.io/github/spotify/magnolify?branch=master)
 [![GitHub license](https://img.shields.io/github/license/spotify/magnolify.svg)](./LICENSE)
 [![Maven Central](https://img.shields.io/maven-central/v/com.spotify/magnolify-shared_2.13.svg)](https://maven-badges.herokuapp.com/maven-central/com.spotify/magnolify-shared_2.13)

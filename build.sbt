@@ -14,33 +14,34 @@
  * limitations under the License.
  */
 import sbtprotoc.ProtocPlugin.ProtobufConfig
+import com.typesafe.tools.mima.core._
 
 val magnoliaScala2Version = "1.1.3"
 val magnoliaScala3Version = "1.1.4"
 
 val algebirdVersion = "0.13.9"
-val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.0")
-val bigqueryVersion = "v2-rev20230114-2.0.0"
-val bigtableVersion = "2.18.3"
+val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.1")
+val bigqueryVersion = "v2-rev20230422-2.0.0"
+val bigtableVersion = "2.22.0"
 val catsVersion = "2.9.0"
-val datastoreVersion = "2.13.3"
+val datastoreVersion = "2.14.5"
 val guavaVersion = "31.1-jre"
-val hadoopVersion = "3.3.4"
-val jacksonVersion = "2.14.2"
+val hadoopVersion = "3.3.5"
+val jacksonVersion = "2.15.0"
 val munitVersion = "0.7.29"
-val neo4jDriverVersion = "4.4.9"
+val neo4jDriverVersion = "4.4.11"
 val paigesVersion = "0.4.2"
-val parquetVersion = "1.12.3"
-val protobufVersion = "3.21.12"
-val refinedVersion = "0.10.1"
-val scalaCollectionCompatVersion = "2.9.0"
+val parquetVersion = "1.13.0"
+val protobufVersion = "3.22.4"
+val refinedVersion = "0.10.3"
+val scalaCollectionCompatVersion = "2.10.0"
 val scalacheckVersion = "1.17.0"
 val shapelessVersion = "2.3.10"
 val tensorflowMetadataVersion = "1.10.0"
 val tensorflowVersion = "0.4.2"
 
 // project
-ThisBuild / tlBaseVersion := "0.6"
+ThisBuild / tlBaseVersion := "0.7"
 ThisBuild / organization := "com.spotify"
 ThisBuild / organizationName := "Spotify AB"
 ThisBuild / startYear := Some(2016)
@@ -103,8 +104,8 @@ val scala212 = "2.12.17"
 val defaultScala = scala213
 
 // github actions
+val java17 = JavaSpec.corretto("17")
 val java11 = JavaSpec.corretto("11")
-val java8 = JavaSpec.corretto("8")
 val defaultJava = java11
 val coverageCond = Seq(
   s"matrix.scala == '$defaultScala'",
@@ -114,7 +115,7 @@ val coverageCond = Seq(
 ThisBuild / scalaVersion := defaultScala
 ThisBuild / crossScalaVersions := Seq(scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
-ThisBuild / githubWorkflowJavaVersions := Seq(java11, java8)
+ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
 ThisBuild / githubWorkflowBuild := Seq(
   WorkflowStep.Sbt(
     List("coverage", "test", "coverageAggregate"),
@@ -144,6 +145,17 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
   )
 )
 
+// mima
+ThisBuild / mimaBinaryIssueFilters ++= Seq(
+  // new API
+  ProblemFilters.exclude[ReversedMissingMethodProblem](
+    "magnolify.bigquery.TableRowField#Record.fields"
+  ),
+  ProblemFilters.exclude[ReversedMissingMethodProblem](
+    "magnolify.bigquery.TableRowType.selectedFields"
+  )
+)
+
 // protobuf
 ThisBuild / PB.protocVersion := protobufVersion
 lazy val scopedProtobufSettings = Def.settings(
@@ -156,7 +168,8 @@ lazy val scopedProtobufSettings = Def.settings(
 )
 lazy val protobufSettings = Seq(
   PB.additionalDependencies := Seq(
-    "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
+    "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided,
+    "com.google.protobuf" % "protobuf-java" % protobufVersion % Test
   )
 ) ++ Seq(Compile, Test).flatMap(c => inConfig(c)(scopedProtobufSettings))
 
