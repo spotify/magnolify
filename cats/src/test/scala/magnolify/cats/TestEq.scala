@@ -29,6 +29,7 @@ import java.time._
 object TestEq {
 
   // other
+  implicit lazy val eqNull: Eq[Null] = Eq.allEqual
   implicit lazy val eqUri: Eq[URI] = Eq.fromUniversalEquals
   implicit lazy val eqArray: Eq[Array[Int]] = Eq.by(_.toList)
   implicit def eqIterable[T, C[_]](implicit eq: Eq[T], ti: C[T] => Iterable[T]): Eq[C[T]] =
@@ -37,6 +38,14 @@ object TestEq {
       val ys = ti(y)
       xs.size == ys.size && (xs zip ys).forall((eq.eqv _).tupled)
     }
+
+  // java
+  implicit lazy val eqCharSequence: Eq[CharSequence] = Eq.by(_.toString)
+  implicit def eqCharSeqMap[T: Eq]: Eq[Map[CharSequence, T]] = Eq.by { m =>
+    // Map[CharSequence, T] should not be used for lookups as key equality is not guarantee
+    // Can only be used as a key value list
+    m.map { case (k, v) => k.toString -> v }
+  }
 
   // time
   implicit lazy val eqInstant: Eq[Instant] = Eq.by(_.toEpochMilli)

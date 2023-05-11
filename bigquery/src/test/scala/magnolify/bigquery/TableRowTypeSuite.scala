@@ -154,6 +154,8 @@ class TableRowTypeSuite extends MagnolifySuite {
       val schema = trt.schema
       val fields = LowerCamel.fields.map(_.toUpperCase)
       assertEquals(schema.getFields.asScala.map(_.getName).toSeq, fields)
+      val selectedFields = LowerCamel.selectedFields.map(_.toUpperCase)
+      assertEquals(trt.selectedFields, selectedFields)
       assert(
         schema.getFields.asScala
           .find(_.getName == "INNERFIELD")

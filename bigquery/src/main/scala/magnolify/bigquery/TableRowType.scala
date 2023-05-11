@@ -35,24 +35,29 @@ class description(description: String) extends StaticAnnotation with Serializabl
 sealed trait TableRowType[T] extends Converter[T, TableRow, TableRow] {
   val schema: TableSchema
   val description: String
+  val selectedFields: Seq[String]
+
   def apply(v: TableRow): T = from(v)
   def apply(v: T): TableRow = to(v)
 }
 
 object TableRowType {
+
   implicit def apply[T: TableRowField]: TableRowType[T] = TableRowType(CaseMapper.identity)
 
   def apply[T](cm: CaseMapper)(implicit f: TableRowField[T]): TableRowType[T] = {
     f match {
-      case pr: TableRowField.Record[_] =>
-        pr.fieldSchema(cm) // fail fast on bad annotations
+      case r: TableRowField.Record[_] =>
+        r.fieldSchema(cm) // fail fast on bad annotations
         new TableRowType[T] {
           private val caseMapper: CaseMapper = cm
           @transient override lazy val schema: TableSchema =
-            new TableSchema().setFields(pr.fieldSchema(caseMapper).getFields)
-          override val description: String = pr.fieldSchema(caseMapper).getDescription
-          override def from(v: TableRow): T = pr.from(v)(caseMapper)
-          override def to(v: T): TableRow = pr.to(v)(caseMapper)
+            new TableSchema().setFields(r.fieldSchema(caseMapper).getFields)
+
+          override val selectedFields: Seq[String] = r.fields(cm)
+          override val description: String = r.fieldSchema(caseMapper).getDescription
+          override def from(v: TableRow): T = r.from(v)(caseMapper)
+          override def to(v: T): TableRow = r.to(v)(caseMapper)
         }
       case _ =>
         throw new IllegalArgumentException(s"TableRowType can only be created from Record. Got $f")
@@ -84,7 +89,9 @@ object TableRowField {
   }
 
   sealed trait Generic[T] extends Aux[T, Any, Any]
-  sealed trait Record[T] extends Aux[T, ju.Map[String, AnyRef], TableRow]
+  sealed trait Record[T] extends Aux[T, ju.Map[String, AnyRef], TableRow] {
+    def fields(cm: CaseMapper): Seq[String]
+  }
 
   // ////////////////////////////////////////////////
   type Typeclass[T] = TableRowField[T]
@@ -121,6 +128,17 @@ object TableRowField {
             .setMode("REQUIRED")
             .setDescription(getDescription(caseClass.annotations, caseClass.typeName.full))
             .setFields(fields)
+        }
+
+        override def fields(cm: CaseMapper): Seq[String] = {
+          for {
+            p <- caseClass.parameters
+            n = cm.map(p.label)
+            f <- p.typeclass match {
+              case r: Record[_] => r.fields(cm).map(child => n + "." + child)
+              case _            => Seq(n)
+            }
+          } yield f
         }
 
         override def from(v: ju.Map[String, AnyRef])(cm: CaseMapper): T =

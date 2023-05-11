@@ -38,8 +38,8 @@ private object Schema {
       val p = schema.asPrimitiveType()
       Types
         .primitive(p.getPrimitiveTypeName, schema.getRepetition)
-        .length(p.getTypeLength)
         .as(schema.getLogicalTypeAnnotation)
+        .length(p.getTypeLength)
         .named(name)
     } else {
       schema
@@ -55,9 +55,11 @@ private object Schema {
   def setRepetition(schema: Type, repetition: Repetition): Type = {
     require(schema.isRepetition(Repetition.REQUIRED))
     if (schema.isPrimitive) {
+      val p = schema.asPrimitiveType()
       Types
-        .primitive(schema.asPrimitiveType().getPrimitiveTypeName, repetition)
+        .primitive(p.getPrimitiveTypeName, repetition)
         .as(schema.getLogicalTypeAnnotation)
+        .length(p.getTypeLength)
         .named(schema.getName)
     } else {
       schema
@@ -72,14 +74,20 @@ private object Schema {
 
   def setLogicalType(schema: Type, lta: LogicalTypeAnnotation): Type = {
     require(schema.isPrimitive)
+    val p = schema.asPrimitiveType()
     Types
-      .primitive(schema.asPrimitiveType().getPrimitiveTypeName, schema.getRepetition)
+      .primitive(p.getPrimitiveTypeName, schema.getRepetition)
       .as(lta)
+      .length(p.getTypeLength)
       .named(schema.getName)
   }
 
   def primitive(ptn: PrimitiveTypeName, lta: LogicalTypeAnnotation = null, length: Int = 0): Type =
-    Types.required(ptn).as(lta).length(length).named(ptn.name())
+    Types
+      .required(ptn)
+      .as(lta)
+      .length(length)
+      .named(ptn.name())
 
   def message(schema: Type): MessageType = {
     val builder = Types.buildMessage()

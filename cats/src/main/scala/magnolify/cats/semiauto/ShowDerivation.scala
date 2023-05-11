@@ -29,7 +29,8 @@ object ShowDerivation {
   }
 
   def split[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = new Show[T] {
-    override def show(x: T): String = sealedTrait.split(x)(sub => sub.typeclass.show(sub.cast(x)))
+    override def show(x: T): String =
+      sealedTrait.split(x)(sub => sub.typeclass.show(sub.cast(x)))
   }
 
   implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]

@@ -33,21 +33,18 @@ import java.io.ObjectOutputStream
 import java.net.URI
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
-import java.nio.charset.StandardCharsets
 import java.time.Duration
 import scala.reflect._
 
 class FunnelDerivationSuite extends MagnolifySuite {
-  private def test[T: Arbitrary: ClassTag: Funnel]: Unit =
-    test[T, T](identity)
 
-  private def test[T: ClassTag, U](f: T => U)(implicit arb: Arbitrary[T], t: Funnel[T]): Unit = {
+  private def test[T: ClassTag](implicit arb: Arbitrary[T], t: Funnel[T]): Unit = {
     val fnl = ensureSerializable(t)
     val name = className[T]
     val g = arb.arbitrary
     property(s"$name.uniqueness") {
       Prop.forAll(Gen.listOfN(10, g)) { xs =>
-        xs.map(toBytes(_, fnl)).toSet.size == xs.map(f).toSet.size
+        xs.map(toBytes(_, fnl)).toSet.size == xs.toSet.size
       }
     }
     property(s"$name.consistency") {
@@ -70,7 +67,7 @@ class FunnelDerivationSuite extends MagnolifySuite {
   test[FunnelTypes]
 
   test[Repeated]
-  test((c: Collections) => (c.a.toList, c.l, c.v))
+  test[Collections]
   test[Custom]
 
   test("AnyVal") {
@@ -82,7 +79,7 @@ class FunnelDerivationSuite extends MagnolifySuite {
 
     val ois = new ObjectInputStream(new ByteArrayInputStream(sink.toBytes))
     assert(ois.readInt() == 0)
-    assert(ois.readUTF() == "String")
+    "String".foreach(c => assert(ois.readChar() == c))
     assert(ois.available() == 0)
   }
 
@@ -163,9 +160,6 @@ class BytesSink extends PrimitiveSink {
     this
   }
 
-  override def putString(charSequence: CharSequence, charset: Charset): PrimitiveSink = {
-    require(charset == StandardCharsets.UTF_8)
-    oos.writeUTF(charSequence.toString)
-    this
-  }
+  override def putString(charSequence: CharSequence, charset: Charset): PrimitiveSink =
+    putBytes(charset.encode(charSequence.toString))
 }

@@ -31,12 +31,10 @@ import magnolify.shared.TestEnumType._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.apache.avro.Schema
-import org.apache.avro.generic.GenericDatumReader
-import org.apache.avro.generic.GenericDatumWriter
-import org.apache.avro.generic.GenericRecord
-import org.apache.avro.generic.GenericRecordBuilder
+import org.apache.avro.generic._
 import org.apache.avro.io.DecoderFactory
 import org.apache.avro.io.EncoderFactory
+import org.apache.avro.util.Utf8
 import org.scalacheck._
 
 import java.io.ByteArrayInputStream
@@ -55,20 +53,57 @@ import scala.reflect._
 import scala.util.Try
 
 class AvroTypeSuite extends MagnolifySuite {
+
+  // Best effort for GenericRecord eq
+  // will fail if model contains List[CharSequence] / Map[_, CharSequence] / Option[CharSequence]
+  val eqr: Eq[GenericRecord] = new Eq[GenericRecord] {
+    private def read[T](f: Schema.Field)(r: GenericRecord): T = r.get(f.pos()).asInstanceOf[T]
+
+    override def eqv(x: GenericRecord, y: GenericRecord): Boolean = {
+      x.getSchema == y.getSchema && x.getSchema.getFields.asScala.forall { f =>
+        val fs = f.schema()
+        fs.getType match {
+          case Schema.Type.ARRAY if fs.getElementType.getType == Schema.Type.RECORD =>
+            val typedRead = read[java.util.AbstractList[GenericRecord]](f) _
+            val xm = typedRead(x).asScala.toList
+            val ym = typedRead(y).asScala.toList
+            Eq.catsKernelEqForList[GenericRecord](this).eqv(xm, ym)
+          case Schema.Type.MAP if fs.getValueType.getType == Schema.Type.RECORD =>
+            val typedRead = read[java.util.Map[CharSequence, GenericRecord]](f) _
+            val xm = typedRead(x).asScala.map { case (k, v) => k.toString -> v }.toMap
+            val ym = typedRead(y).asScala.map { case (k, v) => k.toString -> v }.toMap
+            Eq.catsKernelEqForMap[String, GenericRecord](this).eqv(xm, ym)
+          case Schema.Type.ARRAY =>
+            val typedRead = read[java.util.AbstractList[_]](f) _
+            val xm = typedRead(x).asScala.toList
+            val ym = typedRead(y).asScala.toList
+            xm == ym
+          case Schema.Type.MAP =>
+            val typedRead = read[java.util.Map[CharSequence, _]](f) _
+            val xm = typedRead(x).asScala.map { case (k, v) => k.toString -> v }.toMap
+            val ym = typedRead(y).asScala.map { case (k, v) => k.toString -> v }.toMap
+            xm == ym
+          case Schema.Type.STRING if f.getProp(GenericData.STRING_PROP) != "String" =>
+            read[CharSequence](f)(x).toString == read[CharSequence](f)(y).toString
+          case _ =>
+            read[AnyRef](f)(x) == read[AnyRef](f)(y)
+        }
+      }
+    }
+  }
+
   private def test[T: Arbitrary: ClassTag](implicit
     t: AvroType[T],
-    eqt: Eq[T],
-    eqr: Eq[GenericRecord] = Eq.instance(_ == _)
+    eq: Eq[T]
   ): Unit = {
     val tpe = ensureSerializable(t)
-    // FIXME: test schema
     val copier = new Copier(tpe.schema)
     property(className[T]) {
       Prop.forAll { t: T =>
         val r = tpe(t)
         val rCopy = copier(r)
         val copy = tpe(rCopy)
-        Prop.all(eqt.eqv(t, copy), eqr.eqv(r, rCopy))
+        Prop.all(eq.eqv(t, copy), eqr.eqv(r, rCopy))
       }
     }
   }
@@ -130,6 +165,18 @@ class AvroTypeSuite extends MagnolifySuite {
   test[Custom]
   test[AvroTypes]
 
+  test("String vs CharSequence with avro.java.string property") {
+    val at: AvroType[AvroTypes] = AvroType[AvroTypes]
+    val copier = new Copier(at.schema)
+    // original uses String as CharSequence implementation
+    val original = AvroTypes("String", "CharSequence", Array.emptyByteArray, null)
+    val copy = at.from(copier.apply(at.to(original)))
+    // copy uses avro Utf8 as CharSequence implementation
+    assert(original != copy)
+    assert(copy.str.isInstanceOf[String])
+    assert(copy.cs.isInstanceOf[Utf8])
+  }
+
   test("AnyVal") {
     implicit val at: AvroType[HasValueClass] = AvroType[HasValueClass]
     test[HasValueClass]
@@ -140,18 +187,8 @@ class AvroTypeSuite extends MagnolifySuite {
     assert(record.get("vc") == "String")
   }
 
-  {
-    def f(r: GenericRecord): List[(String, Any)] =
-      r.get("m")
-        .asInstanceOf[java.util.Map[CharSequence, Any]]
-        .asScala
-        .toList
-        .map(kv => (kv._1.toString, kv._2))
-        .sortBy(_._1)
-    implicit val eqMapPrimitive: Eq[GenericRecord] = Eq.instance((x, y) => f(x) == f(y))
-    test[MapPrimitive]
-    test[MapNested]
-  }
+  test[MapPrimitive]
+  test[MapNested]
 
   test[Logical]
 
@@ -330,9 +367,9 @@ class AvroTypeSuite extends MagnolifySuite {
 }
 
 case class Unsafe(b: Byte, c: Char, s: Short)
-case class AvroTypes(ba: Array[Byte], u: Unit)
-case class MapPrimitive(m: Map[String, Int])
-case class MapNested(m: Map[String, Nested])
+case class AvroTypes(str: String, cs: CharSequence, ba: Array[Byte], n: Null)
+case class MapPrimitive(strMap: Map[String, Int], charSeqMap: Map[CharSequence, Int])
+case class MapNested(m: Map[String, Nested], charSeqMap: Map[CharSequence, Nested])
 
 case class Logical(u: UUID, d: LocalDate)
 case class LogicalMicros(i: Instant, t: LocalTime, dt: LocalDateTime)
