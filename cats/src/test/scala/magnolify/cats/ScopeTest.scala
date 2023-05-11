@@ -19,7 +19,10 @@ package magnolify.cats
 import cats._
 import cats.kernel.{Band, CommutativeGroup, CommutativeMonoid, CommutativeSemigroup}
 import magnolify.test.Simple._
+import magnolify.cats.semiauto._
 import munit.FunSuite
+
+import scala.reflect.{classTag, ClassTag}
 
 object ScopeTest {
   case class Sets(s: Set[Int])
@@ -39,7 +42,6 @@ object ScopeTest {
   }
 
   object Semi {
-    import magnolify.cats.semiauto._
     EqDerivation[Numbers]
     HashDerivation[Numbers]
     SemigroupDerivation[Numbers]
@@ -55,44 +57,23 @@ object ScopeTest {
 
 class ScopeTest extends FunSuite {
 
+  def checkImpl[T: ClassTag](tc: Any): Unit = {
+    val expected = classTag[T].runtimeClass.getName
+    val actual = tc.getClass.getName
+    assert(actual.startsWith(expected))
+  }
+
   test("auto implicit will give most powerful abstraction") {
-    assertEquals(ScopeTest.Auto.s.getClass.getName, "cats.Show$$anon$2")
-    assertEquals(
-      ScopeTest.Auto.eq.getClass.getName,
-      "magnolify.cats.semiauto.HashDerivation$$anon$1"
-    )
-    assertEquals(
-      ScopeTest.Auto.hash.getClass.getName,
-      "magnolify.cats.semiauto.HashDerivation$$anon$1"
-    )
-    assertEquals(
-      ScopeTest.Auto.sg.getClass.getName,
-      "magnolify.cats.semiauto.CommutativeGroupDerivation$$anon$1"
-    )
-    assertEquals(
-      ScopeTest.Auto.m.getClass.getName,
-      "magnolify.cats.semiauto.CommutativeGroupDerivation$$anon$1"
-    )
-    assertEquals(
-      ScopeTest.Auto.csg.getClass.getName,
-      "magnolify.cats.semiauto.CommutativeGroupDerivation$$anon$1"
-    )
-    assertEquals(
-      ScopeTest.Auto.cm.getClass.getName,
-      "magnolify.cats.semiauto.CommutativeGroupDerivation$$anon$1"
-    )
-    assertEquals(
-      ScopeTest.Auto.g.getClass.getName,
-      "magnolify.cats.semiauto.CommutativeGroupDerivation$$anon$1"
-    )
-    assertEquals(
-      ScopeTest.Auto.cg.getClass.getName,
-      "magnolify.cats.semiauto.CommutativeGroupDerivation$$anon$1"
-    )
-    assertEquals(
-      ScopeTest.Auto.b.getClass.getName,
-      "magnolify.cats.semiauto.BandDerivation$$anon$1"
-    )
+    checkImpl[ShowDerivation.type](ScopeTest.Auto.s)
+    checkImpl[HashDerivation.type](ScopeTest.Auto.eq)
+    checkImpl[HashDerivation.type](ScopeTest.Auto.hash)
+    checkImpl[CommutativeGroupDerivation.type](ScopeTest.Auto.sg)
+    checkImpl[CommutativeGroupDerivation.type](ScopeTest.Auto.m)
+    checkImpl[CommutativeGroupDerivation.type](ScopeTest.Auto.csg)
+    checkImpl[CommutativeGroupDerivation.type](ScopeTest.Auto.cm)
+    checkImpl[CommutativeGroupDerivation.type](ScopeTest.Auto.g)
+    checkImpl[CommutativeGroupDerivation.type](ScopeTest.Auto.cg)
+    checkImpl[BandDerivation.type](ScopeTest.Auto.b)
   }
 
 }
