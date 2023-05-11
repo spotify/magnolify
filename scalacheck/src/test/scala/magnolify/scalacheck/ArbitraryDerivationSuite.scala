@@ -30,10 +30,11 @@ import org.scalacheck.rng.Seed
 import scala.reflect._
 
 class ArbitraryDerivationSuite extends MagnolifySuite {
-  private def test[T: Arbitrary: ClassTag]: Unit = test[T](null)
-  private def test[T: Arbitrary: ClassTag](suffix: String): Unit = test[T, T](identity, suffix)
 
-  private def test[T: ClassTag, U](f: T => U, suffix: String = null)(implicit
+  private def test[T: Arbitrary: ClassTag]: Unit = test[T](None)
+  private def test[T: Arbitrary: ClassTag](suffix: String): Unit = test[T](Some(suffix))
+
+  private def test[T: ClassTag](suffix: Option[String] = None)(implicit
     t: Arbitrary[T]
   ): Unit = {
     val g = ensureSerializable(t).arbitrary
@@ -42,14 +43,13 @@ class ArbitraryDerivationSuite extends MagnolifySuite {
     // `forAll(Gen.listOfN(10, g))` fails for `Repeated` & `Collections` when size parameter <= 1
     property(s"$name.uniqueness") {
       Prop.forAll { seed: Seed =>
-        val xs = Gen.listOfN(10, g)(prms, seed).get
-        xs.iterator.map(f).toSet.size > 1
+        Gen.listOfN(10, g)(prms, seed).get.toSet.size > 1
       }
     }
     property(s"$name.consistency") {
       Prop.forAll { l: Long =>
         val seed = Seed(l) // prevent Magnolia from deriving `Seed`
-        f(g(prms, seed).get) == f(g(prms, seed).get)
+        g(prms, seed).get == g(prms, seed).get
       }
     }
   }
@@ -58,7 +58,7 @@ class ArbitraryDerivationSuite extends MagnolifySuite {
   test[Required]
   test[Nullable]
   test[Repeated]
-  test((c: Collections) => (c.a.toList, c.l, c.v))
+  test[Collections]
   test[MoreCollections]
   test[Nested]
 

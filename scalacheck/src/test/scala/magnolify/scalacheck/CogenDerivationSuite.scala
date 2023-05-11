@@ -27,16 +27,14 @@ import scala.reflect._
 import java.net.URI
 
 class CogenDerivationSuite extends MagnolifySuite {
-  private def test[T: Arbitrary: ClassTag: Cogen]: Unit =
-    test[T, T](identity)
 
-  private def test[T: ClassTag, U](f: T => U)(implicit arb: Arbitrary[T], t: Cogen[T]): Unit = {
+  private def test[T: ClassTag](implicit arb: Arbitrary[T], t: Cogen[T]): Unit = {
     val co = ensureSerializable(t)
     val name = className[T]
     implicit val arbList: Arbitrary[List[T]] = Arbitrary(Gen.listOfN(10, arb.arbitrary))
     property(s"$name.uniqueness") {
       Prop.forAll { (seed: Seed, xs: List[T]) =>
-        xs.map(co.perturb(seed, _)).toSet.size == xs.map(f).toSet.size
+        xs.map(co.perturb(seed, _)).toSet.size == xs.toSet.size
       }
     }
     property(s"$name.consistency") {
@@ -54,7 +52,7 @@ class CogenDerivationSuite extends MagnolifySuite {
   test[Nullable]
 
   test[Repeated]
-  test((c: Collections) => (c.a.toList, c.l, c.v))
+  test[Collections]
   test[Nested]
   test[Custom]
 
