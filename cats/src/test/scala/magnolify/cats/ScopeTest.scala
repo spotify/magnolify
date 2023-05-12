@@ -19,26 +19,29 @@ package magnolify.cats
 import cats._
 import cats.kernel.{Band, CommutativeGroup, CommutativeMonoid, CommutativeSemigroup}
 import magnolify.test.Simple._
+import magnolify.cats.semiauto._
+import munit.FunSuite
+
+import scala.reflect.{classTag, ClassTag}
 
 object ScopeTest {
   case class Sets(s: Set[Int])
 
   object Auto {
     import magnolify.cats.auto._
-    implicitly[Eq[Numbers]]
-    implicitly[Hash[Numbers]]
-    implicitly[Semigroup[Numbers]]
-    implicitly[CommutativeSemigroup[Numbers]]
-    implicitly[Band[Sets]]
-    implicitly[Monoid[Numbers]]
-    implicitly[CommutativeMonoid[Numbers]]
-    implicitly[Group[Numbers]]
-    implicitly[CommutativeGroup[Numbers]]
-    implicitly[Show[Numbers]]
+    val s: Show[Numbers] = implicitly
+    val eq: Eq[Numbers] = implicitly
+    val hash: Hash[Numbers] = implicitly
+    val sg: Semigroup[Numbers] = implicitly
+    val m: Monoid[Numbers] = implicitly
+    val csg: CommutativeSemigroup[Numbers] = implicitly
+    val cm: CommutativeMonoid[Numbers] = implicitly
+    val g: Group[Numbers] = implicitly
+    val cg: CommutativeGroup[Numbers] = implicitly
+    val b: Band[Sets] = implicitly
   }
 
   object Semi {
-    import magnolify.cats.semiauto._
     EqDerivation[Numbers]
     HashDerivation[Numbers]
     SemigroupDerivation[Numbers]
@@ -50,4 +53,27 @@ object ScopeTest {
     CommutativeGroupDerivation[Numbers]
     ShowDerivation[Numbers]
   }
+}
+
+class ScopeTest extends FunSuite {
+
+  def checkImpl[T: ClassTag](tc: Any): Unit = {
+    val expected = classTag[T].runtimeClass.getName
+    val actual = tc.getClass.getName
+    assert(actual.startsWith(expected))
+  }
+
+  test("auto implicit will give most powerful abstraction") {
+    checkImpl[ShowDerivation.type](ScopeTest.Auto.s)
+    checkImpl[HashDerivation.type](ScopeTest.Auto.eq)
+    checkImpl[HashDerivation.type](ScopeTest.Auto.hash)
+    checkImpl[CommutativeGroupDerivation.type](ScopeTest.Auto.sg)
+    checkImpl[CommutativeGroupDerivation.type](ScopeTest.Auto.m)
+    checkImpl[CommutativeGroupDerivation.type](ScopeTest.Auto.csg)
+    checkImpl[CommutativeGroupDerivation.type](ScopeTest.Auto.cm)
+    checkImpl[CommutativeGroupDerivation.type](ScopeTest.Auto.g)
+    checkImpl[CommutativeGroupDerivation.type](ScopeTest.Auto.cg)
+    checkImpl[BandDerivation.type](ScopeTest.Auto.b)
+  }
+
 }

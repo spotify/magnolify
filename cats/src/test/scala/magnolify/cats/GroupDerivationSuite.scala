@@ -18,7 +18,9 @@ package magnolify.cats
 
 import cats._
 import cats.kernel.laws.discipline._
-import magnolify.cats.auto._
+import magnolify.cats.Types.MiniInt
+import magnolify.cats.auto.genGroup
+import magnolify.cats.semiauto.EqDerivation
 import magnolify.scalacheck.auto._
 import magnolify.test._
 import org.scalacheck._
@@ -26,21 +28,25 @@ import org.scalacheck._
 import scala.reflect._
 
 class GroupDerivationSuite extends MagnolifySuite {
+  import GroupDerivationSuite._
+
   private def test[T: Arbitrary: ClassTag: Eq: Group]: Unit = {
     val grp = ensureSerializable(implicitly[Group[T]])
     include(GroupTests[T](grp).group.all, className[T] + ".")
   }
 
-  import GroupDerivationSuite._
+  implicit val eqRecord: Eq[Record] = EqDerivation[Record]
+  implicit val gMiniInt: Group[MiniInt] = new Group[MiniInt] {
+    override def empty: MiniInt = MiniInt(0)
+
+    override def combine(x: MiniInt, y: MiniInt): MiniInt = MiniInt(x.i + y.i)
+
+    override def inverse(a: MiniInt): MiniInt = MiniInt(-a.i)
+  }
+
   test[Record]
 }
 
 object GroupDerivationSuite {
-  import Types.MiniInt
-  implicit val gMiniInt: Group[MiniInt] = new Group[MiniInt] {
-    override def empty: MiniInt = MiniInt(0)
-    override def combine(x: MiniInt, y: MiniInt): MiniInt = MiniInt(x.i + y.i)
-    override def inverse(a: MiniInt): MiniInt = MiniInt(-a.i)
-  }
   case class Record(i: Int, m: MiniInt)
 }

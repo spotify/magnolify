@@ -21,7 +21,7 @@ import cats.laws.discipline.ContravariantTests
 import cats.laws.discipline.MiniInt
 import cats.laws.discipline.arbitrary._
 import cats.laws.discipline.eq._
-import magnolify.cats.auto._
+import magnolify.cats.auto.genShow
 import magnolify.scalacheck.auto._
 import magnolify.scalacheck.TestArbitrary._
 import magnolify.test.ADT._

@@ -19,7 +19,9 @@ package magnolify.cats
 import cats._
 import cats.kernel.Band
 import cats.kernel.laws.discipline._
-import magnolify.cats.auto._
+import magnolify.cats.Types.MiniSet
+import magnolify.cats.auto.genBand
+import magnolify.cats.semiauto.EqDerivation
 import magnolify.scalacheck.auto._
 import magnolify.test._
 import org.scalacheck._
@@ -27,17 +29,18 @@ import org.scalacheck._
 import scala.reflect._
 
 class BandDerivationSuite extends MagnolifySuite {
+  import BandDerivationSuite._
+
   private def test[T: Arbitrary: ClassTag: Eq: Band]: Unit = {
     val band = ensureSerializable(implicitly[Band[T]])
     include(BandTests[T](band).band.all, className[T] + ".")
   }
 
-  import BandDerivationSuite._
+  implicit val eqRecord: Eq[Record] = EqDerivation[Record]
+  implicit val bMiniSet: Band[MiniSet] = Band.instance((x, y) => MiniSet(x.s ++ y.s))
   test[Record]
 }
 
 object BandDerivationSuite {
-  import Types.MiniSet
-  implicit val bMiniSet: Band[MiniSet] = Band.instance((x, y) => MiniSet(x.s ++ y.s))
   case class Record(s: Set[Int], m: MiniSet)
 }

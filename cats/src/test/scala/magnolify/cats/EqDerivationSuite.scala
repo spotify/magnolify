@@ -19,7 +19,7 @@ package magnolify.cats
 import cats.Eq._
 import cats._
 import cats.kernel.laws.discipline._
-import magnolify.cats.auto._
+import magnolify.cats.auto.genEq
 import magnolify.cats.TestEq.eqArray
 import magnolify.cats.TestEq.eqDuration
 import magnolify.cats.TestEq.eqUri
