@@ -30,6 +30,7 @@ val datastoreVersion = "2.11.5"
 val guavaVersion = "31.1-jre"
 val hadoopVersion = "3.3.4"
 val jacksonVersion = "2.13.4.2"
+val jodaTimeVersion = "2.12.5"
 val munitVersion = "0.7.29"
 val neo4jDriverVersion = "4.4.9"
 val paigesVersion = "0.4.2"
@@ -257,7 +258,10 @@ lazy val scalacheck: Project = project
     commonSettings,
     moduleName := "magnolify-scalacheck",
     description := "Magnolia add-on for ScalaCheck",
-    libraryDependencies += "org.scalacheck" %% "scalacheck" % scalacheckVersion % Provided
+    libraryDependencies ++= Seq(
+      "org.scalacheck" %% "scalacheck" % scalacheckVersion % Provided,
+      "joda-time" % "joda-time" % jodaTimeVersion % Test
+    )
   )
   .dependsOn(
     shared,
@@ -272,6 +276,7 @@ lazy val cats: Project = project
     description := "Magnolia add-on for Cats",
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % catsVersion % Provided,
+      "joda-time" % "joda-time" % jodaTimeVersion % Test,
       "com.twitter" %% "algebird-core" % algebirdVersion % Test,
       "org.typelevel" %% "cats-laws" % catsVersion % Test
     )
@@ -333,6 +338,7 @@ lazy val avro: Project = project
     moduleName := "magnolify-avro",
     description := "Magnolia add-on for Apache Avro",
     libraryDependencies ++= Seq(
+      "joda-time" % "joda-time" % jodaTimeVersion % Provided,
       "org.apache.avro" % "avro" % avroVersion % Provided,
       "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
     )
