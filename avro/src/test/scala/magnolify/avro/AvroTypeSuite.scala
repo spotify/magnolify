@@ -18,36 +18,30 @@ package magnolify.avro
 
 import cats._
 import com.fasterxml.jackson.core.JsonFactory
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-import magnolify.avro._
+import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import magnolify.avro.unsafe._
-import magnolify.cats.auto._
 import magnolify.cats.TestEq._
-import magnolify.scalacheck.auto._
+import magnolify.cats.auto._
 import magnolify.scalacheck.TestArbitrary._
+import magnolify.scalacheck.auto._
 import magnolify.shared.CaseMapper
 import magnolify.shared.TestEnumType._
 import magnolify.test.Simple._
 import magnolify.test._
 import org.apache.avro.Schema
 import org.apache.avro.generic._
-import org.apache.avro.io.DecoderFactory
-import org.apache.avro.io.EncoderFactory
+import org.apache.avro.io.{DecoderFactory, EncoderFactory}
 import org.apache.avro.util.Utf8
+import org.joda.{time => joda}
 import org.scalacheck._
 
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.net.URI
 import java.nio.ByteBuffer
-import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
+import java.time._
 import java.time.format.DateTimeFormatter
-import java.util.UUID
+import java.util
+import java.util.{Objects, UUID}
 import scala.jdk.CollectionConverters._
 import scala.reflect._
 import scala.util.Try
@@ -140,12 +134,17 @@ class AvroTypeSuite extends MagnolifySuite {
     }
   }
 
-  implicit val arbBigDecimal: Arbitrary[BigDecimal] =
-    Arbitrary(Gen.chooseNum(0L, Long.MaxValue).map(BigDecimal(_, 0)))
+  implicit val arbBigDecimal: Arbitrary[BigDecimal] = Arbitrary {
+    // bq logical type has precision of 38 and scale of 9
+    val max = BigInt(10).pow(38) - 1
+    Gen.choose(-max, max).map(BigDecimal(_, 9))
+  }
   implicit val arbCountryCode: Arbitrary[CountryCode] = Arbitrary(
-    Gen.oneOf("US", "UK", "CA", "MX").map(CountryCode(_))
+    Gen.oneOf("US", "UK", "CA", "MX").map(CountryCode.apply)
   )
-  implicit val afUri: AvroField[URI] = AvroField.from[String](URI.create)(_.toString)
+
+  implicit val afUri: AvroField[URI] =
+    AvroField.from[String](URI.create)(_.toString)
   implicit val afDuration: AvroField[Duration] =
     AvroField.from[Long](Duration.ofMillis)(_.toMillis)
   implicit val afCountryCode: AvroField[CountryCode] =
@@ -169,7 +168,13 @@ class AvroTypeSuite extends MagnolifySuite {
     val at: AvroType[AvroTypes] = AvroType[AvroTypes]
     val copier = new Copier(at.schema)
     // original uses String as CharSequence implementation
-    val original = AvroTypes("String", "CharSequence", Array.emptyByteArray, null)
+    val original = AvroTypes(
+      "String",
+      "CharSequence",
+      Array.emptyByteArray,
+      ByteBuffer.allocate(0),
+      null
+    )
     val copy = at.from(copier.apply(at.to(original)))
     // copy uses avro Utf8 as CharSequence implementation
     assert(original != copy)
@@ -190,7 +195,29 @@ class AvroTypeSuite extends MagnolifySuite {
   test[MapPrimitive]
   test[MapNested]
 
-  test[Logical]
+  {
+    // generate unsigned-int duration values
+    implicit val arbAvroDuration: Arbitrary[AvroDuration] = Arbitrary {
+      for {
+        months <- Gen.chooseNum(0L, 0xffffffffL)
+        days <- Gen.chooseNum(0L, 0xffffffffL)
+        millis <- Gen.chooseNum(0L, 0xffffffffL)
+      } yield AvroDuration(months, days, millis)
+    }
+
+    implicit val afAvroDuration: AvroField[AvroDuration] = AvroField.from[(Long, Long, Long)] {
+      case (months, days, millis) => AvroDuration(months, days, millis)
+    }(d => (d.months, d.days, d.millis))(AvroField.afDuration)
+
+    test[Logical]
+
+    test("LogicalTypes") {
+      val schema = AvroType[Logical].schema
+      assertLogicalType(schema, "ld", "date")
+      assertLogicalType(schema, "jld", "date")
+      assertLogicalType(schema, "d", "duration")
+    }
+  }
 
   {
     import magnolify.avro.logical.micros._
@@ -199,8 +226,10 @@ class AvroTypeSuite extends MagnolifySuite {
     test("MicrosLogicalTypes") {
       val schema = AvroType[LogicalMicros].schema
       assertLogicalType(schema, "i", "timestamp-micros")
-      assertLogicalType(schema, "dt", "local-timestamp-micros", false)
-      assertLogicalType(schema, "t", "time-micros")
+      assertLogicalType(schema, "ldt", "local-timestamp-micros", false)
+      assertLogicalType(schema, "lt", "time-micros")
+      assertLogicalType(schema, "jdt", "timestamp-micros")
+      assertLogicalType(schema, "jlt", "time-micros")
     }
   }
 
@@ -211,8 +240,10 @@ class AvroTypeSuite extends MagnolifySuite {
     test("MilliLogicalTypes") {
       val schema = AvroType[LogicalMillis].schema
       assertLogicalType(schema, "i", "timestamp-millis")
-      assertLogicalType(schema, "dt", "local-timestamp-millis", false)
-      assertLogicalType(schema, "t", "time-millis")
+      assertLogicalType(schema, "ldt", "local-timestamp-millis", false)
+      assertLogicalType(schema, "lt", "time-millis")
+      assertLogicalType(schema, "jdt", "timestamp-millis")
+      assertLogicalType(schema, "jlt", "time-millis")
     }
   }
 
@@ -229,8 +260,11 @@ class AvroTypeSuite extends MagnolifySuite {
       val schema = AvroType[LogicalBigQuery].schema
       assertLogicalType(schema, "bd", "decimal")
       assertLogicalType(schema, "i", "timestamp-micros")
-      assertLogicalType(schema, "dt", "datetime")
-      assertLogicalType(schema, "t", "time-micros")
+      assertLogicalType(schema, "lt", "time-micros")
+      assertLogicalType(schema, "ldt", "datetime")
+      assertLogicalType(schema, "jdt", "timestamp-micros")
+      assertLogicalType(schema, "jlt", "time-micros")
+      assertLogicalType(schema, "jldt", "datetime")
     }
   }
 
@@ -287,7 +321,7 @@ class AvroTypeSuite extends MagnolifySuite {
         Map("b" -> 2),
         JavaEnums.Color.GREEN,
         ScalaEnums.Color.Green,
-        BigDecimal(222.222),
+        BigDecimal(222.222222222), // scale is 9
         UUID.fromString("22223333-abcd-abcd-abcd-222233334444"),
         Instant.ofEpochSecond(22334455L),
         LocalDate.ofEpochDay(2233),
@@ -307,7 +341,7 @@ class AvroTypeSuite extends MagnolifySuite {
         Map("c" -> 3),
         JavaEnums.Color.BLUE,
         ScalaEnums.Color.Blue,
-        BigDecimal(333.333),
+        BigDecimal(333.333333333), // scale is 9
         UUID.fromString("33334444-abcd-abcd-abcd-333344445555"),
         Instant.ofEpochSecond(33445566L),
         LocalDate.ofEpochDay(3344),
@@ -319,7 +353,12 @@ class AvroTypeSuite extends MagnolifySuite {
     }
   }
 
-  testFail(AvroType[SomeDefault])("Option[T] can only default to None")
+  test("DefaultBytes") {
+    val at = ensureSerializable(AvroType[DefaultBytes])
+    assertEquals(at(new GenericRecordBuilder(at.schema).build()), DefaultBytes())
+  }
+
+  testFail(AvroType[DefaultSome])("Option[T] can only default to None")
 
   {
     implicit val at: AvroType[LowerCamel] = AvroType[LowerCamel](CaseMapper(_.toUpperCase))
@@ -367,14 +406,35 @@ class AvroTypeSuite extends MagnolifySuite {
 }
 
 case class Unsafe(b: Byte, c: Char, s: Short)
-case class AvroTypes(str: String, cs: CharSequence, ba: Array[Byte], n: Null)
+case class AvroTypes(str: String, cs: CharSequence, ba: Array[Byte], bb: ByteBuffer, n: Null)
 case class MapPrimitive(strMap: Map[String, Int], charSeqMap: Map[CharSequence, Int])
 case class MapNested(m: Map[String, Nested], charSeqMap: Map[CharSequence, Nested])
 
-case class Logical(u: UUID, d: LocalDate)
-case class LogicalMicros(i: Instant, t: LocalTime, dt: LocalDateTime)
-case class LogicalMillis(i: Instant, t: LocalTime, dt: LocalDateTime)
-case class LogicalBigQuery(bd: BigDecimal, i: Instant, t: LocalTime, dt: LocalDateTime)
+case class AvroDuration(months: Long, days: Long, millis: Long)
+case class Logical(u: UUID, ld: LocalDate, jld: joda.LocalDate, d: AvroDuration)
+case class LogicalMicros(
+  i: Instant,
+  lt: LocalTime,
+  ldt: LocalDateTime,
+  jdt: joda.DateTime,
+  jlt: joda.LocalTime
+)
+case class LogicalMillis(
+  i: Instant,
+  lt: LocalTime,
+  ldt: LocalDateTime,
+  jdt: joda.DateTime,
+  jlt: joda.LocalTime
+)
+case class LogicalBigQuery(
+  bd: BigDecimal,
+  i: Instant,
+  lt: LocalTime,
+  ldt: LocalDateTime,
+  jdt: joda.DateTime,
+  jlt: joda.LocalTime,
+  jldt: joda.LocalDateTime
+)
 case class BigDec(bd: BigDecimal)
 
 @doc("Fixed with doc")
@@ -409,12 +469,12 @@ case class DefaultInner(
   m: Map[String, Int] = Map("a" -> 1),
   je: JavaEnums.Color = JavaEnums.Color.RED,
   se: ScalaEnums.Color.Type = ScalaEnums.Color.Red,
-  bd: BigDecimal = BigDecimal(111.111),
+  bd: BigDecimal = BigDecimal(111.111111111), // scale is 9
   u: UUID = UUID.fromString("11112222-abcd-abcd-abcd-111122223333"),
   ts: Instant = Instant.ofEpochSecond(11223344),
-  d: LocalDate = LocalDate.ofEpochDay(1122),
-  t: LocalTime = LocalTime.of(1, 2, 3),
-  dt: LocalDateTime = LocalDateTime.of(2001, 2, 3, 4, 5, 6)
+  ld: LocalDate = LocalDate.ofEpochDay(1122),
+  lt: LocalTime = LocalTime.of(1, 2, 3),
+  ldt: LocalDateTime = LocalDateTime.of(2001, 2, 3, 4, 5, 6)
 )
 case class DefaultOuter(
   i: DefaultInner = DefaultInner(
@@ -424,7 +484,7 @@ case class DefaultOuter(
     Map("b" -> 2),
     JavaEnums.Color.GREEN,
     ScalaEnums.Color.Green,
-    BigDecimal(222.222),
+    BigDecimal(222.222222222), // scale is 9
     UUID.fromString("22223333-abcd-abcd-abcd-222233334444"),
     Instant.ofEpochSecond(22334455L),
     LocalDate.ofEpochDay(2233),
@@ -433,7 +493,23 @@ case class DefaultOuter(
   ),
   o: Option[DefaultInner] = None
 )
-case class SomeDefault(o: Option[Int] = Some(1))
+case class DefaultSome(o: Option[Int] = Some(1))
+
+case class DefaultBytes(
+  a: Array[Byte] = Array(2, 2)
+  // ByteBuffer is not serializable and can't be used as default value
+  // bb: ByteBuffer = ByteBuffer.allocate(2).put(2.toByte).put(2.toByte)
+) {
+
+  override def hashCode(): Int =
+    util.Arrays.hashCode(a)
+
+  override def equals(obj: Any): Boolean = obj match {
+    case that: DefaultBytes => Objects.deepEquals(this.a, that.a)
+    case _                  => false
+  }
+
+}
 
 @doc("Avro enum")
 object Pet extends Enumeration {
