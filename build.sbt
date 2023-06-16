@@ -22,9 +22,9 @@ val magnoliaScala3Version = "1.1.4"
 val algebirdVersion = "0.13.9"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.1")
 val bigqueryVersion = "v2-rev20230520-2.0.0"
-val bigtableVersion = "2.23.2"
+val bigtableVersion = "2.23.3"
 val catsVersion = "2.9.0"
-val datastoreVersion = "2.14.7"
+val datastoreVersion = "2.15.0"
 val guavaVersion = "32.0.1-jre"
 val hadoopVersion = "3.3.5"
 val jacksonVersion = "2.15.2"
@@ -99,9 +99,9 @@ ThisBuild / developers := List(
 )
 
 // scala versions
-val scala3 = "3.2.1"
-val scala213 = "2.13.10"
-val scala212 = "2.12.17"
+val scala3 = "3.3.0"
+val scala213 = "2.13.11"
+val scala212 = "2.12.18"
 val defaultScala = scala213
 
 // github actions
