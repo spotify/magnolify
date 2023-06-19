@@ -68,7 +68,7 @@ class RefinedSuite extends MagnolifySuite {
     Some("https://www.spotify.com"),
     List("US", "UK")
   )
-  private val errMsg = "Url predicate failed: no protocol: foo"
+  private val errMsg = "Url predicate failed: URI is not absolute"
 
   test("Guava") {
     import magnolify.guava.auto._
@@ -176,9 +176,9 @@ class RefinedSuite extends MagnolifySuite {
     assertEquals(tpe3(tpe3(repeated)), repeated)
 
     val bad = SingularP3.newBuilder().setB(true).setI(42).setS("foo").build()
-    val msg = "Both predicates of (isValidUrl(\"foo\") || \"foo\".matches(\"^$\")) failed. " +
-      "Left: Url predicate failed: no protocol: foo " +
-      "Right: Predicate failed: \"foo\".matches(\"^$\")."
+    val msg = """Both predicates of (isValidUrl("foo") || "foo".matches("^$")) failed. """ +
+      """Left: Url predicate failed: URI is not absolute """ +
+      """Right: Predicate failed: "foo".matches("^$")."""
     interceptMessage[IllegalArgumentException](msg)(tpe2(bad))
   }
 
