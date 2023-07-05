@@ -20,11 +20,11 @@ import magnolify.shared._
 import scala.annotation.nowarn
 
 package object unsafe {
-  implicit val trfByte = TableRowField.from[Long](_.toByte)(_.toLong)
-  implicit val trfChar = TableRowField.from[Long](_.toChar)(_.toLong)
-  implicit val trfShort = TableRowField.from[Long](_.toShort)(_.toLong)
-  implicit val trfInt = TableRowField.from[Long](_.toInt)(_.toLong)
-  implicit val trfFloat = TableRowField.from[Double](_.toFloat)(_.toDouble)
+  implicit val trfByte: TableRowField[Byte] = TableRowField.from[Long](_.toByte)(_.toLong)
+  implicit val trfChar: TableRowField[Char] = TableRowField.from[Long](_.toChar)(_.toLong)
+  implicit val trfShort: TableRowField[Short] = TableRowField.from[Long](_.toShort)(_.toLong)
+  implicit val trfInt: TableRowField[Int] = TableRowField.from[Long](_.toInt)(_.toLong)
+  implicit val trfFloat: TableRowField[Float] = TableRowField.from[Double](_.toFloat)(_.toDouble)
 
   @nowarn("msg=parameter value lp in method trfEnum is never used")
   implicit def trfEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): TableRowField[T] =

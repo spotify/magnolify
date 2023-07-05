@@ -20,11 +20,11 @@ import magnolify.shared._
 import scala.annotation.nowarn
 
 package object unsafe {
-  implicit val efByte = EntityField.from[Long](_.toByte)(_.toLong)
-  implicit val efChar = EntityField.from[Long](_.toChar)(_.toLong)
-  implicit val efShort = EntityField.from[Long](_.toShort)(_.toLong)
-  implicit val efInt = EntityField.from[Long](_.toInt)(_.toLong)
-  implicit val efFloat = EntityField.from[Double](_.toFloat)(_.toDouble)
+  implicit val efByte: EntityField[Byte] = EntityField.from[Long](_.toByte)(_.toLong)
+  implicit val efChar: EntityField[Char] = EntityField.from[Long](_.toChar)(_.toLong)
+  implicit val efShort: EntityField[Short] = EntityField.from[Long](_.toShort)(_.toLong)
+  implicit val efInt: EntityField[Int] = EntityField.from[Long](_.toInt)(_.toLong)
+  implicit val efFloat: EntityField[Float] = EntityField.from[Double](_.toFloat)(_.toDouble)
 
   @nowarn("msg=parameter value lp in method efEnum is never used")
   implicit def efEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): EntityField[T] =

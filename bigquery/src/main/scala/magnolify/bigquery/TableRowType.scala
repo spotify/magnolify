@@ -23,6 +23,7 @@ import magnolia1._
 import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
 
+import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 import scala.collection.concurrent
 import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.jdk.CollectionConverters._
@@ -200,23 +201,25 @@ object TableRowField {
     override def to(v: T)(cm: CaseMapper): Any = g(v)
   }
 
-  implicit val trfBool = at[Boolean]("BOOL")(_.toString.toBoolean)(identity)
-  implicit val trfLong = at[Long]("INT64")(_.toString.toLong)(identity)
-  implicit val trfDouble = at[Double]("FLOAT64")(_.toString.toDouble)(identity)
-  implicit val trfString = at[String]("STRING")(_.toString)(identity)
-  implicit val trfNumeric =
+  implicit val trfBool: TableRowField[Boolean] = at[Boolean]("BOOL")(_.toString.toBoolean)(identity)
+  implicit val trfLong: TableRowField[Long] = at[Long]("INT64")(_.toString.toLong)(identity)
+  implicit val trfDouble: TableRowField[Double] =
+    at[Double]("FLOAT64")(_.toString.toDouble)(identity)
+  implicit val trfString: TableRowField[String] = at[String]("STRING")(_.toString)(identity)
+  implicit val trfNumeric: TableRowField[BigDecimal] =
     at[BigDecimal]("NUMERIC")(NumericConverter.toBigDecimal)(NumericConverter.fromBigDecimal)
 
-  implicit val trfByteArray =
+  implicit val trfByteArray: TableRowField[Array[Byte]] =
     at[Array[Byte]]("BYTES")(x => BaseEncoding.base64().decode(x.toString))(x =>
       BaseEncoding.base64().encode(x)
     )
 
   import TimestampConverter._
-  implicit val trfInstant = at("TIMESTAMP")(toInstant)(fromInstant)
-  implicit val trfDate = at("DATE")(toLocalDate)(fromLocalDate)
-  implicit val trfTime = at("TIME")(toLocalTime)(fromLocalTime)
-  implicit val trfDateTime = at("DATETIME")(toLocalDateTime)(fromLocalDateTime)
+  implicit val trfInstant: TableRowField[Instant] = at("TIMESTAMP")(toInstant)(fromInstant)
+  implicit val trfDate: TableRowField[LocalDate] = at("DATE")(toLocalDate)(fromLocalDate)
+  implicit val trfTime: TableRowField[LocalTime] = at("TIME")(toLocalTime)(fromLocalTime)
+  implicit val trfDateTime: TableRowField[LocalDateTime] =
+    at("DATETIME")(toLocalDateTime)(fromLocalDateTime)
 
   implicit def trfOption[T](implicit f: TableRowField[T]): TableRowField[Option[T]] =
     new Aux[Option[T], f.FromT, f.ToT] {
