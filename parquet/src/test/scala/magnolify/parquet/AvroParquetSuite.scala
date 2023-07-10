@@ -21,7 +21,7 @@ import cats._
 import magnolify.cats.auto._
 import magnolify.cats.TestEq._
 import magnolify.avro.AvroType
-import magnolify.shared.doc
+import magnolify.shared.{doc, CaseMapper}
 import magnolify.avro.unsafe._
 import magnolify.parquet.unsafe._
 import magnolify.parquet.ParquetArray.AvroCompat._
@@ -44,8 +44,24 @@ import org.scalacheck._
 import scala.reflect.ClassTag
 
 class AvroParquetSuite extends MagnolifySuite {
+
+  private def test[T: Arbitrary: ClassTag]()(implicit
+    at: AvroType[T],
+    tpe: ParquetType[T],
+    eq: Eq[T]
+  ): Unit = test[T](List.empty)
+
   private def test[T: Arbitrary: ClassTag](
-    schemaErrors: List[String] = List.empty
+    schemaErrors: List[String]
+  )(implicit
+    at: AvroType[T],
+    tpe: ParquetType[T],
+    eq: Eq[T]
+  ): Unit = test[T](className[T], schemaErrors)
+
+  private def test[T: Arbitrary](
+    name: String,
+    schemaErrors: List[String]
   )(implicit
     at: AvroType[T],
     tpe: ParquetType[T],
@@ -55,8 +71,6 @@ class AvroParquetSuite extends MagnolifySuite {
     val parquetSchema = tpe.schema
     val avroSchema = tpe.avroSchema
     val pt = ensureSerializable(tpe)
-
-    val name = className[T]
 
     property(s"$name.avro2parquet") {
       Prop.forAll { t: T =>
@@ -192,6 +206,21 @@ class AvroParquetSuite extends MagnolifySuite {
       "root.nested 'namespace' are different 'magnolify.parquet' != 'null'"
     )
   )
+
+  {
+    val upperCaseMapper = CaseMapper(_.toUpperCase())
+    implicit val at = AvroType[AvroParquetWithNestedAnnotations](upperCaseMapper)
+    implicit val pt = ParquetType[AvroParquetWithNestedAnnotations](upperCaseMapper)
+    test[AvroParquetWithNestedAnnotations](
+      "AvroParquetWithNestedAnnotations and CaseMapper",
+      List(
+        "root.NESTED 'name' are different 'AvroParquetWithAnnotations' != 'NESTED'",
+        "root.NESTED 'doc' are different 'Should be ignored' != 'null'",
+        "root.NESTED 'namespace' are different 'magnolify.parquet' != 'null'"
+      )
+    )
+  }
+
   test[AvroParquetWithAnnotationsAndOptions](
     List(
       "root.nested 'name' are different 'AvroParquetWithAnnotations' != 'nested'",
@@ -199,6 +228,7 @@ class AvroParquetSuite extends MagnolifySuite {
       "root.nested 'namespace' are different 'magnolify.parquet' != 'null'"
     )
   )
+
   test[AvroParquetWithAnnotationsAndLists](
     List(
       "root.nested 'name' are different 'AvroParquetWithAnnotations' != 'array'",
