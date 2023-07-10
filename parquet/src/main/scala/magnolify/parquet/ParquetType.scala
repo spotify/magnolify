@@ -90,7 +90,8 @@ object ParquetType {
         @transient override lazy val avroSchema: AvroSchema = {
           val s = new AvroSchemaConverter().convert(schema)
           // add doc to avro schema
-          SchemaUtil.deepCopy(s, f.typeDoc, f.fieldDocs.get)
+          val fieldDocs = f.fieldDocs(cm)
+          SchemaUtil.deepCopy(s, f.typeDoc, fieldDocs.get)
         }
 
         override val avroCompat: Boolean =

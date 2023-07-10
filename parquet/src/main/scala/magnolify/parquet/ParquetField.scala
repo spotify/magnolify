@@ -43,8 +43,9 @@ sealed trait ParquetField[T] extends Serializable {
     schemaCache.getOrElseUpdate(cm.uuid, buildSchema(cm))
 
   val hasAvroArray: Boolean = false
-  val fieldDocs: Map[String, String]
-  val typeDoc: Option[String]
+  def fieldDocs(cm: CaseMapper): Map[String, String]
+  def typeDoc: Option[String]
+
   protected val isGroup: Boolean = false
   protected def isEmpty(v: T): Boolean
   def write(c: RecordConsumer, v: T)(cm: CaseMapper): Unit
@@ -87,7 +88,7 @@ object ParquetField {
             override def get: T = inner.get(b => caseClass.construct(_ => b.head))
           }
         }
-        override val fieldDocs: Map[String, String] = Map.empty
+        override def fieldDocs(cm: CaseMapper): Map[String, String] = Map.empty
         override val typeDoc: Option[String] = None
       }
     } else {
@@ -101,10 +102,10 @@ object ParquetField {
 
         override val hasAvroArray: Boolean = caseClass.parameters.exists(_.typeclass.hasAvroArray)
 
-        override val fieldDocs: Map[String, String] =
+        override def fieldDocs(cm: CaseMapper): Map[String, String] =
           caseClass.parameters.flatMap { param =>
-            val label = param.label
-            val nestedDocs = param.typeclass.fieldDocs.map { case (k, v) =>
+            val label = cm.map(param.label)
+            val nestedDocs = param.typeclass.fieldDocs(cm).map { case (k, v) =>
               s"$label.$k" -> v
             }
 
@@ -198,7 +199,7 @@ object ParquetField {
 
   sealed trait Primitive[T] extends ParquetField[T] {
     override protected def isEmpty(v: T): Boolean = false
-    override val fieldDocs: Map[String, String] = Map.empty
+    override def fieldDocs(cm: CaseMapper): Map[String, String] = Map.empty
     override val typeDoc: Option[String] = None
     type ParquetT <: Comparable[ParquetT]
   }
@@ -281,7 +282,7 @@ object ParquetField {
         Schema.setRepetition(t.schema(cm), Repetition.OPTIONAL)
       override protected def isEmpty(v: Option[T]): Boolean = v.isEmpty
 
-      override val fieldDocs: Map[String, String] = t.fieldDocs
+      override def fieldDocs(cm: CaseMapper): Map[String, String] = t.fieldDocs(cm)
 
       override val typeDoc: Option[String] = None
 
@@ -359,7 +360,7 @@ object ParquetField {
         }
       }
 
-      override val fieldDocs: Map[String, String] = t.fieldDocs
+      override def fieldDocs(cm: CaseMapper): Map[String, String] = t.fieldDocs(cm)
 
       override val typeDoc: Option[String] = None
     }
