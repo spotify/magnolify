@@ -30,10 +30,12 @@ avroType.schema
 
 Enum-like types map to Avro enums. See [enums.md](https://github.com/spotify/magnolify/tree/master/docs/enums.md) for more details. Additional `AvroField[T]` instances for `Byte`, `Char`, `Short`, and `UnsafeEnum[T]` are available from `import magnolify.avro.unsafe._`. These conversions are unsafe due to potential overflow.
 
-Achiving backward compatibility when adding new fields to the case class: new fields must be of type `Option[_]` and have a default parameter value `None` in order to generate backward compatible Avro schema `avroType.schema`.
+Achiving backward compatibility when adding new fields to the case class: new fields must have a default parameter value in order to generate backward compatible Avro schema `avroType.schema`.
 
 ```scala
-case class Record(oldField: String, newField: Option[String] = None)
+case class Record(oldField: String, newField: String = "")
+// OR
+case class Record2(oldField: String, newField: Option[String] = None)
 ```
 
 To populate Avro type and field `doc`s, annotate the case class and its fields with the `@doc` annotation.
