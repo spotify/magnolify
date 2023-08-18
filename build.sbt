@@ -21,10 +21,10 @@ val magnoliaScala3Version = "1.1.4"
 
 val algebirdVersion = "0.13.10"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.2")
-val bigqueryVersion = "v2-rev20230520-2.0.0"
+val bigqueryVersion = "v2-rev20230805-2.0.0"
 val bigtableVersion = "2.27.0"
 val catsVersion = "2.10.0"
-val datastoreVersion = "2.16.1"
+val datastoreVersion = "2.16.3"
 val guavaVersion = "32.1.2-jre"
 val hadoopVersion = "3.3.6"
 val jacksonVersion = "2.15.2"
@@ -147,15 +147,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 )
 
 // mima
-ThisBuild / mimaBinaryIssueFilters ++= Seq(
-  // new API
-  ProblemFilters.exclude[ReversedMissingMethodProblem](
-    "magnolify.bigquery.TableRowField#Record.fields"
-  ),
-  ProblemFilters.exclude[ReversedMissingMethodProblem](
-    "magnolify.bigquery.TableRowType.selectedFields"
-  )
-)
+ThisBuild / mimaBinaryIssueFilters ++= Seq()
 
 // protobuf
 ThisBuild / PB.protocVersion := protobufVersion
