@@ -147,15 +147,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 )
 
 // mima
-ThisBuild / mimaBinaryIssueFilters ++= Seq(
-  // new API
-  ProblemFilters.exclude[ReversedMissingMethodProblem](
-    "magnolify.bigquery.TableRowField#Record.fields"
-  ),
-  ProblemFilters.exclude[ReversedMissingMethodProblem](
-    "magnolify.bigquery.TableRowType.selectedFields"
-  )
-)
+ThisBuild / mimaBinaryIssueFilters ++= Seq()
 
 // protobuf
 ThisBuild / PB.protocVersion := protobufVersion
