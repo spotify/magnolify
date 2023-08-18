@@ -462,8 +462,6 @@ lazy val protobuf = project
     description := "Magnolia add-on for Google Protocol Buffer"
   )
 
-val unpackMetadata = taskKey[Seq[File]]("Unpack tensorflow metadata proto files.")
-
 lazy val tensorflow = project
   .in(file("tensorflow"))
   .dependsOn(
@@ -482,18 +480,17 @@ lazy val tensorflow = project
       "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Provided
     ),
     // tensorflow metadata protos are not packaged into a jar. Manually extract them as external
-    unpackMetadata := {
-      IO.unzipURL(
-        new URL(
-          s"https://github.com/tensorflow/metadata/archive/refs/tags/v$tensorflowMetadataVersion.zip"
-        ),
-        target.value,
-        "**/*.proto"
+    Compile / PB.protoSources += target.value / s"metadata-$tensorflowMetadataVersion",
+    Compile / PB.unpackDependencies := {
+      val tfMetadata = new URL(
+        s"https://github.com/tensorflow/metadata/archive/refs/tags/v$tensorflowMetadataVersion.zip"
       )
-      IO.move(target.value / s"metadata-$tensorflowMetadataVersion", PB.externalSourcePath.value)
-      IO.listFiles(PB.externalSourcePath.value / s"metadata-$tensorflowMetadataVersion")
+      val protoFiles = IO.unzipURL(tfMetadata, target.value, _.endsWith(".proto"))
+      val root = target.value / s"metadata-$tensorflowMetadataVersion"
+      val metadataDep = ProtocPlugin.UnpackedDependency(protoFiles.toSeq, Seq.empty)
+      val deps = (Compile / PB.unpackDependencies).value
+      new ProtocPlugin.UnpackedDependencies(deps.mappedFiles ++ Map(root -> metadataDep))
     },
-    Compile / PB.generate := (Compile / PB.generate).dependsOn(unpackMetadata).value,
     Compile / packageBin / mappings ~= {
       _.filterNot { case (_, n) => n.startsWith("org/tensorflow") }
     },
