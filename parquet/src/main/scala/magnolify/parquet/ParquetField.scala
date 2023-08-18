@@ -29,7 +29,7 @@ import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 import org.apache.parquet.schema.Type.Repetition
 import org.apache.parquet.schema.{LogicalTypeAnnotation, Type, Types}
 
-import scala.annotation.{implicitNotFound, nowarn}
+import scala.annotation.implicitNotFound
 import scala.collection.concurrent
 import scala.collection.compat._
 
@@ -434,8 +434,7 @@ object ParquetField {
     )(Decimal.toBytes(_, precision, scale))
   }
 
-  @nowarn("msg=parameter value lp in method pfEnum is never used")
-  implicit def pfEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): Primitive[T] =
+  implicit def pfEnum[T](implicit et: EnumType[T]): Primitive[T] =
     logicalType[String](LogicalTypeAnnotation.enumType())(et.from)(et.to)
 
   implicit val ptUuid: Primitive[UUID] = new Primitive[UUID] {
