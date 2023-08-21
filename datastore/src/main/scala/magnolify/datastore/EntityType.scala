@@ -238,23 +238,25 @@ object EntityField {
   // ////////////////////////////////////////////////
 
   // Entity key supports `Long` and `String` natively
-  implicit val efLong = at[Long](_.getIntegerValue)(makeValue)
-  implicit val efString = at[String](_.getStringValue)(makeValue)
+  implicit val efLong: EntityField[Long] = at[Long](_.getIntegerValue)(makeValue)
+  implicit val efString: EntityField[String] = at[String](_.getStringValue)(makeValue)
 
   // `Boolean`, `Double` and `Unit` should not be used as keys
-  implicit def efBool(implicit kf: KeyField[Boolean]) = at[Boolean](_.getBooleanValue)(makeValue)
-  implicit def efDouble(implicit kf: KeyField[Double]) = at[Double](_.getDoubleValue)(makeValue)
-  implicit def efUnit(implicit kf: KeyField[Unit]) =
+  implicit def efBool(implicit kf: KeyField[Boolean]): EntityField[Boolean] =
+    at[Boolean](_.getBooleanValue)(makeValue)
+  implicit def efDouble(implicit kf: KeyField[Double]): EntityField[Double] =
+    at[Double](_.getDoubleValue)(makeValue)
+  implicit def efUnit(implicit kf: KeyField[Unit]): EntityField[Unit] =
     at[Unit](_ => ())(_ => Value.newBuilder().setNullValue(NullValue.NULL_VALUE))
 
   // User must provide `KeyField[T]` instances for `ByteString` and `Array[Byte]`
-  implicit def efByteString(implicit kf: KeyField[ByteString]) =
+  implicit def efByteString(implicit kf: KeyField[ByteString]): EntityField[ByteString] =
     at[ByteString](_.getBlobValue)(makeValue)
-  implicit def efByteArray(implicit kf: KeyField[Array[Byte]]) =
+  implicit def efByteArray(implicit kf: KeyField[Array[Byte]]): EntityField[Array[Byte]] =
     at[Array[Byte]](_.getBlobValue.toByteArray)(v => makeValue(ByteString.copyFrom(v)))
 
   // Encode `Instant` key as `Long`
-  implicit val efTimestamp = {
+  implicit val efTimestamp: EntityField[Instant] = {
     implicit val kfInstant = KeyField.at[Instant](_.toEpochMilli)
     at(TimestampConverter.toInstant)(TimestampConverter.fromInstant)
   }

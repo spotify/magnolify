@@ -16,10 +16,11 @@
 
 package magnolify.parquet
 
+import magnolify.parquet.ParquetField.Primitive
 import magnolify.shared._
 
 package object unsafe {
-  implicit val pfChar = ParquetField.from[Int](_.toChar)(_.toInt)
+  implicit val pfChar: Primitive[Char] = ParquetField.from[Int](_.toChar)(_.toInt)
 
   implicit def pfUnsafeEnum[T: EnumType]: ParquetField[UnsafeEnum[T]] =
     ParquetField.from[String](UnsafeEnum.from[T])(UnsafeEnum.to[T])

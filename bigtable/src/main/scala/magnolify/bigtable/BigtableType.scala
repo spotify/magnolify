@@ -205,26 +205,35 @@ object BigtableField {
     }
   }
 
-  implicit val btfByte = primitive[Byte](java.lang.Byte.BYTES)(_.get)(_.put(_))
-  implicit val btChar = primitive[Char](java.lang.Character.BYTES)(_.getChar)(_.putChar(_))
-  implicit val btfShort = primitive[Short](java.lang.Short.BYTES)(_.getShort)(_.putShort(_))
-  implicit val btfInt = primitive[Int](java.lang.Integer.BYTES)(_.getInt)(_.putInt(_))
-  implicit val btfLong = primitive[Long](java.lang.Long.BYTES)(_.getLong)(_.putLong(_))
-  implicit val btfFloat = primitive[Float](java.lang.Float.BYTES)(_.getFloat)(_.putFloat(_))
-  implicit val btfDouble = primitive[Double](java.lang.Double.BYTES)(_.getDouble)(_.putDouble(_))
-  implicit val btfBoolean = from[Byte](_ == 1)(if (_) 1 else 0)
-  implicit val btfUUID = primitive[UUID](16)(bb => new UUID(bb.getLong, bb.getLong)) { (bb, uuid) =>
-    bb.putLong(uuid.getMostSignificantBits)
-    bb.putLong(uuid.getLeastSignificantBits)
-  }
+  implicit val btfByte: Primitive[Byte] = primitive[Byte](java.lang.Byte.BYTES)(_.get)(_.put(_))
+  implicit val btChar: Primitive[Char] =
+    primitive[Char](java.lang.Character.BYTES)(_.getChar)(_.putChar(_))
+  implicit val btfShort: Primitive[Short] =
+    primitive[Short](java.lang.Short.BYTES)(_.getShort)(_.putShort(_))
+  implicit val btfInt: Primitive[Int] =
+    primitive[Int](java.lang.Integer.BYTES)(_.getInt)(_.putInt(_))
+  implicit val btfLong: Primitive[Long] =
+    primitive[Long](java.lang.Long.BYTES)(_.getLong)(_.putLong(_))
+  implicit val btfFloat: Primitive[Float] =
+    primitive[Float](java.lang.Float.BYTES)(_.getFloat)(_.putFloat(_))
+  implicit val btfDouble: Primitive[Double] =
+    primitive[Double](java.lang.Double.BYTES)(_.getDouble)(_.putDouble(_))
+  implicit val btfBoolean: Primitive[Boolean] = from[Byte](_ == 1)(if (_) 1 else 0)
+  implicit val btfUUID: Primitive[UUID] =
+    primitive[UUID](16)(bb => new UUID(bb.getLong, bb.getLong)) { (bb, uuid) =>
+      bb.putLong(uuid.getMostSignificantBits)
+      bb.putLong(uuid.getLeastSignificantBits)
+    }
 
-  implicit val btfByteString = new Primitive[ByteString] {
+  implicit val btfByteString: Primitive[ByteString] = new Primitive[ByteString] {
     override val size: Option[Int] = None
     override def fromByteString(v: ByteString): ByteString = v
     override def toByteString(v: ByteString): ByteString = v
   }
-  implicit val btfByteArray = from[ByteString](_.toByteArray)(ByteString.copyFrom)
-  implicit val btfString = from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
+  implicit val btfByteArray: Primitive[Array[Byte]] =
+    from[ByteString](_.toByteArray)(ByteString.copyFrom)
+  implicit val btfString: Primitive[String] =
+    from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
 
   implicit def btfEnum[T](implicit et: EnumType[T]): Primitive[T] =
     from[String](et.from)(et.to)
@@ -232,9 +241,9 @@ object BigtableField {
   implicit def btfUnsafeEnum[T: EnumType]: Primitive[UnsafeEnum[T]] =
     from[String](UnsafeEnum.from[T])(UnsafeEnum.to[T])
 
-  implicit val btfBigInt =
+  implicit val btfBigInt: Primitive[BigInt] =
     from[ByteString](bs => BigInt(bs.toByteArray))(bi => ByteString.copyFrom(bi.toByteArray))
-  implicit val btfBigDecimal = from[ByteString] { bs =>
+  implicit val btfBigDecimal: Primitive[BigDecimal] = from[ByteString] { bs =>
     val bb = bs.asReadOnlyByteBuffer()
     val scale = bb.getInt
     val unscaled = BigInt(bs.substring(java.lang.Integer.BYTES).toByteArray)

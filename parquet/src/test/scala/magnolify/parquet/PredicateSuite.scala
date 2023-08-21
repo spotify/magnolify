@@ -20,6 +20,7 @@ import java.{lang => jl}
 import java.time.Instant
 import cats._
 import magnolify.cats.auto._
+import magnolify.parquet.ParquetField.Primitive
 import magnolify.parquet.logical.millis._
 import magnolify.test._
 import org.apache.parquet.filter2.compat.FilterCompat
@@ -31,9 +32,9 @@ import scala.reflect.ClassTag
 class PredicateSuite extends MagnolifySuite {
 
   import magnolify.cats.TestEq._
-  implicit val pfDecimal = ParquetField.decimal32(9)
-  implicit val projectionT = ParquetType[Projection]
-  implicit val projectionSubsetT = ParquetType[ProjectionSmall]
+  implicit val pfDecimal: Primitive[BigDecimal] = ParquetField.decimal32(9)
+  implicit val projectionT: ParquetType[Projection] = ParquetType[Projection]
+  implicit val projectionSubsetT: ParquetType[ProjectionSmall] = ParquetType[ProjectionSmall]
 
   private val records = (1 to 100).toList.map { i =>
     Projection(

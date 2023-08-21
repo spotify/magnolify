@@ -176,9 +176,8 @@ lazy val keepExistingHeader =
   )
 
 val commonSettings = Seq(
-  tlFatalWarningsInCi := false,
+  tlFatalWarnings := false,
   tlJdkRelease := Some(8),
-  tlSkipIrrelevantScalas := true,
   scalacOptions ++= {
     CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((3, _)) =>

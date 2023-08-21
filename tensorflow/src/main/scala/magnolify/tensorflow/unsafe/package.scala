@@ -18,15 +18,18 @@ package magnolify.tensorflow
 
 import com.google.protobuf.ByteString
 import magnolify.shared._
+import magnolify.tensorflow.ExampleField.Primitive
+
 
 package object unsafe {
-  implicit val efByte = ExampleField.from[Long](_.toByte)(_.toLong)
-  implicit val efChar = ExampleField.from[Long](_.toChar)(_.toLong)
-  implicit val efShort = ExampleField.from[Long](_.toShort)(_.toLong)
-  implicit val efInt = ExampleField.from[Long](_.toInt)(_.toLong)
-  implicit val efDouble = ExampleField.from[Float](_.toDouble)(_.toFloat)
-  implicit val efBool = ExampleField.from[Long](_ == 1)(x => if (x) 1 else 0)
-  implicit val efString = ExampleField.from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
+  implicit val efByte: Primitive[Byte] = ExampleField.from[Long](_.toByte)(_.toLong)
+  implicit val efChar: Primitive[Char] = ExampleField.from[Long](_.toChar)(_.toLong)
+  implicit val efShort: Primitive[Short] = ExampleField.from[Long](_.toShort)(_.toLong)
+  implicit val efInt: Primitive[Int] = ExampleField.from[Long](_.toInt)(_.toLong)
+  implicit val efDouble: Primitive[Double] = ExampleField.from[Float](_.toDouble)(_.toFloat)
+  implicit val efBool: Primitive[Boolean] = ExampleField.from[Long](_ == 1)(x => if (x) 1 else 0)
+  implicit val efString: Primitive[String] =
+    ExampleField.from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
 
   implicit def efEnum[T](implicit et: EnumType[T]): ExampleField.Primitive[T] =
     ExampleField.from[ByteString](bs => et.from(bs.toStringUtf8))(v =>

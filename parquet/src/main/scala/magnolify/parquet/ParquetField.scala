@@ -217,58 +217,58 @@ object ParquetField {
       override type ParquetT = UnderlyingT
     }
 
-  implicit val pfBoolean =
+  implicit val pfBoolean: Primitive[Boolean] =
     primitive[Boolean, java.lang.Boolean](
       _.addBoolean,
       TypeConverter.newBoolean,
       PrimitiveTypeName.BOOLEAN
     )
 
-  implicit val pfByte =
+  implicit val pfByte: Primitive[Byte] =
     primitive[Byte, Integer](
       c => v => c.addInteger(v.toInt),
       TypeConverter.newInt.map(_.toByte),
       PrimitiveTypeName.INT32,
       LogicalTypeAnnotation.intType(8, true)
     )
-  implicit val pfShort =
+  implicit val pfShort: Primitive[Short] =
     primitive[Short, Integer](
       c => v => c.addInteger(v.toInt),
       TypeConverter.newInt.map(_.toShort),
       PrimitiveTypeName.INT32,
       LogicalTypeAnnotation.intType(16, true)
     )
-  implicit val pfInt =
+  implicit val pfInt: Primitive[Int] =
     primitive[Int, Integer](
       _.addInteger,
       TypeConverter.newInt,
       PrimitiveTypeName.INT32,
       LogicalTypeAnnotation.intType(32, true)
     )
-  implicit val pfLong =
+  implicit val pfLong: Primitive[Long] =
     primitive[Long, java.lang.Long](
       _.addLong,
       TypeConverter.newLong,
       PrimitiveTypeName.INT64,
       LogicalTypeAnnotation.intType(64, true)
     )
-  implicit val pfFloat =
+  implicit val pfFloat: Primitive[Float] =
     primitive[Float, java.lang.Float](_.addFloat, TypeConverter.newFloat, PrimitiveTypeName.FLOAT)
 
-  implicit val pfDouble =
+  implicit val pfDouble: Primitive[Double] =
     primitive[Double, java.lang.Double](
       _.addDouble,
       TypeConverter.newDouble,
       PrimitiveTypeName.DOUBLE
     )
 
-  implicit val pfByteArray =
+  implicit val pfByteArray: Primitive[Array[Byte]] =
     primitive[Array[Byte], Binary](
       c => v => c.addBinary(Binary.fromConstantByteArray(v)),
       TypeConverter.newByteArray,
       PrimitiveTypeName.BINARY
     )
-  implicit val pfString =
+  implicit val pfString: Primitive[String] =
     primitive[String, Binary](
       c => v => c.addBinary(Binary.fromString(v)),
       TypeConverter.newString,

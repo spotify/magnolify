@@ -195,7 +195,7 @@ object ExampleField {
       }
   }
 
-  implicit val efLong = new Primitive[Long] {
+  implicit val efLong: Primitive[Long] = new Primitive[Long] {
     override type ValueT = jl.Long
     override def fromFeature(v: Feature): ju.List[Long] =
       if (v == null) {
@@ -214,7 +214,7 @@ object ExampleField {
       FeatureSchema.newBuilder().setType(FeatureType.INT).build()
   }
 
-  implicit val efFloat = new Primitive[Float] {
+  implicit val efFloat: Primitive[Float] = new Primitive[Float] {
     override type ValueT = jl.Float
     override def fromFeature(v: Feature): ju.List[Float] =
       if (v == null) {
@@ -234,7 +234,7 @@ object ExampleField {
 
   }
 
-  implicit val efByteString = new Primitive[ByteString] {
+  implicit val efByteString: Primitive[ByteString] = new Primitive[ByteString] {
     override type ValueT = ByteString
     override def fromFeature(v: Feature): ju.List[ByteString] =
       if (v == null) {
@@ -254,7 +254,8 @@ object ExampleField {
 
   }
 
-  implicit val efByteArray = from[ByteString](_.toByteArray)(ByteString.copyFrom(_))
+  implicit val efByteArray: Primitive[Array[Byte]] =
+    from[ByteString](_.toByteArray)(ByteString.copyFrom(_))
 
   implicit def efOption[T](implicit ef: ExampleField[T]): ExampleField[Option[T]] =
     new ExampleField[Option[T]] {

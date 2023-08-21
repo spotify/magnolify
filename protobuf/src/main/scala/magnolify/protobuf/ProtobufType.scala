@@ -254,14 +254,14 @@ object ProtobufField {
 
   private def id[T](_default: T): ProtobufField[T] = aux[T, T, T](_default)(identity)(identity)
 
-  implicit val pfBoolean = id[Boolean](false)
-  implicit val pfInt = id[Int](0)
-  implicit val pfLong = id[Long](0L)
-  implicit val pfFloat = id[Float](0.0f)
-  implicit val pfDouble = id[Double](0.0)
-  implicit val pfString = id[String]("")
-  implicit val pfByteString = id[ByteString](ByteString.EMPTY)
-  implicit val pfByteArray =
+  implicit val pfBoolean: ProtobufField[Boolean] = id[Boolean](false)
+  implicit val pfInt: ProtobufField[Int] = id[Int](0)
+  implicit val pfLong: ProtobufField[Long] = id[Long](0L)
+  implicit val pfFloat: ProtobufField[Float] = id[Float](0.0f)
+  implicit val pfDouble: ProtobufField[Double] = id[Double](0.0)
+  implicit val pfString: ProtobufField[String] = id[String]("")
+  implicit val pfByteString: ProtobufField[ByteString] = id[ByteString](ByteString.EMPTY)
+  implicit val pfByteArray: ProtobufField[Array[Byte]] =
     aux2[Array[Byte], ByteString](Array.emptyByteArray)(_.toByteArray)(ByteString.copyFrom)
 
   def enum[T, E <: Enum[E] with ProtocolMessageEnum](implicit
