@@ -20,7 +20,7 @@ import magnolia1._
 
 import scala.reflect.ClassTag
 import scala.reflect.macros._
-import scala.annotation.nowarn
+import scala.annotation.{implicitNotFound, nowarn}
 
 sealed trait EnumType[T] extends Serializable { self =>
   val name: String
@@ -117,17 +117,29 @@ object EnumType {
   // Scala ADT
   def adtEnumType[T]: EnumType[T] = macro Magnolia.gen[T]
 
-  implicit def gen[T](implicit lp: shapeless.LowPriority): EnumType[T] = macro genMacro[T]
-  @nowarn("msg=parameter value lp in method genMacro is never used")
-  def genMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = Magnolia.gen[T](c)
+  implicit def gen[T]: EnumType[T] = macro Magnolia.gen[T]
 
   type Typeclass[T] = EnumType[T]
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
-    require(
-      caseClass.isObject,
-      s"Cannot derive EnumType[T] for case class ${caseClass.typeName.full}"
-    )
+  // EnumType can only be split into objects with fixed name
+  // Avoid invalid ADT derivation involving products by requiring
+  // implicit EnumValue type-class in magnolia join
+  @implicitNotFound("Cannot derive EnumType.EnumValue. EnumType only works for sum types")
+  trait EnumValue[T]
+  implicit def genEnumValue[T]: EnumValue[T] = macro genEnumValueMacro[T]
+  def genEnumValueMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
+    import c.universe._
+    val tpe = weakTypeOf[T]
+    val symbol = tpe.typeSymbol
+    if (symbol.isModuleClass) {
+      q"new _root_.magnolify.shared.EnumType.EnumValue[$tpe]{}"
+    } else {
+      c.abort(c.enclosingPosition, "EnumType value must be an object")
+    }
+  }
+
+  @nowarn
+  def join[T: EnumValue](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
     val n = caseClass.typeName.short
     val ns = caseClass.typeName.owner
     EnumType.create(

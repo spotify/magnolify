@@ -16,16 +16,16 @@
 import sbtprotoc.ProtocPlugin.ProtobufConfig
 import com.typesafe.tools.mima.core._
 
-val magnoliaScala2Version = "1.1.3"
+val magnoliaScala2Version = "1.1.4"
 val magnoliaScala3Version = "1.1.4"
 
-val algebirdVersion = "0.13.9"
-val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.1")
-val bigqueryVersion = "v2-rev20230520-2.0.0"
-val bigtableVersion = "2.24.1"
-val catsVersion = "2.9.0"
-val datastoreVersion = "2.16.0"
-val guavaVersion = "32.1.1-jre"
+val algebirdVersion = "0.13.10"
+val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.2")
+val bigqueryVersion = "v2-rev20230805-2.0.0"
+val bigtableVersion = "2.27.0"
+val catsVersion = "2.10.0"
+val datastoreVersion = "2.16.3"
+val guavaVersion = "32.1.2-jre"
 val hadoopVersion = "3.3.6"
 val jacksonVersion = "2.15.2"
 val jodaTimeVersion = "2.12.5"
@@ -33,7 +33,7 @@ val munitVersion = "0.7.29"
 val neo4jDriverVersion = "4.4.12"
 val paigesVersion = "0.4.3"
 val parquetVersion = "1.13.1"
-val protobufVersion = "3.23.2"
+val protobufVersion = "3.24.1"
 val refinedVersion = "0.11.0"
 val scalaCollectionCompatVersion = "2.11.0"
 val scalacheckVersion = "1.17.0"
@@ -147,15 +147,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 )
 
 // mima
-ThisBuild / mimaBinaryIssueFilters ++= Seq(
-  // new API
-  ProblemFilters.exclude[ReversedMissingMethodProblem](
-    "magnolify.bigquery.TableRowField#Record.fields"
-  ),
-  ProblemFilters.exclude[ReversedMissingMethodProblem](
-    "magnolify.bigquery.TableRowType.selectedFields"
-  )
-)
+ThisBuild / mimaBinaryIssueFilters ++= Seq()
 
 // protobuf
 ThisBuild / PB.protocVersion := protobufVersion
@@ -469,8 +461,6 @@ lazy val protobuf = project
     description := "Magnolia add-on for Google Protocol Buffer"
   )
 
-val unpackMetadata = taskKey[Seq[File]]("Unpack tensorflow metadata proto files.")
-
 lazy val tensorflow = project
   .in(file("tensorflow"))
   .dependsOn(
@@ -489,18 +479,17 @@ lazy val tensorflow = project
       "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Provided
     ),
     // tensorflow metadata protos are not packaged into a jar. Manually extract them as external
-    unpackMetadata := {
-      IO.unzipURL(
-        new URL(
-          s"https://github.com/tensorflow/metadata/archive/refs/tags/v$tensorflowMetadataVersion.zip"
-        ),
-        target.value,
-        "**/*.proto"
+    Compile / PB.protoSources += target.value / s"metadata-$tensorflowMetadataVersion",
+    Compile / PB.unpackDependencies := {
+      val tfMetadata = new URL(
+        s"https://github.com/tensorflow/metadata/archive/refs/tags/v$tensorflowMetadataVersion.zip"
       )
-      IO.move(target.value / s"metadata-$tensorflowMetadataVersion", PB.externalSourcePath.value)
-      IO.listFiles(PB.externalSourcePath.value / s"metadata-$tensorflowMetadataVersion")
+      val protoFiles = IO.unzipURL(tfMetadata, target.value, _.endsWith(".proto"))
+      val root = target.value / s"metadata-$tensorflowMetadataVersion"
+      val metadataDep = ProtocPlugin.UnpackedDependency(protoFiles.toSeq, Seq.empty)
+      val deps = (Compile / PB.unpackDependencies).value
+      new ProtocPlugin.UnpackedDependencies(deps.mappedFiles ++ Map(root -> metadataDep))
     },
-    Compile / PB.generate := (Compile / PB.generate).dependsOn(unpackMetadata).value,
     Compile / packageBin / mappings ~= {
       _.filterNot { case (_, n) => n.startsWith("org/tensorflow") }
     },

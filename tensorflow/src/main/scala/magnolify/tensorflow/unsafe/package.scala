@@ -20,7 +20,6 @@ import com.google.protobuf.ByteString
 import magnolify.shared._
 import magnolify.tensorflow.ExampleField.Primitive
 
-import scala.annotation.nowarn
 
 package object unsafe {
   implicit val efByte: Primitive[Byte] = ExampleField.from[Long](_.toByte)(_.toLong)
@@ -32,20 +31,12 @@ package object unsafe {
   implicit val efString: Primitive[String] =
     ExampleField.from[ByteString](_.toStringUtf8)(ByteString.copyFromUtf8)
 
-  @nowarn("msg=parameter value lp in method efEnum is never used")
-  implicit def efEnum[T](implicit
-    et: EnumType[T],
-    lp: shapeless.LowPriority
-  ): ExampleField.Primitive[T] =
+  implicit def efEnum[T](implicit et: EnumType[T]): ExampleField.Primitive[T] =
     ExampleField.from[ByteString](bs => et.from(bs.toStringUtf8))(v =>
       ByteString.copyFromUtf8(v.toString)
     )
 
-  @nowarn("msg=parameter value lp in method efUnsafeEnum is never used")
-  implicit def efUnsafeEnum[T](implicit
-    et: EnumType[T],
-    lp: shapeless.LowPriority
-  ): ExampleField.Primitive[UnsafeEnum[T]] =
+  implicit def efUnsafeEnum[T: EnumType]: ExampleField.Primitive[UnsafeEnum[T]] =
     ExampleField.from[ByteString](bs => UnsafeEnum.from(bs.toStringUtf8))(v =>
       ByteString.copyFromUtf8(UnsafeEnum.to(v))
     )

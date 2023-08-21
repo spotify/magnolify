@@ -21,7 +21,7 @@ import magnolify.test.Simple._
 
 class EnumTypeSuite extends MagnolifySuite {
   test("JavaEnums") {
-    val et = ensureSerializable(implicitly[EnumType[JavaEnums.Color]])
+    val et = ensureSerializable(EnumType[JavaEnums.Color])
     assertEquals(et.name, "Color")
     assertEquals(et.namespace, "magnolify.test.JavaEnums")
     assertEquals(et.values, List("RED", "GREEN", "BLUE"))
@@ -32,7 +32,7 @@ class EnumTypeSuite extends MagnolifySuite {
   }
 
   test("ScalaEnums") {
-    val et = ensureSerializable(implicitly[EnumType[ScalaEnums.Color.Type]])
+    val et = ensureSerializable(EnumType[ScalaEnums.Color.Type])
     assertEquals(et.name, "Color")
     assertEquals(et.namespace, "magnolify.test.Simple.ScalaEnums")
     assertEquals(et.values, List("Red", "Green", "Blue"))
@@ -45,7 +45,7 @@ class EnumTypeSuite extends MagnolifySuite {
   }
 
   test("ADT") {
-    val et = ensureSerializable(implicitly[EnumType[ADT.Color]])
+    val et = ensureSerializable(EnumType[ADT.Color])
     assertEquals(et.name, "Color")
     assertEquals(et.namespace, "magnolify.test.ADT")
     assertEquals(et.values, List("Blue", "Green", "Red")) // ADTs are ordered alphabetically
@@ -57,7 +57,7 @@ class EnumTypeSuite extends MagnolifySuite {
   }
 
   test("ADT No Default Constructor") {
-    val et = ensureSerializable(implicitly[EnumType[ADT.Person]])
+    val et = ensureSerializable(EnumType[ADT.Person])
     assertEquals(et.name, "Person")
     assertEquals(et.namespace, "magnolify.test.ADT")
     assertEquals(et.values, List("Aldrin", "Neil")) // ADTs are ordered alphabetically
@@ -65,23 +65,42 @@ class EnumTypeSuite extends MagnolifySuite {
     assertEquals(et.to(ADT.Neil), "Neil")
   }
 
+  test("ADT should not generate for invalid types") {
+    // explicit
+    assertNoDiff(
+      compileErrors("EnumType.gen[Option[ADT.Color]]"),
+      """|error: Cannot derive EnumType.EnumValue. EnumType only works for sum types
+         |EnumType.gen[Option[ADT.Color]]
+         |            ^
+         |""".stripMargin
+    )
+    // implicit
+    assertNoDiff(
+      compileErrors("EnumType[Option[ADT.Color]]"),
+      """|error: could not find implicit value for parameter et: magnolify.shared.EnumType[Option[magnolify.test.ADT.Color]]
+         |EnumType[Option[ADT.Color]]
+         |        ^
+         |""".stripMargin
+    )
+  }
+
   test("JavaEnums CaseMapper") {
     val et = ensureSerializable(EnumType[JavaEnums.Color](CaseMapper(_.toLowerCase)))
-    assertEquals(et.values.toSet, JavaEnums.Color.values().map(_.name().toLowerCase).toSet)
+    assertEquals(et.values, JavaEnums.Color.values().map(_.name().toLowerCase).toList)
     assertEquals(et.from("red"), JavaEnums.Color.RED)
     assertEquals(et.to(JavaEnums.Color.RED), "red")
   }
 
   test("ScalaEnums CaseMapper") {
     val et = ensureSerializable(EnumType[ScalaEnums.Color.Type](CaseMapper(_.toLowerCase)))
-    assertEquals(et.values.toSet, ScalaEnums.Color.values.map(_.toString.toLowerCase))
+    assertEquals(et.values, List("red", "green", "blue"))
     assertEquals(et.from("red"), ScalaEnums.Color.Red)
     assertEquals(et.to(ScalaEnums.Color.Red), "red")
   }
 
   test("ADT CaseMapper") {
     val et = ensureSerializable(EnumType[ADT.Color](CaseMapper(_.toLowerCase)))
-    assertEquals(et.values.toSet, Set("red", "green", "blue"))
+    assertEquals(et.values, List("blue", "green", "red")) // ADTs are ordered alphabetically
     assertEquals(et.from("red"), ADT.Red)
     assertEquals(et.to(ADT.Red), "red")
   }
