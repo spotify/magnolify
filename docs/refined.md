@@ -3,7 +3,7 @@ Refined
 
 [Refined](https://github.com/fthomas/refined) is a Scala library for refining types with type-level predicates which constrain the set of values described by the refined type.
 
-```scala
+```scala  mdoc
 import eu.timepit.refined._
 import eu.timepit.refined.api._
 import eu.timepit.refined.auto._
@@ -17,9 +17,9 @@ case class Record(pos: Int Refined Positive, url: String Refined Url)
 Record(42, "https://www.spotify.com")
 ```
 
-However refinements only works with literals, so we have to use unsafe runtime check for variables.
+However, refinements only works with literals, so we have to use unsafe runtime check for variables.
 
-```scala
+```scala  mdoc
 val x = -1
 val url = "foo"
 // Throws IllegalArgumentException
@@ -28,7 +28,7 @@ Record(refineV.unsafeFrom(x), refineV.unsafeFrom(url))
 
 Magnolify works with Refined through some extra implicits.
 
-```scala
+```scala  mdoc
 import magnolify.avro._
 import magnolify.refined.avro._
 
