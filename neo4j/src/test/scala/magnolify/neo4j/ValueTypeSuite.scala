@@ -37,7 +37,7 @@ class ValueTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit t: ValueType[T], eq: Eq[T]): Unit = {
     val tpe = ensureSerializable(t)
     property(className[T]) {
-      Prop.forAll { t: T =>
+      Prop.forAll { (t: T) =>
         val v = tpe(t)
         val copy = tpe(v)
         eq.eqv(t, copy)

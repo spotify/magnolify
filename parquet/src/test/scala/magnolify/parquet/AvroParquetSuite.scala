@@ -68,12 +68,12 @@ class AvroParquetSuite extends MagnolifySuite {
     eq: Eq[T]
   ): Unit = {
     // Ensure serializable even after evaluation of `schema` and `avroSchema`
-    val parquetSchema = tpe.schema
-    val avroSchema = tpe.avroSchema
+    tpe.schema: Unit
+    tpe.avroSchema: Unit
     val pt = ensureSerializable(tpe)
 
     property(s"$name.avro2parquet") {
-      Prop.forAll { t: T =>
+      Prop.forAll { (t: T) =>
         val r = at(t)
 
         val out = new TestOutputFile
@@ -91,7 +91,7 @@ class AvroParquetSuite extends MagnolifySuite {
     }
 
     property(s"$name.parquet2avro") {
-      Prop.forAll { t: T =>
+      Prop.forAll { (t: T) =>
         val out = new TestOutputFile
         val writer = pt.writeBuilder(out).build()
         writer.write(t)

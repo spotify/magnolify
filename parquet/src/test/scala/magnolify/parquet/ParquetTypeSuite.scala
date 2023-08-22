@@ -45,11 +45,11 @@ class ParquetTypeSuite extends MagnolifySuite {
     eq: Eq[T]
   ): Unit = {
     // Ensure serializable even after evaluation of `schema`
-    val parquetSchema = t.schema
+    t.schema: Unit
     val tpe = ensureSerializable(t)
 
     property(className[T]) {
-      Prop.forAll { t: T =>
+      Prop.forAll { (t: T) =>
         val out = new TestOutputFile
         val writer = tpe.writeBuilder(out).build()
         writer.write(t)
@@ -217,7 +217,7 @@ class TestInputFile(ba: Array[Byte]) extends InputFile {
     override def getPos: Long = (ba.length - bais.available()).toLong
     override def seek(newPos: Long): Unit = {
       bais.reset()
-      bais.skip(newPos)
+      bais.skip(newPos): Unit
     }
   }
 }

@@ -178,31 +178,32 @@ lazy val keepExistingHeader =
 val commonSettings = Seq(
   tlFatalWarnings := false,
   tlJdkRelease := Some(8),
-  scalacOptions ++= {
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _)) =>
-        Seq(
-          // required by magnolia for accessing default values
-          "-Xretain-trees",
-          // tolerate some nested macro expansion
-          "-Ymax-inlines",
-          "64"
-        )
-      case Some((2, 13)) =>
-        Seq(
-          // silence warnings
-          "-Wmacros:after",
-          "-Wconf:cat=unused-imports&origin=scala\\.collection\\.compat\\..*:s" +
-            ",cat=unused-imports&origin=magnolify\\.shims\\..*:s"
-        )
-      case Some((2, 12)) =>
-        Seq(
-          "-Ywarn-macros:after"
-        )
-      case _ =>
-        Seq.empty
-    }
-  },
+  scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
+    case Some((3, _)) =>
+      Seq(
+        // required by magnolia for accessing default values
+        "-Xretain-trees",
+        // tolerate some nested macro expansion
+        "-Ymax-inlines",
+        "64"
+      )
+    case Some((2, 13)) =>
+      Seq(
+        "-Wmacros:after",
+        // silence warnings
+        "-Wconf:cat=unused-imports&origin=scala\\.collection\\.compat\\..*:s" +
+          ",cat=unused-imports&origin=magnolify\\.shims\\..*:s" +
+          ",cat=unused-imports&origin=magnolify\\.scalacheck\\.MoreCollectionsBuildable\\..*:s"
+      )
+    case Some((2, 12)) =>
+      Seq(
+        "-Ywarn-macros:after",
+        // silence warnings
+        "-Wconf:cat=unused-params:s"
+      )
+    case _ =>
+      Seq.empty
+  }),
   headerLicense := Some(HeaderLicense.ALv2(currentYear.toString, organizationName.value)),
   headerMappings ++= Map(
     HeaderFileType.scala -> keepExistingHeader,
@@ -478,6 +479,8 @@ lazy val tensorflow = project
       "com.google.protobuf" % "protobuf-java" % protobufVersion % ProtobufConfig,
       "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Provided
     ),
+    // remove compilation warnings for generated java files
+    javacOptions ~= { _.filterNot(_ == "-Xlint:all") },
     // tensorflow metadata protos are not packaged into a jar. Manually extract them as external
     Compile / PB.protoSources += target.value / s"metadata-$tensorflowMetadataVersion",
     Compile / PB.unpackDependencies := {

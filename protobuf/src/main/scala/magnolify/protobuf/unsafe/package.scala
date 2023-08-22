@@ -28,5 +28,7 @@ package object unsafe {
 
   implicit def pfUnsafeEnum[T: EnumType]: ProtobufField[UnsafeEnum[T]] =
     ProtobufField
-      .from[String](s => Option(s).filter(_.nonEmpty).map(UnsafeEnum.from[T]).orNull)(UnsafeEnum.to[T])
+      .from[String](s => Option(s).filter(_.nonEmpty).map(UnsafeEnum.from[T]).orNull)(
+        UnsafeEnum.to[T]
+      )
 }

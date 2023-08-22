@@ -20,7 +20,6 @@ import com.google.protobuf.ByteString
 import magnolify.shared._
 import magnolify.tensorflow.ExampleField.Primitive
 
-
 package object unsafe {
   implicit val efByte: Primitive[Byte] = ExampleField.from[Long](_.toByte)(_.toLong)
   implicit val efChar: Primitive[Char] = ExampleField.from[Long](_.toChar)(_.toLong)

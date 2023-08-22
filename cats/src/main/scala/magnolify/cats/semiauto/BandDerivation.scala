@@ -20,6 +20,7 @@ import cats.kernel.Band
 import magnolia1._
 
 import scala.annotation.implicitNotFound
+import scala.collection.compat._
 
 object BandDerivation {
   type Typeclass[T] = Band[T]

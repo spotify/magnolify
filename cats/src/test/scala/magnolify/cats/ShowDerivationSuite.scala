@@ -40,7 +40,7 @@ class ShowDerivationSuite extends MagnolifySuite {
     include(ContravariantTests[Show].contravariant[MiniInt, Int, Boolean].all, s"$name.")
 
     property(s"$name.fullName") {
-      Prop.forAll { v: T =>
+      Prop.forAll { (v: T) =>
         val fullName = v.getClass.getCanonicalName.stripSuffix("$")
         val s = show.show(v)
         s.startsWith(s"$fullName {") && s.endsWith("}")
