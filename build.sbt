@@ -43,6 +43,7 @@ val tensorflowVersion = "0.4.2"
 
 // project
 ThisBuild / tlBaseVersion := "0.7"
+ThisBuild / tlSonatypeUseLegacyHost := true
 ThisBuild / organization := "com.spotify"
 ThisBuild / organizationName := "Spotify AB"
 ThisBuild / startYear := Some(2016)
