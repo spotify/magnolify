@@ -74,16 +74,20 @@ jobs:
         run: sbt githubWorkflowCheck
 
       - name: Build project
-        if: matrix.scala == '2.13.12' && matrix.java == 'corretto@11'
+        if: matrix.scala == '2.13' && matrix.java == 'corretto@11'
         run: sbt 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' coverage test coverageAggregate
 
       - name: Upload coverage report
-        if: matrix.scala == '2.13.12' && matrix.java == 'corretto@11'
+        if: matrix.scala == '2.13' && matrix.java == 'corretto@11'
         run: 'bash <(curl -s https://codecov.io/bash)'
 
       - name: Build project
-        if: '!(matrix.scala == ''2.13.12'' && matrix.java == ''corretto@11'')'
+        if: '!(matrix.scala == ''2.13'' && matrix.java == ''corretto@11'' || matrix.scala == ''3'')'
         run: sbt 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' test
+
+      - name: Build project
+        if: matrix.scala == '3'
+        run: sbt 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' shared/test test/test
 
       - name: Make target directories
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')

@@ -110,10 +110,14 @@ val java17 = JavaSpec.corretto("17")
 val java11 = JavaSpec.corretto("11")
 val javaDefault = java11
 val coverageCond = Seq(
-  s"matrix.scala == '$scalaDefault'",
+  s"matrix.scala == '${CrossVersion.binaryScalaVersion(scalaDefault)}'",
   s"matrix.java == '${javaDefault.render}'"
 ).mkString(" && ")
-
+val scala3Cond = "matrix.scala == '3'"
+val scala3Projects = List(
+  "shared",
+  "test"
+)
 ThisBuild / scalaVersion := scalaDefault
 ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
@@ -129,7 +133,16 @@ ThisBuild / githubWorkflowBuild := Seq(
     name = Some("Upload coverage report"),
     cond = Some(coverageCond)
   ),
-  WorkflowStep.Sbt(List("test"), name = Some("Build project"), cond = Some(s"!($coverageCond)"))
+  WorkflowStep.Sbt(
+    List("test"),
+    name = Some("Build project"),
+    cond = Some(s"!($coverageCond || $scala3Cond)")
+  ),
+  WorkflowStep.Sbt(
+    scala3Projects.map(p => s"$p/test"),
+    name = Some("Build project"),
+    cond = Some(scala3Cond)
+  )
 )
 ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
@@ -179,6 +192,9 @@ lazy val keepExistingHeader =
 val commonSettings = Seq(
   tlFatalWarnings := false,
   tlJdkRelease := Some(8),
+  // So far most projects do no support scala 3
+  crossScalaVersions := Seq(scala213, scala212),
+  scalaVersion := scalaDefault,
   scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((3, _)) =>
       Seq(
@@ -235,7 +251,6 @@ val commonSettings = Seq(
 lazy val root = tlCrossRootProject
   .enablePlugins(NoPublishPlugin)
   .settings(
-    commonSettings,
     name := "magnolify",
     description := "A collection of Magnolia add-on modules"
   )
@@ -261,6 +276,7 @@ lazy val shared = project
   .in(file("shared"))
   .settings(
     commonSettings,
+    crossScalaVersions := Seq(scala3, scala213, scala212),
     moduleName := "magnolify-shared",
     description := "Shared code for Magnolify"
   )
@@ -270,8 +286,9 @@ lazy val test = project
   .in(file("test"))
   .enablePlugins(NoPublishPlugin)
   .dependsOn(shared)
+  .settings(commonSettings)
   .settings(
-    commonSettings,
+    crossScalaVersions := Seq(scala3, scala213, scala212),
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion % Test
@@ -288,8 +305,6 @@ lazy val scalacheck = project
     commonSettings,
     moduleName := "magnolify-scalacheck",
     description := "Magnolia add-on for ScalaCheck",
-    crossScalaVersions := Seq(scala213, scala212),
-    scalaVersion := scalaDefault,
     libraryDependencies += "org.scalacheck" %% "scalacheck" % scalacheckVersion % Provided
   )
 
@@ -304,8 +319,6 @@ lazy val cats = project
     commonSettings,
     moduleName := "magnolify-cats",
     description := "Magnolia add-on for Cats",
-    crossScalaVersions := Seq(scala213, scala212),
-    scalaVersion := scalaDefault,
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % catsVersion % Provided,
       "com.twitter" %% "algebird-core" % algebirdVersion % Test,
@@ -324,8 +337,6 @@ lazy val guava = project
     commonSettings,
     moduleName := "magnolify-guava",
     description := "Magnolia add-on for Guava",
-    crossScalaVersions := Seq(scala213, scala212),
-    scalaVersion := scalaDefault,
     libraryDependencies ++= Seq(
       "com.google.guava" % "guava" % guavaVersion % Provided
     )
@@ -347,8 +358,6 @@ lazy val refined = project
     commonSettings,
     moduleName := "magnolify-refined",
     description := "Magnolia add-on for Refined",
-    crossScalaVersions := Seq(scala213, scala212),
-    scalaVersion := scalaDefault,
     libraryDependencies ++= Seq(
       "com.google.guava" % "guava" % guavaVersion % Provided,
       "eu.timepit" %% "refined" % refinedVersion % Provided,
@@ -373,8 +382,6 @@ lazy val avro = project
     commonSettings,
     moduleName := "magnolify-avro",
     description := "Magnolia add-on for Apache Avro",
-    crossScalaVersions := Seq(scala213, scala212),
-    scalaVersion := scalaDefault,
     libraryDependencies ++= Seq(
       "org.apache.avro" % "avro" % avroVersion % Provided,
       "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
@@ -393,8 +400,6 @@ lazy val bigquery = project
     commonSettings,
     moduleName := "magnolify-bigquery",
     description := "Magnolia add-on for Google Cloud BigQuery",
-    crossScalaVersions := Seq(scala213, scala212),
-    scalaVersion := scalaDefault,
     libraryDependencies ++= Seq(
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Provided,
       "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
@@ -413,8 +418,6 @@ lazy val bigtable: Project = project
     commonSettings,
     moduleName := "magnolify-bigtable",
     description := "Magnolia add-on for Google Cloud Bigtable",
-    crossScalaVersions := Seq(scala213, scala212),
-    scalaVersion := scalaDefault,
     libraryDependencies ++= Seq(
       "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Provided
     )
@@ -432,8 +435,6 @@ lazy val datastore = project
     commonSettings,
     moduleName := "magnolify-datastore",
     description := "Magnolia add-on for Google Cloud Datastore",
-    crossScalaVersions := Seq(scala213, scala212),
-    scalaVersion := scalaDefault,
     libraryDependencies ++= Seq(
       "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Provided
     )
@@ -452,8 +453,6 @@ lazy val parquet = project
     commonSettings,
     moduleName := "magnolify-parquet",
     description := "Magnolia add-on for Apache Parquet",
-    crossScalaVersions := Seq(scala213, scala212),
-    scalaVersion := scalaDefault,
     libraryDependencies ++= Seq(
       "org.apache.hadoop" % "hadoop-client" % hadoopVersion % Provided,
       "org.apache.parquet" % "parquet-avro" % parquetVersion % Provided,
@@ -477,9 +476,7 @@ lazy val protobuf = project
     commonSettings,
     protobufSettings,
     moduleName := "magnolify-protobuf",
-    description := "Magnolia add-on for Google Protocol Buffer",
-    crossScalaVersions := Seq(scala213, scala212),
-    scalaVersion := scalaDefault,
+    description := "Magnolia add-on for Google Protocol Buffer"
   )
 
 lazy val tensorflow = project
@@ -495,8 +492,6 @@ lazy val tensorflow = project
     protobufSettings,
     moduleName := "magnolify-tensorflow",
     description := "Magnolia add-on for TensorFlow",
-    crossScalaVersions := Seq(scala213, scala212),
-    scalaVersion := scalaDefault,
     libraryDependencies ++= Seq(
       "com.google.protobuf" % "protobuf-java" % protobufVersion % ProtobufConfig,
       "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Provided
@@ -535,8 +530,6 @@ lazy val neo4j = project
     commonSettings,
     moduleName := "magnolify-neo4j",
     description := "Magnolia add-on for Neo4j",
-    crossScalaVersions := Seq(scala213, scala212),
-    scalaVersion := scalaDefault,
     libraryDependencies ++= Seq(
       "org.neo4j.driver" % "neo4j-java-driver" % neo4jDriverVersion % Provided
     )
@@ -555,8 +548,6 @@ lazy val tools = project
     commonSettings,
     moduleName := "magnolify-tools",
     description := "Magnolia add-on for code generation",
-    crossScalaVersions := Seq(scala213, scala212),
-    scalaVersion := scalaDefault,
     libraryDependencies ++= Seq(
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
       "org.apache.avro" % "avro" % avroVersion % Provided,
@@ -583,7 +574,6 @@ lazy val jmh: Project = project
   .settings(
     commonSettings,
     crossScalaVersions := Seq(scalaDefault),
-    scalaVersion := scalaDefault,
     Jmh / classDirectory := (Test / classDirectory).value,
     Jmh / dependencyClasspath := (Test / dependencyClasspath).value,
     // rewire tasks, so that 'jmh:run' automatically invokes 'jmh:compile'
