@@ -30,7 +30,7 @@ object EnumTypeMacros:
     val idx = name.lastIndexOf('.')
     val n = Expr(name.drop(idx + 1))
     val ns = Expr(name.take(idx))
-    val vs = '{ $e.values.map(_.toString).toList }
+    val vs = '{ $e.values.toList.map(_.toString) }
     val as = '{ $annotations.annotations }
     val map = '{ $e.values.iterator.map(x => x.toString -> x.asInstanceOf[T]).toMap.apply(_) }
     '{ EnumType.create[T]($n, $ns, $vs, $as, $map) }

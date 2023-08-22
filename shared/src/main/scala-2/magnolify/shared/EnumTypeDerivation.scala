@@ -18,11 +18,22 @@ package magnolify.shared
 
 import magnolia1.{CaseClass, SealedTrait}
 
+import scala.annotation.{implicitNotFound, nowarn}
+
 trait EnumTypeDerivation {
   type Typeclass[T] = EnumType[T]
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
-    require(caseClass.isObject, s"Cannot derive EnumType[T] for case class ${caseClass.typeName}")
+  // EnumType can only be split into objects with fixed name
+  // Avoid invalid ADT derivation involving products by requiring
+  // implicit EnumValue type-class in magnolia join
+  // see https://github.com/softwaremill/magnolia/issues/267
+  @implicitNotFound("Cannot derive EnumType.EnumValue. EnumType only works for sum types")
+  trait EnumValue[T]
+
+  implicit def genEnumValue[T]: EnumValue[T] = macro EnumTypeMacros.genEnumValueMacro[T]
+
+  @nowarn
+  def join[T: EnumValue](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
     val n = caseClass.typeName.short
     val ns = caseClass.typeName.owner
     EnumType.create(
@@ -38,7 +49,7 @@ trait EnumTypeDerivation {
     val n = sealedTrait.typeName.short
     val ns = sealedTrait.typeName.owner
     val subs = sealedTrait.subtypes.map(_.typeclass)
-    val values = subs.flatMap(_.values).toList
+    val values = subs.flatMap(_.values).sorted.toList
     val annotations = (sealedTrait.annotations ++ subs.flatMap(_.annotations)).toList
     EnumType.create(
       n,

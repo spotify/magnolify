@@ -20,7 +20,6 @@ import magnolia1.{CaseClass, Derivation, SealedTrait}
 trait EnumTypeDerivation extends Derivation[EnumType]:
 
   def join[T](caseClass: CaseClass[EnumType, T]): EnumType[T] =
-    require(caseClass.isObject, s"Cannot derive EnumType[T] for case class ${caseClass.typeInfo}")
     val n = caseClass.typeInfo.short
     val ns = caseClass.typeInfo.owner
     EnumType.create(
@@ -36,7 +35,7 @@ trait EnumTypeDerivation extends Derivation[EnumType]:
     val n = sealedTrait.typeInfo.short
     val ns = sealedTrait.typeInfo.owner
     val subs = sealedTrait.subtypes.map(_.typeclass)
-    val values = subs.flatMap(_.values).toList
+    val values = subs.flatMap(_.values).sorted.toList
     val annotations = (sealedTrait.annotations ++ subs.flatMap(_.annotations)).toList
     EnumType.create(
       n,

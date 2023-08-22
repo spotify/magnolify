@@ -38,6 +38,17 @@ object EnumTypeMacros {
         )
      """
   }
+
+  def genEnumValueMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
+    import c.universe._
+    val tpe = weakTypeOf[T]
+    val symbol = tpe.typeSymbol
+    if (symbol.isModuleClass) {
+      q"new _root_.magnolify.shared.EnumType.EnumValue[$tpe]{}"
+    } else {
+      c.abort(c.enclosingPosition, "EnumType value must be an object")
+    }
+  }
 }
 
 trait EnumTypeCompanionMacros extends EnumTypeCompanionLowPrioMacros {
