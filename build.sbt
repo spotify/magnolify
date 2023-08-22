@@ -232,8 +232,7 @@ val commonSettings = Seq(
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
 )
 
-lazy val root = project
-  .in(file("."))
+lazy val root = tlCrossRootProject
   .enablePlugins(NoPublishPlugin)
   .settings(
     commonSettings,

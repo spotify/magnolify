@@ -17,9 +17,6 @@
 package magnolify.shared
 
 import magnolia1.{CaseClass, Derivation, SealedTrait}
-
-import scala.deriving.Mirror
-
 trait EnumTypeDerivation extends Derivation[EnumType]:
 
   def join[T](caseClass: CaseClass[EnumType, T]): EnumType[T] =
