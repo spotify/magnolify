@@ -20,6 +20,9 @@ import magnolia1.{CaseClass, Derivation, SealedTrait}
 trait EnumTypeDerivation extends Derivation[EnumType]:
 
   def join[T](caseClass: CaseClass[EnumType, T]): EnumType[T] =
+    // fail at runtime since we can't prevent derivation
+    // see https://github.com/softwaremill/magnolia/issues/267
+    require(caseClass.isObject, s"Cannot derive EnumType[T] for case class ${caseClass.typeInfo}")
     val n = caseClass.typeInfo.short
     val ns = caseClass.typeInfo.owner
     EnumType.create(
