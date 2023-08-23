@@ -155,27 +155,32 @@ class RefinedSuite extends MagnolifySuite {
   test("protobuf") {
     import magnolify.protobuf._
     import magnolify.protobuf.Proto3._
-    import magnolify.protobuf.unsafe.Proto3Option._
     import magnolify.refined.protobuf._
-    val tpe1 = ensureSerializable(ProtobufType[ProtoRequired, SingularP3])
-    val required = ProtoRequired(true, record.pct, refineV.unsafeFrom(record.uuid.value))
+    val tpe1 = ensureSerializable(ProtobufType[ProtoRequired, RequiredP3])
+    val required = ProtoRequired(
+      true,
+      record.pct,
+      refineV.unsafeFrom(record.uuid.value)
+    )
     assertEquals(tpe1(tpe1(required)), required)
 
-    val tpe2 = ensureSerializable(ProtobufType[ProtoNullable, SingularP3])
-    val nullable =
-      ProtoNullable(Some(true), Some(record.pct), Some(refineV.unsafeFrom(record.url.get.value)))
+    val tpe2 = ensureSerializable(ProtobufType[ProtoNullable, NullableP3])
+    val nullable = ProtoNullable(
+      Some(true),
+      Some(record.pct),
+      Some(refineV.unsafeFrom(record.url.get.value))
+    )
     assertEquals(tpe2(tpe2(nullable)), nullable)
 
     val tpe3 = ensureSerializable(ProtobufType[ProtoRepeated, RepeatedP3])
-    val repeated =
-      ProtoRepeated(
-        List(true),
-        List(record.pct),
-        List(refineV.unsafeFrom("US"), refineV.unsafeFrom("UK"))
-      )
+    val repeated = ProtoRepeated(
+      List(true),
+      List(record.pct),
+      List(refineV.unsafeFrom("US"), refineV.unsafeFrom("UK"))
+    )
     assertEquals(tpe3(tpe3(repeated)), repeated)
 
-    val bad = SingularP3.newBuilder().setB(true).setI(42).setS("foo").build()
+    val bad = NullableP3.newBuilder().setB(true).setI(42).setS("foo").build()
     val msg = """Both predicates of (isValidUrl("foo") || "foo".matches("^$")) failed. """ +
       """Left: Url predicate failed: URI is not absolute """ +
       """Right: Predicate failed: "foo".matches("^$")."""
