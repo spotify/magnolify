@@ -39,7 +39,7 @@ class BigtableTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit t: BigtableType[T], eq: Eq[T]): Unit = {
     val tpe = ensureSerializable(t)
     property(className[T]) {
-      Prop.forAll { t: T =>
+      Prop.forAll { (t: T) =>
         val mutations = tpe(t, "cf")
         val row = BigtableType.mutationsToRow(ByteString.EMPTY, mutations)
         val copy = tpe(row, "cf")

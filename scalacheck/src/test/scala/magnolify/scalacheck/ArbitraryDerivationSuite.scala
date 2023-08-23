@@ -34,20 +34,18 @@ class ArbitraryDerivationSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag]: Unit = test[T](None)
   private def test[T: Arbitrary: ClassTag](suffix: String): Unit = test[T](Some(suffix))
 
-  private def test[T: ClassTag](suffix: Option[String] = None)(implicit
-    t: Arbitrary[T]
-  ): Unit = {
+  private def test[T: ClassTag](suffix: Option[String])(implicit t: Arbitrary[T]): Unit = {
     val g = ensureSerializable(t).arbitrary
     val name = className[T] + (if (suffix == null) "" else "." + suffix)
     val prms = Gen.Parameters.default
     // `forAll(Gen.listOfN(10, g))` fails for `Repeated` & `Collections` when size parameter <= 1
     property(s"$name.uniqueness") {
-      Prop.forAll { seed: Seed =>
+      Prop.forAll { (seed: Seed) =>
         Gen.listOfN(10, g)(prms, seed).get.toSet.size > 1
       }
     }
     property(s"$name.consistency") {
-      Prop.forAll { l: Long =>
+      Prop.forAll { (l: Long) =>
         val seed = Seed(l) // prevent Magnolia from deriving `Seed`
         g(prms, seed).get == g(prms, seed).get
       }
@@ -66,7 +64,7 @@ class ArbitraryDerivationSuite extends MagnolifySuite {
     implicit val arbInt: Arbitrary[Int] = Arbitrary(Gen.chooseNum(0, 100))
     implicit val arbLong: Arbitrary[Long] = Arbitrary(Gen.chooseNum(100, 10000))
     property("implicits") {
-      Prop.forAll { x: Integers =>
+      Prop.forAll { (x: Integers) =>
         x.i >= 0 && x.i <= 100 && x.l >= 100 && x.l <= 10000
       }
     }
@@ -102,7 +100,7 @@ class ArbitraryDerivationSuite extends MagnolifySuite {
   test[Color]
 
   property("Seed") {
-    Prop.forAll { seed: Seed =>
+    Prop.forAll { (seed: Seed) =>
       seed.next != seed
     }
   }

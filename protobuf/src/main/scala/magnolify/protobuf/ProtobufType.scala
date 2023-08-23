@@ -264,7 +264,7 @@ object ProtobufField {
   implicit val pfByteArray: ProtobufField[Array[Byte]] =
     aux2[Array[Byte], ByteString](Array.emptyByteArray)(_.toByteArray)(ByteString.copyFrom)
 
-  def enum[T, E <: Enum[E] with ProtocolMessageEnum](implicit
+  def `enum`[T, E <: Enum[E] with ProtocolMessageEnum](implicit
     et: EnumType[T],
     ct: ClassTag[E]
   ): ProtobufField[T] = {

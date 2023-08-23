@@ -29,6 +29,7 @@ import org.apache.parquet.avro.{
   GenericDataSupplier
 }
 
+import scala.annotation.nowarn
 import scala.jdk.CollectionConverters._
 
 object SchemaEvolutionSuite {
@@ -292,6 +293,7 @@ object SchemaEvolutionSuite {
   )
 }
 
+@nowarn("msg=Unused import")
 class SchemaEvolutionSuite extends MagnolifySuite {
   import SchemaEvolutionSuite._
 
@@ -439,7 +441,6 @@ class SchemaEvolutionSuite extends MagnolifySuite {
   }
 
   // ////////////////////////////////////////////////
-
   test("Scala V1 => Avro V1") {
     import magnolify.parquet.ParquetArray.AvroCompat._
     assertEquals(readAvro(scalaCompatBytes1, userSchema1), avro1)

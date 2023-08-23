@@ -43,9 +43,9 @@ class TableRowTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit t: TableRowType[T], eq: Eq[T]): Unit = {
     val tpe = ensureSerializable(t)
     // FIXME: test schema
-    tpe.schema
+    tpe.schema: Unit
     property(className[T]) {
-      Prop.forAll { t: T =>
+      Prop.forAll { (t: T) =>
         val r = tpe(t)
         val copy1 = tpe(r)
         val copy2 = tpe(mapper.readValue(mapper.writeValueAsString(r), classOf[TableRow]))

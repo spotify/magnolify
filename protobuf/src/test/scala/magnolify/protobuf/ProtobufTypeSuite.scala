@@ -44,7 +44,7 @@ trait BaseProtobufTypeSuite extends MagnolifySuite {
     val tpe = ensureSerializable(t)
 
     property(s"${className[T]}.${className[U]}") {
-      Prop.forAll { t: T =>
+      Prop.forAll { (t: T) =>
         val r = tpe(t)
         val copy = tpe(r)
         eqt.eqv(t, copy)

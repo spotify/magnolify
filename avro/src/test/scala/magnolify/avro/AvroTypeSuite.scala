@@ -93,7 +93,7 @@ class AvroTypeSuite extends MagnolifySuite {
     val tpe = ensureSerializable(t)
     val copier = new Copier(tpe.schema)
     property(className[T]) {
-      Prop.forAll { t: T =>
+      Prop.forAll { (t: T) =>
         val r = tpe(t)
         val rCopy = copier(r)
         val copy = tpe(rCopy)
@@ -111,7 +111,7 @@ class AvroTypeSuite extends MagnolifySuite {
     // validate that the string schema contains the correct logical type
     val jf = new JsonFactory
     val om = new ObjectMapper(jf)
-    val tree: JsonNode = om.readTree(jf.createParser(schema.toString()))
+    val tree = om.readTree[JsonNode](jf.createParser(schema.toString()))
     val sf = tree.get("fields").elements().asScala.find(_.get("name").asText() == fieldName)
     assert(sf.isDefined, s"schema field $fieldName is undefined")
     val slt = sf.flatMap(f => Try(f.get("type").get("logicalType").asText()).toOption)

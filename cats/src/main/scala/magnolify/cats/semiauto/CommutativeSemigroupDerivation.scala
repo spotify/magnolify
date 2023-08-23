@@ -20,6 +20,7 @@ import cats.kernel.CommutativeSemigroup
 import magnolia1._
 
 import scala.annotation.implicitNotFound
+import scala.collection.compat._
 
 object CommutativeSemigroupDerivation {
   type Typeclass[T] = CommutativeSemigroup[T]

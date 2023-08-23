@@ -21,70 +21,70 @@ import scala.annotation.nowarn
 
 private object CatsMacros {
 
-  @nowarn("msg=parameter value lp in method genShowMacro is never used")
+  @nowarn("msg=parameter lp in method genShowMacro is never used")
   def genShowMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.ShowDerivation.apply[$wtt]"""
   }
 
-  @nowarn("msg=parameter value lp in method genEqMacro is never used")
+  @nowarn("msg=parameter lp in method genEqMacro is never used")
   def genEqMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.EqDerivation.apply[$wtt]"""
   }
 
-  @nowarn("msg=parameter value lp in method genHashMacro is never used")
+  @nowarn("msg=parameter lp in method genHashMacro is never used")
   def genHashMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.HashDerivation.apply[$wtt]"""
   }
 
-  @nowarn("msg=parameter value lp in method genSemigroupMacro is never used")
+  @nowarn("msg=parameter lp in method genSemigroupMacro is never used")
   def genSemigroupMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.SemigroupDerivation.apply[$wtt]"""
   }
 
-  @nowarn("msg=parameter value lp in method genMonoidMacro is never used")
+  @nowarn("msg=parameter lp in method genMonoidMacro is never used")
   def genMonoidMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.MonoidDerivation.apply[$wtt]"""
   }
 
-  @nowarn("msg=parameter value lp in method genCommutativeSemigroupMacro is never used")
+  @nowarn("msg=parameter lp in method genCommutativeSemigroupMacro is never used")
   def genCommutativeSemigroupMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.CommutativeSemigroupDerivation.apply[$wtt]"""
   }
 
-  @nowarn("msg=parameter value lp in method genCommutativeMonoidMacro is never used")
+  @nowarn("msg=parameter lp in method genCommutativeMonoidMacro is never used")
   def genCommutativeMonoidMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.CommutativeMonoidDerivation.apply[$wtt]"""
   }
 
-  @nowarn("msg=parameter value lp in method genGroupMacro is never used")
+  @nowarn("msg=parameter lp in method genGroupMacro is never used")
   def genGroupMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.GroupDerivation.apply[$wtt]"""
   }
 
-  @nowarn("msg=parameter value lp in method genCommutativeGroupMacro is never used")
+  @nowarn("msg=parameter lp in method genCommutativeGroupMacro is never used")
   def genCommutativeGroupMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.cats.semiauto.CommutativeGroupDerivation.apply[$wtt]"""
   }
 
-  @nowarn("msg=parameter value lp in method genBandMacro is never used")
+  @nowarn("msg=parameter lp in method genBandMacro is never used")
   def genBandMacro[T: c.WeakTypeTag](c: whitebox.Context)(lp: c.Tree): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]

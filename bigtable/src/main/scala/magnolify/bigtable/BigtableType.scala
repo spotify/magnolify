@@ -195,13 +195,12 @@ object BigtableField {
 
   private def primitive[T](
     capacity: Int
-  )(f: ByteBuffer => T)(g: (ByteBuffer, T) => Unit): Primitive[T] = new Primitive[T] {
+  )(f: ByteBuffer => T)(g: (ByteBuffer, T) => ByteBuffer): Primitive[T] = new Primitive[T] {
     override val size: Option[Int] = Some(capacity)
     override def fromByteString(v: ByteString): T = f(v.asReadOnlyByteBuffer())
     override def toByteString(v: T): ByteString = {
       val bb = ByteBuffer.allocate(capacity)
-      g(bb, v)
-      ByteString.copyFrom(bb.array())
+      ByteString.copyFrom(g(bb, v).array())
     }
   }
 
@@ -221,8 +220,7 @@ object BigtableField {
   implicit val btfBoolean: Primitive[Boolean] = from[Byte](_ == 1)(if (_) 1 else 0)
   implicit val btfUUID: Primitive[UUID] =
     primitive[UUID](16)(bb => new UUID(bb.getLong, bb.getLong)) { (bb, uuid) =>
-      bb.putLong(uuid.getMostSignificantBits)
-      bb.putLong(uuid.getLeastSignificantBits)
+      bb.putLong(uuid.getMostSignificantBits).putLong(uuid.getLeastSignificantBits)
     }
 
   implicit val btfByteString: Primitive[ByteString] = new Primitive[ByteString] {

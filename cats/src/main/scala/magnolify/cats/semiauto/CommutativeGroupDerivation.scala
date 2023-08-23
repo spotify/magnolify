@@ -20,6 +20,7 @@ import cats.kernel.CommutativeGroup
 import magnolia1._
 
 import scala.annotation.implicitNotFound
+import scala.collection.compat._
 
 object CommutativeGroupDerivation {
   type Typeclass[T] = CommutativeGroup[T]

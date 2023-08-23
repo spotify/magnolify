@@ -17,7 +17,7 @@
 package magnolify.avro
 
 import magnolia1._
-import magnolify.shared._
+import magnolify.shared.{doc => _, _}
 import magnolify.shims.FactoryCompat
 import org.apache.avro.generic.GenericData.EnumSymbol
 import org.apache.avro.generic._
@@ -216,7 +216,7 @@ object AvroField {
     override def to(v: String)(cm: CaseMapper): String = v
   }
 
-  @nowarn("msg=parameter value lp in method afEnum is never used")
+  @nowarn("msg=parameter lp in method afEnum is never used")
   implicit def afEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): AvroField[T] =
     // Avro 1.9+ added a type parameter for `GenericEnumSymbol`, breaking 1.8 compatibility
     // Some reader, i.e. `AvroParquetReader` reads enums as `Utf8`

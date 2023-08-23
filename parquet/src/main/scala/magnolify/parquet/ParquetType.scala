@@ -126,7 +126,8 @@ object ParquetType {
 
     override def init(context: hadoop.InitContext): hadoop.ReadSupport.ReadContext = {
       if (parquetType == null) {
-        parquetType = SerializationUtils.fromBase64(context.getConfiguration.get(ReadTypeKey))
+        parquetType =
+          SerializationUtils.fromBase64[ParquetType[T]](context.getConfiguration.get(ReadTypeKey))
       }
 
       val metadata = context.getKeyValueMetadata
@@ -174,7 +175,7 @@ object ParquetType {
 
     override def init(configuration: Configuration): hadoop.WriteSupport.WriteContext = {
       if (parquetType == null) {
-        parquetType = SerializationUtils.fromBase64(configuration.get(WriteTypeKey))
+        parquetType = SerializationUtils.fromBase64[ParquetType[T]](configuration.get(WriteTypeKey))
       }
 
       val schema = Schema.message(parquetType.schema)

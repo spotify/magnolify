@@ -48,7 +48,7 @@ class FunnelDerivationSuite extends MagnolifySuite {
       }
     }
     property(s"$name.consistency") {
-      Prop.forAll { x: T => toBytes(x, fnl) == toBytes(x, fnl) }
+      Prop.forAll((x: T) => toBytes(x, fnl) == toBytes(x, fnl))
     }
   }
 

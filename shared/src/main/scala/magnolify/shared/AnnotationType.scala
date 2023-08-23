@@ -34,10 +34,9 @@ object AnnotationType {
     val jaType = typeOf[java.lang.annotation.Annotation]
     // Annotation for Scala enumerations are on the outer object
     val annotated = if (pre <:< typeOf[scala.Enumeration]) pre else wtt.tpe
-    val trees = annotated.typeSymbol.annotations.collect {
-      case t if t.tree.tpe <:< saType && !(t.tree.tpe <:< jaType) =>
-        // FIXME `t.tree` should work but somehow crashes the compiler
-        val q"new $n(..$args)" = t.tree
+    val trees = annotated.typeSymbol.annotations.map(_.tree).collect {
+      case t @ q"new $n(..$args)" if t.tpe <:< saType && !(t.tpe <:< jaType) =>
+        // FIXME `t` should work but somehow crashes the compiler
         q"new $n(..$args)"
     }
 

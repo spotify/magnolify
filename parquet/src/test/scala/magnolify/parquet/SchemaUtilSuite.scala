@@ -16,7 +16,6 @@
 
 package magnolify.parquet
 
-import magnolify.parquet.SchemaUtil
 import magnolify.parquet.util.AvroSchemaComparer
 import magnolify.test.MagnolifySuite
 import org.apache.avro.{Schema => AvroSchema}
