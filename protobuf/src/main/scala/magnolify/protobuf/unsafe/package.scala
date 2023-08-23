@@ -22,10 +22,6 @@ package object unsafe {
   implicit val pfChar: ProtobufField[Char] = ProtobufField.from[Int](_.toChar)(_.toInt)
   implicit val pfShort: ProtobufField[Short] = ProtobufField.from[Int](_.toShort)(_.toInt)
 
-  object Proto3Option {
-    implicit val proto3Option: ProtobufOption = new ProtobufOption.Proto3Option
-  }
-
   implicit def pfUnsafeEnum[T: EnumType]: ProtobufField[UnsafeEnum[T]] =
     ProtobufField
       .from[String](s => Option(s).filter(_.nonEmpty).map(UnsafeEnum.from[T]).orNull)(

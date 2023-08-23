@@ -17,55 +17,31 @@
 package magnolify.protobuf
 
 import java.lang.reflect.Method
-import java.{util => ju}
-
-import com.google.protobuf.Descriptors.FileDescriptor.Syntax
+import java.util as ju
 import com.google.protobuf.Descriptors.{Descriptor, EnumValueDescriptor, FieldDescriptor}
 import com.google.protobuf.{ByteString, Message, ProtocolMessageEnum}
-import magnolia1._
-import magnolify.shared._
+import magnolia1.*
+import magnolify.shared.*
 import magnolify.shims.FactoryCompat
 
 import scala.annotation.implicitNotFound
 import scala.collection.concurrent
 import scala.reflect.ClassTag
-import scala.jdk.CollectionConverters._
-import scala.collection.compat._
+import scala.jdk.CollectionConverters.*
+import scala.collection.compat.*
+
 sealed trait ProtobufType[T, MsgT <: Message] extends Converter[T, MsgT, MsgT] {
   def apply(r: MsgT): T = from(r)
   def apply(t: T): MsgT = to(t)
 }
 
-sealed trait ProtobufOption {
-  def check(f: ProtobufField.Record[_], syntax: Syntax): Unit
-}
-
-object ProtobufOption {
-  implicit val proto2Option: ProtobufOption = new ProtobufOption {
-    override def check(f: ProtobufField.Record[_], syntax: Syntax): Unit =
-      if (f.hasOptional) {
-        require(
-          syntax == Syntax.PROTO2,
-          "Option[T] support is PROTO2 only, " +
-            "`import magnolify.protobuf.unsafe.Proto3Option._` to enable PROTO3 support"
-        )
-      }
-  }
-
-  private[protobuf] class Proto3Option extends ProtobufOption {
-    override def check(f: ProtobufField.Record[_], syntax: Syntax): Unit = ()
-  }
-}
-
 object ProtobufType {
-  implicit def apply[T: ProtobufField, MsgT <: Message: ClassTag](implicit
-    po: ProtobufOption
-  ): ProtobufType[T, MsgT] = ProtobufType(CaseMapper.identity)
+  implicit def apply[T: ProtobufField, MsgT <: Message: ClassTag]: ProtobufType[T, MsgT] =
+    ProtobufType(CaseMapper.identity)
 
   def apply[T, MsgT <: Message](cm: CaseMapper)(implicit
     f: ProtobufField[T],
-    ct: ClassTag[MsgT],
-    po: ProtobufOption
+    ct: ClassTag[MsgT]
   ): ProtobufType[T, MsgT] = f match {
     case r: ProtobufField.Record[_] =>
       new ProtobufType[T, MsgT] {
@@ -74,9 +50,7 @@ object ProtobufType {
             .getMethod("getDescriptor")
             .invoke(null)
             .asInstanceOf[Descriptor]
-          if (r.hasOptional) {
-            po.check(r, descriptor.getFile.getSyntax)
-          }
+
           r.checkDefaults(descriptor)(cm)
         }
 
@@ -101,7 +75,6 @@ sealed trait ProtobufField[T] extends Serializable {
   type FromT
   type ToT
 
-  val hasOptional: Boolean
   val default: Option[T]
 
   def checkDefaults(descriptor: Descriptor)(cm: CaseMapper): Unit = ()
@@ -133,7 +106,7 @@ object ProtobufField {
       new ProtobufField[T] {
         override type FromT = tc.FromT
         override type ToT = tc.ToT
-        override val hasOptional: Boolean = tc.hasOptional
+
         override val default: Option[T] = tc.default.map(x => caseClass.construct(_ => x))
         override def from(v: FromT)(cm: CaseMapper): T = caseClass.construct(_ => tc.from(v)(cm))
         override def to(v: T, b: Message.Builder)(cm: CaseMapper): ToT =
@@ -157,14 +130,11 @@ object ProtobufField {
             }
           )
 
-        override val hasOptional: Boolean = caseClass.parameters.exists(_.typeclass.hasOptional)
-
         override def checkDefaults(descriptor: Descriptor)(cm: CaseMapper): Unit = {
-          val syntax = descriptor.getFile.getSyntax
           val fields = getFields(descriptor)(cm)
           caseClass.parameters.foreach { p =>
             val field = fields(p.index)
-            val protoDefault = if (syntax == Syntax.PROTO2 && field.hasDefaultValue) {
+            val protoDefault = if (field.hasDefaultValue) {
               Some(p.typeclass.fromAny(field.getDefaultValue)(cm))
             } else {
               p.typeclass.default
@@ -183,13 +153,12 @@ object ProtobufField {
 
         override def from(v: Message)(cm: CaseMapper): T = {
           val descriptor = v.getDescriptorForType
-          val syntax = descriptor.getFile.getSyntax
           val fields = getFields(descriptor)(cm)
 
           caseClass.construct { p =>
             val field = fields(p.index)
-            // hasField behaves correctly on PROTO2 optional fields
-            val value = if (syntax == Syntax.PROTO2 && field.isOptional && !v.hasField(field)) {
+            // check hasPresence to make sure hasField is meaningful
+            val value = if (field.hasPresence && !v.hasField(field)) {
               null
             } else {
               v.getField(field)
@@ -234,7 +203,6 @@ object ProtobufField {
   class FromWord[T] {
     def apply[U](f: T => U)(g: U => T)(implicit pf: ProtobufField[T]): ProtobufField[U] =
       new Aux[U, pf.FromT, pf.ToT] {
-        override val hasOptional: Boolean = pf.hasOptional
         override val default: Option[U] = pf.default.map(f)
         override def from(v: FromT)(cm: CaseMapper): U = f(pf.from(v)(cm))
         override def to(v: U, b: Message.Builder)(cm: CaseMapper): ToT = pf.to(g(v), null)(cm)
@@ -243,7 +211,6 @@ object ProtobufField {
 
   private def aux[T, From, To](_default: T)(f: From => T)(g: T => To): ProtobufField[T] =
     new Aux[T, From, To] {
-      override val hasOptional: Boolean = false
       override val default: Option[T] = Some(_default)
       override def from(v: FromT)(cm: CaseMapper): T = f(v)
       override def to(v: T, b: Message.Builder)(cm: CaseMapper): ToT = g(v)
@@ -262,9 +229,9 @@ object ProtobufField {
   implicit val pfString: ProtobufField[String] = id[String]("")
   implicit val pfByteString: ProtobufField[ByteString] = id[ByteString](ByteString.EMPTY)
   implicit val pfByteArray: ProtobufField[Array[Byte]] =
-    aux2[Array[Byte], ByteString](Array.emptyByteArray)(_.toByteArray)(ByteString.copyFrom)
+    aux2[Array[Byte], ByteString](Array.emptyByteArray)(b => b.toByteArray)(ByteString.copyFrom)
 
-  def `enum`[T, E <: Enum[E] with ProtocolMessageEnum](implicit
+  implicit def `enum`[T, E <: Enum[E] with ProtocolMessageEnum](implicit
     et: EnumType[T],
     ct: ClassTag[E]
   ): ProtobufField[T] = {
@@ -282,7 +249,6 @@ object ProtobufField {
 
   implicit def pfOption[T](implicit f: ProtobufField[T]): ProtobufField[Option[T]] =
     new Aux[Option[T], f.FromT, f.ToT] {
-      override val hasOptional: Boolean = true
       override val default: Option[Option[T]] = f.default match {
         case Some(v) => Some(Some(v))
         case None    => None
@@ -306,7 +272,6 @@ object ProtobufField {
     fc: FactoryCompat[T, C[T]]
   ): ProtobufField[C[T]] =
     new Aux[C[T], ju.List[f.FromT], ju.List[f.ToT]] {
-      override val hasOptional: Boolean = false
       override val default: Option[C[T]] = Some(fc.newBuilder.result())
       override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] = {
         val b = fc.newBuilder

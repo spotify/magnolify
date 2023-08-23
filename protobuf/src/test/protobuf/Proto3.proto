@@ -14,10 +14,16 @@ message FloatsP3 {
     double d = 2;
 }
 
-message SingularP3 {
+message RequiredP3 {
     bool b = 1;
     string s = 2;
     int32 i = 3;
+}
+
+message NullableP3 {
+    optional bool b = 1;
+    optional string s = 2;
+    optional int32 i = 3;
 }
 
 message RepeatedP3 {
@@ -30,8 +36,9 @@ message NestedP3 {
     bool b = 1;
     string s = 2;
     int32 i = 3;
-    SingularP3 r = 4;
-    repeated SingularP3 l = 5;
+    RequiredP3 r = 4;
+    optional RequiredP3 o = 5;
+    repeated RequiredP3 l = 6;
 }
 
 message CollectionP3 {
@@ -60,9 +67,9 @@ message EnumsP3 {
     JavaEnums j = 1;
     ScalaEnums s = 2; // Enumeration
     ScalaEnums a = 3; // ADT
-    JavaEnums jo = 4;
-    ScalaEnums so = 5; // Enumeration
-    ScalaEnums ao = 6; // ADT
+    optional JavaEnums jo = 4;
+    optional ScalaEnums so = 5; // Enumeration
+    optional ScalaEnums ao = 6; // ADT
     repeated JavaEnums jr = 7;
     repeated ScalaEnums sr = 8; // Enumeration
     repeated ScalaEnums ar = 9; // ADT
@@ -72,9 +79,9 @@ message UnsafeEnumsP3 {
     string j = 1;
     string s = 2;
     string a = 3;
-    string jo = 4;
-    string so = 5;
-    string ao = 6;
+    optional string jo = 4;
+    optional string so = 5;
+    optional string ao = 6;
     repeated string jr = 7;
     repeated string sr = 8;
     repeated string ar = 9;
