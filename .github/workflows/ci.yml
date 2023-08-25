@@ -84,11 +84,11 @@ jobs:
 
       - name: Make target directories
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
-        run: mkdir -p refined/target shared/target tensorflow/target parquet/target tools/target protobuf/target jmh/target bigquery/target avro/target scalacheck/target datastore/target neo4j/target cats/target bigtable/target guava/target project/target
+        run: mkdir -p refined/target shared/target unidocs/target tensorflow/target parquet/target tools/target protobuf/target jmh/target bigquery/target avro/target scalacheck/target datastore/target neo4j/target cats/target bigtable/target guava/target project/target
 
       - name: Compress target directories
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
-        run: tar cf targets.tar refined/target shared/target tensorflow/target parquet/target tools/target protobuf/target jmh/target bigquery/target avro/target scalacheck/target datastore/target neo4j/target cats/target bigtable/target guava/target project/target
+        run: tar cf targets.tar refined/target shared/target unidocs/target tensorflow/target parquet/target tools/target protobuf/target jmh/target bigquery/target avro/target scalacheck/target datastore/target neo4j/target cats/target bigtable/target guava/target project/target
 
       - name: Upload target directories
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
@@ -225,7 +225,7 @@ jobs:
       - name: Submit Dependencies
         uses: scalacenter/sbt-dependency-submission@v2
         with:
-          modules-ignore: test_2.13 test_2.12 magnolify_2.13 magnolify_2.12
+          modules-ignore: test_2.13 test_2.12 magnolify_2.13 magnolify_2.12 site_2.13
           configs-ignore: test scala-tool scala-doc-tool test-internal
 
   validate-steward:
@@ -297,3 +297,53 @@ jobs:
         env:
           JAVA_OPTS: '-Davro.version=1.8.2'
         run: sbt '++ ${{ matrix.scala }}' avro/test
+
+  site:
+    name: Generate Site
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        java: [corretto@17]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout current branch (full)
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java (corretto@17)
+        id: setup-java-corretto-17
+        if: matrix.java == 'corretto@17'
+        uses: actions/setup-java@v3
+        with:
+          distribution: corretto
+          java-version: 17
+          cache: sbt
+
+      - name: sbt update
+        if: matrix.java == 'corretto@17' && steps.setup-java-corretto-17.outputs.cache-hit == 'false'
+        run: sbt +update
+
+      - name: Setup Java (corretto@11)
+        id: setup-java-corretto-11
+        if: matrix.java == 'corretto@11'
+        uses: actions/setup-java@v3
+        with:
+          distribution: corretto
+          java-version: 11
+          cache: sbt
+
+      - name: sbt update
+        if: matrix.java == 'corretto@11' && steps.setup-java-corretto-11.outputs.cache-hit == 'false'
+        run: sbt +update
+
+      - name: Generate site
+        run: sbt site/tlSite
+
+      - name: Publish site
+        if: github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v')
+        uses: peaceiris/actions-gh-pages@v3.9.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: site/target/docs/site
+          keep_files: true
