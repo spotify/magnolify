@@ -29,6 +29,4 @@ package object auto extends FunnelImplicits {
   }
 
   implicit def genFunnel[T]: Funnel[T] = macro genFunnelMacro[T]
-
-  val FunnelDerivation = semiauto.FunnelDerivation
 }

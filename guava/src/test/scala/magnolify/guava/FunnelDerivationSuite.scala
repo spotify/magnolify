@@ -19,6 +19,7 @@ package magnolify.guava
 import com.google.common.hash.Funnel
 import com.google.common.hash.PrimitiveSink
 import magnolify.guava.auto._
+import magnolify.guava.semiauto.FunnelDerivation
 import magnolify.scalacheck.auto._
 import magnolify.scalacheck.TestArbitrary._
 import magnolify.test.ADT._
