@@ -35,7 +35,7 @@ import java.net.URI
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.time.Duration
-import scala.reflect._
+import scala.reflect.*
 
 class FunnelDerivationSuite extends MagnolifySuite {
 
