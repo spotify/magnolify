@@ -13,39 +13,40 @@ A collection of [Magnolia](https://github.com/propensive/magnolia) add-ons for c
 
 This library includes the following modules.
 
-* `magnolify-avro` - conversion between Scala types and [Apache Avro](https://github.com/apache/avro) `GenericRecord`
-* `magnolify-bigquery` - conversion between Scala types and [Google Cloud BigQuery](https://cloud.google.com/bigquery/) `TableRow`
-* `magnolify-bigtable` - conversion between Scala types and [Google Cloud Bigtable](https://cloud.google.com/bigtable) to `Mutation`, from `Row`
-* `magnolify-cats` - type class derivation for [Cats](https://github.com/typelevel/cats), specifically
-  * [`Eq[T]`](https://typelevel.org/cats/api/cats/kernel/Eq.html)
-  * [`Hash[T]`](https://typelevel.org/cats/api/cats/kernel/Hash.html)
-  * [`Semigroup[T]`](https://typelevel.org/cats/api/cats/kernel/Semigroup.html), [`CommutativeSemigroup[T]`](https://typelevel.org/cats/api/cats/kernel/CommutativeSemigroup.html), [`Band[T]`](https://typelevel.org/cats/api/cats/kernel/Band.html)
-  * [`Monoid[T]`](https://typelevel.org/cats/api/cats/kernel/Monoid.html), [`CommutativeMonoid[T]`](https://typelevel.org/cats/api/cats/kernel/CommutativeMonoid.html)
-  * [`Group[T]`](https://typelevel.org/cats/api/cats/kernel/Group.html), [`CommutativeGroup[T]`](https://typelevel.org/cats/api/cats/kernel/CommutativeGroup.html)
-* `magnolify-datastore` - conversion between Scala types and [Google Cloud Datastore](https://cloud.google.com/datastore/) `Entity`
-* `magnolify-guava` - type class derivation for [Guava](https://guava.dev)
-  * [`Funnel[T]`](https://guava.dev/releases/snapshot-jre/api/docs/com/google/common/hash/Funnel.html)
-* `magnolify-neo4j` - conversion between Scala types and [Value](https://neo4j.com/docs/driver-manual/1.7/cypher-values/)
-* `magnolify-parquet` - support for [Parquet](http://parquet.apache.org/) columnar storage format.
-* `magnolify-protobuf` - conversion between Scala types and [Google Protocol Buffer](https://developers.google.com/protocol-buffers/docs/overview) `Message`
-* `magnolify-refined` - support for simple refinement types from [Refined](https://github.com/fthomas/refined).
-* `magnolify-scalacheck` - type class derivation for [ScalaCheck](https://github.com/typelevel/scalacheck)
-  * [`Arbitrary[T]`](https://github.com/typelevel/scalacheck/blob/master/doc/UserGuide.md#universally-quantified-properties)
-  * [`Cogen[T]`](https://github.com/typelevel/scalacheck/blob/master/src/main/scala/org/scalacheck/Cogen.scala)
-* `magnolify-tensorflow` - conversion between Scala types and [TensorFlow](https://www.tensorflow.org/) `Example`
+- `magnolify-avro` - conversion between Scala types and [Apache Avro](https://github.com/apache/avro) `GenericRecord`
+- `magnolify-bigquery` - conversion between Scala types and [Google Cloud BigQuery](https://cloud.google.com/bigquery/) `TableRow`
+- `magnolify-bigtable` - conversion between Scala types and [Google Cloud Bigtable](https://cloud.google.com/bigtable) to `Mutation`, from `Row`
+- `magnolify-cats` - type class derivation for [Cats](https://github.com/typelevel/cats), specifically
+  - [`Eq[T]`](https://typelevel.org/cats/api/cats/kernel/Eq.html)
+  - [`Hash[T]`](https://typelevel.org/cats/api/cats/kernel/Hash.html)
+  - [`Semigroup[T]`](https://typelevel.org/cats/api/cats/kernel/Semigroup.html), [`CommutativeSemigroup[T]`](https://typelevel.org/cats/api/cats/kernel/CommutativeSemigroup.html), [`Band[T]`](https://typelevel.org/cats/api/cats/kernel/Band.html)
+  - [`Monoid[T]`](https://typelevel.org/cats/api/cats/kernel/Monoid.html), [`CommutativeMonoid[T]`](https://typelevel.org/cats/api/cats/kernel/CommutativeMonoid.html)
+  - [`Group[T]`](https://typelevel.org/cats/api/cats/kernel/Group.html), [`CommutativeGroup[T]`](https://typelevel.org/cats/api/cats/kernel/CommutativeGroup.html)
+- `magnolify-datastore` - conversion between Scala types and [Google Cloud Datastore](https://cloud.google.com/datastore/) `Entity`
+- `magnolify-guava` - type class derivation for [Guava](https://guava.dev)
+  - [`Funnel[T]`](https://guava.dev/releases/snapshot-jre/api/docs/com/google/common/hash/Funnel.html)
+- `magnolify-neo4j` - conversion between Scala types and [Value](https://neo4j.com/docs/driver-manual/1.7/cypher-values/)
+- `magnolify-parquet` - support for [Parquet](http://parquet.apache.org/) columnar storage format.
+- `magnolify-protobuf` - conversion between Scala types and [Google Protocol Buffer](https://developers.google.com/protocol-buffers/docs/overview) `Message`
+- `magnolify-refined` - support for simple refinement types from [Refined](https://github.com/fthomas/refined).
+- `magnolify-scalacheck` - type class derivation for [ScalaCheck](https://github.com/typelevel/scalacheck)
+  - [`Arbitrary[T]`](https://github.com/typelevel/scalacheck/blob/master/doc/UserGuide.md#universally-quantified-properties)
+  - [`Cogen[T]`](https://github.com/typelevel/scalacheck/blob/master/src/main/scala/org/scalacheck/Cogen.scala)
+- `magnolify-tensorflow` - conversion between Scala types and [TensorFlow](https://www.tensorflow.org/) `Example`
 
 # Usage
 
-See [derivation.md](https://github.com/spotify/magnolify/tree/master/docs/derivation.md) for type class derivation for Cats, Scalacheck, and Guava.
+```sbt
+libraryDependencies += "com.spotify" %% "magnolify-<module>" % "<version>"
+```
 
-See [avro.md](https://github.com/spotify/magnolify/tree/master/docs/avro.md)
-[bigquery.md](https://github.com/spotify/magnolify/tree/master/docs/bigquery.md)
-[bigtable.md](https://github.com/spotify/magnolify/tree/master/docs/bigtable.md)
-[datastore.md](https://github.com/spotify/magnolify/tree/master/docs/datastore.md)
-[protobuf.md](https://github.com/spotify/magnolify/tree/master/docs/protobuf.md)
-[tensorflow.md](https://github.com/spotify/magnolify/tree/master/docs/tensorflow.md) for data type conversions for these libraries.
-See [parquet.md](https://github.com/spotify/magnolify/tree/master/docs/parquet.md) for Parquet IO support. Also see [enums.md](https://github.com/spotify/magnolify/tree/master/docs/enums.md) for enum types and [refined.md](https://github.com/spotify/magnolify/tree/master/docs/derivation.md) for refinement types support.
-Finally, see [mapping.md](https://github.com/spotify/magnolify/blob/master/docs/mapping.md) for a mapping table of Scala types supported by conversion and IO modules.
+Magnolify artifacts have *do not* depend on the `<module>` library for which they provide type-class derivation.
+User is required to explicitly choose the module's version to run against.
+
+Further documentation can be found in:
+
+- [Docs](https://spotify.github.io/magnolify/) - main documentation site
+- [Scaladoc](https://spotify.github.io/magnolify/api/) - current API documentation
 
 # How to Release
 
