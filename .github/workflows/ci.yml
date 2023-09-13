@@ -71,15 +71,15 @@ jobs:
         run: sbt githubWorkflowCheck
 
       - name: Build project
-        if: matrix.scala == '2.13.11' && matrix.java == 'corretto@11'
+        if: matrix.scala == '2.13.12' && matrix.java == 'corretto@11'
         run: sbt '++ ${{ matrix.scala }}' coverage test coverageAggregate
 
       - name: Upload coverage report
-        if: matrix.scala == '2.13.11' && matrix.java == 'corretto@11'
+        if: matrix.scala == '2.13.12' && matrix.java == 'corretto@11'
         run: 'bash <(curl -s https://codecov.io/bash)'
 
       - name: Build project
-        if: '!(matrix.scala == ''2.13.11'' && matrix.java == ''corretto@11'')'
+        if: '!(matrix.scala == ''2.13.12'' && matrix.java == ''corretto@11'')'
         run: sbt '++ ${{ matrix.scala }}' test
 
       - name: Make target directories
@@ -258,7 +258,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.11]
+        scala: [2.13.12]
         java: [corretto@11]
     runs-on: ${{ matrix.os }}
     steps:
