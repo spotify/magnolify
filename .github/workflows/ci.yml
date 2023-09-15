@@ -37,7 +37,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout current branch (full)
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -71,15 +71,15 @@ jobs:
         run: sbt githubWorkflowCheck
 
       - name: Build project
-        if: matrix.scala == '2.13.11' && matrix.java == 'corretto@11'
+        if: matrix.scala == '2.13.12' && matrix.java == 'corretto@11'
         run: sbt '++ ${{ matrix.scala }}' coverage test coverageAggregate
 
       - name: Upload coverage report
-        if: matrix.scala == '2.13.11' && matrix.java == 'corretto@11'
+        if: matrix.scala == '2.13.12' && matrix.java == 'corretto@11'
         run: 'bash <(curl -s https://codecov.io/bash)'
 
       - name: Build project
-        if: '!(matrix.scala == ''2.13.11'' && matrix.java == ''corretto@11'')'
+        if: '!(matrix.scala == ''2.13.12'' && matrix.java == ''corretto@11'')'
         run: sbt '++ ${{ matrix.scala }}' test
 
       - name: Make target directories
@@ -108,7 +108,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout current branch (full)
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -192,7 +192,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout current branch (full)
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -237,7 +237,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout current branch (fast)
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Java (temurin@11)
         id: setup-java-temurin-11
@@ -258,12 +258,12 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.11]
+        scala: [2.13.12]
         java: [corretto@11]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout current branch (full)
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
