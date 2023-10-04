@@ -17,7 +17,7 @@
 import cats.Eq
 import magnolify.cats.TestEq.*
 import magnolify.cats.auto.*
-import magnolify.hbase.{HbaseField, HbaseType}
+import magnolify.hbase.{HBaseField, HBaseType}
 import magnolify.scalacheck.TestArbitrary.*
 import magnolify.scalacheck.auto.*
 import magnolify.test.MagnolifySuite
@@ -32,12 +32,12 @@ import java.util.UUID
 import scala.jdk.CollectionConverters.*
 import scala.reflect.ClassTag
 
-class HbaseTypeSuite extends MagnolifySuite {
+class HBaseTypeSuite extends MagnolifySuite {
 
   private val row: Array[Byte] = "row".getBytes(UTF_8)
   private val family: Array[Byte] = "family".getBytes(UTF_8)
 
-  private def test[T: Arbitrary: ClassTag](implicit hbt: HbaseType[T], eq: Eq[T]): Unit = {
+  private def test[T: Arbitrary: ClassTag](implicit hbt: HBaseType[T], eq: Eq[T]): Unit = {
     val tpe = ensureSerializable(hbt)
     property(className[T]) {
       Prop.forAll { (t: T) =>
@@ -55,29 +55,29 @@ class HbaseTypeSuite extends MagnolifySuite {
 
   implicit val eqByteArray: Eq[Array[Byte]] =
     Eq.by(_.toList)
-  implicit val hbfUri: HbaseField[URI] =
-    HbaseField.from[String](x => URI.create(x))(_.toString)
-  implicit val hbfDuration: HbaseField[Duration] =
-    HbaseField.from[Long](Duration.ofMillis)(_.toMillis)
+  implicit val hbfUri: HBaseField[URI] =
+    HBaseField.from[String](x => URI.create(x))(_.toString)
+  implicit val hbfDuration: HBaseField[Duration] =
+    HBaseField.from[Long](Duration.ofMillis)(_.toMillis)
 
   test[Numbers]
   test[Required]
   test[Nullable]
   test[Repeated]
-  test[HbaseNested]
+  test[HBaseNested]
   test[Collections]
   test[MoreCollections]
   test[Enums]
   test[UnsafeEnums]
   test[Custom]
-  test[HbaseTypes]
+  test[HBaseTypes]
 
 }
 
 // Collections are not supported
-case class HbaseNested(b: Boolean, i: Int, s: String, r: Required, o: Option[Required])
+case class HBaseNested(b: Boolean, i: Int, s: String, r: Required, o: Option[Required])
 
-case class HbaseTypes(b: Byte, c: Char, s: Short, ba: Array[Byte], uu: UUID)
+case class HBaseTypes(b: Byte, c: Char, s: Short, ba: Array[Byte], uu: UUID)
 
 // Collections are not supported
 case class DefaultInner(i: Int = 1, o: Option[Int] = Some(1))

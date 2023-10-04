@@ -26,7 +26,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.util.UUID
 import scala.annotation.implicitNotFound
 import scala.jdk.CollectionConverters.*
-sealed trait HbaseType[T] extends Converter[T, Map[String, Array[Byte]], Map[String, Array[Byte]]] {
+sealed trait HBaseType[T] extends Converter[T, Map[String, Array[Byte]], Map[String, Array[Byte]]] {
   def apply(v: Result, family: Array[Byte]): T =
     from(
       v.getFamilyMap(family)
@@ -41,12 +41,12 @@ sealed trait HbaseType[T] extends Converter[T, Map[String, Array[Byte]], Map[Str
     }
 }
 
-object HbaseType {
-  implicit def apply[T: HbaseField]: HbaseType[T] = HbaseType(CaseMapper.identity)
+object HBaseType {
+  implicit def apply[T: HBaseField]: HBaseType[T] = HBaseType(CaseMapper.identity)
 
-  def apply[T](cm: CaseMapper)(implicit f: HbaseField[T]): HbaseType[T] = f match {
-    case r: HbaseField.Record[_] =>
-      new HbaseType[T] {
+  def apply[T](cm: CaseMapper)(implicit f: HBaseField[T]): HBaseType[T] = f match {
+    case r: HBaseField.Record[_] =>
+      new HBaseType[T] {
         private val caseMapper: CaseMapper = cm
 
         override def from(xs: Map[String, Array[Byte]]): T = r.get(xs, null)(caseMapper).get
@@ -58,15 +58,15 @@ object HbaseType {
   }
 }
 
-sealed trait HbaseField[T] extends Serializable {
+sealed trait HBaseField[T] extends Serializable {
   def get(xs: Map[String, Array[Byte]], k: String)(cm: CaseMapper): Value[T]
   def put(k: String, v: T)(cm: CaseMapper): Map[String, Array[Byte]]
 }
 
-object HbaseField {
-  sealed trait Record[T] extends HbaseField[T]
+object HBaseField {
+  sealed trait Record[T] extends HBaseField[T]
 
-  sealed trait Primitive[T] extends HbaseField[T] {
+  sealed trait Primitive[T] extends HBaseField[T] {
     def size: Option[Int]
     def fromBytes(v: Array[Byte]): T
     def toBytes(v: T): Array[Byte]
@@ -82,13 +82,13 @@ object HbaseField {
   }
 
   // ////////////////////////////////////////////////
-  type Typeclass[T] = HbaseField[T]
+  type Typeclass[T] = HBaseField[T]
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): HbaseField[T] = {
+  def join[T](caseClass: CaseClass[Typeclass, T]): HBaseField[T] = {
     if (caseClass.isValueClass) {
       val p = caseClass.parameters.head
       val tc = p.typeclass
-      new HbaseField[T] {
+      new HBaseField[T] {
         override def get(xs: Map[String, Array[Byte]], k: String)(cm: CaseMapper): Value[T] =
           tc.get(xs, k)(cm).map(x => caseClass.construct(_ => x))
 
@@ -125,11 +125,11 @@ object HbaseField {
   @implicitNotFound("Cannot derive BigtableField for sealed trait")
   private sealed trait Dispatchable[T]
 
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): HbaseField[T] = ???
+  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): HBaseField[T] = ???
 
-  implicit def gen[T]: HbaseField[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: HBaseField[T] = macro Magnolia.gen[T]
 
-  def apply[T](implicit f: HbaseField[T]): HbaseField[T] = f
+  def apply[T](implicit f: HBaseField[T]): HBaseField[T] = f
 
   def from[T]: FromWord[T] = new FromWord
 
@@ -199,8 +199,8 @@ object HbaseField {
     bb.putInt(scale).put(unscaled).array()
   }
 
-  implicit def hbfOption[T](implicit hbf: HbaseField[T]): HbaseField[Option[T]] =
-    new HbaseField[Option[T]] {
+  implicit def hbfOption[T](implicit hbf: HBaseField[T]): HBaseField[Option[T]] =
+    new HBaseField[Option[T]] {
       override def get(xs: Map[String, Array[Byte]], k: String)(
         cm: CaseMapper
       ): Value[Option[T]] = {
