@@ -25,6 +25,7 @@ This library includes the following modules.
 - `magnolify-datastore` - conversion between Scala types and [Google Cloud Datastore](https://cloud.google.com/datastore/) `Entity`
 - `magnolify-guava` - type class derivation for [Guava](https://guava.dev)
   - [`Funnel[T]`](https://guava.dev/releases/snapshot-jre/api/docs/com/google/common/hash/Funnel.html)
+- `magnolify-hbase` - type class derivation for [HBase](https://hbase.apache.org) `Result` and `Put`
 - `magnolify-neo4j` - conversion between Scala types and [Value](https://neo4j.com/docs/driver-manual/1.7/cypher-values/)
 - `magnolify-parquet` - support for [Parquet](http://parquet.apache.org/) columnar storage format.
 - `magnolify-protobuf` - conversion between Scala types and [Google Protocol Buffer](https://developers.google.com/protocol-buffers/docs/overview) `Message`

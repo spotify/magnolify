@@ -26,6 +26,7 @@ val bigtableVersion = "2.27.4"
 val catsVersion = "2.10.0"
 val datastoreVersion = "2.17.2"
 val guavaVersion = "32.1.2-jre"
+val hbaseVersion = "2.5.5-hadoop3"
 val hadoopVersion = "3.3.6"
 val jacksonVersion = "2.15.2"
 val jodaTimeVersion = "2.12.5"
@@ -247,6 +248,7 @@ lazy val root = project
     cats,
     datastore,
     guava,
+    hbase,
     parquet,
     protobuf,
     refined,
@@ -516,6 +518,23 @@ lazy val neo4j = project
     description := "Magnolia add-on for Neo4j",
     libraryDependencies ++= Seq(
       "org.neo4j.driver" % "neo4j-java-driver" % neo4jDriverVersion % Provided
+    )
+  )
+
+lazy val hbase = project
+  .in(file("hbase"))
+  .dependsOn(
+    shared,
+    cats % "test->test",
+    scalacheck % "test->test",
+    test % "test->test"
+  )
+  .settings(
+    commonSettings,
+    moduleName := "magnolify-hbase",
+    description := "Magnolia add-on for hbase",
+    libraryDependencies ++= Seq(
+      "org.apache.hbase" % "hbase-client" % hbaseVersion % Provided
     )
   )
 
