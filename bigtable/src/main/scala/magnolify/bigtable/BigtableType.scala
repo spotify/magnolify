@@ -28,12 +28,12 @@ import java.util.UUID
 import scala.annotation.implicitNotFound
 import scala.jdk.CollectionConverters.*
 
-sealed trait BigtableType[T] extends Converter[T, Map[String, Cell], Seq[SetCell.Builder]] {
+sealed trait BigtableType[T] extends Converter[T, Map[String, Column], Seq[SetCell.Builder]] {
   def apply(v: Row, columnFamily: String): T =
     from(
       v.getFamiliesList.asScala
         .find(_.getName == columnFamily)
-        .map(_.getColumnsList.asScala.map(c => c.getQualifier.toStringUtf8 -> c.getCells(0)).toMap)
+        .map(_.getColumnsList.asScala.map(c => c.getQualifier.toStringUtf8 -> c).toMap)
         .getOrElse(Map.empty)
     )
   def apply(v: T, columnFamily: String, timestampMicros: Long = 0L): Seq[Mutation] =
@@ -52,7 +52,7 @@ object BigtableType {
     case r: BigtableField.Record[_] =>
       new BigtableType[T] {
         private val caseMapper: CaseMapper = cm
-        override def from(xs: Map[String, Cell]): T = r.get(xs, null)(caseMapper)
+        override def from(xs: Map[String, Column]): T = r.get(xs, null)(caseMapper)
         override def to(v: T): Seq[SetCell.Builder] = r.put(null, v)(caseMapper)
       }
     case _ =>
@@ -103,7 +103,7 @@ object BigtableType {
 }
 
 sealed trait BigtableField[T] extends Serializable {
-  def get(xs: Map[String, Cell], k: String)(cm: CaseMapper): T
+  def get(xs: Map[String, Column], k: String)(cm: CaseMapper): T
   def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder]
 }
 
@@ -112,9 +112,9 @@ object BigtableField {
   private def key(prefix: String, label: String): String =
     if (prefix == null) label else s"$prefix.$label"
 
-  private def columnFilter(key: String): (String, Cell) => Boolean = {
+  private def columnFilter(key: String): (String, Column) => Boolean = {
     val recordKey = key + "."
-    (name: String, _: Cell) => name == key || name.startsWith(recordKey)
+    (name: String, _: Column) => name == key || name.startsWith(recordKey)
   }
 
   sealed trait Record[T] extends BigtableField[T]
@@ -126,8 +126,8 @@ object BigtableField {
 
     private def columnQualifier(k: String): ByteString = ByteString.copyFromUtf8(k)
 
-    override def get(xs: Map[String, Cell], k: String)(cm: CaseMapper): T =
-      fromByteString(xs(k).getValue)
+    override def get(xs: Map[String, Column], k: String)(cm: CaseMapper): T =
+      fromByteString(xs(k).getCells(0).getValue)
 
     override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
       Seq(
@@ -147,14 +147,14 @@ object BigtableField {
       val p = caseClass.parameters.head
       val tc = p.typeclass
       new BigtableField[T] {
-        override def get(xs: Map[String, Cell], k: String)(cm: CaseMapper): T =
+        override def get(xs: Map[String, Column], k: String)(cm: CaseMapper): T =
           caseClass.construct(_ => tc.get(xs, k)(cm))
         override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
           p.typeclass.put(k, p.dereference(v))(cm)
       }
     } else {
       new Record[T] {
-        override def get(xs: Map[String, Cell], k: String)(cm: CaseMapper): T = {
+        override def get(xs: Map[String, Column], k: String)(cm: CaseMapper): T = {
           caseClass.construct { p =>
             val qualifier = key(k, cm.map(p.label))
             val columns = xs.filter(columnFilter(qualifier).tupled)
@@ -254,7 +254,7 @@ object BigtableField {
 
   implicit def btfOption[T](implicit btf: BigtableField[T]): BigtableField[Option[T]] =
     new BigtableField[Option[T]] {
-      override def get(xs: Map[String, Cell], k: String)(cm: CaseMapper): Option[T] =
+      override def get(xs: Map[String, Column], k: String)(cm: CaseMapper): Option[T] =
         if (xs.isEmpty) None else Some(btf.get(xs, k)(cm))
 
       override def put(k: String, v: Option[T])(cm: CaseMapper): Seq[SetCell.Builder] =
