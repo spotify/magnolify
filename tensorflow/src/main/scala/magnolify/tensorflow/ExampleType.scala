@@ -16,26 +16,25 @@
 
 package magnolify.tensorflow
 
-import java.{lang => jl, util => ju}
-
 import com.google.protobuf.ByteString
-import magnolia1._
-import magnolify.shared._
+import magnolia1.*
+import magnolify.shared.*
 import magnolify.shims.FactoryCompat
-import org.tensorflow.metadata.v0.{Annotation, Feature => FeatureSchema, FeatureType, Schema}
-import org.tensorflow.proto.example._
-import scala.annotation.{implicitNotFound, StaticAnnotation}
+import org.tensorflow.metadata.v0.{Annotation, FeatureType, Schema, Feature as FeatureSchema}
+import org.tensorflow.proto.example.*
+
+import java.{lang as jl, util as ju}
+import scala.annotation.{StaticAnnotation, implicitNotFound}
 import scala.collection.concurrent
-import scala.jdk.CollectionConverters._
-import scala.collection.compat._
+import scala.jdk.CollectionConverters.*
 
 class doc(msg: String) extends StaticAnnotation with Serializable {
   override def toString: String = msg
 }
 
-sealed trait ExampleType[T] extends Converter[T, Example, Example.Builder] {
+sealed trait ExampleType[T] extends Converter[T, Map[String, Feature], Example.Builder] {
   val schema: Schema
-  def apply(v: Example): T = from(v)
+  def apply(v: Example): T = from(v.getFeatures.getFeatureMap.asScala.toMap)
   def apply(v: T): Example = to(v).build()
 }
 
@@ -46,7 +45,8 @@ object ExampleType {
     case r: ExampleField.Record[_] =>
       new ExampleType[T] {
         @transient override lazy val schema: Schema = r.schema(cm)
-        override def from(v: Example): T = r.get(v.getFeatures, null)(cm).get
+        override def from(v: Map[String, Feature]): T =
+          r.get(v, null)(cm)
         override def to(v: T): Example.Builder =
           Example.newBuilder().setFeatures(r.put(Features.newBuilder(), null, v)(cm))
       }
@@ -63,26 +63,26 @@ sealed trait ExampleField[T] extends Serializable {
   def schema(cm: CaseMapper): Schema =
     schemaCache.getOrElseUpdate(cm.uuid, buildSchema(cm))
 
-  def get(f: Features, k: String)(cm: CaseMapper): Value[T]
+  def get(fs: Map[String, Feature], k: String)(cm: CaseMapper): T
   def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder
 }
 
 object ExampleField {
+  private def key(prefix: String, label: String): String =
+    if (prefix == null) label else s"$prefix.$label"
+
+  private def featureFilter(key: String): (String, Feature) => Boolean = {
+    val recordKey = key + "."
+    (name: String, _: Feature) => name == key || name.startsWith(recordKey)
+  }
+
   sealed trait Primitive[T] extends ExampleField[T] {
     type ValueT
     def fromFeature(v: Feature): ju.List[T]
     def toFeature(v: Iterable[T]): Feature
 
-    override def get(f: Features, k: String)(cm: CaseMapper): Value[T] = {
-      val feature = f.getFeatureOrDefault(k, null)
-      if (feature == null) {
-        Value.None
-      } else {
-        val values = fromFeature(feature)
-        require(values.size() == 1)
-        Value.Some(values.get(0))
-      }
-    }
+    override def get(fs: Map[String, Feature], k: String)(cm: CaseMapper): T =
+      fromFeature(fs(k)).ensuring(_.size() == 1).get(0)
 
     override def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder =
       f.putFeature(k, toFeature(Iterable(v)))
@@ -106,28 +106,22 @@ object ExampleField {
       new ExampleField[T] {
         override protected def buildSchema(cm: CaseMapper): Schema =
           tc.buildSchema(cm)
-        override def get(f: Features, k: String)(cm: CaseMapper): Value[T] =
-          tc.get(f, k)(cm).map(x => caseClass.construct(_ => x))
+        override def get(fs: Map[String, Feature], k: String)(cm: CaseMapper): T =
+          caseClass.construct(_ => tc.get(fs, k)(cm))
         override def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder =
           tc.put(f, k, p.dereference(v))(cm)
       }
     } else {
       new Record[T] {
-        private def key(prefix: String, label: String): String =
-          if (prefix == null) label else s"$prefix.$label"
-
-        override def get(f: Features, k: String)(cm: CaseMapper): Value[T] = {
-          var fallback = true
-          val r = caseClass.construct { p =>
+        override def get(fs: Map[String, Feature], k: String)(cm: CaseMapper): T = {
+          caseClass.construct { p =>
             val fieldKey = key(k, cm.map(p.label))
-            val fieldValue = p.typeclass.get(f, fieldKey)(cm)
-            if (fieldValue.isSome) {
-              fallback = false
-            }
-            fieldValue.getOrElse(p.default)
+            val fieldsFeatures = fs.filter(featureFilter(fieldKey).tupled)
+            // consider default value only if all fields are missing
+            p.default
+              .filter(_ => fieldsFeatures.isEmpty)
+              .getOrElse(p.typeclass.get(fieldsFeatures, fieldKey)(cm))
           }
-          // result is default if all fields are default
-          if (fallback) Value.Default(r) else Value.Some(r)
         }
 
         override def put(f: Features.Builder, k: String, v: T)(cm: CaseMapper): Features.Builder =
@@ -259,12 +253,8 @@ object ExampleField {
 
   implicit def efOption[T](implicit ef: ExampleField[T]): ExampleField[Option[T]] =
     new ExampleField[Option[T]] {
-      override def get(f: Features, k: String)(cm: CaseMapper): Value[Option[T]] =
-        if (f.containsFeature(k) || f.getFeatureMap.keySet().asScala.exists(_.startsWith(s"$k."))) {
-          ef.get(f, k)(cm).toOption
-        } else {
-          Value.Default(None)
-        }
+      override def get(fs: Map[String, Feature], k: String)(cm: CaseMapper): Option[T] =
+        if (fs.isEmpty) None else Some(ef.get(fs, k)(cm))
 
       override def put(f: Features.Builder, k: String, v: Option[T])(
         cm: CaseMapper
@@ -282,11 +272,8 @@ object ExampleField {
     ti: C[T] => Iterable[T],
     fc: FactoryCompat[T, C[T]]
   ): ExampleField[C[T]] = new ExampleField[C[T]] {
-    override def get(f: Features, k: String)(cm: CaseMapper): Value[C[T]] = {
-      val v = f.getFeatureOrDefault(k, null)
-      if (v == null) Value.Default(fc.newBuilder.result())
-      else Value.Some(fc.fromSpecific(ef.fromFeature(v).asScala))
-    }
+    override def get(fs: Map[String, Feature], k: String)(cm: CaseMapper): C[T] =
+      if (fs.isEmpty) fc.newBuilder.result() else fc.fromSpecific(ef.fromFeature(fs(k)).asScala)
 
     override def put(f: Features.Builder, k: String, v: C[T])(cm: CaseMapper): Features.Builder =
       if (v.isEmpty) f else f.putFeature(k, ef.toFeature(v))

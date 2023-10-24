@@ -16,26 +16,25 @@
 
 package magnolify.bigtable
 
+import com.google.bigtable.v2.Mutation.SetCell
+import com.google.bigtable.v2.*
+import com.google.protobuf.ByteString
+import magnolia1.*
+import magnolify.shared.*
+import magnolify.shims.*
+
 import java.nio.ByteBuffer
 import java.util.UUID
-import com.google.bigtable.v2.{Cell, Column, Family, Mutation, Row}
-import com.google.bigtable.v2.Mutation.SetCell
-import com.google.protobuf.ByteString
-import magnolia1._
-import magnolify.shared._
-import magnolify.shims._
-
 import scala.annotation.implicitNotFound
-import scala.jdk.CollectionConverters._
-import scala.collection.compat._
+import scala.jdk.CollectionConverters.*
 
-sealed trait BigtableType[T] extends Converter[T, java.util.List[Column], Seq[SetCell.Builder]] {
+sealed trait BigtableType[T] extends Converter[T, Map[String, Cell], Seq[SetCell.Builder]] {
   def apply(v: Row, columnFamily: String): T =
     from(
       v.getFamiliesList.asScala
         .find(_.getName == columnFamily)
-        .map(_.getColumnsList)
-        .getOrElse(java.util.Collections.emptyList())
+        .map(_.getColumnsList.asScala.map(c => c.getQualifier.toStringUtf8 -> c.getCells(0)).toMap)
+        .getOrElse(Map.empty)
     )
   def apply(v: T, columnFamily: String, timestampMicros: Long = 0L): Seq[Mutation] =
     to(v).map { b =>
@@ -53,7 +52,7 @@ object BigtableType {
     case r: BigtableField.Record[_] =>
       new BigtableType[T] {
         private val caseMapper: CaseMapper = cm
-        override def from(xs: java.util.List[Column]): T = r.get(xs, null)(caseMapper).get
+        override def from(xs: Map[String, Cell]): T = r.get(xs, null)(caseMapper)
         override def to(v: T): Seq[SetCell.Builder] = r.put(null, v)(caseMapper)
       }
     case _ =>
@@ -79,7 +78,6 @@ object BigtableType {
               )
               .build()
           }
-          .toSeq
         Family.newBuilder().setName(familyName).addAllColumns(columns.asJava).build()
       }
       .toSeq
@@ -105,11 +103,20 @@ object BigtableType {
 }
 
 sealed trait BigtableField[T] extends Serializable {
-  def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T]
+  def get(xs: Map[String, Cell], k: String)(cm: CaseMapper): T
   def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder]
 }
 
 object BigtableField {
+
+  private def key(prefix: String, label: String): String =
+    if (prefix == null) label else s"$prefix.$label"
+
+  private def columnFilter(key: String): (String, Cell) => Boolean = {
+    val recordKey = key + "."
+    (name: String, _: Cell) => name == key || name.startsWith(recordKey)
+  }
+
   sealed trait Record[T] extends BigtableField[T]
 
   sealed trait Primitive[T] extends BigtableField[T] {
@@ -119,10 +126,8 @@ object BigtableField {
 
     private def columnQualifier(k: String): ByteString = ByteString.copyFromUtf8(k)
 
-    override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T] = {
-      val v = Columns.find(xs, k)
-      if (v == null) Value.None else Value.Some(fromByteString(v.getCells(0).getValue))
-    }
+    override def get(xs: Map[String, Cell], k: String)(cm: CaseMapper): T =
+      fromByteString(xs(k).getValue)
 
     override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
       Seq(
@@ -142,34 +147,28 @@ object BigtableField {
       val p = caseClass.parameters.head
       val tc = p.typeclass
       new BigtableField[T] {
-        override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T] =
-          tc.get(xs, k)(cm).map(x => caseClass.construct(_ => x))
+        override def get(xs: Map[String, Cell], k: String)(cm: CaseMapper): T =
+          caseClass.construct(_ => tc.get(xs, k)(cm))
         override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
           p.typeclass.put(k, p.dereference(v))(cm)
       }
     } else {
       new Record[T] {
-        private def key(prefix: String, label: String): String =
-          if (prefix == null) label else s"$prefix.$label"
-
-        override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[T] = {
-          var fallback = true
-          val r = caseClass.construct { p =>
-            val cq = key(k, cm.map(p.label))
-            val v = p.typeclass.get(xs, cq)(cm)
-            if (v.isSome) {
-              fallback = false
-            }
-            v.getOrElse(p.default)
+        override def get(xs: Map[String, Cell], k: String)(cm: CaseMapper): T = {
+          caseClass.construct { p =>
+            val qualifier = key(k, cm.map(p.label))
+            val columns = xs.filter(columnFilter(qualifier).tupled)
+            // consider default value only if all fields are missing
+            p.default
+              .filter(_ => columns.isEmpty)
+              .getOrElse(p.typeclass.get(columns, qualifier)(cm))
           }
-          // result is default if all fields are default
-          if (fallback) Value.Default(r) else Value.Some(r)
         }
 
         override def put(k: String, v: T)(cm: CaseMapper): Seq[SetCell.Builder] =
-          caseClass.parameters.flatMap(p =>
+          caseClass.parameters.flatMap { p =>
             p.typeclass.put(key(k, cm.map(p.label)), p.dereference(v))(cm)
-          )
+          }
       }
     }
   }
@@ -255,8 +254,8 @@ object BigtableField {
 
   implicit def btfOption[T](implicit btf: BigtableField[T]): BigtableField[Option[T]] =
     new BigtableField[Option[T]] {
-      override def get(xs: java.util.List[Column], k: String)(cm: CaseMapper): Value[Option[T]] =
-        Columns.findNullable(xs, k).map(btf.get(_, k)(cm).toOption).getOrElse(Value.Default(None))
+      override def get(xs: Map[String, Cell], k: String)(cm: CaseMapper): Option[T] =
+        if (xs.isEmpty) None else Some(btf.get(xs, k)(cm))
 
       override def put(k: String, v: Option[T])(cm: CaseMapper): Seq[SetCell.Builder] =
         v.toSeq.flatMap(btf.put(k, _)(cm))
@@ -313,68 +312,4 @@ object BigtableField {
         ByteString.copyFrom(buf.array())
       }
     }
-}
-
-private object Columns {
-  private def find(
-    xs: java.util.List[Column],
-    columnQualifier: String,
-    matchPrefix: Boolean
-  ): (Int, Int, Boolean) = {
-    val cq = ByteString.copyFromUtf8(columnQualifier)
-    val pre = if (matchPrefix) ByteString.copyFromUtf8(s"$columnQualifier.") else ByteString.EMPTY
-    var low = 0
-    var high = xs.size()
-    var idx = -1
-    var isNested = false
-    while (idx == -1 && low < high) {
-      val mid = (high + low) / 2
-      val current = xs.get(mid).getQualifier
-      if (matchPrefix && current.startsWith(pre)) {
-        idx = mid
-        isNested = true
-      } else {
-        val c = ByteStringComparator.INSTANCE.compare(current, cq)
-        if (c < 0) {
-          low = mid + 1
-        } else if (c == 0) {
-          idx = mid
-          low = mid + 1
-        } else {
-          high = mid
-        }
-      }
-    }
-
-    if (isNested) {
-      low = idx - 1
-      while (low >= 0 && xs.get(low).getQualifier.startsWith(pre)) {
-        low -= 1
-      }
-      high = idx + 1
-      while (high < xs.size() && xs.get(high).getQualifier.startsWith(pre)) {
-        high += 1
-      }
-      (low + 1, high, isNested)
-    } else {
-      (idx, idx, isNested)
-    }
-  }
-
-  def find(xs: java.util.List[Column], columnQualifier: String): Column = {
-    val (idx, _, _) = find(xs, columnQualifier, false)
-    if (idx == -1) null else xs.get(idx)
-  }
-
-  def findNullable(
-    xs: java.util.List[Column],
-    columnQualifier: String
-  ): Option[java.util.List[Column]] = {
-    val (low, high, isNested) = find(xs, columnQualifier, true)
-    if (isNested) {
-      Some(xs.subList(low, high))
-    } else {
-      if (low == -1) None else Some(java.util.Collections.singletonList(xs.get(low)))
-    }
-  }
 }
