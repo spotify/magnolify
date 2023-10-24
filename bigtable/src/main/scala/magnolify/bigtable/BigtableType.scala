@@ -27,6 +27,7 @@ import java.nio.ByteBuffer
 import java.util.UUID
 import scala.annotation.implicitNotFound
 import scala.jdk.CollectionConverters.*
+import scala.collection.compat.*
 
 sealed trait BigtableType[T] extends Converter[T, Map[String, Column], Seq[SetCell.Builder]] {
   def apply(v: Row, columnFamily: String): T =
@@ -78,6 +79,7 @@ object BigtableType {
               )
               .build()
           }
+          .toSeq // keep for java 2.12
         Family.newBuilder().setName(familyName).addAllColumns(columns.asJava).build()
       }
       .toSeq

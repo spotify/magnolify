@@ -20,13 +20,14 @@ import com.google.protobuf.ByteString
 import magnolia1.*
 import magnolify.shared.*
 import magnolify.shims.FactoryCompat
-import org.tensorflow.metadata.v0.{Annotation, FeatureType, Schema, Feature as FeatureSchema}
+import org.tensorflow.metadata.v0.{Annotation, Feature as FeatureSchema, FeatureType, Schema}
 import org.tensorflow.proto.example.*
 
 import java.{lang as jl, util as ju}
-import scala.annotation.{StaticAnnotation, implicitNotFound}
+import scala.annotation.{implicitNotFound, StaticAnnotation}
 import scala.collection.concurrent
 import scala.jdk.CollectionConverters.*
+import scala.collection.compat.*
 
 class doc(msg: String) extends StaticAnnotation with Serializable {
   override def toString: String = msg
