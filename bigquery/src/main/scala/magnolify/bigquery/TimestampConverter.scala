@@ -22,58 +22,100 @@ import java.time.temporal.ChronoField
 
 // https://github.com/googleapis/java-bigquery/blob/master/google-cloud-bigquery/src/main/java/com/google/cloud/bigquery/QueryParameterValue.java
 private object TimestampConverter {
-  // TIMESTAMP
-  // YYYY-[M]M-[D]D[ [H]H:[M]M:[S]S[.DDDDDD]][time zone]
-  private val timestampFormatter =
-    new DateTimeFormatterBuilder()
-      .parseLenient()
-      .append(DateTimeFormatter.ISO_LOCAL_DATE)
-      .appendLiteral(' ')
-      .appendValue(ChronoField.HOUR_OF_DAY, 2)
-      .appendLiteral(':')
-      .appendValue(ChronoField.MINUTE_OF_HOUR, 2)
-      .optionalStart()
-      .appendLiteral(':')
-      .appendValue(ChronoField.SECOND_OF_MINUTE, 2)
-      .optionalStart()
-      .appendFraction(ChronoField.NANO_OF_SECOND, 6, 9, true)
-      .optionalStart()
-      .appendOffset("+HHMM", "+00:00")
-      .optionalEnd()
-      .toFormatter()
-      .withZone(ZoneOffset.UTC)
-  private val timestampValidator =
-    new DateTimeFormatterBuilder()
-      .parseLenient()
-      .append(timestampFormatter)
-      .optionalStart()
-      .appendOffsetId()
-      .optionalEnd()
-      .toFormatter()
-      .withZone(ZoneOffset.UTC)
+  // TIME
+  // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#time_type
+  // [H]H:[M]M:[S]S[.DDDDDD|.F]
+  private val timeFormatter = new DateTimeFormatterBuilder()
+    .appendValue(ChronoField.HOUR_OF_DAY, 1, 2, SignStyle.NEVER)
+    .appendLiteral(':')
+    .appendValue(ChronoField.MINUTE_OF_HOUR, 1, 2, SignStyle.NEVER)
+    .appendLiteral(':')
+    .appendValue(ChronoField.SECOND_OF_MINUTE, 1, 2, SignStyle.NEVER)
+    .optionalStart()
+    .appendFraction(ChronoField.NANO_OF_SECOND, 0, 6, true)
+    .optionalStart()
+    .toFormatter()
 
   // DATE
+  // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#date_type
   // YYYY-[M]M-[D]D
-  private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+  private val dateFormatter = new DateTimeFormatterBuilder()
+    .appendValue(ChronoField.YEAR, 4)
+    .appendLiteral('-')
+    .appendValue(ChronoField.MONTH_OF_YEAR, 1, 2, SignStyle.NEVER)
+    .appendLiteral('-')
+    .appendValue(ChronoField.DAY_OF_MONTH, 1, 2, SignStyle.NEVER)
+    .toFormatter()
 
-  // TIME
-  // [H]H:[M]M:[S]S[.DDDDDD]
-  private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS")
+  // TIMESTAMP
+  // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#time_type
+
+  // civil_date_part YYYY-[M]M-[D]D
+  private val civilDatePartFormatter = dateFormatter
+  // time_part { |T|t}[H]H:[M]M:[S]S[.F]
+  private val timePartFormatter =
+    new DateTimeFormatterBuilder()
+      .padNext(1)
+      .optionalStart()
+      .parseCaseInsensitive()
+      .appendLiteral('T')
+      .parseCaseSensitive()
+      .optionalEnd()
+      .append(timeFormatter)
+      .toFormatter
+
+  // time_zone_offset or utc_time_zone
+  // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#time_zones
+  // {+|-}H[H][:M[M]] or {Z|z}
+  private val timeZoneOffsetFormatter = new DateTimeFormatterBuilder()
+    .parseCaseInsensitive()
+    .appendOffsetId()
+    .parseCaseSensitive()
+    .toFormatter
+
+  // time_zone
+  private val timeZoneFormatter = new DateTimeFormatterBuilder()
+    .appendZoneRegionId()
+    .toFormatter
+
+  // timestamp
+  // {
+  //  civil_date_part[time_part [time_zone]] |
+  //  civil_date_part[time_part[time_zone_offset]] |
+  //  civil_date_part[time_part[utc_time_zone]]
+  // }
+  private val timestampFormatter =
+    new DateTimeFormatterBuilder()
+      .append(civilDatePartFormatter)
+      .append(timePartFormatter)
+      .optionalStart()
+      .append(timeZoneOffsetFormatter)
+      .optionalEnd()
+      .optionalStart()
+      .appendLiteral(' ')
+      .append(timeZoneFormatter)
+      .optionalEnd()
+      .toFormatter
+      .withZone(ZoneOffset.UTC)
 
   // DATETIME
-  // YYYY-[M]M-[D]D[ [H]H:[M]M:[S]S[.DDDDDD]]
-  private val datetimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
+  // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#datetime_type
+  // civil_date_part[time_part]
+  private val datetimeFormatter = new DateTimeFormatterBuilder()
+    .append(civilDatePartFormatter)
+    .appendOptional(timePartFormatter)
+    .toFormatter
 
-  def toInstant(v: Any): Instant = Instant.from(timestampValidator.parse(v.toString))
-  def fromInstant(i: Instant): Any = timestampFormatter.format(i)
+  def toInstant(v: Any): Instant = Instant.from(timestampFormatter.parse(v.toString))
+  def fromInstant(i: Instant): Any = DateTimeFormatter.ISO_INSTANT.format(i)
 
   def toLocalDate(v: Any): LocalDate = LocalDate.from(dateFormatter.parse(v.toString))
-  def fromLocalDate(d: LocalDate): Any = dateFormatter.format(d)
+  def fromLocalDate(d: LocalDate): Any = DateTimeFormatter.ISO_LOCAL_DATE.format(d)
 
   def toLocalTime(v: Any): LocalTime = LocalTime.from(timeFormatter.parse(v.toString))
-  def fromLocalTime(t: LocalTime): Any = timeFormatter.format(t)
+  def fromLocalTime(t: LocalTime): Any = DateTimeFormatter.ISO_LOCAL_TIME.format(t)
 
   def toLocalDateTime(v: Any): LocalDateTime =
     LocalDateTime.from(datetimeFormatter.parse(v.toString))
-  def fromLocalDateTime(dt: LocalDateTime): Any = datetimeFormatter.format(dt)
+  def fromLocalDateTime(dt: LocalDateTime): Any = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(dt)
 }
