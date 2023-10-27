@@ -39,7 +39,7 @@ val scalaCollectionCompatVersion = "2.11.0"
 val scalacheckVersion = "1.17.0"
 val shapelessVersion = "2.3.10"
 val tensorflowMetadataVersion = "1.10.0"
-val tensorflowVersion = "0.4.2"
+val tensorflowVersion = "0.5.0"
 
 // project
 ThisBuild / tlBaseVersion := "0.7"
