@@ -60,43 +60,26 @@ class ProtobufTypeSuite extends BaseProtobufTypeSuite {
   test[Floats, FloatsP2]
   test[Floats, FloatsP3]
   test[Required, RequiredP2]
-  test[Required, SingularP3]
+  test[Required, RequiredP3]
   test[Nullable, NullableP2]
+  test[Nullable, NullableP3]
 
   test[Repeated, RepeatedP2]
   test[Repeated, RepeatedP3]
   test[Nested, NestedP2]
-  test[NestedNoOption, NestedP3]
+  test[Nested, NestedP3]
   test[UnsafeByte, IntegersP2]
   test[UnsafeChar, IntegersP2]
   test[UnsafeShort, IntegersP2]
 
   test[Collections, CollectionP2]
-  test[MoreCollections, MoreCollectionP2]
   test[Collections, CollectionP3]
+  test[MoreCollections, MoreCollectionP2]
   test[MoreCollections, MoreCollectionP3]
-
-  // PROTO3 removes the notion of require vs optional fields.
-  // By default `Option[T] are not supported`.
-  test("Fail PROTO3 Option[T]") {
-    val msg = "requirement failed: Option[T] support is PROTO2 only, " +
-      "`import magnolify.protobuf.unsafe.Proto3Option._` to enable PROTO3 support"
-    interceptMessage[IllegalArgumentException](msg)(ProtobufType[Nullable, SingularP3])
-  }
-
-  // Adding `import magnolify.protobuf.unsafe.Proto3Option._` enables PROTO3 `Option[T]` support.
-  // The new singular field returns default value if unset.
-  // Hence `None` round trips back as `Some(false/0/"")`.
-  {
-    import magnolify.protobuf.unsafe.Proto3Option._
-    implicit val eq: Eq[Nullable] = Eq.by { x =>
-      Required(x.b.getOrElse(false), x.i.getOrElse(0), x.s.getOrElse(""))
-    }
-    test[Nullable, SingularP3]
-  }
 
   test("AnyVal") {
     test[ProtoHasValueClass, IntegersP2]
+    test[ProtoHasValueClass, IntegersP3]
   }
 }
 
@@ -121,23 +104,7 @@ class MoreProtobufTypeSuite extends BaseProtobufTypeSuite {
 
   {
     import Proto3Enums._
-    import magnolify.protobuf.unsafe.Proto3Option._
-    // Enums are encoded as integers and default to zero value
-    implicit val eq: Eq[Enums] = Eq.by(e =>
-      (
-        e.j,
-        e.s,
-        e.a,
-        e.jo.getOrElse(JavaEnums.Color.RED),
-        e.so.getOrElse(ScalaEnums.Color.Red),
-        e.ao.getOrElse(ADT.Red),
-        e.jr,
-        e.sr,
-        e.ar
-      )
-    )
     test[Enums, EnumsP3]
-    // Unsafe enums are encoded as string and default "" is treated as None
     test[UnsafeEnums, UnsafeEnumsP3]
   }
 
@@ -160,16 +127,12 @@ class MoreProtobufTypeSuite extends BaseProtobufTypeSuite {
     import Proto3Enums._
     test[DefaultIntegers3, IntegersP3]
     test[DefaultFloats3, FloatsP3]
-    test[DefaultRequired3, SingularP3]
+    test[DefaultRequired3, RequiredP3]
     test[DefaultEnums3, EnumsP3]
   }
 
   {
-    import magnolify.protobuf.unsafe.Proto3Option._
-    implicit val eq: Eq[DefaultNullable3] = Eq.by { x =>
-      Required(x.b.getOrElse(false), x.i.getOrElse(0), x.s.getOrElse(""))
-    }
-    test[DefaultNullable3, SingularP3]
+    test[DefaultNullable3, NullableP3]
   }
 
   {
@@ -178,14 +141,13 @@ class MoreProtobufTypeSuite extends BaseProtobufTypeSuite {
     testFail[F, DefaultMismatch2](ProtobufType[DefaultMismatch2, DefaultRequiredP2])(
       "Default mismatch magnolify.protobuf.DefaultMismatch2#i: 321 != 123"
     )
-    testFail[F, DefaultMismatch3](ProtobufType[DefaultMismatch3, SingularP3])(
+    testFail[F, DefaultMismatch3](ProtobufType[DefaultMismatch3, RequiredP3])(
       "Default mismatch magnolify.protobuf.DefaultMismatch3#i: 321 != 0"
     )
   }
 }
 
 object Proto2Enums {
-  // FIXME: for some reasons these implicits fail to resolve without explicit types
   implicit val efJavaEnum2: ProtobufField[JavaEnums.Color] =
     ProtobufField.enum[JavaEnums.Color, EnumsP2.JavaEnums]
   implicit val efScalaEnum2: ProtobufField[ScalaEnums.Color.Type] =
@@ -195,7 +157,6 @@ object Proto2Enums {
 }
 
 object Proto3Enums {
-  // FIXME: for some reasons these implicits fail to resolve without explicit types
   implicit val efJavaEnum3: ProtobufField[JavaEnums.Color] =
     ProtobufField.enum[JavaEnums.Color, EnumsP3.JavaEnums]
   implicit val efScalaEnum3: ProtobufField[ScalaEnums.Color.Type] =
@@ -211,13 +172,6 @@ case class UnsafeChar(i: Char, l: Long)
 case class UnsafeShort(i: Short, l: Long)
 case class BytesA(b: ByteString)
 case class BytesB(b: Array[Byte])
-case class NestedNoOption(
-  b: Boolean,
-  i: Int,
-  s: String,
-  r: Required,
-  l: List[Required]
-)
 
 case class DefaultsRequired2(
   i: Int = 123,
