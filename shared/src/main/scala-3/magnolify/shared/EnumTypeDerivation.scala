@@ -16,8 +16,29 @@
 
 package magnolify.shared
 
-import magnolia1.{CaseClass, Derivation, SealedTrait}
-trait EnumTypeDerivation extends Derivation[EnumType]:
+import magnolia1.{CommonDerivation, SealedTraitDerivation, CaseClass, SealedTrait}
+
+import scala.compiletime.*
+import scala.deriving.Mirror
+trait EnumTypeDerivation extends CommonDerivation[EnumType] with SealedTraitDerivation:
+  transparent inline def subtypes[T, SubtypeTuple <: Tuple](
+    m: Mirror.SumOf[T],
+    idx: Int = 0 // no longer used, kept for bincompat
+  ): List[SealedTrait.Subtype[Typeclass, T, _]] =
+    subtypesFromMirror[T, SubtypeTuple](m, idx)
+
+  inline def derivedMirrorSum[A](sum: Mirror.SumOf[A]): EnumType[A] =
+    summonAll[Tuple.Map[sum.MirroredElemTypes, [S] =>> S <:< Singleton]] // assert all singleton
+    split(sealedTraitFromMirror(sum))
+
+  inline def derivedMirror[A](using mirror: Mirror.Of[A]): EnumType[A] =
+    inline mirror match
+      case sum: Mirror.SumOf[A]         => derivedMirrorSum[A](sum)
+      case product: Mirror.ProductOf[A] => derivedMirrorProduct[A](product)
+
+  inline def derived[A](using Mirror.Of[A]): EnumType[A] = derivedMirror[A]
+
+  protected override inline def deriveSubtype[s](m: Mirror.Of[s]): EnumType[s] = derivedMirror[s](using m)
 
   def join[T](caseClass: CaseClass[EnumType, T]): EnumType[T] =
     // fail at runtime since we can't prevent derivation

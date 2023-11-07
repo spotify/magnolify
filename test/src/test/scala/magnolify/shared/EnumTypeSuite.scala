@@ -16,10 +16,10 @@
 
 package magnolify.shared
 
-import magnolify.test._
-import magnolify.test.Simple._
+import magnolify.test.*
+import magnolify.test.Simple.*
 
-import scala.util.Properties
+import scala.util.{Properties, Try}
 
 class EnumTypeSuite extends MagnolifySuite {
   test("JavaEnums") {
@@ -68,26 +68,79 @@ class EnumTypeSuite extends MagnolifySuite {
   }
 
   test("ADT should not generate for invalid types") {
-    // see https://github.com/softwaremill/magnolia/issues/267
-    // scala 3 user 2.13, only run the test for 2.12
-    assume(Properties.versionNumberString.startsWith("2.12"), "this test runs only on Scala 2")
-
     // explicit
-    assertNoDiff(
-      compileErrors("EnumType.gen[Option[ADT.Color]]"),
-      """|error: Cannot derive EnumType.EnumValue. EnumType only works for sum types
-         |EnumType.gen[Option[ADT.Color]]
-         |            ^
-         |""".stripMargin
-    )
+    {
+      val error = compileErrors("EnumType.gen[Option[ADT.Color]]")
+      val scala2Error =
+        """|error: Cannot derive EnumType.EnumValue. EnumType only works for sum types
+           |EnumType.gen[Option[ADT.Color]]
+           |            ^
+           |""".stripMargin
+      val scala3Error =
+        """|error: Cannot prove that Some[magnolify.test.ADT.Color] <:< Singleton.
+           |
+           |                                      ^
+           |""".stripMargin
+      if (Properties.versionNumberString.startsWith("2.12")) {
+        assertNoDiff(error, scala2Error)
+      } else {
+        // scala 3 uses 2.13
+        Try(assertNoDiff(error, scala2Error))
+          .orElse(Try(assertNoDiff(error, scala3Error)))
+          .get
+      }
+    }
+
     // implicit
-    assertNoDiff(
-      compileErrors("EnumType[Option[ADT.Color]]"),
-      """|error: could not find implicit value for parameter et: magnolify.shared.EnumType[Option[magnolify.test.ADT.Color]]
-         |EnumType[Option[ADT.Color]]
-         |        ^
-         |""".stripMargin
-    )
+    {
+      val error = compileErrors("EnumType[Option[ADT.Color]]")
+      val scala2Error =
+        """|error: could not find implicit value for parameter et: magnolify.shared.EnumType[Option[magnolify.test.ADT.Color]]
+           |EnumType[Option[ADT.Color]]
+           |        ^
+           |""".stripMargin
+
+      val scala3Error =
+        """|error:
+           |No given instance of type magnolify.shared.EnumType[Option[magnolify.test.ADT.Color]] was found for parameter et of method apply in object EnumType.
+           |I found:
+           |
+           |    magnolify.shared.EnumType.gen[Option[magnolify.test.ADT.Color]](
+           |      {
+           |        final class $anon() extends Object(), Serializable {
+           |          type MirroredMonoType = Option[magnolify.test.ADT.Color]
+           |        }
+           |        (new $anon():Object & Serializable)
+           |      }.$asInstanceOf[
+           |
+           |          scala.deriving.Mirror.Sum{
+           |            type MirroredMonoType² = Option[magnolify.test.ADT.Color];
+           |              type MirroredType = Option[magnolify.test.ADT.Color];
+           |              type MirroredLabel = ("Option" : String);
+           |              type MirroredElemTypes = (None.type, Some[magnolify.test.ADT.Color]);
+           |              type MirroredElemLabels = (("None$" : String), ("Some" : String))
+           |          }
+           |
+           |      ]
+           |    )
+           |
+           |But given instance gen in trait EnumTypeCompanionMacros1 does not match type magnolify.shared.EnumType[Option[magnolify.test.ADT.Color]]
+           |
+           |where:    MirroredMonoType  is a type in an anonymous class locally defined in class EnumTypeSuite which is an alias of Option[magnolify.test.ADT.Color]
+           |          MirroredMonoType² is a type in trait Mirror with bounds""".stripMargin + " \n" + """|.
+           |EnumType[Option[ADT.Color]]
+           |                          ^
+           |""".stripMargin
+
+      if (Properties.versionNumberString.startsWith("2.12")) {
+        assertNoDiff(error, scala2Error)
+      } else {
+        // scala 3 uses 2.13
+        Try(assertNoDiff(error, scala2Error))
+          .orElse(Try(assertNoDiff(error, scala3Error)))
+          .get
+      }
+    }
   }
 
   test("JavaEnums CaseMapper") {
