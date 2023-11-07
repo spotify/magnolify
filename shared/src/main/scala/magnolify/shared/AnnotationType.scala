@@ -16,34 +16,8 @@
 
 package magnolify.shared
 
-import scala.reflect.macros._
+final case class AnnotationType[T](annotations: List[Any])
 
-sealed case class AnnotationType[T](annotations: List[Any])
-
-object AnnotationType {
-  implicit def apply[T]: AnnotationType[T] = macro applyImpl[T]
-
-  def applyImpl[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
-    import c.universe._
-    val wtt = weakTypeTag[T]
-    val pre = wtt.tpe.asInstanceOf[TypeRef].pre
-
-    // Scala 2.12 & 2.13 macros seem to handle annotations differently
-    // Scala annotation works in both but Java annotations only works in 2.13
-    val saType = typeOf[scala.annotation.StaticAnnotation]
-    val jaType = typeOf[java.lang.annotation.Annotation]
-    // Annotation for Scala enumerations are on the outer object
-    val annotated = if (pre <:< typeOf[scala.Enumeration]) pre else wtt.tpe
-    val trees = annotated.typeSymbol.annotations.map(_.tree).collect {
-      case t @ q"new $n(..$args)" if t.tpe <:< saType && !(t.tpe <:< jaType) =>
-        // FIXME `t` should work but somehow crashes the compiler
-        q"new $n(..$args)"
-    }
-
-    // Get Java annotations via reflection
-    val j = q"classOf[${annotated.typeSymbol.asClass}].getAnnotations.toList"
-    val annotations = q"_root_.scala.List(..$trees) ++ $j"
-
-    q"new _root_.magnolify.shared.AnnotationType[$wtt]($annotations)"
-  }
+object AnnotationType extends AnnotationTypeCompanionMacros {
+  def apply[T](implicit et: AnnotationType[T]): AnnotationType[T] = et
 }

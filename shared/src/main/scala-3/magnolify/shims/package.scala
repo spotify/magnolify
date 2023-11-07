@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Spotify AB
+ * Copyright 2023 Spotify AB
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,13 @@
  * limitations under the License.
  */
 
-package magnolify.shared
+package magnolify
 
-import magnolify.test.ADT
-import magnolify.test.JavaEnums
-import magnolify.test.Simple.ScalaEnums
-object TestEnumType {
+import scala.util.hashing.MurmurHash3
+import scala.collection.compat.Factory
 
-  implicit val etJava: EnumType[JavaEnums.Color] =
-    EnumType.javaEnumType[JavaEnums.Color]
-  implicit val etScala: EnumType[ScalaEnums.Color.Type] =
-    EnumType.scalaEnumType[ScalaEnums.Color.Type]
-  implicit val etAdt: EnumType[ADT.Color] =
-    EnumType.gen[ADT.Color]
+package object shims:
+  type FactoryCompat[-A, +C] = Factory[A, C]
 
-}
+  object MurmurHash3Compat:
+    def seed(data: Int): Int = MurmurHash3.mix(MurmurHash3.productSeed, data)

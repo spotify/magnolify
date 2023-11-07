@@ -28,9 +28,12 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13, 2.12]
+        scala: [3, 2.13, 2.12]
         java: [corretto@17, corretto@11]
+        project: [rootJVM]
         exclude:
+          - scala: 3
+            java: corretto@11
           - scala: 2.12
             java: corretto@11
     runs-on: ${{ matrix.os }}
@@ -71,16 +74,20 @@ jobs:
         run: sbt githubWorkflowCheck
 
       - name: Build project
-        if: matrix.scala == '2.13.12' && matrix.java == 'corretto@11'
-        run: sbt '++ ${{ matrix.scala }}' coverage test coverageAggregate
+        if: matrix.scala == '2.13' && matrix.java == 'corretto@11'
+        run: sbt 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' coverage test coverageAggregate
 
       - name: Upload coverage report
-        if: matrix.scala == '2.13.12' && matrix.java == 'corretto@11'
+        if: matrix.scala == '2.13' && matrix.java == 'corretto@11'
         run: 'bash <(curl -s https://codecov.io/bash)'
 
       - name: Build project
-        if: '!(matrix.scala == ''2.13.12'' && matrix.java == ''corretto@11'')'
-        run: sbt '++ ${{ matrix.scala }}' test
+        if: '!(matrix.scala == ''2.13'' && matrix.java == ''corretto@11'' || matrix.scala == ''3'')'
+        run: sbt 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' test
+
+      - name: Build project
+        if: matrix.scala == '3'
+        run: sbt 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' shared/test test/test
 
       - name: Make target directories
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
@@ -94,7 +101,7 @@ jobs:
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
         uses: actions/upload-artifact@v3
         with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-${{ matrix.scala }}
+          name: target-${{ matrix.os }}-${{ matrix.java }}-${{ matrix.scala }}-${{ matrix.project }}
           path: targets.tar
 
   publish:
@@ -138,22 +145,32 @@ jobs:
         if: matrix.java == 'corretto@11' && steps.setup-java-corretto-11.outputs.cache-hit == 'false'
         run: sbt +update
 
-      - name: Download target directories (2.13)
+      - name: Download target directories (3, rootJVM)
         uses: actions/download-artifact@v3
         with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-2.13
+          name: target-${{ matrix.os }}-${{ matrix.java }}-3-rootJVM
 
-      - name: Inflate target directories (2.13)
+      - name: Inflate target directories (3, rootJVM)
         run: |
           tar xf targets.tar
           rm targets.tar
 
-      - name: Download target directories (2.12)
+      - name: Download target directories (2.13, rootJVM)
         uses: actions/download-artifact@v3
         with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-2.12
+          name: target-${{ matrix.os }}-${{ matrix.java }}-2.13-rootJVM
 
-      - name: Inflate target directories (2.12)
+      - name: Inflate target directories (2.13, rootJVM)
+        run: |
+          tar xf targets.tar
+          rm targets.tar
+
+      - name: Download target directories (2.12, rootJVM)
+        uses: actions/download-artifact@v3
+        with:
+          name: target-${{ matrix.os }}-${{ matrix.java }}-2.12-rootJVM
+
+      - name: Inflate target directories (2.12, rootJVM)
         run: |
           tar xf targets.tar
           rm targets.tar
@@ -225,7 +242,7 @@ jobs:
       - name: Submit Dependencies
         uses: scalacenter/sbt-dependency-submission@v2
         with:
-          modules-ignore: test_2.13 test_2.12 magnolify_2.13 magnolify_2.12
+          modules-ignore: test_3 test_2.13 test_2.12 magnolify_3 magnolify_2.13 magnolify_2.12 magnolify_3 magnolify_2.13 magnolify_2.12 magnolify_3 magnolify_2.13 magnolify_2.12
           configs-ignore: test scala-tool scala-doc-tool test-internal
 
   validate-steward:

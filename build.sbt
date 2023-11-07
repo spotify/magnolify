@@ -17,7 +17,7 @@ import sbtprotoc.ProtocPlugin.ProtobufConfig
 import com.typesafe.tools.mima.core._
 
 val magnoliaScala2Version = "1.1.6"
-val magnoliaScala3Version = "1.1.4"
+val magnoliaScala3Version = "1.3.4"
 
 val algebirdVersion = "0.13.10"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.2")
@@ -103,19 +103,23 @@ ThisBuild / developers := List(
 val scala3 = "3.3.0"
 val scala213 = "2.13.12"
 val scala212 = "2.12.18"
-val defaultScala = scala213
+val scalaDefault = scala213
 
 // github actions
 val java17 = JavaSpec.corretto("17")
 val java11 = JavaSpec.corretto("11")
-val defaultJava = java11
+val javaDefault = java11
 val coverageCond = Seq(
-  s"matrix.scala == '$defaultScala'",
-  s"matrix.java == '${defaultJava.render}'"
+  s"matrix.scala == '${CrossVersion.binaryScalaVersion(scalaDefault)}'",
+  s"matrix.java == '${javaDefault.render}'"
 ).mkString(" && ")
-
-ThisBuild / scalaVersion := defaultScala
-ThisBuild / crossScalaVersions := Seq(scala213, scala212)
+val scala3Cond = "matrix.scala == '3'"
+val scala3Projects = List(
+  "shared",
+  "test"
+)
+ThisBuild / scalaVersion := scalaDefault
+ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
 ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
 ThisBuild / githubWorkflowBuild := Seq(
@@ -129,7 +133,16 @@ ThisBuild / githubWorkflowBuild := Seq(
     name = Some("Upload coverage report"),
     cond = Some(coverageCond)
   ),
-  WorkflowStep.Sbt(List("test"), name = Some("Build project"), cond = Some(s"!($coverageCond)"))
+  WorkflowStep.Sbt(
+    List("test"),
+    name = Some("Build project"),
+    cond = Some(s"!($coverageCond || $scala3Cond)")
+  ),
+  WorkflowStep.Sbt(
+    scala3Projects.map(p => s"$p/test"),
+    name = Some("Build project"),
+    cond = Some(scala3Cond)
+  )
 )
 ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
@@ -142,8 +155,8 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
         name = Some("Build project")
       )
     ),
-    scalas = List(defaultScala),
-    javas = List(defaultJava)
+    scalas = List(scalaDefault),
+    javas = List(javaDefault)
   )
 )
 
@@ -179,13 +192,16 @@ lazy val keepExistingHeader =
 val commonSettings = Seq(
   tlFatalWarnings := false,
   tlJdkRelease := Some(8),
+  // So far most projects do no support scala 3
+  crossScalaVersions := Seq(scala213, scala212),
+  scalaVersion := scalaDefault,
   scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((3, _)) =>
       Seq(
         // required by magnolia for accessing default values
-        "-Xretain-trees",
+        "-Yretain-trees",
         // tolerate some nested macro expansion
-        "-Ymax-inlines",
+        "-Xmax-inlines",
         "64"
       )
     case Some((2, 13)) =>
@@ -232,11 +248,9 @@ val commonSettings = Seq(
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
 )
 
-lazy val root = project
-  .in(file("."))
+lazy val root = tlCrossRootProject
   .enablePlugins(NoPublishPlugin)
   .settings(
-    commonSettings,
     name := "magnolify",
     description := "A collection of Magnolia add-on modules"
   )
@@ -262,6 +276,7 @@ lazy val shared = project
   .in(file("shared"))
   .settings(
     commonSettings,
+    crossScalaVersions := Seq(scala3, scala213, scala212),
     moduleName := "magnolify-shared",
     description := "Shared code for Magnolify"
   )
@@ -271,8 +286,9 @@ lazy val test = project
   .in(file("test"))
   .enablePlugins(NoPublishPlugin)
   .dependsOn(shared)
+  .settings(commonSettings)
   .settings(
-    commonSettings,
+    crossScalaVersions := Seq(scala3, scala213, scala212),
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion % Test
@@ -557,6 +573,7 @@ lazy val jmh: Project = project
   )
   .settings(
     commonSettings,
+    crossScalaVersions := Seq(scalaDefault),
     Jmh / classDirectory := (Test / classDirectory).value,
     Jmh / dependencyClasspath := (Test / dependencyClasspath).value,
     // rewire tasks, so that 'jmh:run' automatically invokes 'jmh:compile'
