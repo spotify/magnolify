@@ -32,11 +32,11 @@ object TestCogen {
   implicit def coUnsafeEnum[T: Cogen]: Cogen[UnsafeEnum[T]] = Cogen.gen[UnsafeEnum[T]]
 
   // ADT
-  implicit lazy val coNode: Cogen[Node] = Cogen.gen
-  implicit lazy val coGNode: Cogen[GNode[Int]] = Cogen.gen
-  implicit lazy val coShape: Cogen[Shape] = Cogen.gen
-  implicit lazy val coColor: Cogen[Color] = Cogen.gen
-  implicit lazy val coPerson: Cogen[Person] = Cogen.gen
+  implicit lazy val coNode: Cogen[Node] = Cogen.gen[Node]
+  implicit lazy val coGNode: Cogen[GNode[Int]] = Cogen.gen[GNode[Int]]
+  implicit lazy val coShape: Cogen[Shape] = Cogen.gen[Shape]
+  implicit lazy val coColor: Cogen[Color] = Cogen.gen[Color]
+  implicit lazy val coPerson: Cogen[Person] = Cogen.gen[Person]
 
   // simple
   implicit lazy val coIntegers: Cogen[Integers] = Cogen.gen[Integers]
