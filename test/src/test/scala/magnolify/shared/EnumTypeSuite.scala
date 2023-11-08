@@ -126,7 +126,7 @@ class EnumTypeSuite extends MagnolifySuite {
            |      ]
            |    )
            |
-           |But method gen in trait EnumTypeCompanionMacros1 does not match type magnolify.shared.EnumType[Option[magnolify.test.ADT.Color]]
+           |But given instance gen in trait EnumTypeDerivation does not match type magnolify.shared.EnumType[Option[magnolify.test.ADT.Color]]
            |
            |where:    MirroredMonoType  is a type in an anonymous class locally defined in class EnumTypeSuite which is an alias of Option[magnolify.test.ADT.Color]
            |          MirroredMonoType² is a type in trait Mirror with bounds""".stripMargin + " \n" + """|.
