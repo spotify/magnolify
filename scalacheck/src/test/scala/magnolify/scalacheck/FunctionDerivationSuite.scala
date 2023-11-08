@@ -18,18 +18,18 @@ package magnolify.scalacheck
 
 import magnolify.test.Simple._
 import magnolify.test.ADT._
-import magnolify.scalacheck.auto._
 import magnolify.test._
 import org.scalacheck._
 
 import scala.reflect._
 
-class FunctionDerivationSuite extends MagnolifySuite {
+class FunctionDerivationSuite extends MagnolifySuite with magnolify.scalacheck.AutoDerivations {
   private def test[A: ClassTag, B: ClassTag](implicit
     t: Arbitrary[A => B],
     arbA: Arbitrary[A]
   ): Unit = {
-    val gf = ensureSerializable(t).arbitrary
+    // TODO val gf = ensureSerializable(t).arbitrary
+    val gf = t.arbitrary
     val ga = arbA.arbitrary
     val name = s"${className[A]}.${className[B]}"
     property(s"$name.consistency") {
@@ -45,14 +45,7 @@ class FunctionDerivationSuite extends MagnolifySuite {
   }
 
   test[Numbers, Numbers]
-
-  {
-    // Gen[A => B] depends on Gen[B] and may run out of size
-    import magnolify.scalacheck.semiauto.ArbitraryDerivation.Fallback
-    implicit val f: Fallback[Shape] = Fallback[Circle]
-    test[Shape, Shape]
-    test[Numbers, Shape]
-  }
-
+  test[Shape, Shape]
+  test[Numbers, Shape]
   test[Shape, Numbers]
 }

@@ -114,7 +114,8 @@ val javaDefault = java17
 val scala3Cond = "matrix.scala == '3'"
 val scala3Projects = List(
   "shared",
-  "test"
+  "test",
+  "scalacheck"
 )
 ThisBuild / scalaVersion := scalaDefault
 ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
@@ -327,6 +328,7 @@ lazy val scalacheck = project
     commonSettings,
     moduleName := "magnolify-scalacheck",
     description := "Magnolia add-on for ScalaCheck",
+    crossScalaVersions := Seq(scala3, scala213, scala212),
     libraryDependencies += "org.scalacheck" %% "scalacheck" % scalacheckVersion % Provided
   )
 
