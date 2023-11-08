@@ -87,7 +87,7 @@ jobs:
 
       - name: Build project
         if: matrix.scala == '3'
-        run: sbt 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' shared/test test/test
+        run: sbt 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' shared/test test/test scalacheck/test
 
       - name: Make target directories
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')

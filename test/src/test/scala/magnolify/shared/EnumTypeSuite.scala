@@ -19,6 +19,7 @@ package magnolify.shared
 import magnolify.test.*
 import magnolify.test.Simple.*
 
+import scala.annotation.nowarn
 import scala.util.{Properties, Try}
 
 class EnumTypeSuite extends MagnolifySuite {
@@ -100,6 +101,7 @@ class EnumTypeSuite extends MagnolifySuite {
            |        ^
            |""".stripMargin
 
+      @nowarn
       val scala3Error =
         """|error:
            |No given instance of type magnolify.shared.EnumType[Option[magnolify.test.ADT.Color]] was found for parameter et of method apply in object EnumType.

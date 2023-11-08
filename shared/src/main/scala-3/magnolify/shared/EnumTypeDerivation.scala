@@ -75,3 +75,5 @@ trait EnumTypeDerivation extends CommonDerivation[EnumType] with SealedTraitDeri
       v => subs.find(_.name == v).get.from(v)
     )
   end split
+
+  inline given gen[T](using Mirror.Of[T]): EnumType[T] = derivedMirror[T]
