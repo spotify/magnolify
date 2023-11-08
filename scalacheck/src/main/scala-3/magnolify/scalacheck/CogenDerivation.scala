@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Spotify AB
+ * Copyright 2023 Spotify AB
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,29 +14,27 @@
  * limitations under the License.
  */
 
-package magnolify.scalacheck.semiauto
+package magnolify.scalacheck
 
-import magnolia1._
+import magnolia1.*
 import org.scalacheck.Cogen
 
-object CogenDerivation {
-  type Typeclass[T] = Cogen[T]
+import scala.deriving.Mirror
 
-  def join[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] = Cogen { (seed, t) =>
-    caseClass.parameters.foldLeft(seed) { (seed, p) =>
+object CogenDerivation extends Derivation[Cogen]:
+
+  def join[T](caseClass: CaseClass[Cogen, T]): Cogen[T] = Cogen[T] { (seed, t) =>
+    caseClass.params.foldLeft(seed) { (s, p) =>
       // inject index to distinguish cases like `(Some(false), None)` and `(None, Some(0))`
-      val s = Cogen.cogenInt.perturb(seed, p.index)
-      p.typeclass.perturb(s, p.dereference(t))
+      p.typeclass.perturb(Cogen.perturb(s, p.index), p.deref(t))
     }
   }
 
-  def split[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = Cogen { (seed, t: T) =>
-    sealedTrait.split(t) { sub =>
+  def split[T](sealedTrait: SealedTrait[Cogen, T]): Cogen[T] = Cogen[T] { (seed, t) =>
+    sealedTrait.choose(t) { sub =>
       // inject index to distinguish case objects instances
-      val s = Cogen.cogenInt.perturb(seed, sub.index)
-      sub.typeclass.perturb(s, sub.cast(t))
+      sub.typeclass.perturb(Cogen.perturb(seed, sub.subtype.index), sub.cast(t))
     }
   }
 
-  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
-}
+  inline def gen[T](using Mirror.Of[T]): Cogen[T] = derivedMirror[T]

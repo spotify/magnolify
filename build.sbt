@@ -110,7 +110,8 @@ val scala212 = "2.12.19"
 val scalaDefault = scala213
 val scala3Projects = List(
   "shared",
-  "test"
+  "test",
+  "scalacheck"
 )
 
 // github actions
@@ -373,6 +374,7 @@ lazy val scalacheck = project
     commonSettings,
     moduleName := "magnolify-scalacheck",
     description := "Magnolia add-on for ScalaCheck",
+    crossScalaVersions := Seq(scala3, scala213, scala212),
     libraryDependencies += "org.scalacheck" %% "scalacheck" % scalacheckVersion % Provided
   )
 

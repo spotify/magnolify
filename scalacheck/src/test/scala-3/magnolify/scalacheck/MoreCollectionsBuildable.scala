@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Spotify AB
+ * Copyright 2022 Spotify AB
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,21 +16,4 @@
 
 package magnolify.scalacheck
 
-import magnolify.test.Simple.*
-import org.scalacheck.*
-
-object ScopeTest {
-  object Auto extends magnolify.scalacheck.AutoDerivations {
-    implicitly[Arbitrary[Numbers]]
-    implicitly[Cogen[Numbers]]
-    implicitly[Arbitrary[Numbers => Numbers]]
-  }
-
-  object Semi {
-    import magnolify.scalacheck.semiauto.*
-    implicit val arb: Arbitrary[Numbers] = Arbitrary.gen[Numbers]
-    implicit val cogen: Cogen[Numbers] = Cogen.gen[Numbers]
-    // T => T is not a case class, so ArbitraryDerivation.apply won't work
-    implicitly[Arbitrary[Numbers => Numbers]]
-  }
-}
+object MoreCollectionsBuildable
