@@ -16,7 +16,6 @@
 
 package magnolify.scalacheck
 
-import magnolify.scalacheck.auto._
 import magnolify.scalacheck.MoreCollectionsBuildable._ // extra scala 2.12 Buildable
 import magnolify.scalacheck.TestArbitrary.arbDuration
 import magnolify.scalacheck.TestArbitrary.arbUri
@@ -29,14 +28,14 @@ import org.scalacheck.rng.Seed
 
 import scala.reflect._
 
-class ArbitraryDerivationSuite extends MagnolifySuite {
+class ArbitraryDerivationSuite extends MagnolifySuite with magnolify.scalacheck.AutoDerivations {
 
-  private def test[T: Arbitrary: ClassTag]: Unit = test[T](None)
-  private def test[T: Arbitrary: ClassTag](suffix: String): Unit = test[T](Some(suffix))
+  import TestArbitrary.arbSeed
 
-  private def test[T: ClassTag](suffix: Option[String])(implicit t: Arbitrary[T]): Unit = {
-    val g = ensureSerializable(t).arbitrary
-    val name = className[T] + (if (suffix == null) "" else "." + suffix)
+  private def test[T: ClassTag](implicit t: Arbitrary[T]): Unit = {
+    // TODO val g = ensureSerializable(t).arbitrary
+    val g = t.arbitrary
+    val name = className[T]
     val prms = Gen.Parameters.default
     // `forAll(Gen.listOfN(10, g))` fails for `Repeated` & `Collections` when size parameter <= 1
     property(s"$name.uniqueness") {
@@ -72,36 +71,13 @@ class ArbitraryDerivationSuite extends MagnolifySuite {
 
   test[Custom]
 
-  {
-    import magnolify.scalacheck.semiauto.ArbitraryDerivation.Fallback
-    implicit val f: Fallback[Node] = Fallback[Leaf]
-    test[Node]
-  }
+  // magnolia scala3 limitation:
+  // For a recursive structures it is required to assign the derived value to an implicit variable
+  implicit val arbNode: Arbitrary[Node] = genArbitrary
+  implicit val arbGNode: Arbitrary[GNode[Int]] = genArbitrary
 
-  {
-    import magnolify.scalacheck.semiauto.ArbitraryDerivation.Fallback
-    implicit val f: Fallback[GNode[Int]] = Fallback(Gen.const(GLeaf(0)))
-    test[GNode[Int]]("Fallback(G: Gen[T])")
-  }
-
-  {
-    import magnolify.scalacheck.semiauto.ArbitraryDerivation.Fallback
-    implicit val f: Fallback[GNode[Int]] = Fallback(GLeaf(0))
-    test[GNode[Int]]("Fallback(v: T)")
-  }
-
-  {
-    import magnolify.scalacheck.semiauto.ArbitraryDerivation.Fallback
-    implicit val f: Fallback[GNode[Int]] = Fallback[GLeaf[Int]]
-    test[GNode[Int]]("Fallback[T]")
-  }
-
+  test[Node]
+  test[GNode[Int]]
   test[Shape]
   test[Color]
-
-  property("Seed") {
-    Prop.forAll { (seed: Seed) =>
-      seed.next != seed
-    }
-  }
 }

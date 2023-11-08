@@ -83,7 +83,7 @@ jobs:
 
       - name: Test
         if: matrix.scala == '3'
-        run: sbt 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' shared/test test/test
+        run: sbt 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' shared/test test/test scalacheck/test
 
       - name: Check binary compatibility
         if: '!(matrix.scala == ''3'')'
