@@ -14,36 +14,28 @@
  * limitations under the License.
  */
 
-package magnolify.cats.semiauto
+package magnolify.cats
 
 import cats.kernel.CommutativeMonoid
-import magnolia1._
+import magnolia1.*
 
-import scala.annotation.implicitNotFound
-import scala.collection.compat._
+import scala.deriving.Mirror
 
-object CommutativeMonoidDerivation {
-  type Typeclass[T] = CommutativeMonoid[T]
+object CommutativeMonoidDerivation extends ProductDerivation[CommutativeMonoid]:
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+  def join[T](caseClass: CaseClass[CommutativeMonoid, T]): CommutativeMonoid[T] =
     val emptyImpl = MonoidMethods.empty(caseClass)
     val combineImpl = SemigroupMethods.combine(caseClass)
     val combineNImpl = MonoidMethods.combineN(caseClass)
     val combineAllImpl = MonoidMethods.combineAll(caseClass)
     val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
 
-    new CommutativeMonoid[T] {
+    new CommutativeMonoid[T]:
       override def empty: T = emptyImpl()
       override def combine(x: T, y: T): T = combineImpl(x, y)
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAll(as: IterableOnce[T]): T = combineAllImpl(as)
       override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
-    }
-  }
+  end join
 
-  @implicitNotFound("Cannot derive CommutativeMonoid for sealed trait")
-  private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
-
-  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
-}
+  inline def gen[T](using Mirror.Of[T]): CommutativeMonoid[T] = derivedMirror[T]

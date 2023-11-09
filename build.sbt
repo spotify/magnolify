@@ -115,7 +115,8 @@ val scala3Cond = "matrix.scala == '3'"
 val scala3Projects = List(
   "shared",
   "test",
-  "scalacheck"
+  "scalacheck",
+  "cats"
 )
 ThisBuild / scalaVersion := scalaDefault
 ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
@@ -345,9 +346,9 @@ lazy val cats = project
     commonSettings,
     moduleName := "magnolify-cats",
     description := "Magnolia add-on for Cats",
+    crossScalaVersions := Seq(scala3, scala213, scala212),
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % catsVersion % Provided,
-      "com.twitter" %% "algebird-core" % algebirdVersion % Test,
       "org.typelevel" %% "cats-laws" % catsVersion % Test
     )
   )

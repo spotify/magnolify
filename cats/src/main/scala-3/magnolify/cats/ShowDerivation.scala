@@ -16,4 +16,19 @@
 
 package magnolify.cats
 
-package object auto extends AutoDerivation
+import cats.Show
+import magnolia1.*
+
+import scala.deriving.Mirror
+
+object ShowDerivation extends Derivation[Show]:
+
+  def join[T](caseClass: CaseClass[Show, T]): Show[T] = new Show[T]:
+    override def show(x: T): String = caseClass.params
+      .map(p => s"${p.label} = ${p.typeclass.show(p.deref(x))}")
+      .mkString(s"${caseClass.typeInfo.full} {", ", ", "}")
+
+  def split[T](sealedTrait: SealedTrait[Show, T]): Show[T] = new Show[T]:
+    override def show(x: T): String = sealedTrait.choose(x)(sub => sub.typeclass.show(sub.value))
+
+  inline def gen[T](using Mirror.Of[T]): Show[T] = derivedMirror[T]

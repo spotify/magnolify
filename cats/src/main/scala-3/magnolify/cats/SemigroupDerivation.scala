@@ -14,45 +14,39 @@
  * limitations under the License.
  */
 
-package magnolify.cats.semiauto
+package magnolify.cats
 
 import cats.Semigroup
-import magnolia1._
+import magnolia1.*
 
-import scala.annotation.implicitNotFound
-import scala.collection.compat.immutable.ArraySeq
-import scala.collection.compat._
+import scala.collection.immutable.ArraySeq.unsafeWrapArray
+import scala.deriving.Mirror
 
-object SemigroupDerivation {
-  type Typeclass[T] = Semigroup[T]
+object SemigroupDerivation extends ProductDerivation[Semigroup]:
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+  def join[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] =
     val combineImpl = SemigroupMethods.combine(caseClass)
     val combineNImpl = SemigroupMethods.combineN(caseClass)
     val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
 
-    new Semigroup[T] {
+    new Semigroup[T]:
       override def combine(x: T, y: T): T = combineImpl(x, y)
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
-    }
-  }
+  end join
 
-  @implicitNotFound("Cannot derive Semigroup for sealed trait")
-  private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
+  inline def gen[T](using Mirror.Of[T]): Semigroup[T] = derivedMirror[T]
+end SemigroupDerivation
 
-  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
-}
+private object SemigroupMethods:
 
-private object SemigroupMethods {
   def combine[T, Typeclass[T] <: Semigroup[T]](caseClass: CaseClass[Typeclass, T]): (T, T) => T =
-    (x, y) => caseClass.construct(p => p.typeclass.combine(p.dereference(x), p.dereference(y)))
+    (x, y) => caseClass.construct(p => p.typeclass.combine(p.deref(x), p.deref(y)))
 
   def combineNBase[T, Typeclass[T] <: Semigroup[T]](
     caseClass: CaseClass[Typeclass, T]
   ): (T, Int) => T =
-    (a: T, n: Int) => caseClass.construct(p => p.typeclass.combineN(p.dereference(a), n))
+    (a: T, n: Int) => caseClass.construct(p => p.typeclass.combineN(p.deref(a), n))
 
   def combineN[T, Typeclass[T] <: Semigroup[T]](
     caseClass: CaseClass[Typeclass, T]
@@ -70,20 +64,18 @@ private object SemigroupMethods {
     caseClass: CaseClass[Typeclass, T]
   ): IterableOnce[T] => Option[T] = {
     val combineImpl = combine(caseClass)
-
     {
       case it: Iterable[T] if it.nonEmpty =>
         // input is re-iterable and non-empty, combineAllOption on each field
-        val result = Array.fill[Any](caseClass.parameters.length)(null)
+        val result = Array.fill[Any](caseClass.params.length)(null)
         var i = 0
-        while (i < caseClass.parameters.length) {
-          val p = caseClass.parameters(i)
-          result(i) = p.typeclass.combineAllOption(it.iterator.map(p.dereference)).get
+        while (i < caseClass.params.length) {
+          val p = caseClass.params(i)
+          result(i) = p.typeclass.combineAllOption(it.iterator.map(p.deref)).get
           i += 1
         }
-        Some(caseClass.rawConstruct(ArraySeq.unsafeWrapArray(result)))
+        Some(caseClass.rawConstruct(unsafeWrapArray(result)))
       case xs =>
         xs.iterator.reduceOption(combineImpl)
     }
   }
-}

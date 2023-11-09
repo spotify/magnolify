@@ -17,7 +17,7 @@
 package magnolify.cats
 
 import cats.Eq
-import magnolify.cats.semiauto.EqDerivation
+import magnolify.cats.semiauto.*
 import magnolify.shared.UnsafeEnum
 import magnolify.test.ADT._
 import magnolify.test.JavaEnums
@@ -40,11 +40,14 @@ object TestEq {
 
   // java
   implicit lazy val eqCharSequence: Eq[CharSequence] = Eq.by(_.toString)
-  implicit def eqCharSeqMap[T: Eq]: Eq[Map[CharSequence, T]] = Eq.by { m =>
-    // Map[CharSequence, T] should not be used for lookups as key equality is not guarantee
-    // Can only be used as a key value list
-    m.map { case (k, v) => k.toString -> v }
-  }
+
+  // Map[CharSequence, T] should not be used for lookups as key equality is not guarantee
+  // Can only be used as a key value list
+  implicit def eqCharSeqMap[T: Eq]: Eq[Map[CharSequence, T]] =
+    Eq.by[Map[CharSequence, T], Map[String, T]](
+      _.map { case (k, v) => k.toString -> v }
+    )(Eq.catsKernelEqForMap[String, T])
+
   implicit val eqByteBuffer: Eq[ByteBuffer] = Eq.by(_.array())
 
   // java-time
@@ -71,26 +74,26 @@ object TestEq {
   }
 
   // ADT
-  implicit lazy val eqNode: Eq[Node] = EqDerivation[Node]
-  implicit lazy val eqGNode: Eq[GNode[Int]] = EqDerivation[GNode[Int]]
-  implicit lazy val eqShape: Eq[Shape] = EqDerivation[Shape]
-  implicit lazy val eqColor: Eq[Color] = EqDerivation[Color]
-  implicit lazy val eqPerson: Eq[Person] = EqDerivation[Person]
+  implicit lazy val eqNode: Eq[Node] = Eq.gen[Node]
+  implicit lazy val eqGNode: Eq[GNode[Int]] = Eq.gen[GNode[Int]]
+  implicit lazy val eqShape: Eq[Shape] = Eq.gen[Shape]
+  implicit lazy val eqColor: Eq[Color] = Eq.gen[Color]
+  implicit lazy val eqPerson: Eq[Person] = Eq.gen[Person]
 
   // simple
-  implicit lazy val eqIntegers: Eq[Integers] = EqDerivation[Integers]
-  implicit lazy val eqFloats: Eq[Floats] = EqDerivation[Floats]
-  implicit lazy val eqNumbers: Eq[Numbers] = EqDerivation[Numbers]
-  implicit lazy val eqRequired: Eq[Required] = EqDerivation[Required]
-  implicit lazy val eqNullable: Eq[Nullable] = EqDerivation[Nullable]
-  implicit lazy val eqRepeated: Eq[Repeated] = EqDerivation[Repeated]
-  implicit lazy val eqNested: Eq[Nested] = EqDerivation[Nested]
-  implicit lazy val eqCollections: Eq[Collections] = EqDerivation[Collections]
-  implicit lazy val eqMoreCollections: Eq[MoreCollections] = EqDerivation[MoreCollections]
-  implicit lazy val eqEnums: Eq[Enums] = EqDerivation[Enums]
-  implicit lazy val eqUnsafeEnums: Eq[UnsafeEnums] = EqDerivation[UnsafeEnums]
-  implicit lazy val eqCustom: Eq[Custom] = EqDerivation[Custom]
-  implicit lazy val eqLowerCamel: Eq[LowerCamel] = EqDerivation[LowerCamel]
-  implicit lazy val eqLowerCamelInner: Eq[LowerCamelInner] = EqDerivation[LowerCamelInner]
+  implicit lazy val eqIntegers: Eq[Integers] = Eq.gen[Integers]
+  implicit lazy val eqFloats: Eq[Floats] = Eq.gen[Floats]
+  implicit lazy val eqNumbers: Eq[Numbers] = Eq.gen[Numbers]
+  implicit lazy val eqRequired: Eq[Required] = Eq.gen[Required]
+  implicit lazy val eqNullable: Eq[Nullable] = Eq.gen[Nullable]
+  implicit lazy val eqRepeated: Eq[Repeated] = Eq.gen[Repeated]
+  implicit lazy val eqNested: Eq[Nested] = Eq.gen[Nested]
+  implicit lazy val eqCollections: Eq[Collections] = Eq.gen[Collections]
+  implicit lazy val eqMoreCollections: Eq[MoreCollections] = Eq.gen[MoreCollections]
+  implicit lazy val eqEnums: Eq[Enums] = Eq.gen[Enums]
+  implicit lazy val eqUnsafeEnums: Eq[UnsafeEnums] = Eq.gen[UnsafeEnums]
+  implicit lazy val eqCustom: Eq[Custom] = Eq.gen[Custom]
+  implicit lazy val eqLowerCamel: Eq[LowerCamel] = Eq.gen[LowerCamel]
+  implicit lazy val eqLowerCamelInner: Eq[LowerCamelInner] = Eq.gen[LowerCamelInner]
 
 }

@@ -14,32 +14,24 @@
  * limitations under the License.
  */
 
-package magnolify.cats.semiauto
+package magnolify.cats
 
-import cats.kernel.CommutativeSemigroup
-import magnolia1._
+import cats.kernel.Band
+import magnolia1.*
 
-import scala.annotation.implicitNotFound
-import scala.collection.compat._
+import scala.collection.compat.*
 
-object CommutativeSemigroupDerivation {
-  type Typeclass[T] = CommutativeSemigroup[T]
+import scala.deriving.Mirror
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+object BandDerivation extends ProductDerivation[Band]:
+  def join[T](caseClass: CaseClass[Band, T]): Band[T] =
     val combineImpl = SemigroupMethods.combine(caseClass)
     val combineNImpl = SemigroupMethods.combineN(caseClass)
     val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
 
-    new CommutativeSemigroup[T] {
+    new Band[T]:
       override def combine(x: T, y: T): T = combineImpl(x, y)
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
-    }
-  }
 
-  @implicitNotFound("Cannot derive CommutativeSemigroup for sealed trait")
-  private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
-
-  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
-}
+  inline def gen[T](using Mirror.Of[T]): Band[T] = derivedMirror[T]
