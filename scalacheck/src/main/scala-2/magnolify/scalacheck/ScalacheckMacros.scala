@@ -19,6 +19,7 @@ package magnolify.scalacheck
 import org.scalacheck.{Arbitrary, Cogen}
 
 import scala.reflect.macros.*
+
 object ScalaCheckMacros {
   def autoDerivationArbitraryMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
     import c.universe._

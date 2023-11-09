@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package magnolify.cats.semiauto
+package magnolify.cats
 
 import cats.Hash
-import magnolia1._
+import magnolia1.*
 import magnolify.shims.MurmurHash3Compat
 
 import scala.util.hashing.MurmurHash3
@@ -25,7 +25,7 @@ import scala.util.hashing.MurmurHash3
 object HashDerivation {
   type Typeclass[T] = Hash[T]
 
-  def join[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] = {
+  def join[T](caseClass: ReadOnlyCaseClass[Hash, T]): Hash[T] = {
     val eqvImpl = EqMethods.join(caseClass)
 
     new Hash[T] {
@@ -44,7 +44,7 @@ object HashDerivation {
     }
   }
 
-  def split[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = {
+  def split[T](sealedTrait: SealedTrait[Hash, T]): Hash[T] = {
     val eqvImpl = EqMethods.split(sealedTrait)
 
     new Hash[T] {
@@ -56,5 +56,8 @@ object HashDerivation {
     }
   }
 
-  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: Hash[T] = macro Magnolia.gen[T]
+
+  @deprecated("Use gen instead", "0.7.0")
+  def apply[T]: Hash[T] = macro Magnolia.gen[T]
 }

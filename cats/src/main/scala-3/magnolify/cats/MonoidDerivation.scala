@@ -14,47 +14,39 @@
  * limitations under the License.
  */
 
-package magnolify.cats.semiauto
+package magnolify.cats
 
 import cats.Monoid
-import magnolia1._
+import magnolia1.*
 
-import scala.annotation.implicitNotFound
-import scala.collection.compat.immutable.ArraySeq
-import scala.collection.compat._
+import scala.collection.immutable.ArraySeq.unsafeWrapArray
+import scala.deriving.Mirror
 
-object MonoidDerivation {
-  type Typeclass[T] = Monoid[T]
+object MonoidDerivation extends ProductDerivation[Monoid]:
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+  def join[T](caseClass: CaseClass[Monoid, T]): Monoid[T] =
     val emptyImpl = MonoidMethods.empty(caseClass)
     val combineImpl = SemigroupMethods.combine(caseClass)
     val combineNImpl = MonoidMethods.combineN(caseClass)
     val combineAllImpl = MonoidMethods.combineAll(caseClass)
     val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
 
-    new Monoid[T] {
+    new Monoid[T]:
       override def empty: T = emptyImpl()
       override def combine(x: T, y: T): T = combineImpl(x, y)
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAll(as: IterableOnce[T]): T = combineAllImpl(as)
       override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
-    }
-  }
+  end join
 
-  @implicitNotFound("Cannot derive Monoid for sealed trait")
-  private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
+  inline def gen[T](using Mirror.Of[T]): Monoid[T] = derivedMirror[T]
+end MonoidDerivation
 
-  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
-}
-
-private object MonoidMethods {
+private object MonoidMethods:
   def empty[T, Typeclass[T] <: Monoid[T]](caseClass: CaseClass[Typeclass, T]): () => T =
-    new Function0[T] with Serializable {
+    new Function0[T] with Serializable:
       @transient private lazy val value = caseClass.construct(_.typeclass.empty)
       override def apply(): T = value
-    }
 
   def combineN[T, Typeclass[T] <: Monoid[T]](caseClass: CaseClass[Typeclass, T]): (T, Int) => T = {
     val emptyImpl = empty(caseClass)
@@ -74,19 +66,17 @@ private object MonoidMethods {
   ): IterableOnce[T] => T = {
     val combineImpl = SemigroupMethods.combine(caseClass)
     val emptyImpl = MonoidMethods.empty(caseClass)
-
     {
       case it: Iterable[T] if it.nonEmpty =>
         // input is re-iterable and non-empty, combineAll on each field
-        val result = Array.fill[Any](caseClass.parameters.length)(null)
+        val result = Array.fill[Any](caseClass.params.length)(null)
         var i = 0
-        while (i < caseClass.parameters.length) {
-          val p = caseClass.parameters(i)
-          result(i) = p.typeclass.combineAll(it.iterator.map(p.dereference))
+        while (i < caseClass.params.length) {
+          val p = caseClass.params(i)
+          result(i) = p.typeclass.combineAll(it.iterator.map(p.deref))
           i += 1
         }
-        caseClass.rawConstruct(ArraySeq.unsafeWrapArray(result))
+        caseClass.rawConstruct(unsafeWrapArray(result))
       case xs => xs.iterator.foldLeft(emptyImpl())(combineImpl)
     }
   }
-}

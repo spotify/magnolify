@@ -14,24 +14,27 @@
  * limitations under the License.
  */
 
-package magnolify.cats.semiauto
+package magnolify.cats
 
 import cats.Show
-import magnolia1._
+import magnolia1.*
 
 object ShowDerivation {
   type Typeclass[T] = Show[T]
 
-  def join[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] = new Show[T] {
+  def join[T](caseClass: ReadOnlyCaseClass[Show, T]): Show[T] = new Show[T] {
     override def show(x: T): String = caseClass.parameters
       .map(p => s"${p.label} = ${p.typeclass.show(p.dereference(x))}")
       .mkString(s"${caseClass.typeName.full} {", ", ", "}")
   }
 
-  def split[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = new Show[T] {
+  def split[T](sealedTrait: SealedTrait[Show, T]): Show[T] = new Show[T] {
     override def show(x: T): String =
       sealedTrait.split(x)(sub => sub.typeclass.show(sub.cast(x)))
   }
 
-  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: Show[T] = macro Magnolia.gen[T]
+
+  @deprecated("Use gen instead", "0.7.0")
+  def apply[T]: Show[T] = macro Magnolia.gen[T]
 }

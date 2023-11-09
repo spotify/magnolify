@@ -14,21 +14,24 @@
  * limitations under the License.
  */
 
-package magnolify.cats.semiauto
+package magnolify.cats
 
 import cats.Eq
-import magnolia1._
+import magnolia1.*
 
 object EqDerivation {
   type Typeclass[T] = Eq[T]
 
-  def join[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] =
+  def join[T](caseClass: ReadOnlyCaseClass[Eq, T]): Eq[T] =
     Eq.instance(EqMethods.join(caseClass))
 
-  def split[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] =
+  def split[T](sealedTrait: SealedTrait[Eq, T]): Eq[T] =
     Eq.instance(EqMethods.split(sealedTrait))
 
-  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: Eq[T] = macro Magnolia.gen[T]
+
+  @deprecated("Use gen instead", "0.7.0")
+  def apply[T]: Eq[T] = macro Magnolia.gen[T]
 }
 
 private object EqMethods {

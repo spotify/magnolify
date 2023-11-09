@@ -16,12 +16,13 @@
 
 package magnolify.jmh
 
-import java.util.concurrent.TimeUnit
+import magnolify.cats.{EqDerivation, GroupDerivation, HashDerivation, MonoidDerivation, SemigroupDerivation}
 
-import magnolify.scalacheck.auto._
-import magnolify.test.Simple._
-import org.scalacheck._
-import org.openjdk.jmh.annotations._
+import java.util.concurrent.TimeUnit
+import magnolify.scalacheck.auto.*
+import magnolify.test.Simple.*
+import org.scalacheck.*
+import org.openjdk.jmh.annotations.*
 
 object MagnolifyBench {
   val seed: rng.Seed = rng.Seed(0)

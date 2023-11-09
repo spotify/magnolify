@@ -16,10 +16,9 @@
 
 package magnolify.cats
 
-import cats._
-import cats.kernel.{Band, CommutativeGroup, CommutativeMonoid, CommutativeSemigroup}
-import magnolify.test.Simple._
-import magnolify.cats.semiauto._
+import cats.Show
+import cats.kernel.*
+import magnolify.test.Simple.*
 import munit.FunSuite
 
 import scala.reflect.{classTag, ClassTag}
@@ -27,8 +26,7 @@ import scala.reflect.{classTag, ClassTag}
 object ScopeTest {
   case class Sets(s: Set[Int])
 
-  object Auto {
-    import magnolify.cats.auto._
+  object Auto extends magnolify.cats.AutoDerivation {
     val s: Show[Numbers] = implicitly
     val eq: Eq[Numbers] = implicitly
     val hash: Hash[Numbers] = implicitly
@@ -42,16 +40,17 @@ object ScopeTest {
   }
 
   object Semi {
-    EqDerivation[Numbers]
-    HashDerivation[Numbers]
-    SemigroupDerivation[Numbers]
-    CommutativeSemigroupDerivation[Numbers]
-    BandDerivation[Sets]
-    MonoidDerivation[Numbers]
-    CommutativeMonoidDerivation[Numbers]
-    GroupDerivation[Numbers]
-    CommutativeGroupDerivation[Numbers]
-    ShowDerivation[Numbers]
+    import magnolify.cats.semiauto.*
+    Eq.gen[Numbers]
+    Hash.gen[Numbers]
+    Semigroup.gen[Numbers]
+    CommutativeSemigroup.gen[Numbers]
+    Band.gen[Sets]
+    Monoid.gen[Numbers]
+    CommutativeMonoid.gen[Numbers]
+    Group.gen[Numbers]
+    CommutativeGroup.gen[Numbers]
+    Show.gen[Numbers]
   }
 }
 

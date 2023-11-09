@@ -16,25 +16,26 @@
 
 package magnolify.cats
 
-import cats._
-import cats.laws.discipline.ContravariantTests
-import cats.laws.discipline.MiniInt
-import cats.laws.discipline.arbitrary._
-import cats.laws.discipline.eq._
-import magnolify.cats.auto.genShow
-import magnolify.scalacheck.TestArbitrary._
-import magnolify.test.ADT._
-import magnolify.test.Simple._
-import magnolify.test._
-import org.scalacheck._
+import cats.Show
+import cats.laws.discipline.{ContravariantTests, MiniInt}
+import cats.laws.discipline.arbitrary.*
+import cats.laws.discipline.eq.*
+import magnolify.scalacheck.TestArbitrary.*
+import magnolify.test.*
+import magnolify.test.ADT.*
+import magnolify.test.Simple.*
+import org.scalacheck.*
 
 import java.net.URI
 import java.time.Duration
-import scala.reflect._
+import scala.reflect.*
 
-class ShowDerivationSuite extends MagnolifySuite {
+class ShowDerivationSuite extends MagnolifySuite with magnolify.scalacheck.AutoDerivations {
+  import magnolify.cats.auto.genShow
+
   private def test[T: Arbitrary: ClassTag: Show]: Unit = {
-    val show = ensureSerializable(implicitly[Show[T]])
+    // val show = ensureSerializable(implicitly[Show[T]])
+    val show = Show[T]
     val name = className[T]
     include(ContravariantTests[Show].contravariant[MiniInt, Int, Boolean].all, s"$name.")
 
@@ -59,8 +60,14 @@ class ShowDerivationSuite extends MagnolifySuite {
   test[Collections]
   test[Custom]
 
+  // magnolia scala3 limitation:
+  // For a recursive structures it is required to assign the derived value to an implicit variable
+  // TODO use different implicit names in auto/semiauto to avoid shadowing
+  implicit val showNode: Show[Node] = magnolify.cats.ShowDerivation.gen
+  implicit val showGNode: Show[GNode[Int]] = magnolify.cats.ShowDerivation.gen
   test[Node]
   test[GNode[Int]]
+
   test[Shape]
   test[Color]
 }
