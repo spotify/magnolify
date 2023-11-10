@@ -117,7 +117,8 @@ val scala3Cond = "matrix.scala == '3'"
 val scala3Projects = List(
   "shared",
   "test",
-  "scalacheck"
+  "scalacheck",
+  "guava"
 )
 ThisBuild / scalaVersion := scalaDefault
 ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
@@ -339,6 +340,7 @@ lazy val guava = project
     commonSettings,
     moduleName := "magnolify-guava",
     description := "Magnolia add-on for Guava",
+    crossScalaVersions := Seq(scala3, scala213, scala212),
     libraryDependencies ++= Seq(
       "com.google.guava" % "guava" % guavaVersion % Provided
     )

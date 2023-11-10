@@ -22,8 +22,7 @@ import eu.timepit.refined.auto._
 import eu.timepit.refined.boolean._
 import eu.timepit.refined.numeric._
 import eu.timepit.refined.string._
-import magnolify.guava.BytesSink
-import magnolify.guava.semiauto.FunnelDerivation
+import magnolify.guava.{BytesSink, FunnelDerivation}
 import magnolify.test._
 
 object RefinedSuite {
