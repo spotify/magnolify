@@ -17,16 +17,17 @@
 package magnolify.guava
 
 import com.google.common.hash.Funnel
-import magnolify.test.Simple._
+import magnolify.test.Simple.*
 
 object ScopeTest {
-  object Auto {
-    import magnolify.guava.auto._
+  import magnolify.guava.FunnelImplicits.*
+
+  object Auto extends magnolify.guava.AutoDerivations {
     implicitly[Funnel[Integers]]
   }
 
   object Semi {
-    import magnolify.guava.semiauto._
-    FunnelDerivation[Integers]
+    import magnolify.guava.semiauto.*
+    genFunnel[Integers]
   }
 }

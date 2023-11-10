@@ -16,11 +16,4 @@
 
 package magnolify.guava
 
-import com.google.common.hash.Funnel
-import magnolify.guava.semiauto.FunnelImplicits
-
-package object auto extends FunnelImplicits with LowPriorityImplicits
-
-trait LowPriorityImplicits {
-  implicit def genFunnel[T]: Funnel[T] = macro GuavaMacros.genFunnelMacro[T]
-}
+package object auto extends FunnelImplicits with AutoDerivations

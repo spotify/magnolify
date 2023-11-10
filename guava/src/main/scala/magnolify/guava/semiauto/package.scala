@@ -16,4 +16,8 @@
 
 package magnolify.guava
 
-package object semiauto extends FunnelImplicits
+package object semiauto extends FunnelImplicits with SemiAutoDerivations {
+
+  @deprecated("Use genFunnel[T] instead", "0.7.0")
+  val FunnelDerivation = magnolify.guava.FunnelDerivation
+}
