@@ -25,9 +25,9 @@ import org.scalacheck.rng.Seed
 import java.net.URI
 import scala.reflect.*
 
-class CogenDerivationSuite extends MagnolifySuite with magnolify.scalacheck.AutoDerivations {
-
+class CogenDerivationSuite extends MagnolifySuite {
   import TestArbitrary.arbSeed
+  import magnolify.scalacheck.auto.genCogen
 
   private def test[T: ClassTag](implicit arb: Arbitrary[T], t: Cogen[T]): Unit = {
     // TODO val co = ensureSerializable(t)
