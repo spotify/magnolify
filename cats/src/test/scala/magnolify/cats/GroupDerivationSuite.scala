@@ -25,8 +25,9 @@ import org.scalacheck.*
 
 import scala.reflect.*
 
-class GroupDerivationSuite extends MagnolifySuite with magnolify.scalacheck.AutoDerivations {
+class GroupDerivationSuite extends MagnolifySuite {
   import GroupDerivationSuite.*
+  import magnolify.scalacheck.auto.genArbitrary
   import magnolify.cats.auto.genGroup
 
   private def test[T: Arbitrary: ClassTag: Eq: Group]: Unit = {

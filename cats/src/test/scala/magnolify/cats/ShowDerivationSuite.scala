@@ -20,7 +20,6 @@ import cats.Show
 import cats.laws.discipline.{ContravariantTests, MiniInt}
 import cats.laws.discipline.arbitrary.*
 import cats.laws.discipline.eq.*
-import magnolify.scalacheck.TestArbitrary.*
 import magnolify.test.*
 import magnolify.test.ADT.*
 import magnolify.test.Simple.*
@@ -30,7 +29,8 @@ import java.net.URI
 import java.time.Duration
 import scala.reflect.*
 
-class ShowDerivationSuite extends MagnolifySuite with magnolify.scalacheck.AutoDerivations {
+class ShowDerivationSuite extends MagnolifySuite {
+  import magnolify.scalacheck.auto.genArbitrary
   import magnolify.cats.auto.genShow
 
   private def test[T: Arbitrary: ClassTag: Show]: Unit = {
@@ -48,6 +48,7 @@ class ShowDerivationSuite extends MagnolifySuite with magnolify.scalacheck.AutoD
     }
   }
 
+  import magnolify.scalacheck.TestArbitrary.*
   implicit val showArray: Show[Array[Int]] = Show.fromToString
   implicit val showUri: Show[URI] = Show.fromToString
   implicit val showDuration: Show[Duration] = Show.fromToString

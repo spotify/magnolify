@@ -26,10 +26,9 @@ import org.scalacheck.*
 
 import scala.reflect.*
 
-class CommutativeGroupDerivationSuite
-    extends MagnolifySuite
-    with magnolify.scalacheck.AutoDerivations {
+class CommutativeGroupDerivationSuite extends MagnolifySuite {
   import CommutativeGroupDerivationSuite.*
+  import magnolify.scalacheck.auto.genArbitrary
   import magnolify.cats.auto.genCommutativeGroup
 
   private def test[T: Arbitrary: ClassTag: Eq: CommutativeGroup]: Unit = {
