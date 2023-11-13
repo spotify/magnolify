@@ -28,9 +28,9 @@ import org.scalacheck.rng.Seed
 
 import scala.reflect._
 
-class ArbitraryDerivationSuite extends MagnolifySuite with magnolify.scalacheck.AutoDerivations {
-
+class ArbitraryDerivationSuite extends MagnolifySuite {
   import TestArbitrary.arbSeed
+  import magnolify.scalacheck.auto.genArbitrary
 
   private def test[T: ClassTag](implicit t: Arbitrary[T]): Unit = {
     // TODO val g = ensureSerializable(t).arbitrary
