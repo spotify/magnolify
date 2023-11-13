@@ -26,10 +26,9 @@ import org.scalacheck.*
 
 import scala.reflect.*
 
-class CommutativeSemigroupDerivationSuite
-    extends MagnolifySuite
-    with magnolify.scalacheck.AutoDerivations {
+class CommutativeSemigroupDerivationSuite extends MagnolifySuite {
   import CommutativeSemigroupDerivationSuite.*
+  import magnolify.scalacheck.auto.genArbitrary
   import magnolify.cats.auto.genCommutativeSemigroup
 
   private def test[T: Arbitrary: ClassTag: Eq: CommutativeSemigroup]: Unit = {

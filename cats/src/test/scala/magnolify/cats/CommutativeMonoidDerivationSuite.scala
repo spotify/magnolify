@@ -26,10 +26,9 @@ import org.scalacheck.*
 
 import scala.reflect.*
 
-class CommutativeMonoidDerivationSuite
-    extends MagnolifySuite
-    with magnolify.scalacheck.AutoDerivations {
+class CommutativeMonoidDerivationSuite extends MagnolifySuite {
   import CommutativeMonoidDerivationSuite.*
+  import magnolify.scalacheck.auto.genArbitrary
   import magnolify.cats.auto.genCommutativeMonoid
 
   private def test[T: Arbitrary: ClassTag: Eq: CommutativeMonoid]: Unit = {

@@ -16,23 +16,20 @@
 
 package magnolify.cats
 
-import cats._
-import cats.kernel.laws.discipline._
-import magnolify.test.ADT._
-import magnolify.test.Simple._
-import magnolify.test._
-import org.scalacheck._
-
-import scala.reflect._
+import cats.*
+import cats.kernel.laws.discipline.*
+import magnolify.test.*
+import magnolify.test.ADT.*
+import magnolify.test.Simple.*
+import org.scalacheck.*
 
 import java.net.URI
 import java.time.Duration
-import cats.Eq._
-import magnolify.scalacheck.TestArbitrary._
-import magnolify.scalacheck.TestCogen._
+import scala.reflect.*
 
-class HashDerivationSuite extends MagnolifySuite with magnolify.scalacheck.AutoDerivations {
+class HashDerivationSuite extends MagnolifySuite {
   import magnolify.cats.auto.genHash
+  import magnolify.scalacheck.auto.genArbitrary
 
   private def test[T: Arbitrary: ClassTag: Cogen: Hash](exclusions: String*): Unit = {
     // TODO val hash = ensureSerializable(implicitly[Hash[T]])
@@ -43,6 +40,8 @@ class HashDerivationSuite extends MagnolifySuite with magnolify.scalacheck.AutoD
     }
   }
 
+  import magnolify.scalacheck.TestArbitrary.*
+  import magnolify.scalacheck.TestCogen.*
   // Use `scala.util.hashing.Hashing[T]` for `Array[Int]`, equivalent to `x.##` and `x.hashCode`
   implicit val hash: Hash[Array[Int]] = Hash.fromHashing[Array[Int]]
   implicit val hashUri: Hash[URI] = Hash.fromUniversalHashCode

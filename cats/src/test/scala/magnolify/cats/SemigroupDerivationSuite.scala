@@ -18,11 +18,8 @@ package magnolify.cats
 
 import cats.*
 import cats.kernel.laws.discipline.*
-import magnolify.cats.semiauto.*
-import magnolify.cats.TestEq.*
 import magnolify.cats.Types.MiniInt
-import magnolify.cats.auto.genSemigroup
-import magnolify.scalacheck.TestArbitrary.*
+import magnolify.cats.semiauto.*
 import magnolify.test.*
 import magnolify.test.Simple.*
 import org.scalacheck.*
@@ -31,8 +28,10 @@ import java.net.URI
 import java.time.Duration
 import scala.reflect.*
 
-class SemigroupDerivationSuite extends MagnolifySuite with magnolify.scalacheck.AutoDerivations {
+class SemigroupDerivationSuite extends MagnolifySuite {
   import SemigroupDerivationSuite.*
+  import magnolify.cats.auto.genSemigroup
+  import magnolify.scalacheck.auto.genArbitrary
 
   private def test[T: Arbitrary: ClassTag: Eq: Semigroup]: Unit = {
     // TODO val sg = ensureSerializable(implicitly[Semigroup[T]])
@@ -40,6 +39,8 @@ class SemigroupDerivationSuite extends MagnolifySuite with magnolify.scalacheck.
     include(SemigroupTests[T](sg).semigroup.all, className[T] + ".")
   }
 
+  import magnolify.scalacheck.TestArbitrary.*
+  import magnolify.cats.TestEq.*
   implicit val eqRecord: Eq[Record] = Eq.gen[Record]
   implicit val sgBool: Semigroup[Boolean] = Semigroup.instance(_ ^ _)
   implicit val sgUri: Semigroup[URI] =

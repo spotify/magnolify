@@ -26,8 +26,9 @@ import org.scalacheck.*
 
 import scala.reflect.*
 
-class BandDerivationSuite extends MagnolifySuite with magnolify.scalacheck.AutoDerivations {
+class BandDerivationSuite extends MagnolifySuite {
   import BandDerivationSuite.*
+  import magnolify.scalacheck.auto.genArbitrary
   import magnolify.cats.auto.genBand
 
   private def test[T: Arbitrary: ClassTag: Eq: Band]: Unit = {
