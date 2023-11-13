@@ -23,7 +23,10 @@ import org.scalacheck._
 
 import scala.reflect._
 
-class FunctionDerivationSuite extends MagnolifySuite with magnolify.scalacheck.AutoDerivations {
+class FunctionDerivationSuite extends MagnolifySuite {
+  import magnolify.scalacheck.auto.genCogen
+  import magnolify.scalacheck.auto.genArbitrary
+
   private def test[A: ClassTag, B: ClassTag](implicit
     t: Arbitrary[A => B],
     arbA: Arbitrary[A]
