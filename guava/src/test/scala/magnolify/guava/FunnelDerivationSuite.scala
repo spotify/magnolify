@@ -30,11 +30,9 @@ import java.nio.charset.Charset
 import java.time.Duration
 import scala.reflect.*
 
-class FunnelDerivationSuite
-    extends MagnolifySuite
-    with magnolify.scalacheck.AutoDerivations
-    with magnolify.guava.FunnelImplicits
-    with magnolify.guava.AutoDerivations {
+class FunnelDerivationSuite extends MagnolifySuite with magnolify.guava.FunnelImplicits {
+  import magnolify.scalacheck.auto.genArbitrary
+  import magnolify.guava.auto.genFunnel
 
   private def test[T: ClassTag](implicit arb: Arbitrary[T], t: Funnel[T]): Unit = {
     // TODO val fnl = ensureSerializable(t)
