@@ -16,4 +16,4 @@
 
 package magnolify.cats
 
-package object auto extends AutoDerivation
+package object auto extends CatsImplicits with AutoDerivation
