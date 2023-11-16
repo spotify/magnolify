@@ -31,13 +31,13 @@ trait FunnelImplicits {
   implicit val shortFunnel: Funnel[Short] = FunnelInstances.shortFunnel()
 
   implicit def charSequenceFunnel[T <: CharSequence]: Funnel[T] =
-    FunnelInstances.charSequenceFunnel[T]
+    FunnelInstances.charSequenceFunnel[T]()
 
   // There is an implicit Option[T] => Iterable[T]
   implicit def iterableFunnel[T, C[_]](implicit
     fnl: Funnel[T],
     ti: C[T] => Iterable[T]
-  ): Funnel[C[T]] = FunnelInstances.iterableFunnel(fnl).contramap(ti)
+  ): Funnel[C[T]] = FunnelInstances.iterableFunnel(fnl)
 
   implicit def funnelOps[T](fnl: Funnel[T]): FunnelOps[T] = new FunnelOps(fnl)
 }

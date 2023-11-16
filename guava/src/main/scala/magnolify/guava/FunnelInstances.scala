@@ -35,12 +35,14 @@ object FunnelInstances {
   def charFunnel(): Funnel[Char] = funnel[Char](_.putChar(_))
   def shortFunnel(): Funnel[Short] = funnel[Short](_.putShort(_))
 
-  def charSequenceFunnel[T <: CharSequence]: Funnel[T] =
+  def charSequenceFunnel[T <: CharSequence](): Funnel[T] =
     Funnels.unencodedCharsFunnel().asInstanceOf[Funnel[T]]
-  def iterableFunnel[T](fnl: Funnel[T]): Funnel[Iterable[T]] =
+
+  // There is an implicit Option[T] => Iterable[T]
+  def iterableFunnel[T, C[_]](fnl: Funnel[T])(implicit ti: C[T] => Iterable[T]): Funnel[C[T]] =
     funnel { (sink, xs) =>
       var i = 0
-      xs.foreach { x =>
+      ti(xs).foreach { x =>
         fnl.funnel(x, sink)
         i += 1
       }

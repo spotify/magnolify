@@ -30,13 +30,13 @@ trait FunnelImplicits:
   given shortFunnel: Funnel[Short] = FunnelInstances.shortFunnel()
 
   given charSequenceFunnel[T <: CharSequence]: Funnel[T] =
-    FunnelInstances.charSequenceFunnel[T]
+    FunnelInstances.charSequenceFunnel[T]()
 
   // There is an implicit Option[T] => Iterable[T]
   given iterableFunnel[T, C[_]](using
     fnl: Funnel[T],
     ti: C[T] => Iterable[T]
-  ): Funnel[C[T]] = FunnelInstances.iterableFunnel(fnl).contramap(ti)
+  ): Funnel[C[T]] = FunnelInstances.iterableFunnel(fnl)
 
   extension [T](fnl: Funnel[T])
     def contramap[U](f: U => T): Funnel[U] = new Funnel[U]:
