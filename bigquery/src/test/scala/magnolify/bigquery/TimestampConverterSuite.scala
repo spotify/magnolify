@@ -26,7 +26,7 @@ class TimestampConverterSuite extends munit.ScalaCheckSuite {
       // zone
       "2023-01-01t10:11:12.123456 Europe/London",
       "2023-01-01t10:11:12.123456 UTC+01:02",
-      "2023-01-01t10:11:12.123456 UTC-01:02",
+      "2023-01-01t10:11:12.123456 UTC-01:02"
       // "2023-01-01t10:11:12.123456 UTC+1:2", not possible to get +H:M offset pattern
       // "2023-01-01t10:11:12.123456 UTC+1", skipped
     ).foreach { ts =>
@@ -46,7 +46,7 @@ class TimestampConverterSuite extends munit.ScalaCheckSuite {
     Seq(
       "2023-01-02",
       "2023-01-2",
-      "2023-1-2",
+      "2023-1-2"
     ).foreach { date =>
       try {
         TimestampConverter.toLocalDate(date)
@@ -90,13 +90,13 @@ class TimestampConverterSuite extends munit.ScalaCheckSuite {
       "2023-1-1 0:1:2",
       // time separator
       "2023-01-01T10:11:12.123456",
-      "2023-01-01t10:11:12.123456",
+      "2023-01-01t10:11:12.123456"
     ).foreach { datetime =>
-        try {
-          TimestampConverter.toLocalDateTime(datetime)
-        } catch {
-          case NonFatal(e) => throw new Exception(s"Failed parsing $datetime", e)
-        }
+      try {
+        TimestampConverter.toLocalDateTime(datetime)
+      } catch {
+        case NonFatal(e) => throw new Exception(s"Failed parsing $datetime", e)
+      }
     }
     // formatter uses ISO
     val javaLocalDateTime = TimestampConverter.toLocalDateTime("2023-01-01 10:11:12.123456")
