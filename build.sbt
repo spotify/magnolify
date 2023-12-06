@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import sbt._
 import sbtprotoc.ProtocPlugin.ProtobufConfig
 import com.typesafe.tools.mima.core._
 
@@ -149,29 +150,33 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
     "coverage",
     "Test coverage",
-    githubWorkflowJobSetup.value.toList ::: List(
-      WorkflowStep.Sbt(
-        List("coverage", "test", "coverageAggregate"),
-        name = Some("Test coverage")
+    WorkflowStep.CheckoutFull ::
+      WorkflowStep.SetupJava(List(javaDefault)) :::
+      List(
+        WorkflowStep.Sbt(
+          List("coverage", "test", "coverageAggregate"),
+          name = Some("Test coverage")
+        ),
+        WorkflowStep.Run(
+          List("bash <(curl -s https://codecov.io/bash)"),
+          name = Some("Upload coverage report")
+        )
       ),
-      WorkflowStep.Run(
-        List("bash <(curl -s https://codecov.io/bash)"),
-        name = Some("Upload coverage report")
-      )
-    ),
     scalas = List(CrossVersion.binaryScalaVersion(scalaDefault)),
     javas = List(javaDefault)
   ),
   WorkflowJob(
     "avro-legacy",
     "Test with legacy avro",
-    githubWorkflowJobSetup.value.toList ::: List(
-      WorkflowStep.Sbt(
-        List("avro/test"),
-        env = Map("JAVA_OPTS" -> "-Davro.version=1.8.2"),
-        name = Some("Test")
-      )
-    ),
+    WorkflowStep.CheckoutFull ::
+      WorkflowStep.SetupJava(List(javaDefault)) :::
+      List(
+        WorkflowStep.Sbt(
+          List("avro/test"),
+          env = Map("JAVA_OPTS" -> "-Davro.version=1.8.2"),
+          name = Some("Test")
+        )
+      ),
     scalas = List(CrossVersion.binaryScalaVersion(scalaDefault)),
     javas = List(javaDefault)
   )
