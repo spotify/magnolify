@@ -86,7 +86,7 @@ jobs:
         run: sbt 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' shared/test test/test
 
       - name: Check binary compatibility
-        if: matrix.java == 'corretto@17' && matrix.os == 'ubuntu-latest'
+        if: '!(matrix.scala == ''3'')'
         run: sbt 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' mimaReportBinaryIssues
 
       - name: Generate API documentation

@@ -137,6 +137,14 @@ ThisBuild / githubWorkflowBuild ~= { steps: Seq[WorkflowStep] =>
           cond = Some(scala3Cond)
         )
       )
+    case s if s.name.contains("Check binary compatibility") =>
+      Seq(
+        WorkflowStep.Sbt(
+          List("mimaReportBinaryIssues"),
+          name = Some("Check binary compatibility"),
+          cond = Some(s"!($scala3Cond)")
+        )
+      )
     case s =>
       Seq(s)
   }
@@ -175,14 +183,6 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 
 // mima
 ThisBuild / mimaBinaryIssueFilters ++= Seq()
-// remove this after 0.7.0 release
-ThisBuild / tlMimaPreviousVersions := {
-  if ((ThisBuild / scalaVersion).value == scala3) {
-    Set.empty
-  } else {
-    (ThisBuild / tlMimaPreviousVersions).value
-  }
-}
 
 // protobuf
 ThisBuild / PB.protocVersion := protobufVersion
