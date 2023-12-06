@@ -108,11 +108,8 @@ val scalaDefault = scala213
 // github actions
 val java17 = JavaSpec.corretto("17")
 val java11 = JavaSpec.corretto("11")
-val javaDefault = java11
-val coverageCond = Seq(
-  s"matrix.scala == '${CrossVersion.binaryScalaVersion(scalaDefault)}'",
-  s"matrix.java == '${javaDefault.render}'"
-).mkString(" && ")
+val javaDefault = java17
+
 val scala3Cond = "matrix.scala == '3'"
 val scala3Projects = List(
   "shared",
@@ -144,13 +141,11 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
     githubWorkflowJobSetup.value.toList ::: List(
       WorkflowStep.Sbt(
         List("coverage", "test", "coverageAggregate"),
-        name = Some("Build project"),
-        cond = Some(coverageCond)
+        name = Some("Build project")
       ),
       WorkflowStep.Run(
         List("bash <(curl -s https://codecov.io/bash)"),
-        name = Some("Upload coverage report"),
-        cond = Some(coverageCond)
+        name = Some("Upload coverage report")
       )
     ),
     scalas = List(scalaDefault),

@@ -268,7 +268,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         scala: [2.13.12]
-        java: [corretto@11]
+        java: [corretto@17]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout current branch (full)
@@ -303,11 +303,9 @@ jobs:
         run: sbt +update
 
       - name: Build project
-        if: matrix.scala == '2.13' && matrix.java == 'corretto@11'
         run: sbt '++ ${{ matrix.scala }}' coverage test coverageAggregate
 
       - name: Upload coverage report
-        if: matrix.scala == '2.13' && matrix.java == 'corretto@11'
         run: 'bash <(curl -s https://codecov.io/bash)'
 
   avro-legacy:
@@ -316,7 +314,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         scala: [2.13.12]
-        java: [corretto@11]
+        java: [corretto@17]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout current branch (full)
