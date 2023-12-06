@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import sbt._
 import sbtprotoc.ProtocPlugin.ProtobufConfig
 import com.typesafe.tools.mima.core._
 
@@ -108,11 +109,8 @@ val scalaDefault = scala213
 // github actions
 val java17 = JavaSpec.corretto("17")
 val java11 = JavaSpec.corretto("11")
-val javaDefault = java11
-val coverageCond = Seq(
-  s"matrix.scala == '${CrossVersion.binaryScalaVersion(scalaDefault)}'",
-  s"matrix.java == '${javaDefault.render}'"
-).mkString(" && ")
+val javaDefault = java17
+
 val scala3Cond = "matrix.scala == '3'"
 val scala3Projects = List(
   "shared",
@@ -122,40 +120,64 @@ ThisBuild / scalaVersion := scalaDefault
 ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
 ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
-ThisBuild / githubWorkflowBuild := Seq(
-  WorkflowStep.Sbt(
-    List("coverage", "test", "coverageAggregate"),
-    name = Some("Build project"),
-    cond = Some(coverageCond)
-  ),
-  WorkflowStep.Run(
-    List("bash <(curl -s https://codecov.io/bash)"),
-    name = Some("Upload coverage report"),
-    cond = Some(coverageCond)
-  ),
-  WorkflowStep.Sbt(
-    List("test"),
-    name = Some("Build project"),
-    cond = Some(s"!($coverageCond || $scala3Cond)")
-  ),
-  WorkflowStep.Sbt(
-    scala3Projects.map(p => s"$p/test"),
-    name = Some("Build project"),
-    cond = Some(scala3Cond)
-  )
-)
+ThisBuild / tlCiHeaderCheck := true
+ThisBuild / tlCiScalafmtCheck := true
+ThisBuild / tlCiDocCheck := true
+ThisBuild / tlCiMimaBinaryIssueCheck := true
+ThisBuild / githubWorkflowBuild ~= { steps: Seq[WorkflowStep] =>
+  steps.flatMap {
+    case s if s.name.contains("Test") =>
+      Seq(
+        s.withCond(Some(s"!($scala3Cond)")),
+        WorkflowStep.Sbt(
+          scala3Projects.map(p => s"$p/test"),
+          name = Some("Test"),
+          cond = Some(scala3Cond)
+        )
+      )
+    case s =>
+      if (
+        s.name.contains("Check binary compatibility") ||
+        s.name.contains("Generate API documentation")
+      ) {
+        Seq(s.withCond(Some(s"!($scala3Cond)")))
+      } else {
+        Seq(s)
+      }
+  }
+}
 ThisBuild / githubWorkflowAddedJobs ++= Seq(
+  WorkflowJob(
+    "coverage",
+    "Test coverage",
+    WorkflowStep.CheckoutFull ::
+      WorkflowStep.SetupJava(List(javaDefault)) :::
+      List(
+        WorkflowStep.Sbt(
+          List("coverage", "test", "coverageAggregate"),
+          name = Some("Test coverage")
+        ),
+        WorkflowStep.Run(
+          List("bash <(curl -s https://codecov.io/bash)"),
+          name = Some("Upload coverage report")
+        )
+      ),
+    scalas = List(CrossVersion.binaryScalaVersion(scalaDefault)),
+    javas = List(javaDefault)
+  ),
   WorkflowJob(
     "avro-legacy",
     "Test with legacy avro",
-    githubWorkflowJobSetup.value.toList ::: List(
-      WorkflowStep.Sbt(
-        List("avro/test"),
-        env = Map("JAVA_OPTS" -> "-Davro.version=1.8.2"),
-        name = Some("Build project")
-      )
-    ),
-    scalas = List(scalaDefault),
+    WorkflowStep.CheckoutFull ::
+      WorkflowStep.SetupJava(List(javaDefault)) :::
+      List(
+        WorkflowStep.Sbt(
+          List("avro/test"),
+          env = Map("JAVA_OPTS" -> "-Davro.version=1.8.2"),
+          name = Some("Test")
+        )
+      ),
+    scalas = List(CrossVersion.binaryScalaVersion(scalaDefault)),
     javas = List(javaDefault)
   )
 )
