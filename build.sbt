@@ -122,18 +122,25 @@ ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
 ThisBuild / tlCiHeaderCheck := true
 ThisBuild / tlCiScalafmtCheck := true
 ThisBuild / tlCiMimaBinaryIssueCheck := true
-ThisBuild / githubWorkflowBuild := Seq(
-  WorkflowStep.Sbt(
-    List("test"),
-    name = Some("Build project"),
-    cond = Some(s"!($scala3Cond)")
-  ),
-  WorkflowStep.Sbt(
-    scala3Projects.map(p => s"$p/test"),
-    name = Some("Build project"),
-    cond = Some(scala3Cond)
-  )
-)
+ThisBuild / githubWorkflowBuild ~= { steps: Seq[WorkflowStep] =>
+  steps.flatMap {
+    case s if s.name.contains("Test") =>
+      Seq(
+        WorkflowStep.Sbt(
+          List("test"),
+          name = Some("Test"),
+          cond = Some(s"!($scala3Cond)")
+        ),
+        WorkflowStep.Sbt(
+          scala3Projects.map(p => s"$p/test"),
+          name = Some("Test"),
+          cond = Some(scala3Cond)
+        )
+      )
+    case s =>
+      Seq(s)
+  }
+}
 ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
     "coverage",
@@ -141,7 +148,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
     githubWorkflowJobSetup.value.toList ::: List(
       WorkflowStep.Sbt(
         List("coverage", "test", "coverageAggregate"),
-        name = Some("Build project")
+        name = Some("Test coverage")
       ),
       WorkflowStep.Run(
         List("bash <(curl -s https://codecov.io/bash)"),
@@ -158,7 +165,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
       WorkflowStep.Sbt(
         List("avro/test"),
         env = Map("JAVA_OPTS" -> "-Davro.version=1.8.2"),
-        name = Some("Build project")
+        name = Some("Test")
       )
     ),
     scalas = List(CrossVersion.binaryScalaVersion(scalaDefault)),
