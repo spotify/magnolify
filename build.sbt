@@ -122,21 +122,14 @@ ThisBuild / scalaVersion := scalaDefault
 ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
 ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
+ThisBuild / tlCiHeaderCheck := true
+ThisBuild / tlCiScalafmtCheck := true
+ThisBuild / tlCiMimaBinaryIssueCheck := true
 ThisBuild / githubWorkflowBuild := Seq(
-  WorkflowStep.Sbt(
-    List("coverage", "test", "coverageAggregate"),
-    name = Some("Build project"),
-    cond = Some(coverageCond)
-  ),
-  WorkflowStep.Run(
-    List("bash <(curl -s https://codecov.io/bash)"),
-    name = Some("Upload coverage report"),
-    cond = Some(coverageCond)
-  ),
   WorkflowStep.Sbt(
     List("test"),
     name = Some("Build project"),
-    cond = Some(s"!($coverageCond || $scala3Cond)")
+    cond = Some(s"!($scala3Cond)")
   ),
   WorkflowStep.Sbt(
     scala3Projects.map(p => s"$p/test"),
@@ -145,6 +138,24 @@ ThisBuild / githubWorkflowBuild := Seq(
   )
 )
 ThisBuild / githubWorkflowAddedJobs ++= Seq(
+  WorkflowJob(
+    "coverage",
+    "Test coverage",
+    githubWorkflowJobSetup.value.toList ::: List(
+      WorkflowStep.Sbt(
+        List("coverage", "test", "coverageAggregate"),
+        name = Some("Build project"),
+        cond = Some(coverageCond)
+      ),
+      WorkflowStep.Run(
+        List("bash <(curl -s https://codecov.io/bash)"),
+        name = Some("Upload coverage report"),
+        cond = Some(coverageCond)
+      )
+    ),
+    scalas = List(scalaDefault),
+    javas = List(javaDefault)
+  ),
   WorkflowJob(
     "avro-legacy",
     "Test with legacy avro",
