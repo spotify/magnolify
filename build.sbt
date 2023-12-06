@@ -121,32 +121,28 @@ ThisBuild / githubWorkflowTargetBranches := Seq("main")
 ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
 ThisBuild / tlCiHeaderCheck := true
 ThisBuild / tlCiScalafmtCheck := true
+ThisBuild / tlCiDocCheck := true
 ThisBuild / tlCiMimaBinaryIssueCheck := true
 ThisBuild / githubWorkflowBuild ~= { steps: Seq[WorkflowStep] =>
   steps.flatMap {
     case s if s.name.contains("Test") =>
       Seq(
-        WorkflowStep.Sbt(
-          List("test"),
-          name = Some("Test"),
-          cond = Some(s"!($scala3Cond)")
-        ),
+        s.withCond(Some(s"!($scala3Cond)")),
         WorkflowStep.Sbt(
           scala3Projects.map(p => s"$p/test"),
           name = Some("Test"),
           cond = Some(scala3Cond)
         )
       )
-    case s if s.name.contains("Check binary compatibility") =>
-      Seq(
-        WorkflowStep.Sbt(
-          List("mimaReportBinaryIssues"),
-          name = Some("Check binary compatibility"),
-          cond = Some(s"!($scala3Cond)")
-        )
-      )
     case s =>
-      Seq(s)
+      if (
+        s.name.contains("Check binary compatibility") ||
+        s.name.contains("Generate API documentation")
+      ) {
+        Seq(s.withCond(Some(s"!($scala3Cond)")))
+      } else {
+        Seq(s)
+      }
   }
 }
 ThisBuild / githubWorkflowAddedJobs ++= Seq(
