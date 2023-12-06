@@ -148,7 +148,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
         name = Some("Upload coverage report")
       )
     ),
-    scalas = List(scalaDefault),
+    scalas = List(CrossVersion.binaryScalaVersion(scalaDefault)),
     javas = List(javaDefault)
   ),
   WorkflowJob(
@@ -161,7 +161,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
         name = Some("Build project")
       )
     ),
-    scalas = List(scalaDefault),
+    scalas = List(CrossVersion.binaryScalaVersion(scalaDefault)),
     javas = List(javaDefault)
   )
 )
