@@ -49,4 +49,4 @@ Type Mapping
 11. Logical types available at micro- or milli-second precision; import `magnolify.avro.logical.micros._` or `magnolify.avro.logical.millis._` accordingly. BigQuery-compatible conversions are available in `magnolify.avro.logical.bigquery._`.
 12. Special tuple used to represent Duration in the [Avro spec](https://avro.apache.org/docs/1.11.0/spec.html#Duration). This has not been made implicit in Magnolify; import `AvroType.afDuration` implicitly to enable
 13. If `magnolify.parquet.ParquetArray.AvroCompat._` is imported, array fields use the nested, Avro-compatible schema format: `required group $FIELDNAME (LIST) { repeated $FIELDTYPE array ($FIELDSCHEMA); }`.
-14. Parquet's Decimal logical format supports multiple repesentations, and are not implicitly scoped by default. Import one of: `magnolify.parquet.ParquetField.{decimal32, decimal64, decimalFixed, decimalBinary`.
+14. Parquet's Decimal logical format supports multiple representations, and are not implicitly scoped by default. Import one of: `magnolify.parquet.ParquetField.{decimal32, decimal64, decimalFixed, decimalBinary}`.
