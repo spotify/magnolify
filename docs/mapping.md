@@ -33,7 +33,7 @@ Type Mapping
 | `org.joda.time.LocalDate`         | `INT`<sup>11</sup>           | -                      | -                               | -                     | -                                 | -                       | -                   |
 | `org.joda.time.DateTime`          | `INT`<sup>11</sup>           | -                      | -                               | -                     | -                                 | -                       | -                   |
 | `org.joda.time.LocalTime`         | `INT`<sup>11</sup>           | -                      | -                               | -                     | -                                 | -                       | -                   |
- | `java.util.UUID`                  | `STRING`<sup>4</sup>         | -                      | ByteString (16 bytes)           | -                     | `FIXED[16]`<sup>9</sup>           | -                       | -                   |
+ | `java.util.UUID`                  | `STRING`<sup>4</sup>         | -                      | ByteString (16 bytes)           | -                     | `FIXED[16]`                       | -                       | -                   |
  | `(Long, Long, Long)`<sup>12</sup> | `FIXED[12]`                  | -                      | -                               | -                     | -                                 | -                       | -                   |
 
 1. Those wrapped in`UnsafeEnum` are encoded as strings, see [enums.md](https://github.com/spotify/magnolify/blob/master/docs/enums.md) for more
