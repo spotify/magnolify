@@ -366,6 +366,68 @@ object ParquetField {
     }
   }
 
+  private val KeyField = "key"
+  private val ValueField = "value"
+  private val MapGroup = "key_value"
+  implicit def pfMap[K, V](implicit
+    pfKey: ParquetField[K],
+    pfValue: ParquetField[V]
+  ): ParquetField[Map[K, V]] =
+    new ParquetField[Map[K, V]] {
+      override def buildSchema(cm: CaseMapper): Type =
+        Types
+          .repeatedGroup()
+          .addField(Schema.rename(pfKey.buildSchema(cm), KeyField))
+          .addField(Schema.rename(pfValue.schema(cm), ValueField))
+          .as(LogicalTypeAnnotation.mapType())
+          .named(MapGroup)
+
+      override val hasAvroArray: Boolean = pfKey.hasAvroArray || pfValue.hasAvroArray
+
+      override protected def isEmpty(v: Map[K, V]): Boolean = v.isEmpty
+
+      override def fieldDocs(cm: CaseMapper): Map[String, String] = Map.empty
+
+      override val typeDoc: Option[String] = None
+
+      override def write(c: RecordConsumer, v: Map[K, V])(cm: CaseMapper): Unit = {
+        v.foreach { case (k, v) =>
+          c.startGroup()
+          c.startField(KeyField, 0)
+          pfKey.writeGroup(c, k)(cm)
+          c.endField(KeyField, 0)
+          c.startField(ValueField, 1)
+          pfValue.writeGroup(c, v)(cm)
+          c.endField(ValueField, 1)
+          c.endGroup()
+        }
+      }
+
+      override def newConverter: TypeConverter[Map[K, V]] = {
+        val kvConverter = new GroupConverter with TypeConverter.Buffered[(K, V)] {
+          private val keyConverter = pfKey.newConverter
+          private val valueConverter = pfValue.newConverter
+          private val fieldConverters = Array(keyConverter, valueConverter)
+
+          override def isPrimitive: Boolean = false
+
+          override def getConverter(fieldIndex: Int): Converter = fieldConverters(fieldIndex)
+
+          override def start(): Unit = ()
+
+          override def end(): Unit = {
+            val key = keyConverter.get
+            val value = valueConverter.get
+            addValue(key -> value)
+          }
+        }.withRepetition(Repetition.REPEATED)
+
+        new TypeConverter.Delegate[(K, V), Map[K, V]](kvConverter) {
+          override def get: Map[K, V] = inner.get(_.toMap)
+        }
+      }
+    }
+
   // ////////////////////////////////////////////////
 
   def logicalType[T](lta: => LogicalTypeAnnotation): LogicalTypeWord[T] =

@@ -88,6 +88,9 @@ class ParquetTypeSuite extends MagnolifySuite {
 
   test[ParquetTypes]
 
+  test[MapPrimitive]
+  test[MapNested]
+
   test("AnyVal") {
     implicit val pt: ParquetType[HasValueClass] = ParquetType[HasValueClass]
     test[HasValueClass]
@@ -193,6 +196,8 @@ class ParquetTypeSuite extends MagnolifySuite {
 
 case class Unsafe(c: Char)
 case class ParquetTypes(b: Byte, s: Short, ba: Array[Byte])
+case class MapPrimitive(strMap: Map[String, Int])
+case class MapNested(m: Map[Integers, Nested])
 case class Decimal(bd: BigDecimal, bdo: Option[BigDecimal])
 case class Logical(u: UUID, d: LocalDate)
 case class Time(i: Instant, dt: LocalDateTime, ot: OffsetTime, t: LocalTime)

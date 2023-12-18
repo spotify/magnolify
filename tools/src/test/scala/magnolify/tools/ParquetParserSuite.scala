@@ -117,15 +117,26 @@ class ParquetParserSuite extends MagnolifySuite {
     test[DateTime]("nanos", dateTimeSchema)
   }
 
+  private def kvSchema(valueSchema: Schema) = Record(
+    None,
+    None,
+    None,
+    List(
+      Field("key", None, Primitive.String, Required),
+      Field("value", None, valueSchema, Required)
+    )
+  )
+
   private val repetitionsSchema = Record(
     Some("Repetitions"),
     namespace,
     None,
     List(
-      "r" -> Required,
-      "o" -> Optional,
-      "l" -> Repeated
-    ).map(kv => Field(kv._1, None, Primitive.Int, kv._2))
+      Field("r", None, Primitive.Int, Required),
+      Field("o", None, Primitive.Int, Optional),
+      Field("l", None, Primitive.Int, Repeated),
+      Field("m", None, kvSchema(Primitive.Int), Repeated)
+    )
   )
 
   test[Repetitions](repetitionsSchema)
@@ -137,19 +148,19 @@ class ParquetParserSuite extends MagnolifySuite {
 
   private val innerSchema =
     Record(None, None, None, List(Field("i", None, Primitive.Int, Required)))
-
-  test[Outer](
-    Record(
-      Some("Outer"),
-      namespace,
-      None,
-      List(
-        "r" -> Required,
-        "o" -> Optional,
-        "l" -> Repeated
-      ).map(kv => Field(kv._1, None, innerSchema, kv._2))
+  private val outerSchema = Record(
+    Some("Outer"),
+    namespace,
+    None,
+    List(
+      Field("r", None, innerSchema, Required),
+      Field("o", None, innerSchema, Optional),
+      Field("l", None, innerSchema, Repeated),
+      Field("m", None, kvSchema(innerSchema), Repeated)
     )
   )
+
+  test[Outer](outerSchema)
 }
 
 object ParquetParserSuite {
@@ -173,9 +184,7 @@ object ParquetParserSuite {
   case class Decimal(bd: BigDecimal)
   case class Date(d: LocalDate)
   case class DateTime(i: Instant, dt: LocalDateTime, ot: OffsetTime, t: LocalTime)
-
-  case class Repetitions(r: Int, o: Option[Int], l: List[Int])
-
+  case class Repetitions(r: Int, o: Option[Int], l: List[Int], m: Map[String, Int])
   case class Inner(i: Int)
-  case class Outer(r: Inner, o: Option[Inner], l: List[Inner])
+  case class Outer(r: Inner, o: Option[Inner], l: List[Inner], m: Map[String, Inner])
 }
