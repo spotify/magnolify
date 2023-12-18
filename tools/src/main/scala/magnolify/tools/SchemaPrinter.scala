@@ -20,36 +20,44 @@ import com.google.common.base.CaseFormat
 import org.typelevel.paiges._
 
 object SchemaPrinter {
-  def print(schema: Record, width: Int = 100): String = renderRecord(schema).renderTrim(width)
+  private case class RenderContext(field: String, owner: Option[String])
 
-  private def renderRecord(schema: Record): Doc = {
-    val name = schema.name.get
+  private val RootContext = RenderContext("root", None)
+
+  def print(schema: Record, width: Int = 100): String =
+    renderRecord(RootContext)(schema).renderTrim(width)
+
+  private def renderRecord(ctx: RenderContext)(schema: Record): Doc = {
+    val name = schema.name.getOrElse(toUpperCamel(ctx.field))
+
     val header = Doc.text("case class") + Doc.space + Doc.text(name) + Doc.char('(')
+    val body = Doc.intercalate(
+      Doc.char(',') + Doc.lineOrSpace,
+      schema.fields.map { f =>
+        val fieldCtx = RenderContext(f.name, Some(name))
+        val param = quoteIdentifier(f.name)
+        val tpe = renderType(fieldCtx)(f.schema)
+        Doc.text(param) + Doc.char(':') + Doc.space + tpe
+      }
+    )
     val footer = Doc.char(')')
-    val body =
-      Doc.intercalate(
-        Doc.char(',') + Doc.lineOrSpace,
-        schema.fields.map(renderField(name, _))
-      )
     val caseClass = body.tightBracketBy(header + Doc.lineOrEmpty, Doc.lineOrEmpty + footer)
+
     val companion = renderCompanion(name, schema.fields)
     caseClass + companion
   }
 
-  private def renderCompanion(name: String, fields: List[Field]): Doc = {
+  private def renderCompanion(name: String, fields: List[Record.Field]): Doc = {
     val header = Doc.text("object") + Doc.space + Doc.text(name) + Doc.space + Doc.char('{')
     val footer = Doc.char('}')
     val nestedFields = fields
       .flatMap { f =>
         f.schema match {
           case record: Record =>
-            val n = record.name.orElse(Some(toUpperCamel(f.name)))
-            Some(n.get -> renderRecord(record.copy(name = n)))
-          case enum: Enum =>
-            val n = enum.name.orElse(Some(toUpperCamel(f.name)))
-            Some(n.get -> renderEnum(enum.copy(name = n)))
-          case _ =>
-            None
+            Some(record.name -> renderRecord(RenderContext(f.name, Some(name)))(record))
+          case enum: Primitive.Enum =>
+            Some(enum.name -> renderEnum(RenderContext(f.name, Some(name)))(enum))
+          case _ => None
         }
       }
       .groupBy(_._1)
@@ -71,8 +79,9 @@ object SchemaPrinter {
     }
   }
 
-  private def renderEnum(schema: Enum): Doc = {
-    val header = Doc.text("object") + Doc.space + Doc.text(schema.name.get) + Doc.space +
+  private def renderEnum(ctx: RenderContext)(schema: Primitive.Enum): Doc = {
+    val name = schema.name.getOrElse(toUpperCamel(ctx.field))
+    val header = Doc.text("object") + Doc.space + Doc.text(name) + Doc.space +
       Doc.text("extends") + Doc.space + Doc.text("Enumeration") + Doc.space +
       Doc.char('{')
     val footer = Doc.char('}')
@@ -86,19 +95,26 @@ object SchemaPrinter {
 
     nested(header, body, footer)
   }
+  private def renderOwnerPrefix(ctx: RenderContext): Doc =
+    ctx.owner.fold(Doc.empty)(o => Doc.text(o) + Doc.char('.'))
 
-  private def renderField(name: String, field: Field): Doc = {
-    val rawType = field.schema match {
-      case p: Primitive => Doc.text(p.toString)
-      case r: Record    => Doc.text(name + "." + r.name.getOrElse(toUpperCamel(field.name)))
-      case e: Enum      => Doc.text(name + "." + e.name.getOrElse(toUpperCamel(field.name)))
-    }
-    val tpe = field.repetition match {
-      case Required => rawType
-      case Optional => Doc.text("Option") + Doc.char('[') + rawType + Doc.char(']')
-      case Repeated => Doc.text("List") + Doc.char('[') + rawType + Doc.char(']')
-    }
-    Doc.text(quoteIdentifier(field.name)) + Doc.char(':') + Doc.space + tpe
+  private def renderType(ctx: RenderContext)(s: Schema): Doc = s match {
+    case Optional(s) =>
+      Doc.text("Option") + Doc.char('[') + renderType(ctx)(s) + Doc.char(']')
+    case Repeated(s) =>
+      Doc.text("List") + Doc.char('[') + renderType(ctx)(s) + Doc.char(']')
+    case Mapped(k, v) =>
+      val keyType = renderType(ctx)(k)
+      val valueType = renderType(ctx)(v)
+      Doc.text("Map") + Doc.char('[') + keyType + Doc.char(',') + Doc.space + valueType + Doc.char(
+        ']'
+      )
+    case Record(name, _, _) =>
+      renderOwnerPrefix(ctx) + Doc.text(name.getOrElse(toUpperCamel(ctx.field)))
+    case Primitive.Enum(name, _, _) =>
+      renderOwnerPrefix(ctx) + Doc.text(name.getOrElse(toUpperCamel(ctx.field)))
+    case p: Primitive =>
+      Doc.text(p.toString)
   }
 
   private def nested(header: Doc, body: Doc, footer: Doc): Doc =
@@ -113,7 +129,7 @@ object SchemaPrinter {
     }
   }
 
-  private def toUpperCamel(name: String): String = {
+  private[tools] def toUpperCamel(name: String): String = {
     var allLower = true
     var allUpper = true
     var hasHyphen = false

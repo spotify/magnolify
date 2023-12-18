@@ -41,15 +41,14 @@ class BigQueryParserSuite extends MagnolifySuite {
     Record(
       None,
       None,
-      None,
       List(
-        "b" -> Primitive.Boolean,
-        "l" -> Primitive.Long,
-        "d" -> Primitive.Double,
-        "ba" -> Primitive.Bytes,
-        "s" -> Primitive.String,
-        "bd" -> Primitive.BigDecimal
-      ).map(kv => Field(kv._1, None, kv._2, Required))
+        Record.Field("b", None, Primitive.Boolean),
+        Record.Field("l", None, Primitive.Long),
+        Record.Field("d", None, Primitive.Double),
+        Record.Field("ba", None, Primitive.Bytes),
+        Record.Field("s", None, Primitive.String),
+        Record.Field("bd", None, Primitive.BigDecimal)
+      )
     )
   )
 
@@ -57,13 +56,12 @@ class BigQueryParserSuite extends MagnolifySuite {
     Record(
       None,
       None,
-      None,
       List(
-        "i" -> Primitive.Instant,
-        "dt" -> Primitive.LocalDateTime,
-        "d" -> Primitive.LocalDate,
-        "t" -> Primitive.LocalTime
-      ).map(kv => Field(kv._1, None, kv._2, Required))
+        Record.Field("i", None, Primitive.Instant),
+        Record.Field("dt", None, Primitive.LocalDateTime),
+        Record.Field("d", None, Primitive.LocalDate),
+        Record.Field("t", None, Primitive.LocalTime)
+      )
     )
   )
 
@@ -71,12 +69,10 @@ class BigQueryParserSuite extends MagnolifySuite {
     Record(
       None,
       None,
-      None,
       List(
-        "r" -> Required,
-        "o" -> Optional,
-        "l" -> Repeated
-      ).map(kv => Field(kv._1, None, Primitive.Long, kv._2))
+        Record.Field("o", None, Optional(Primitive.Long)),
+        Record.Field("l", None, Repeated(Primitive.Long))
+      )
     )
   )
 
@@ -84,20 +80,18 @@ class BigQueryParserSuite extends MagnolifySuite {
     Record(
       None,
       None,
-      None,
-      List(Field("l", None, Primitive.Long, Required))
+      List(Record.Field("l", None, Primitive.Long))
     )
 
   test[Outer](
     Record(
       None,
       None,
-      None,
       List(
-        "r" -> Required,
-        "o" -> Optional,
-        "l" -> Repeated
-      ).map(kv => Field(kv._1, None, innerSchema, kv._2))
+        Record.Field("r", None, innerSchema),
+        Record.Field("o", None, Optional(innerSchema)),
+        Record.Field("l", None, Repeated(innerSchema))
+      )
     )
   )
 }
@@ -107,7 +101,7 @@ object BigQueryParserSuite {
 
   case class DateTime(i: Instant, dt: LocalDateTime, d: LocalDate, t: LocalTime)
 
-  case class Repetitions(r: Long, o: Option[Long], l: List[Long])
+  case class Repetitions(o: Option[Long], l: List[Long])
 
   case class Inner(l: Long)
   case class Outer(r: Inner, o: Option[Inner], l: List[Inner])

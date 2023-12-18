@@ -37,33 +37,29 @@ class ParquetParserSuite extends MagnolifySuite {
     }
   }
 
-  private val namespace = Some(this.getClass.getCanonicalName)
-
   test[Primitives](
     Record(
       Some("Primitives"),
-      namespace,
       None,
       List(
-        "b" -> Primitive.Boolean,
-        "i8" -> Primitive.Byte,
-        "i16" -> Primitive.Short,
-        "i32" -> Primitive.Int,
-        "i64" -> Primitive.Long,
-        "f" -> Primitive.Float,
-        "d" -> Primitive.Double,
-        "ba" -> Primitive.Bytes,
-        "s" -> Primitive.String,
-        "e" -> Primitive.String
-      ).map(kv => Field(kv._1, None, kv._2, Required))
+        Record.Field("b", None, Primitive.Boolean),
+        Record.Field("i8", None, Primitive.Byte),
+        Record.Field("i16", None, Primitive.Short),
+        Record.Field("i32", None, Primitive.Int),
+        Record.Field("i64", None, Primitive.Long),
+        Record.Field("f", None, Primitive.Float),
+        Record.Field("d", None, Primitive.Double),
+        Record.Field("ba", None, Primitive.Bytes),
+        Record.Field("s", None, Primitive.String),
+        Record.Field("e", None, Primitive.String)
+      )
     )
   )
 
   private val decimalSchema = Record(
     Some("Decimal"),
-    namespace,
     None,
-    List(Field("bd", None, Primitive.BigDecimal, Required))
+    List(Record.Field("bd", None, Primitive.BigDecimal))
   )
 
   {
@@ -87,19 +83,18 @@ class ParquetParserSuite extends MagnolifySuite {
   }
 
   test[Date](
-    Record(Some("Date"), namespace, None, List(Field("d", None, Primitive.LocalDate, Required)))
+    Record(Some("Date"), None, List(Record.Field("d", None, Primitive.LocalDate)))
   )
 
   private val dateTimeSchema = Record(
     Some("DateTime"),
-    namespace,
     None,
     List(
-      "i" -> Primitive.Instant,
-      "dt" -> Primitive.LocalDateTime,
-      "ot" -> Primitive.OffsetTime,
-      "t" -> Primitive.LocalTime
-    ).map(kv => Field(kv._1, None, kv._2, Required))
+      Record.Field("i", None, Primitive.Instant),
+      Record.Field("dt", None, Primitive.LocalDateTime),
+      Record.Field("ot", None, Primitive.OffsetTime),
+      Record.Field("t", None, Primitive.LocalTime)
+    )
   )
 
   {
@@ -117,46 +112,33 @@ class ParquetParserSuite extends MagnolifySuite {
     test[DateTime]("nanos", dateTimeSchema)
   }
 
-  private def kvSchema(valueSchema: Schema) = Record(
-    None,
-    None,
+  private val compositeSchema = Record(
+    Some("Composite"),
     None,
     List(
-      Field("key", None, Primitive.String, Required),
-      Field("value", None, valueSchema, Required)
+      Record.Field("o", None, Optional(Primitive.Int)),
+      Record.Field("l", None, Repeated(Primitive.Int)),
+      Record.Field("m", None, Mapped(Primitive.String, Primitive.Int))
     )
   )
 
-  private val repetitionsSchema = Record(
-    Some("Repetitions"),
-    namespace,
-    None,
-    List(
-      Field("r", None, Primitive.Int, Required),
-      Field("o", None, Primitive.Int, Optional),
-      Field("l", None, Primitive.Int, Repeated),
-      Field("m", None, kvSchema(Primitive.Int), Repeated)
-    )
-  )
-
-  test[Repetitions](repetitionsSchema)
+  test[Composite](compositeSchema)
 
   {
     import magnolify.parquet.ParquetArray.AvroCompat._
-    test[Repetitions]("Avro", repetitionsSchema)
+    test[Composite]("Avro", compositeSchema)
   }
 
   private val innerSchema =
-    Record(None, None, None, List(Field("i", None, Primitive.Int, Required)))
+    Record(None, None, List(Record.Field("i", None, Primitive.Int)))
   private val outerSchema = Record(
     Some("Outer"),
-    namespace,
     None,
     List(
-      Field("r", None, innerSchema, Required),
-      Field("o", None, innerSchema, Optional),
-      Field("l", None, innerSchema, Repeated),
-      Field("m", None, kvSchema(innerSchema), Repeated)
+      Record.Field("r", None, innerSchema),
+      Record.Field("o", None, Optional(innerSchema)),
+      Record.Field("l", None, Repeated(innerSchema)),
+      Record.Field("m", None, Mapped(Primitive.String, innerSchema))
     )
   )
 
@@ -184,7 +166,7 @@ object ParquetParserSuite {
   case class Decimal(bd: BigDecimal)
   case class Date(d: LocalDate)
   case class DateTime(i: Instant, dt: LocalDateTime, ot: OffsetTime, t: LocalTime)
-  case class Repetitions(r: Int, o: Option[Int], l: List[Int], m: Map[String, Int])
+  case class Composite(o: Option[Int], l: List[Int], m: Map[String, Int])
   case class Inner(i: Int)
   case class Outer(r: Inner, o: Option[Inner], l: List[Inner], m: Map[String, Inner])
 }

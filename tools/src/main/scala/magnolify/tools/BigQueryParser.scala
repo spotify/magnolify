@@ -26,12 +26,7 @@ object BigQueryParser extends SchemaParser[TableSchema] {
 
   private def parseRecord(fields: List[TableFieldSchema]): Record = {
     val fs = fields.map { f =>
-      val r = f.getMode match {
-        case "REQUIRED" => Required
-        case "NULLABLE" => Optional
-        case "REPEATED" => Repeated
-      }
-      val s = f.getType match {
+      val schema = f.getType match {
         case "INT64"     => Primitive.Long
         case "FLOAT64"   => Primitive.Double
         case "NUMERIC"   => Primitive.BigDecimal
@@ -44,8 +39,14 @@ object BigQueryParser extends SchemaParser[TableSchema] {
         case "DATETIME"  => Primitive.LocalDateTime
         case "STRUCT"    => parseRecord(f.getFields.asScala.toList)
       }
-      Field(f.getName, Option(f.getDescription), s, r)
+
+      val moddedSchema = f.getMode match {
+        case "REQUIRED" => schema
+        case "NULLABLE" => Optional(schema)
+        case "REPEATED" => Repeated(schema)
+      }
+      Record.Field(f.getName, Option(f.getDescription), moddedSchema)
     }
-    Record(None, None, None, fs)
+    Record(None, None, fs)
   }
 }
