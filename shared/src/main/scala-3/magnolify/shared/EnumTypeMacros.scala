@@ -38,10 +38,10 @@ object EnumTypeMacros:
 trait EnumTypeCompanionMacros extends EnumTypeCompanionMacros0
 
 trait EnumTypeCompanionMacros0 extends EnumTypeCompanionMacros1:
-  inline given scalaEnumType[T <: Enumeration#Value](using
+  inline implicit def scalaEnumType[T <: Enumeration#Value](using
     annotations: AnnotationType[T]
   ): EnumType[T] =
     ${ EnumTypeMacros.scalaEnumTypeMacro[T]('annotations) }
 
 trait EnumTypeCompanionMacros1 extends EnumTypeDerivation:
-  inline given gen[T](using Mirror.Of[T]): EnumType[T] = derivedMirror[T]
+  inline implicit def gen[T](using Mirror.Of[T]): EnumType[T] = derivedMirror[T]
