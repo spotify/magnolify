@@ -55,4 +55,4 @@ object AnnotationTypeMacros:
     '{ AnnotationType[T]($annotations) }
 
 trait AnnotationTypeCompanionMacros:
-  inline given gen[T]: AnnotationType[T] = ${ AnnotationTypeMacros.annotationTypeMacro[T] }
+  inline implicit def gen[T]: AnnotationType[T] = ${ AnnotationTypeMacros.annotationTypeMacro[T] }
