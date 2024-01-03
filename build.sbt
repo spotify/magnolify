@@ -268,7 +268,9 @@ val commonSettings = Seq(
         "-Yretain-trees",
         // tolerate some nested macro expansion
         "-Xmax-inlines",
-        "64"
+        "64",
+        // silence warnings. dotty doesn't have unused-imports category nor origin support yet
+        "-Wconf:msg=unused import:s"
       )
     case Some((2, 13)) =>
       Seq(
