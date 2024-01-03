@@ -120,6 +120,8 @@ ThisBuild / scalaVersion := scalaDefault
 ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
 ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
+ThisBuild / tlJdkRelease := Some(8)
+ThisBuild / tlFatalWarnings := true
 ThisBuild / tlCiHeaderCheck := true
 ThisBuild / tlCiScalafmtCheck := true
 ThisBuild / tlCiDocCheck := true
@@ -212,8 +214,6 @@ lazy val keepExistingHeader =
   )
 
 val commonSettings = Seq(
-  tlFatalWarnings := false,
-  tlJdkRelease := Some(8),
   // So far most projects do no support scala 3
   crossScalaVersions := Seq(scala213, scala212),
   scalaVersion := scalaDefault,
@@ -483,7 +483,19 @@ lazy val parquet = project
     dependencyOverrides ++= Seq(
       "org.apache.avro" % "avro" % avroVersion % Provided,
       "org.apache.avro" % "avro" % avroVersion % Test
-    )
+    ),
+    apiMappings := {
+      def findJar(organization: String, name: String): File =
+        update.value.select { module: ModuleID =>
+          module.organization == organization && module.name == name
+        }.head
+
+      Map(
+        findJar("org.apache.parquet", "parquet-column") -> url(
+          s"https://www.javadoc.io/doc/org.apache.parquet/parquet-column/$parquetVersion/"
+        )
+      )
+    }
   )
 
 lazy val protobuf = project
@@ -537,7 +549,9 @@ lazy val tensorflow = project
     },
     // Something messes with Compile/packageSrc/mappings and adds protobuf managed sources
     // Force back to original value from sbt
-    inConfig(Compile)(Defaults.packageTaskSettings(packageSrc, Defaults.packageSrcMappings))
+    inConfig(Compile)(Defaults.packageTaskSettings(packageSrc, Defaults.packageSrcMappings)),
+    inConfig(Compile)(Defaults.packageTaskSettings(packageDoc, Defaults.packageDocMappings)),
+    Compile / doc / scalacOptions ++= Seq("-skip-packages", "org.tensorflow")
   )
 
 lazy val neo4j = project

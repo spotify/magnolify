@@ -30,13 +30,15 @@ import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 object Predicate {
 
   /**
-   * Constructs a Parquet [[FilterPredicate]] based on a single primitive column and a user-defined
-   * function. Predicates can be logically combined using [[FilterApi.and]] and [[FilterApi.or]].
+   * Constructs a Parquet [[org.apache.parquet.filter2.predicate.FilterPredicate]] based on a single
+   * primitive column and a user-defined function. Predicates can be logically combined using
+   * [[org.apache.parquet.filter2.predicate.FilterApi.and]] and
+   * [[org.apache.parquet.filter2.predicate.FilterApi.or]].
    *
    * Note that Optional fields should use a predicate for their lifted type: that is, create a
-   * predicate for an optional String field using [[Predicate.onField[String]], even if its
-   * projected case class defines the field as `Option[String]`. When applying predicates, Parquet
-   * will filter out optional fields with a value of `null` before applying the predicate filter.
+   * predicate for an optional String field using onField[String], even if its projected case class
+   * defines the field as `Option[String]`. When applying predicates, Parquet will filter out
+   * optional fields with a value of `null` before applying the predicate filter.
    *
    * @param fieldName
    *   the name of the primitive column. Nested fields are separated by '.'s
