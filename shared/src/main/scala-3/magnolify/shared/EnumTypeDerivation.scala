@@ -76,4 +76,4 @@ trait EnumTypeDerivation extends CommonDerivation[EnumType] with SealedTraitDeri
     )
   end split
 
-  inline given gen[T](using Mirror.Of[T]): EnumType[T] = derivedMirror[T]
+  inline implicit def gen[T](using Mirror.Of[T]): EnumType[T] = derivedMirror[T]
