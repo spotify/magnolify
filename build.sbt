@@ -483,7 +483,19 @@ lazy val parquet = project
     dependencyOverrides ++= Seq(
       "org.apache.avro" % "avro" % avroVersion % Provided,
       "org.apache.avro" % "avro" % avroVersion % Test
-    )
+    ),
+    apiMappings := {
+      def findJar(organization: String, name: String): File =
+        update.value.select { module: ModuleID =>
+          module.organization == organization && module.name == name
+        }.head
+
+      Map(
+        findJar("org.apache.parquet", "parquet-column") -> url(
+          s"https://www.javadoc.io/doc/org.apache.parquet/parquet-column/$parquetVersion/"
+        )
+      )
+    }
   )
 
 lazy val protobuf = project
