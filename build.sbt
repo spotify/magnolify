@@ -549,7 +549,9 @@ lazy val tensorflow = project
     },
     // Something messes with Compile/packageSrc/mappings and adds protobuf managed sources
     // Force back to original value from sbt
-    inConfig(Compile)(Defaults.packageTaskSettings(packageSrc, Defaults.packageSrcMappings))
+    inConfig(Compile)(Defaults.packageTaskSettings(packageSrc, Defaults.packageSrcMappings)),
+    inConfig(Compile)(Defaults.packageTaskSettings(packageDoc, Defaults.packageDocMappings)),
+    Compile / doc / scalacOptions ++= Seq("-skip-packages", "org.tensorflow")
   )
 
 lazy val neo4j = project
