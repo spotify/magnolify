@@ -22,6 +22,7 @@ import magnolify.test.ADT.*
 import magnolify.test.JavaEnums
 import magnolify.test.Simple.*
 import org.scalacheck.Cogen
+import org.scalacheck.rng.Seed
 
 import java.net.URI
 
@@ -29,7 +30,13 @@ object TestCogen {
   // enum
   implicit lazy val coJavaEnum: Cogen[JavaEnums.Color] = Cogen(_.ordinal().toLong)
   implicit lazy val coScalaEnums: Cogen[ScalaEnums.Color.Type] = Cogen(_.id.toLong)
-  implicit def coUnsafeEnum[T: Cogen]: Cogen[UnsafeEnum[T]] = Cogen.gen[UnsafeEnum[T]]
+  implicit def coUnsafeEnum[T: Cogen]: Cogen[UnsafeEnum[T]] =
+    Cogen { (seed: Seed, value: UnsafeEnum[T]) =>
+      value match {
+        case UnsafeEnum.Known(v)   => Cogen[T].perturb(seed, v)
+        case UnsafeEnum.Unknown(v) => Cogen[String].perturb(seed, v)
+      }
+    }
 
   // ADT
   implicit lazy val coNode: Cogen[Node] = Cogen.gen[Node]
