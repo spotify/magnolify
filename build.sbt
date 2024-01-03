@@ -120,6 +120,8 @@ ThisBuild / scalaVersion := scalaDefault
 ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
 ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
+ThisBuild / tlJdkRelease := Some(8)
+ThisBuild / tlFatalWarnings := true
 ThisBuild / tlCiHeaderCheck := true
 ThisBuild / tlCiScalafmtCheck := true
 ThisBuild / tlCiDocCheck := true
@@ -212,8 +214,6 @@ lazy val keepExistingHeader =
   )
 
 val commonSettings = Seq(
-  tlFatalWarnings := false,
-  tlJdkRelease := Some(8),
   // So far most projects do no support scala 3
   crossScalaVersions := Seq(scala213, scala212),
   scalaVersion := scalaDefault,
