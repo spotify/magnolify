@@ -328,7 +328,7 @@ object ParquetField {
       }
 
       override protected val isGroup: Boolean = hasAvroArray
-      override protected def isEmpty(v: C[T]): Boolean = v.isEmpty
+      override protected def isEmpty(v: C[T]): Boolean = v.forall(t.isEmpty)
 
       override def write(c: RecordConsumer, v: C[T])(cm: CaseMapper): Unit =
         if (hasAvroArray) {
