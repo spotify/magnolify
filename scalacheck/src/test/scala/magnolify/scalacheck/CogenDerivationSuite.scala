@@ -36,13 +36,7 @@ class CogenDerivationSuite extends MagnolifySuite {
     implicit val arbList: Arbitrary[List[T]] = Arbitrary(Gen.listOfN(10, arb.arbitrary))
     property(s"$name.uniqueness") {
       Prop.forAll { (seed: Seed, xs: List[T]) =>
-        val coper = xs.map(co.perturb(seed, _))
-        val result = coper.toSet.size == xs.toSet.size
-        if (!result) {
-          println("coper: " + coper)
-          println("origin: " + xs)
-        }
-        result
+        xs.map(co.perturb(seed, _)).toSet.size == xs.toSet.size
       }
     }
     property(s"$name.consistency") {
