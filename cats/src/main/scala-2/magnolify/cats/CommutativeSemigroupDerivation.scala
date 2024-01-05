@@ -14,32 +14,37 @@
  * limitations under the License.
  */
 
-package magnolify.cats.semiauto
+package magnolify.cats
 
-import cats.kernel.Band
-import magnolia1._
+import cats.kernel.CommutativeSemigroup
+import magnolia1.*
 
 import scala.annotation.implicitNotFound
-import scala.collection.compat._
+import scala.collection.compat.*
 
-object BandDerivation {
-  type Typeclass[T] = Band[T]
+object CommutativeSemigroupDerivation {
+  type Typeclass[T] = CommutativeSemigroup[T]
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+  def join[T](caseClass: CaseClass[CommutativeSemigroup, T]): CommutativeSemigroup[T] = {
     val combineImpl = SemigroupMethods.combine(caseClass)
     val combineNImpl = SemigroupMethods.combineN(caseClass)
     val combineAllOptionImpl = SemigroupMethods.combineAllOption(caseClass)
 
-    new Band[T] {
+    new CommutativeSemigroup[T] {
       override def combine(x: T, y: T): T = combineImpl(x, y)
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
       override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
     }
   }
 
-  @implicitNotFound("Cannot derive Band for sealed trait")
+  @implicitNotFound("Cannot derive CommutativeSemigroup for sealed trait")
   private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
+  def split[T: Dispatchable](
+    sealedTrait: SealedTrait[CommutativeSemigroup, T]
+  ): CommutativeSemigroup[T] = ???
 
-  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
+  implicit def gen[T]: CommutativeSemigroup[T] = macro Magnolia.gen[T]
+
+  @deprecated("Use gen instead", "0.7.0")
+  def apply[T]: CommutativeSemigroup[T] = macro Magnolia.gen[T]
 }
