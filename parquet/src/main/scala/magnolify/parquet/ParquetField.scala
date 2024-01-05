@@ -384,9 +384,12 @@ object ParquetField {
           .repeatedGroup()
           .addField(keySchema)
           .addField(valueSchema)
-          .as(LogicalTypeAnnotation.mapType())
           .named(KeyValueGroup)
-        Types.requiredGroup().addField(keyValue).named("map")
+        Types
+          .requiredGroup()
+          .addField(keyValue)
+          .as(LogicalTypeAnnotation.mapType())
+          .named("map")
       }
 
       override val hasAvroArray: Boolean = pfKey.hasAvroArray || pfValue.hasAvroArray

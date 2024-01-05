@@ -16,17 +16,21 @@
 
 package magnolify.tools
 
-import org.apache.parquet.schema.LogicalTypeAnnotation.{DecimalLogicalTypeAnnotation, TimeUnit}
-import org.apache.parquet.schema.PrimitiveType.{PrimitiveTypeName => PTN}
+import org.apache.parquet.schema.LogicalTypeAnnotation.{
+  DecimalLogicalTypeAnnotation,
+  MapKeyValueTypeAnnotation,
+  TimeUnit
+}
+import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName as PTN
 import org.apache.parquet.schema.{
   GroupType,
-  LogicalTypeAnnotation => LTA,
+  LogicalTypeAnnotation as LTA,
   MessageType,
   PrimitiveType,
   Type
 }
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 object ParquetParser extends SchemaParser[MessageType] {
   override def parse(schema: MessageType): Record = {
@@ -49,22 +53,31 @@ object ParquetParser extends SchemaParser[MessageType] {
     }.toList
     Record(None, None, fields)
   }
-
-  private def isAvroArray(groupType: GroupType): Boolean =
+  private def isList(groupType: GroupType): Boolean =
     groupType.getLogicalTypeAnnotation == LTA.listType() &&
       groupType.getFieldCount == 1 &&
-      groupType.getFieldName(0) == "array" &&
-      groupType.getFields.get(0).isRepetition(Type.Repetition.REPEATED)
-  private def parseAvroArray(groupType: GroupType): Schema =
-    parseType(groupType.getFields.get(0))
+      groupType.getType(0).isRepetition(Type.Repetition.REPEATED)
+  // list and element names may not be used in existing data and should not be enforced as errors when reading
+  // groupType.getFieldName(0) == "list" &&
+  // groupType.getType(0).asGroupType().getFieldName(0) == "element"
+  private def parseList(groupType: GroupType): Schema =
+    parseType(groupType.getType(0))
+
   private def isMap(groupType: GroupType): Boolean =
-    groupType.getLogicalTypeAnnotation == LTA.mapType() &&
-      groupType.getFieldCount == 2 &&
-      groupType.isRepetition(Type.Repetition.REPEATED)
+    (groupType.getLogicalTypeAnnotation == LTA.mapType() ||
+      groupType.getLogicalTypeAnnotation == MapKeyValueTypeAnnotation.getInstance()) &&
+      groupType.getFieldCount == 1 &&
+      groupType.getType(0).isRepetition(Type.Repetition.REPEATED) &&
+      groupType.getType(0).asGroupType().getFieldCount == 2
+  // key_value, key and value names may not be used in existing data and should not be enforced as errors when reading
+  // groupType.getFieldName(0) == "key_value"
+  // groupType.getType(0).asGroupType().getFieldName(0) == "key"
+  // groupType.getType(0).asGroupType().getFieldName(1) == "value"
 
   private def parseMap(groupType: GroupType): Schema = {
-    val keySchema = parseType(groupType.getFields.get(0))
-    val valueSchema = parseType(groupType.getFields.get(1))
+    val kvGroupType = groupType.getType(0).asGroupType()
+    val keySchema = parseType(kvGroupType.getType(0))
+    val valueSchema = parseType(kvGroupType.getType(1))
     Mapped(keySchema, valueSchema)
   }
 
@@ -73,8 +86,8 @@ object ParquetParser extends SchemaParser[MessageType] {
       putRepetition(tpe.getRepetition)(parsePrimitive(tpe.asPrimitiveType()))
     } else {
       val groupType = tpe.asGroupType()
-      if (isAvroArray(groupType)) {
-        parseAvroArray(groupType)
+      if (isList(groupType)) {
+        parseList(groupType)
       } else if (isMap(groupType)) {
         parseMap(groupType)
       } else {
