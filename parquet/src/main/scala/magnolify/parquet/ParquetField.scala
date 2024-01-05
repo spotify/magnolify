@@ -374,13 +374,16 @@ object ParquetField {
   implicit def pfMap[K, V](implicit
     pfKey: ParquetField[K],
     pfValue: ParquetField[V]
-  ): ParquetField[Map[K, V]] =
+  ): ParquetField[Map[K, V]] = {
     new ParquetField[Map[K, V]] {
       override def buildSchema(cm: CaseMapper): Type = {
+        val keySchema = Schema.rename(pfKey.schema(cm), KeyField)
+        require(keySchema.isRepetition(Repetition.REQUIRED), "Map key must be required")
+        val valueSchema = Schema.rename(pfValue.schema(cm), ValueField)
         val keyValue = Types
           .repeatedGroup()
-          .addField(Schema.rename(pfKey.buildSchema(cm), KeyField))
-          .addField(Schema.rename(pfValue.schema(cm), ValueField))
+          .addField(keySchema)
+          .addField(valueSchema)
           .as(LogicalTypeAnnotation.mapType())
           .named(KeyValueGroup)
         Types.requiredGroup().addField(keyValue).named("map")
@@ -449,6 +452,7 @@ object ParquetField {
         }
       }
     }
+  }
 
   // ////////////////////////////////////////////////
 
