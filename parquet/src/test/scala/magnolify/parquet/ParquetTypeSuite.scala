@@ -196,8 +196,19 @@ class ParquetTypeSuite extends MagnolifySuite {
 
 case class Unsafe(c: Char)
 case class ParquetTypes(b: Byte, s: Short, ba: Array[Byte])
-case class MapPrimitive(strMap: Map[String, Int])
-case class MapNested(m: Map[Integers, Nested])
+
+// It is technically possible to have an optional map, but operation is not bijective
+// parquet would read Some(Map.empty) as None
+case class MapPrimitive(
+  m: Map[String, Int],
+  // mo: Option[Map[String, Int]],
+  mvo: Map[String, Option[Int]]
+)
+case class MapNested(
+  m: Map[Integers, Nested],
+  // mo: Option[Map[Integers, Nested]],
+  mvo: Map[Integers, Option[Nested]]
+)
 case class Decimal(bd: BigDecimal, bdo: Option[BigDecimal])
 case class Logical(u: UUID, d: LocalDate)
 case class Time(i: Instant, dt: LocalDateTime, ot: OffsetTime, t: LocalTime)

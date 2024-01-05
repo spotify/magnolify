@@ -48,6 +48,8 @@ sealed trait ParquetField[T] extends Serializable {
 
   protected val isGroup: Boolean = false
   protected def isEmpty(v: T): Boolean
+  protected final def nonEmpty(v: T): Boolean = !isEmpty(v)
+
   def write(c: RecordConsumer, v: T)(cm: CaseMapper): Unit
   def newConverter: TypeConverter[T]
 
@@ -128,7 +130,7 @@ object ParquetField {
         override def write(c: RecordConsumer, v: T)(cm: CaseMapper): Unit = {
           caseClass.parameters.foreach { p =>
             val x = p.dereference(v)
-            if (!p.typeclass.isEmpty(x)) {
+            if (p.typeclass.nonEmpty(x)) {
               val name = cm.map(p.label)
               c.startField(name, p.index)
               p.typeclass.writeGroup(c, x)(cm)
@@ -280,7 +282,7 @@ object ParquetField {
     new ParquetField[Option[T]] {
       override def buildSchema(cm: CaseMapper): Type =
         Schema.setRepetition(t.schema(cm), Repetition.OPTIONAL)
-      override protected def isEmpty(v: Option[T]): Boolean = v.isEmpty
+      override protected def isEmpty(v: Option[T]): Boolean = v.forall(t.isEmpty)
 
       override def fieldDocs(cm: CaseMapper): Map[String, String] = t.fieldDocs(cm)
 
@@ -319,7 +321,7 @@ object ParquetField {
             .requiredGroup()
             .addField(Schema.rename(repeatedSchema, AvroArrayField))
             .as(LogicalTypeAnnotation.listType())
-            .named(t.schema(cm).getName)
+            .named("iterable")
         } else {
           repeatedSchema
         }
@@ -368,19 +370,21 @@ object ParquetField {
 
   private val KeyField = "key"
   private val ValueField = "value"
-  private val MapGroup = "key_value"
+  private val KeyValueGroup = "key_value"
   implicit def pfMap[K, V](implicit
     pfKey: ParquetField[K],
     pfValue: ParquetField[V]
   ): ParquetField[Map[K, V]] =
     new ParquetField[Map[K, V]] {
-      override def buildSchema(cm: CaseMapper): Type =
-        Types
+      override def buildSchema(cm: CaseMapper): Type = {
+        val keyValue = Types
           .repeatedGroup()
           .addField(Schema.rename(pfKey.buildSchema(cm), KeyField))
           .addField(Schema.rename(pfValue.schema(cm), ValueField))
           .as(LogicalTypeAnnotation.mapType())
-          .named(MapGroup)
+          .named(KeyValueGroup)
+        Types.requiredGroup().addField(keyValue).named("map")
+      }
 
       override val hasAvroArray: Boolean = pfKey.hasAvroArray || pfValue.hasAvroArray
 
@@ -391,14 +395,22 @@ object ParquetField {
       override val typeDoc: Option[String] = None
 
       override def write(c: RecordConsumer, v: Map[K, V])(cm: CaseMapper): Unit = {
-        v.foreach { case (k, v) =>
+        if (v.nonEmpty) {
           c.startGroup()
-          c.startField(KeyField, 0)
-          pfKey.writeGroup(c, k)(cm)
-          c.endField(KeyField, 0)
-          c.startField(ValueField, 1)
-          pfValue.writeGroup(c, v)(cm)
-          c.endField(ValueField, 1)
+          c.startField(KeyValueGroup, 0)
+          v.foreach { case (k, v) =>
+            c.startGroup()
+            c.startField(KeyField, 0)
+            pfKey.writeGroup(c, k)(cm)
+            c.endField(KeyField, 0)
+            if (pfValue.nonEmpty(v)) {
+              c.startField(ValueField, 1)
+              pfValue.writeGroup(c, v)(cm)
+              c.endField(ValueField, 1)
+            }
+            c.endGroup()
+          }
+          c.endField(KeyValueGroup, 0)
           c.endGroup()
         }
       }
@@ -422,8 +434,18 @@ object ParquetField {
           }
         }.withRepetition(Repetition.REPEATED)
 
-        new TypeConverter.Delegate[(K, V), Map[K, V]](kvConverter) {
+        val mapConverter = new TypeConverter.Delegate[(K, V), Map[K, V]](kvConverter) {
           override def get: Map[K, V] = inner.get(_.toMap)
+        }
+
+        new GroupConverter with TypeConverter.Buffered[Map[K, V]] {
+          override def getConverter(fieldIndex: Int): Converter = {
+            require(fieldIndex == 0, "Map field index != 0")
+            mapConverter
+          }
+          override def start(): Unit = ()
+          override def end(): Unit = addValue(mapConverter.get)
+          override def get: Map[K, V] = get(_.headOption.getOrElse(Map.empty))
         }
       }
     }
