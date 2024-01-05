@@ -16,8 +16,6 @@
 
 package magnolify.tools
 
-import magnolify.test.*
-
 class SchemaPrinterSuite extends munit.ScalaCheckSuite {
   private def test(schema: Record, code: String): Unit =
     assertEquals(SchemaPrinter.print(schema).trim, code.trim)
