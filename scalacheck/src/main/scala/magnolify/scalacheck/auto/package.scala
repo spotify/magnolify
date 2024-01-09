@@ -16,23 +16,4 @@
 
 package magnolify.scalacheck
 
-import org.scalacheck._
-
-import scala.reflect.macros._
-
-package object auto {
-  def genArbitraryMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
-    import c.universe._
-    val wtt = weakTypeTag[T]
-    q"""_root_.magnolify.scalacheck.semiauto.ArbitraryDerivation.apply[$wtt]"""
-  }
-
-  def genCogenMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
-    import c.universe._
-    val wtt = weakTypeTag[T]
-    q"""_root_.magnolify.scalacheck.semiauto.CogenDerivation.apply[$wtt]"""
-  }
-
-  implicit def genArbitrary[T]: Arbitrary[T] = macro genArbitraryMacro[T]
-  implicit def genCogen[T]: Cogen[T] = macro genCogenMacro[T]
-}
+package object auto extends AutoDerivations

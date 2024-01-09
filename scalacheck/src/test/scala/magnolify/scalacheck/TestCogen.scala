@@ -16,11 +16,13 @@
 
 package magnolify.scalacheck
 
-import magnolify.scalacheck.semiauto.CogenDerivation
-import magnolify.test.ADT._
+import magnolify.scalacheck.semiauto.*
+import magnolify.shared.UnsafeEnum
+import magnolify.test.ADT.*
 import magnolify.test.JavaEnums
-import magnolify.test.Simple._
+import magnolify.test.Simple.*
 import org.scalacheck.Cogen
+import org.scalacheck.rng.Seed
 
 import java.net.URI
 
@@ -28,29 +30,36 @@ object TestCogen {
   // enum
   implicit lazy val coJavaEnum: Cogen[JavaEnums.Color] = Cogen(_.ordinal().toLong)
   implicit lazy val coScalaEnums: Cogen[ScalaEnums.Color.Type] = Cogen(_.id.toLong)
+  implicit def coUnsafeEnum[T: Cogen]: Cogen[UnsafeEnum[T]] =
+    Cogen { (seed: Seed, value: UnsafeEnum[T]) =>
+      value match {
+        case UnsafeEnum.Known(v)   => Cogen[T].perturb(seed, v)
+        case UnsafeEnum.Unknown(v) => Cogen[String].perturb(seed, v)
+      }
+    }
 
   // ADT
-  implicit lazy val coNode: Cogen[Node] = CogenDerivation[Node]
-  implicit lazy val coGNode: Cogen[GNode[Int]] = CogenDerivation[GNode[Int]]
-  implicit lazy val coShape: Cogen[Shape] = CogenDerivation[Shape]
-  implicit lazy val coColor: Cogen[Color] = CogenDerivation[Color]
-  implicit lazy val coPerson: Cogen[Person] = CogenDerivation[Person]
+  implicit lazy val coNode: Cogen[Node] = Cogen.gen[Node]
+  implicit lazy val coGNode: Cogen[GNode[Int]] = Cogen.gen[GNode[Int]]
+  implicit lazy val coShape: Cogen[Shape] = Cogen.gen[Shape]
+  implicit lazy val coColor: Cogen[Color] = Cogen.gen[Color]
+  implicit lazy val coPerson: Cogen[Person] = Cogen.gen[Person]
 
   // simple
-  implicit lazy val coIntegers: Cogen[Integers] = CogenDerivation[Integers]
-  implicit lazy val coFloats: Cogen[Floats] = CogenDerivation[Floats]
-  implicit lazy val coNumbers: Cogen[Numbers] = CogenDerivation[Numbers]
-  implicit lazy val coRequired: Cogen[Required] = CogenDerivation[Required]
-  implicit lazy val coNullable: Cogen[Nullable] = CogenDerivation[Nullable]
-  implicit lazy val coRepeated: Cogen[Repeated] = CogenDerivation[Repeated]
-  implicit lazy val coNested: Cogen[Nested] = CogenDerivation[Nested]
-  implicit lazy val coCollections: Cogen[Collections] = CogenDerivation[Collections]
-  // implicit lazy val coMoreCollections: Cogen[MoreCollections] = CogenDerivation[MoreCollections]
-  implicit lazy val coEnums: Cogen[Enums] = CogenDerivation[Enums]
-  implicit lazy val coUnsafeEnums: Cogen[UnsafeEnums] = CogenDerivation[UnsafeEnums]
-  implicit lazy val coCustom: Cogen[Custom] = CogenDerivation[Custom]
-  implicit lazy val coLowerCamel: Cogen[LowerCamel] = CogenDerivation[LowerCamel]
-  implicit lazy val coLowerCamelInner: Cogen[LowerCamelInner] = CogenDerivation[LowerCamelInner]
+  implicit lazy val coIntegers: Cogen[Integers] = Cogen.gen[Integers]
+  implicit lazy val coFloats: Cogen[Floats] = Cogen.gen[Floats]
+  implicit lazy val coNumbers: Cogen[Numbers] = Cogen.gen[Numbers]
+  implicit lazy val coRequired: Cogen[Required] = Cogen.gen[Required]
+  implicit lazy val coNullable: Cogen[Nullable] = Cogen.gen[Nullable]
+  implicit lazy val coRepeated: Cogen[Repeated] = Cogen.gen[Repeated]
+  implicit lazy val coNested: Cogen[Nested] = Cogen.gen[Nested]
+  implicit lazy val coCollections: Cogen[Collections] = Cogen.gen[Collections]
+  // implicit lazy val coMoreCollections: Cogen[MoreCollections] = Cogen.gen[MoreCollections]
+  implicit lazy val coEnums: Cogen[Enums] = Cogen.gen[Enums]
+  implicit lazy val coUnsafeEnums: Cogen[UnsafeEnums] = Cogen.gen[UnsafeEnums]
+  implicit lazy val coCustom: Cogen[Custom] = Cogen.gen[Custom]
+  implicit lazy val coLowerCamel: Cogen[LowerCamel] = Cogen.gen[LowerCamel]
+  implicit lazy val coLowerCamelInner: Cogen[LowerCamelInner] = Cogen.gen[LowerCamelInner]
 
   // other
   implicit lazy val coUri: Cogen[URI] = Cogen(_.hashCode().toLong)
