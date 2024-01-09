@@ -665,6 +665,7 @@ lazy val jmh: Project = project
 lazy val site = project
   .in(file("site"))
   .enablePlugins(
+    NoPublishPlugin,
     ParadoxSitePlugin,
     ParadoxMaterialThemePlugin,
     GhpagesPlugin,
@@ -691,7 +692,6 @@ lazy val site = project
   .settings(
     description := "Magnolify - Documentation",
     fork := false,
-    publish / skip := true,
     autoAPIMappings := true,
     gitRemoteRepo := "git@github.com:spotify/magnolify.git",
     // mdoc
@@ -720,7 +720,10 @@ lazy val site = project
 
 lazy val unidocs = project
   .in(file("unidocs"))
-  .enablePlugins(TypelevelUnidocPlugin)
+  .enablePlugins(
+    NoPublishPlugin,
+    TypelevelUnidocPlugin
+  )
   .settings(commonSettings)
   .settings(
     moduleName := "magnolify-docs",
