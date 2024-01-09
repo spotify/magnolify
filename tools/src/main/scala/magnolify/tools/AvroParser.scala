@@ -28,50 +28,47 @@ object AvroParser extends SchemaParser[avro.Schema] {
 
   private def parseRecord(schema: avro.Schema): Record = {
     val fields = schema.getFields.asScala.iterator.map { f =>
-      val (s, r) = parseSchemaAndRepetition(f.schema())
-      Field(f.name(), Option(f.doc()), s, r)
+      val s = parseSchema(f.schema())
+      Record.Field(f.name(), Option(f.doc()), s)
     }.toList
-    Record(Option(schema.getName), Option(schema.getNamespace), Option(schema.getDoc), fields)
+    Record(
+      Some(schema.getName),
+      Option(schema.getDoc),
+      fields
+    )
   }
 
-  private def parseEnum(schema: avro.Schema): Enum =
-    Enum(
-      Option(schema.getName),
-      Option(schema.getNamespace),
+  private def parseEnum(schema: avro.Schema): Primitive.Enum =
+    Primitive.Enum(
+      Some(schema.getName),
       Option(schema.getDoc),
       schema.getEnumSymbols.asScala.toList
     )
 
-  private def parseSchemaAndRepetition(schema: avro.Schema): (Schema, Repetition) =
-    schema.getType match {
-      case Type.UNION
-          if schema.getTypes.size() == 2 &&
-            schema.getTypes.asScala.count(_.getType == Type.NULL) == 1 =>
-        val s = schema.getTypes.asScala.find(_.getType != Type.NULL).get
-        if (s.getType == Type.ARRAY) {
-          // Nullable array, e.g. ["null", {"type": "array", "items": ...}]
-          (parseSchema(s.getElementType), Repeated)
-        } else {
-          (parseSchema(s), Optional)
-        }
-      case Type.ARRAY =>
-        (parseSchema(schema.getElementType), Repeated)
-      // FIXME: map
-      case _ =>
-        (parseSchema(schema), Required)
-    }
-
   private def parseSchema(schema: avro.Schema): Schema = schema.getType match {
-    // Nested types
-    case Type.RECORD => parseRecord(schema)
-    case Type.ENUM   => parseEnum(schema)
+    // Composite types
+    case Type.RECORD =>
+      parseRecord(schema)
+    case Type.UNION =>
+      val types = schema.getTypes.asScala
+      if (types.size != 2 || !types.exists(_.getType == Type.NULL)) {
+        throw new IllegalArgumentException(s"Unsupported union $schema")
+      } else {
+        val s = types.find(_.getType != Type.NULL).get
+        Optional(parseSchema(s))
+      }
+    case Type.ARRAY =>
+      Repeated(parseSchema(schema.getElementType))
+    case Type.MAP =>
+      Mapped(Primitive.String, parseSchema(schema.getValueType))
 
     // Logical types
     case Type.STRING if isLogical(schema, LogicalTypes.uuid().getName) =>
       Primitive.UUID
     case Type.BYTES if schema.getLogicalType.isInstanceOf[LogicalTypes.Decimal] =>
       Primitive.BigDecimal
-    case Type.INT if schema.getLogicalType.isInstanceOf[LogicalTypes.Date] => Primitive.LocalDate
+    case Type.INT if schema.getLogicalType.isInstanceOf[LogicalTypes.Date] =>
+      Primitive.LocalDate
 
     // Millis
     case Type.LONG if schema.getLogicalType.isInstanceOf[LogicalTypes.TimestampMillis] =>
@@ -92,9 +89,11 @@ object AvroParser extends SchemaParser[avro.Schema] {
       Primitive.LocalDateTime
 
     // BigQuery sqlType: DATETIME
-    case Type.STRING if isLogical(schema, "datetime") => Primitive.LocalDateTime
+    case Type.STRING if isLogical(schema, "datetime") =>
+      Primitive.LocalDateTime
 
     // Primitive types
+    case Type.ENUM    => parseEnum(schema)
     case Type.FIXED   => Primitive.Bytes
     case Type.STRING  => Primitive.String
     case Type.BYTES   => Primitive.Bytes

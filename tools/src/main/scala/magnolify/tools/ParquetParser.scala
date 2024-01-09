@@ -16,59 +16,84 @@
 
 package magnolify.tools
 
-import org.apache.parquet.schema.LogicalTypeAnnotation.{DecimalLogicalTypeAnnotation, TimeUnit}
-import org.apache.parquet.schema.PrimitiveType.{PrimitiveTypeName => PTN}
+import org.apache.parquet.schema.LogicalTypeAnnotation.{
+  DecimalLogicalTypeAnnotation,
+  MapKeyValueTypeAnnotation,
+  TimeUnit
+}
+import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName as PTN
 import org.apache.parquet.schema.{
   GroupType,
-  LogicalTypeAnnotation => LTA,
+  LogicalTypeAnnotation as LTA,
   MessageType,
   PrimitiveType,
   Type
 }
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 object ParquetParser extends SchemaParser[MessageType] {
   override def parse(schema: MessageType): Record = {
     val name = schema.getName
     val idx = name.lastIndexOf('.')
-    val n = Some(name.drop(idx + 1))
-    val ns = Some(name.take(idx)).filter(_.nonEmpty)
-    parseGroup(schema.asGroupType()).copy(name = n, ns)
+    val n = name.drop(idx + 1)
+    parseRecord(schema.asGroupType()).copy(name = Some(n))
   }
 
-  private def parseRepetition(repetition: Type.Repetition): Repetition = repetition match {
-    case Type.Repetition.REQUIRED => Required
-    case Type.Repetition.OPTIONAL => Optional
-    case Type.Repetition.REPEATED => Repeated
-  }
+  private def putRepetition(repetition: Type.Repetition)(schema: Schema): Schema =
+    repetition match {
+      case Type.Repetition.REQUIRED => schema
+      case Type.Repetition.OPTIONAL => Optional(schema)
+      case Type.Repetition.REPEATED => Repeated(schema)
+    }
 
-  private def parseGroup(groupType: GroupType): Record = {
+  private def parseRecord(groupType: GroupType): Record = {
     val fields = groupType.getFields.asScala.iterator.map { f =>
-      if (f.isPrimitive) {
-        val schema = parsePrimitive(f.asPrimitiveType())
-        Field(f.getName, None, schema, parseRepetition(f.getRepetition))
-      } else {
-        val gt = f.asGroupType()
-        if (isAvroArray(gt)) {
-          Field(f.getName, None, parseType(gt.getFields.get(0)), Repeated)
-        } else {
-          val schema = parseGroup(gt)
-          Field(f.getName, None, schema, parseRepetition(f.getRepetition))
-        }
-      }
+      Record.Field(f.getName, None, parseType(f))
     }.toList
-    Record(None, None, None, fields)
+    Record(None, None, fields)
   }
-
-  private def isAvroArray(groupType: GroupType): Boolean =
+  private def isList(groupType: GroupType): Boolean =
     groupType.getLogicalTypeAnnotation == LTA.listType() &&
       groupType.getFieldCount == 1 &&
-      groupType.getFieldName(0) == "array" &&
-      groupType.getFields.get(0).isRepetition(Type.Repetition.REPEATED)
+      groupType.getType(0).isRepetition(Type.Repetition.REPEATED)
+  // list and element names may not be used in existing data and should not be enforced as errors when reading
+  // groupType.getFieldName(0) == "list" &&
+  // groupType.getType(0).asGroupType().getFieldName(0) == "element"
+  private def parseList(groupType: GroupType): Schema =
+    parseType(groupType.getType(0))
+
+  private def isMap(groupType: GroupType): Boolean =
+    (groupType.getLogicalTypeAnnotation == LTA.mapType() ||
+      groupType.getLogicalTypeAnnotation == MapKeyValueTypeAnnotation.getInstance()) &&
+      groupType.getFieldCount == 1 &&
+      groupType.getType(0).isRepetition(Type.Repetition.REPEATED) &&
+      groupType.getType(0).asGroupType().getFieldCount == 2
+  // key_value, key and value names may not be used in existing data and should not be enforced as errors when reading
+  // groupType.getFieldName(0) == "key_value"
+  // groupType.getType(0).asGroupType().getFieldName(0) == "key"
+  // groupType.getType(0).asGroupType().getFieldName(1) == "value"
+
+  private def parseMap(groupType: GroupType): Schema = {
+    val kvGroupType = groupType.getType(0).asGroupType()
+    val keySchema = parseType(kvGroupType.getType(0))
+    val valueSchema = parseType(kvGroupType.getType(1))
+    Mapped(keySchema, valueSchema)
+  }
 
   private def parseType(tpe: Type): Schema =
-    if (tpe.isPrimitive) parsePrimitive(tpe.asPrimitiveType()) else parseGroup(tpe.asGroupType())
+    if (tpe.isPrimitive) {
+      putRepetition(tpe.getRepetition)(parsePrimitive(tpe.asPrimitiveType()))
+    } else {
+      val groupType = tpe.asGroupType()
+      if (isList(groupType)) {
+        parseList(groupType)
+      } else if (isMap(groupType)) {
+        parseMap(groupType)
+      } else {
+        putRepetition(tpe.getRepetition)(parseRecord(groupType))
+      }
+    }
 
   private def parsePrimitive(primitiveType: PrimitiveType): Primitive = {
     val ptn = primitiveType.getPrimitiveTypeName

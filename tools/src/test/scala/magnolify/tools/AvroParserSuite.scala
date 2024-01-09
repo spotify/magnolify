@@ -36,43 +36,29 @@ class AvroParserSuite extends MagnolifySuite {
     }
   }
 
-  private val namespace = Some(this.getClass.getCanonicalName)
-
   test[Primitives](
     Record(
       Some("Primitives"),
-      namespace,
       None,
       List(
-        "b" -> Primitive.Boolean,
-        "i" -> Primitive.Int,
-        "l" -> Primitive.Long,
-        "f" -> Primitive.Float,
-        "d" -> Primitive.Double,
-        "ba" -> Primitive.Bytes,
-        "s" -> Primitive.String,
-        "n" -> Primitive.Null
-      ).map(kv => Field(kv._1, None, kv._2, Required))
+        Record.Field("b", None, Primitive.Boolean),
+        Record.Field("i", None, Primitive.Int),
+        Record.Field("l", None, Primitive.Long),
+        Record.Field("f", None, Primitive.Float),
+        Record.Field("d", None, Primitive.Double),
+        Record.Field("ba", None, Primitive.Bytes),
+        Record.Field("s", None, Primitive.String),
+        Record.Field("n", None, Primitive.Null)
+      )
     )
   )
 
   test[Enums](
     Record(
       Some("Enums"),
-      namespace,
       None,
       List(
-        Field(
-          "e",
-          None,
-          Enum(
-            Some("Color"),
-            namespace,
-            None,
-            List("Red", "Green", "Blue")
-          ),
-          Required
-        )
+        Record.Field("e", None, Primitive.Enum(Some("Color"), None, List("Red", "Green", "Blue")))
       )
     )
   )
@@ -82,11 +68,10 @@ class AvroParserSuite extends MagnolifySuite {
     test[Logical](
       Record(
         Some("Logical"),
-        namespace,
         None,
         List(
-          Field("bd", None, Primitive.BigDecimal, Required),
-          Field("u", None, Primitive.UUID, Required)
+          Record.Field("bd", None, Primitive.BigDecimal),
+          Record.Field("u", None, Primitive.UUID)
         )
       )
     )
@@ -95,21 +80,19 @@ class AvroParserSuite extends MagnolifySuite {
   test[Date](
     Record(
       Some("Date"),
-      namespace,
       None,
-      List(Field("d", None, Primitive.LocalDate, Required))
+      List(Record.Field("d", None, Primitive.LocalDate))
     )
   )
 
   private val dateTimeSchema = Record(
     Some("DateTime"),
-    namespace,
     None,
     List(
-      "i" -> Primitive.Instant,
-      "dt" -> Primitive.LocalDateTime,
-      "t" -> Primitive.LocalTime
-    ).map(kv => Field(kv._1, None, kv._2, Required))
+      Record.Field("i", None, Primitive.Instant),
+      Record.Field("dt", None, Primitive.LocalDateTime),
+      Record.Field("t", None, Primitive.LocalTime)
+    )
   )
 
   {
@@ -127,41 +110,45 @@ class AvroParserSuite extends MagnolifySuite {
     test[DateTime]("BigQuery", dateTimeSchema)
   }
 
-  test[Repetitions](
+  test[Composite](
     Record(
-      Some("Repetitions"),
-      namespace,
+      Some("Composite"),
       None,
       List(
-        "r" -> Required,
-        "o" -> Optional,
-        "l" -> Repeated
-      ).map(kv => Field(kv._1, None, Primitive.Int, kv._2))
+        Record.Field("o", None, Optional(Primitive.Int)),
+        Record.Field("l", None, Repeated(Primitive.Int)),
+        Record.Field("m", None, Mapped(Primitive.String, Primitive.Int))
+      )
     )
   )
 
   test[NullableArray](
-    Record(Some("NullableArray"), namespace, None, List(Field("a", None, Primitive.Int, Repeated)))
+    Record(
+      Some("NullableArray"),
+      None,
+      List(
+        Record.Field("a", None, Optional(Repeated(Primitive.Int)))
+      )
+    )
   )
 
   private val innerSchema =
     Record(
       Some("Inner"),
-      namespace,
       None,
-      List(Field("i", None, Primitive.Int, Required))
+      List(Record.Field("i", None, Primitive.Int))
     )
 
   test[Outer](
     Record(
       Some("Outer"),
-      namespace,
       None,
       List(
-        "r" -> Required,
-        "o" -> Optional,
-        "l" -> Repeated
-      ).map(kv => Field(kv._1, None, innerSchema, kv._2))
+        Record.Field("r", None, innerSchema),
+        Record.Field("o", None, Optional(innerSchema)),
+        Record.Field("l", None, Repeated(innerSchema)),
+        Record.Field("m", None, Mapped(Primitive.String, innerSchema))
+      )
     )
   )
 }
@@ -188,9 +175,9 @@ object AvroParserSuite {
   case class Date(d: LocalDate)
   case class DateTime(i: Instant, dt: LocalDateTime, t: LocalTime)
 
-  case class Repetitions(r: Int, o: Option[Int], l: List[Int])
+  case class Composite(o: Option[Int], l: List[Int], m: Map[String, Int])
   case class NullableArray(a: Option[List[Int]])
 
   case class Inner(i: Int)
-  case class Outer(r: Inner, o: Option[Inner], l: List[Inner])
+  case class Outer(r: Inner, o: Option[Inner], l: List[Inner], m: Map[String, Inner])
 }

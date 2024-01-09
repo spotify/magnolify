@@ -19,37 +19,35 @@ package magnolify.tools
 sealed trait Schema
 
 sealed trait Primitive extends Schema
-
-sealed trait Nested extends Schema
-
-sealed trait Repetition
-
-case object Required extends Repetition
-case object Optional extends Repetition
-case object Repeated extends Repetition
-
-case class Record(
+sealed trait Composite extends Schema
+final case class Record(
   name: Option[String],
-  namespace: Option[String],
+//  namespace: Option[String], // TODO respect namespace
   doc: Option[String],
-  fields: List[Field]
-) extends Nested
+  fields: List[Record.Field]
+) extends Composite
 
-case class Field(
-  name: String,
-  doc: Option[String],
-  schema: Schema,
-  repetition: Repetition
-)
+object Record {
+  case class Field(
+    name: String,
+    doc: Option[String],
+    schema: Schema
+  )
 
-case class Enum(
-  name: Option[String],
-  namespace: Option[String],
-  doc: Option[String],
-  values: List[String]
-) extends Nested
+}
+
+case class Optional(schema: Schema) extends Composite
+case class Repeated(schema: Schema) extends Composite
+case class Mapped(keySchema: Schema, valueSchema: Schema) extends Composite
 
 object Primitive {
+  final case class Enum(
+    name: Option[String],
+//    namespace: Option[String],
+    doc: Option[String],
+    values: List[String]
+  ) extends Primitive
+
   case object Null extends Primitive
   case object Boolean extends Primitive
   case object Char extends Primitive

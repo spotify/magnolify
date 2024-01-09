@@ -16,11 +16,16 @@
 
 package magnolify.tools
 
-import magnolify.test._
-
-class SchemaPrinterSuite extends MagnolifySuite {
+class SchemaPrinterSuite extends munit.ScalaCheckSuite {
   private def test(schema: Record, code: String): Unit =
     assertEquals(SchemaPrinter.print(schema).trim, code.trim)
+
+  test("Root") {
+    test(
+      Record(None, None, List(Record.Field("f", None, Primitive.Int))),
+      "case class Root(f: Int)"
+    )
+  }
 
   test("Primitive") {
     List(
@@ -45,29 +50,29 @@ class SchemaPrinterSuite extends MagnolifySuite {
       Primitive.UUID
     ).foreach { p =>
       test(
-        Record(Some("Primitive"), None, None, List(Field("f", None, p, Required))),
+        Record(Some("Primitive"), None, List(Record.Field("f", None, p))),
         s"case class Primitive(f: $p)"
       )
     }
   }
 
-  test("Repetition") {
+  test("Composite") {
     List(
-      Required -> "%s",
-      Optional -> "Option[%s]",
-      Repeated -> "List[%s]"
-    ).foreach { case (r, f) =>
+      Optional(Primitive.Int) -> "Option[Int]",
+      Repeated(Primitive.Int) -> "List[Int]",
+      Mapped(Primitive.String, Primitive.Int) -> "Map[String, Int]"
+    ).foreach { case (schema, expected) =>
       test(
-        Record(Some("Repetition"), None, None, List(Field("f", None, Primitive.Int, r))),
-        s"case class Repetition(f: ${f.format("Int")})"
+        Record(Some("Composite"), None, List(Record.Field("f", None, schema))),
+        s"case class Composite(f: $expected)"
       )
     }
   }
 
   test("Enum") {
-    val anonymous = Enum(None, None, None, List("Red", "Green", "Blue"))
+    val anonymous = Primitive.Enum(None, None, List("Red", "Green", "Blue"))
     test(
-      Record(Some("Enum"), None, None, List(Field("color_enum", None, anonymous, Required))),
+      Record(Some("Enum"), None, List(Record.Field("color_enum", None, anonymous))),
       """case class Enum(color_enum: Enum.ColorEnum)
         |
         |object Enum {
@@ -81,7 +86,7 @@ class SchemaPrinterSuite extends MagnolifySuite {
 
     val named = anonymous.copy(name = Some("Color"))
     test(
-      Record(Some("Enum"), None, None, List(Field("color_enum", None, named, Required))),
+      Record(Some("Enum"), None, List(Record.Field("color_enum", None, named))),
       """case class Enum(color_enum: Enum.Color)
         |
         |object Enum {
@@ -95,9 +100,9 @@ class SchemaPrinterSuite extends MagnolifySuite {
   }
 
   test("Record") {
-    val anonymous = Record(None, None, None, List(Field("f", None, Primitive.Int, Required)))
+    val anonymous = Record(None, None, List(Record.Field("f", None, Primitive.Int)))
     test(
-      Record(Some("Record"), None, None, List(Field("inner_record", None, anonymous, Required))),
+      Record(Some("Record"), None, List(Record.Field("inner_record", None, anonymous))),
       """case class Record(inner_record: Record.InnerRecord)
         |
         |object Record {
@@ -108,7 +113,7 @@ class SchemaPrinterSuite extends MagnolifySuite {
 
     val named = anonymous.copy(name = Some("Inner"))
     test(
-      Record(Some("Record"), None, None, List(Field("inner_record", None, named, Required))),
+      Record(Some("Record"), None, List(Record.Field("inner_record", None, named))),
       """case class Record(inner_record: Record.Inner)
         |
         |object Record {
@@ -118,87 +123,24 @@ class SchemaPrinterSuite extends MagnolifySuite {
     )
   }
 
-  test("UpperCamel") {
-    val inner = Record(None, None, None, List(Field("f", None, Primitive.Int, Required)))
-    val field = Field(null, None, inner, Required)
-
-    // lower_underscore
-    test(
-      Record(Some("Outer"), None, None, List(field.copy(name = "inner_record"))),
-      """case class Outer(inner_record: Outer.InnerRecord)
-        |
-        |object Outer {
-        |  case class InnerRecord(f: Int)
-        |}
-        |""".stripMargin
-    )
-
-    // UPPER_UNDERSCORE
-    test(
-      Record(Some("Outer"), None, None, List(field.copy(name = "INNER_RECORD"))),
-      """case class Outer(INNER_RECORD: Outer.InnerRecord)
-        |
-        |object Outer {
-        |  case class InnerRecord(f: Int)
-        |}
-        |""".stripMargin
-    )
-
-    // lowerCamel
-    test(
-      Record(Some("Outer"), None, None, List(field.copy(name = "innerRecord"))),
-      """case class Outer(innerRecord: Outer.InnerRecord)
-        |
-        |object Outer {
-        |  case class InnerRecord(f: Int)
-        |}
-        |""".stripMargin
-    )
-
-    // UpperCamel
-    test(
-      Record(Some("Outer"), None, None, List(field.copy(name = "InnerRecord"))),
-      """case class Outer(InnerRecord: Outer.InnerRecord)
-        |
-        |object Outer {
-        |  case class InnerRecord(f: Int)
-        |}
-        |""".stripMargin
-    )
-
-    // lower-hyphen
-    test(
-      Record(Some("Outer"), None, None, List(field.copy(name = "inner-record"))),
-      """case class Outer(`inner-record`: Outer.InnerRecord)
-        |
-        |object Outer {
-        |  case class InnerRecord(f: Int)
-        |}
-        |""".stripMargin
-    )
-  }
-
   test("Deduplication") {
-    val level3 =
-      Record(Some("Level3"), None, None, List(Field("i3", None, Primitive.Int, Required)))
+    val level3 = Record(Some("Level3"), None, List(Record.Field("i3", None, Primitive.Int)))
     val level2 = Record(
       Some("Level2"),
       None,
-      None,
       List(
-        Field("r2", None, level3, Required),
-        Field("o2", None, level3, Optional),
-        Field("l2", None, level3, Repeated)
+        Record.Field("r2", None, level3),
+        Record.Field("o2", None, Optional(level3)),
+        Record.Field("l2", None, Repeated(level3))
       )
     )
     val level1 = Record(
       Some("Level1"),
       None,
-      None,
       List(
-        Field("r1", None, level2, Required),
-        Field("o1", None, level2, Optional),
-        Field("l1", None, level2, Repeated)
+        Record.Field("r1", None, level2),
+        Record.Field("o1", None, Optional(level2)),
+        Record.Field("l1", None, Repeated(level2))
       )
     )
 
@@ -215,5 +157,22 @@ class SchemaPrinterSuite extends MagnolifySuite {
         |}
         |""".stripMargin
     )
+  }
+
+  test("UpperCamel") {
+    // lower_underscore
+    assertEquals(SchemaPrinter.toUpperCamel("inner_record"), "InnerRecord")
+
+    // UPPER_UNDERSCORE
+    assertEquals(SchemaPrinter.toUpperCamel("INNER_RECORD"), "InnerRecord")
+
+    // lowerCamel
+    assertEquals(SchemaPrinter.toUpperCamel("innerRecord"), "InnerRecord")
+
+    // UpperCamel
+    assertEquals(SchemaPrinter.toUpperCamel("InnerRecord"), "InnerRecord")
+
+    // lower-hyphen
+    assertEquals(SchemaPrinter.toUpperCamel("inner-record"), "InnerRecord")
   }
 }
