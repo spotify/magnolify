@@ -95,11 +95,11 @@ jobs:
 
       - name: Make target directories
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
-        run: mkdir -p refined/target shared/target unidocs/target tensorflow/target parquet/target site/target tools/target protobuf/target jmh/target bigquery/target avro/target scalacheck/target datastore/target neo4j/target cats/target bigtable/target guava/target project/target
+        run: mkdir -p refined/target shared/target tensorflow/target parquet/target tools/target protobuf/target jmh/target bigquery/target avro/target scalacheck/target datastore/target neo4j/target cats/target bigtable/target guava/target project/target
 
       - name: Compress target directories
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
-        run: tar cf targets.tar refined/target shared/target unidocs/target tensorflow/target parquet/target site/target tools/target protobuf/target jmh/target bigquery/target avro/target scalacheck/target datastore/target neo4j/target cats/target bigtable/target guava/target project/target
+        run: tar cf targets.tar refined/target shared/target tensorflow/target parquet/target tools/target protobuf/target jmh/target bigquery/target avro/target scalacheck/target datastore/target neo4j/target cats/target bigtable/target guava/target project/target
 
       - name: Upload target directories
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
@@ -246,7 +246,7 @@ jobs:
       - name: Submit Dependencies
         uses: scalacenter/sbt-dependency-submission@v2
         with:
-          modules-ignore: test_3 test_2.13 test_2.12 magnolify_3 magnolify_2.13 magnolify_2.12 magnolify_3 magnolify_2.13 magnolify_2.12 magnolify_3 magnolify_2.13 magnolify_2.12
+          modules-ignore: test_3 test_2.13 test_2.12 magnolify-docs_2.13 magnolify_3 magnolify_2.13 magnolify_2.12 site_2.13 site_2.12 magnolify_3 magnolify_2.13 magnolify_2.12 magnolify_3 magnolify_2.13 magnolify_2.12
           configs-ignore: test scala-tool scala-doc-tool test-internal
 
   validate-steward:
