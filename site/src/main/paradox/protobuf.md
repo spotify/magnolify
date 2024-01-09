@@ -1,13 +1,15 @@
-ProtobufType
-============
+# Protobuf
 
 `ProtobufType[T, MsgT]` provides conversion between Scala type `T` and Protobuf `MsgT <: Message`. Custom support for type `T` can be added with an implicit instance of `ProtobufField[T]`.
 
-```scala
+```scala mdoc:compile-only
 import java.net.URI
 case class Inner(long: Long, str: String, uri: URI)
 case class Outer(inner: Inner)
 val record = Outer(Inner(1L, "hello", URI.create("https://www.spotify.com")))
+
+// Protobuf record
+abstract class MyProto extends com.google.protobuf.Message
 
 import magnolify.protobuf._
 
@@ -20,9 +22,9 @@ val proto: MyProto = protobufType.to(record)
 val copy: Outer = protobufType.from(proto)
 ```
 
-Enum like types map to Protobuf enums. See [enums.md](https://github.com/spotify/magnolify/tree/master/docs/enums.md) for more details. An implicit instance from Java or Scala type to Protobuf enum must be provided.
+Enum like types map to Protobuf enums. See @ref:[EnumType](enums.md) for more details. An implicit instance from Java or Scala type to Protobuf enum must be provided.
 
-```scala
+```scala mdoc:compile-only
 // Scala enum
 object Color extends Enumeration {
   type Type = Value
@@ -35,8 +37,9 @@ object Color extends Enumeration {
 //   GREEN = 1;
 //   BLUE = 2;
 // }
+abstract class ColorProto(name: String, ordinal: Int) extends Enum[ColorProto](name, ordinal) with com.google.protobuf.ProtocolMessageEnum
 
-import magnolify.shared._
+import magnolify.protobuf._
 implicit val efEnum = ProtobufField.enum[Color.Type, ColorProto]
 ```
 
@@ -44,11 +47,15 @@ Additional `ProtobufField[T]` instances for `Byte`, `Char`, `Short`, and `Unsafe
 
 To use a different field case format in target records, add an optional `CaseMapper` argument to `ProtobufType`. The following example maps `firstName` & `lastName` to `first_name` & `last_name`.
 
-```scala
+```scala mdoc:compile-only
 import magnolify.shared.CaseMapper
 import com.google.common.base.CaseFormat
+import magnolify.protobuf._
 
 case class LowerCamel(firstName: String, lastName: String)
+
+// Protobuf record
+abstract class LowerHyphenProto extends com.google.protobuf.Message
 
 val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_UNDERSCORE).convert _
 val protobufType = ProtobufType[LowerCamel, LowerHyphenProto](CaseMapper(toSnakeCase))
