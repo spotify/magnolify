@@ -193,10 +193,6 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
     WorkflowStep.CheckoutFull ::
       WorkflowStep.SetupJava(List(javaDefault)) :::
       List(
-        WorkflowStep.Run(
-          List("scripts/gha_setup.sh"),
-          name = Some("Setup GitHub Action")
-        ),
         WorkflowStep.Sbt(
           List("site/makeSite"),
           name = Some("Generate site")

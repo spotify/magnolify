@@ -366,9 +366,6 @@ jobs:
         if: matrix.java == 'corretto@17' && steps.setup-java-corretto-17.outputs.cache-hit == 'false'
         run: sbt +update
 
-      - name: Setup GitHub Action
-        run: scripts/gha_setup.sh
-
       - name: Generate site
         run: sbt '++ ${{ matrix.scala }}' site/makeSite
 
