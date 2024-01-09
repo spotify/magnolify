@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="x-ua-compatible" content="ie=edge">
+<meta name="description" content="Magnolify - Documentation">
+<meta name="generator" content="Paradox, paradox-material-theme=0.6.0, mkdocs-material=3.0.3">
+
+<meta name="lang:clipboard.copy" content="Copy to clipboard">
+<meta name="lang:clipboard.copied" content="Copied to clipboard">
+<meta name="lang:search.language" content="">
+<meta name="lang:search.pipeline.stopwords" content="true">
+<meta name="lang:search.pipeline.trimmer" content="true">
+<meta name="lang:search.result.none" content="No matching documents">
+<meta name="lang:search.result.one" content="1 matching document">
+<meta name="lang:search.result.other" content="# matching documents">
+<meta name="lang:search.tokenizer" content="[\s\-]+">
+
+
+<meta name="description" content="Magnolify - Documentation">
+<link rel="shortcut icon" href="images/favicon.ico">
+<title>Magnolify</title>
+<link rel="stylesheet" href="assets/stylesheets/application.451f80e5.css">
+<link rel="stylesheet" href="assets/stylesheets/application-palette.22915126.css">
+<link rel="stylesheet" href="lib/material__tabs/dist/mdc.tabs.min.css">
+<link rel="stylesheet" href="lib/prettify/prettify.css">
+<script src="assets/javascripts/modernizr.1aa3b519.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono">
+<style>
+body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}
+code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}
+</style>
+<link rel="stylesheet" href="assets/fonts/font-awesome.css">
+<link rel="stylesheet" href="assets/fonts/material-icons.css">
+<link rel="stylesheet" href="assets/stylesheets/paradox-material-theme.css">
+</head>
+<body
+data-md-color-primary="white"
+data-md-color-accent="indigo"
+>
+<input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+<input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+<label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
+<header class="md-header" data-md-component="header">
+<nav class="md-header-nav md-grid">
+<div class="md-flex">
+<div class="md-flex__cell md-flex__cell--shrink">
+<a href="index.html" title="Magnolify" class="md-header-nav__button md-logo">
+<img src="images/logo.png" width="24" height="24">
+</a>
+</div>
+<div class="md-flex__cell md-flex__cell--shrink">
+<label class="md-icon md-icon--menu md-header-nav__button" for="__drawer"></label>
+</div>
+<div class="md-flex__cell md-flex__cell--stretch">
+<div class="md-flex__ellipsis md-header-nav__title" data-md-component="title">
+Magnolify
+</div>
+</div>
+<div class="md-flex__cell md-flex__cell--shrink">
+<label class="md-icon md-icon--search md-header-nav__button" for="__search"></label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input type="text" class="md-search__input" name="query" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query" data-md-state="active">
+<label class="md-icon md-search__icon" for="__search"></label>
+<button type="reset" class="md-icon md-search__icon" data-md-component="reset" tabindex="-1">&#xE5CD;</button>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix>
+<div class="md-search-result" data-md-component="result">
+<div class="md-search-result__meta">
+Type to start searching
+</div>
+<ol class="md-search-result__list"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+<div class="md-flex__cell md-flex__cell--shrink">
+<div class="md-header-nav__source">
+<a href="https://github.com/spotify/magnolify"
+title="Go to repository"
+class="md-source"
+data-md-source="github">
+<div class="md-source__icon">
+<i class="fa fa-github"></i>
+</div>
+<div class="md-source__repository">
+spotify/magnolify
+</div>
+</a>
+
+</div>
+</div>
+</div>
+</nav>
+</header>
+
+<div class="md-container">
+<main class="md-main">
+<div class="md-main__inner md-grid" data-md-component="container">
+<div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav class="md-nav md-nav--primary" data-md-level="0" style="visibility: hidden">
+<label class="md-nav__title md-nav__title--site" for="drawer">
+<a href="index.html" title="Magnolify" class="md-nav__button md-logo">
+<span class="md-nav__button md-logo">
+<img src="images/logo.png" width="24" height="24">
+</a>
+<a href="index.html" title="Magnolify">
+Magnolify
+</a>
+</label>
+<div class="md-nav__source">
+<a href="https://github.com/spotify/magnolify"
+title="Go to repository"
+class="md-source"
+data-md-source="github">
+<div class="md-source__icon">
+<i class="fa fa-github"></i>
+</div>
+<div class="md-source__repository">
+spotify/magnolify
+</div>
+</a>
+
+</div>
+<ul>
+  <li><a href="avro.html" class="page">Avro</a></li>
+  <li><a href="bigquery.html" class="page">BigQuery</a></li>
+  <li><a href="bigtable.html" class="page">Bigtable</a></li>
+  <li><a href="cats.html" class="page">Cats</a></li>
+  <li><a href="datastore.html" class="page">Datastore</a></li>
+  <li><a href="guava.html" class="page">Guava</a></li>
+  <li><a href="neo4j.html" class="page">Neo4j</a></li>
+  <li><a href="parquet.html" class="page">Parquet</a></li>
+  <li><a href="protobuf.html" class="page">Protobuf</a></li>
+  <li><a href="refined.html" class="page">Refined</a></li>
+  <li><a href="scalacheck.html" class="page">Scalacheck</a></li>
+  <li><a href="tensorflow.html" class="page">Tensorflow</a></li>
+  <li><a href="enums.html" class="page">EnumType</a></li>
+  <li><a href="mapping.html" class="page">Type Mapping</a></li>
+  <li><a href="scaladoc.html" class="page">Scaladoc</a></li>
+</ul>
+<nav class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">Table of contents</label>
+<ul>
+  <li><a href="index.html#magnolify" class="header">Magnolify</a>
+  <ul>
+    <li><a href="index.html#getting-help" class="header">Getting help</a></li>
+    <li><a href="index.html#modules" class="header">Modules</a></li>
+  </ul></li>
+</ul>
+</nav>
+
+</nav>
+<ul style="display: none">
+<li class="md-nav__item md-version" id="project.version">
+<label class="md-nav__link" for="__version">
+<i class="md-icon" title="Version">label_outline</i> 0.7-ed96b4a*
+</label>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">Table of contents</label>
+<ul>
+  <li><a href="index.html#magnolify" class="header">Magnolify</a>
+  <ul>
+    <li><a href="index.html#getting-help" class="header">Getting help</a></li>
+    <li><a href="index.html#modules" class="header">Modules</a></li>
+  </ul></li>
+</ul>
+</nav>
+
+</div>
+</div>
+</div>
+<div class="md-content">
+<article class="md-content__inner md-typeset">
+<div class="md-content__searchable">
+<h1><a href="#magnolify" name="magnolify" class="anchor"><span class="anchor-link"></span></a>Magnolify</h1>
+<p>A collection of <a href="https://github.com/propensive/magnolia">Magnolia</a> add-ons for common type class derivation, data type conversion, etc.; a simpler and faster successor to <a href="https://github.com/nevillelyh/shapeless-datatype">shapeless-datatype</a>.</p>
+<h2><a href="#getting-help" name="getting-help" class="anchor"><span class="anchor-link"></span></a>Getting help</h2>
+<ul>
+  <li><a href="https://github.com/spotify/magnolify/discussions">GitHub discussions</a></li>
+</ul>
+<h1><a href="#modules" name="modules" class="anchor"><span class="anchor-link"></span></a>Modules</h1>
+<p>This library includes the following modules.</p>
+<ul>
+  <li><a href="avro.html"><code>magnolify-avro</code></a> - conversion between Scala types and <a href="https://github.com/apache/avro">Apache Avro</a> <code>GenericRecord</code></li>
+  <li><a href="bigquery.html"><code>magnolify-bigquery</code></a> - conversion between Scala types and <a href="https://cloud.google.com/bigquery/">Google Cloud BigQuery</a> <code>TableRow</code></li>
+  <li><a href="bigtable.html"><code>magnolify-bigtable</code></a> - conversion between Scala types and <a href="https://cloud.google.com/bigtable">Google Cloud Bigtable</a> to <code>Mutation</code>, from <code>Row</code></li>
+  <li><a href="cats.html"><code>magnolify-cats</code></a> - type class derivation for <a href="https://github.com/typelevel/cats">Cats</a>, specifically
+    <ul>
+      <li><a href="https://typelevel.org/cats/api/cats/kernel/Eq.html"><code>Eq[T]</code></a></li>
+      <li><a href="https://typelevel.org/cats/api/cats/kernel/Hash.html"><code>Hash[T]</code></a></li>
+      <li><a href="https://typelevel.org/cats/api/cats/kernel/Semigroup.html"><code>Semigroup[T]</code></a>, <a href="https://typelevel.org/cats/api/cats/kernel/CommutativeSemigroup.html"><code>CommutativeSemigroup[T]</code></a>, <a href="https://typelevel.org/cats/api/cats/kernel/Band.html"><code>Band[T]</code></a></li>
+      <li><a href="https://typelevel.org/cats/api/cats/kernel/Monoid.html"><code>Monoid[T]</code></a>, <a href="https://typelevel.org/cats/api/cats/kernel/CommutativeMonoid.html"><code>CommutativeMonoid[T]</code></a></li>
+      <li><a href="https://typelevel.org/cats/api/cats/kernel/Group.html"><code>Group[T]</code></a>, <a href="https://typelevel.org/cats/api/cats/kernel/CommutativeGroup.html"><code>CommutativeGroup[T]</code></a></li>
+    </ul>
+  </li>
+  <li><a href="datastore.html"><code>magnolify-datastore</code></a> - conversion between Scala types and <a href="https://cloud.google.com/datastore/">Google Cloud Datastore</a> <code>Entity</code></li>
+  <li><a href="guava.html"><code>magnolify-guava</code></a> - type class derivation for <a href="https://guava.dev">Guava</a>
+    <ul>
+      <li><a href="https://guava.dev/releases/snapshot-jre/api/docs/com/google/common/hash/Funnel.html"><code>Funnel[T]</code></a></li>
+    </ul>
+  </li>
+  <li><a href="neo4j.html"><code>magnolify-neo4j</code></a> - conversion between Scala types and <a href="https://neo4j.com/docs/driver-manual/1.7/cypher-values/">Value</a></li>
+  <li><a href="parquet.html"><code>magnolify-parquet</code></a> - support for <a href="http://parquet.apache.org/">Parquet</a> columnar storage format.</li>
+  <li><a href="protobuf.html"><code>magnolify-protobuf</code></a> - conversion between Scala types and <a href="https://developers.google.com/protocol-buffers/docs/overview">Google Protocol Buffer</a> <code>Message</code></li>
+  <li><a href="refined.html"><code>magnolify-refined</code></a> - support for simple refinement types from <a href="https://github.com/fthomas/refined">Refined</a>.</li>
+  <li><a href="scalacheck.html"><code>magnolify-scalacheck</code></a> - type class derivation for <a href="https://github.com/typelevel/scalacheck">ScalaCheck</a>
+    <ul>
+      <li><a href="https://github.com/typelevel/scalacheck/blob/master/doc/UserGuide.md#universally-quantified-properties"><code>Arbitrary[T]</code></a></li>
+      <li><a href="https://github.com/typelevel/scalacheck/blob/master/src/main/scala/org/scalacheck/Cogen.scala"><code>Cogen[T]</code></a></li>
+    </ul>
+  </li>
+  <li><a href="tensorflow.html"><code>magnolify-tensorflow</code></a> - conversion between Scala types and <a href="https://www.tensorflow.org/">TensorFlow</a> <code>Example</code></li>
+</ul>
+<p>Complete type mapping <a href="mapping.html">here</a>.</p>
+</div>
+<div>
+<a href="https://github.com/spotify/magnolify/tree/master/site/src/main/paradox/index.md" title="Edit this page" class="md-source-file md-edit">
+Edit this page
+</a>
+</div>
+<div class="print-only">
+<span class="md-source-file md-version">
+0.7-ed96b4a*
+</span>
+</div>
+</article>
+</div>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-nav">
+<nav class="md-footer-nav__inner md-grid">
+<a href="avro.html" title="Avro" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+<div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+<span class="md-flex__ellipsis">
+<span class="md-footer-nav__direction">
+Next
+</span>
+Avro
+</span>
+</div>
+<div class="md-flex__cell md-flex__cell--shrink">
+<i class="md-icon md-icon--arrow-forward md-footer-nav__button"></i>
+</div>
+</a>
+</nav>
+</div>
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-footer-copyright">
+<div class="md-footer-copyright__highlight">
+Copyright (C) 2024 Spotify AB
+</div>
+Powered by
+<a href="https://github.com/lightbend/paradox">Paradox</a>
+and
+<a href="https://jonas.github.io/paradox-material-theme/">Paradox Material Theme</a>
+
+</div>
+<div class="md-footer-social">
+<a href="https://github.com/spotify" class="md-footer-social__link fa fa-github"></a><a href="https://twitter.com/spotifyeng" class="md-footer-social__link fa fa-twitter"></a>
+</div>
+
+</div>
+</div>
+</footer>
+
+</div>
+<script src="assets/javascripts/application.583bbe55.js"></script>
+<script src="assets/javascripts/paradox-material-theme.js"></script>
+<script>app.initialize({version:"0.17",url:{base:"."}})</script>
+<script type="text/javascript" src="lib/prettify/prettify.js"></script>
+<script type="text/javascript" src="lib/prettify/lang-scala.js"></script>
+<script type="text/javascript">
+document.addEventListener("DOMContentLoaded", function(event) {
+window.prettyPrint && prettyPrint();
+});
+</script>
+</body>
+</html>

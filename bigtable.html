@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="x-ua-compatible" content="ie=edge">
+<meta name="description" content="Magnolify - Documentation">
+<meta name="generator" content="Paradox, paradox-material-theme=0.6.0, mkdocs-material=3.0.3">
+
+<meta name="lang:clipboard.copy" content="Copy to clipboard">
+<meta name="lang:clipboard.copied" content="Copied to clipboard">
+<meta name="lang:search.language" content="">
+<meta name="lang:search.pipeline.stopwords" content="true">
+<meta name="lang:search.pipeline.trimmer" content="true">
+<meta name="lang:search.result.none" content="No matching documents">
+<meta name="lang:search.result.one" content="1 matching document">
+<meta name="lang:search.result.other" content="# matching documents">
+<meta name="lang:search.tokenizer" content="[\s\-]+">
+
+
+<meta name="description" content="Magnolify - Documentation">
+<link rel="shortcut icon" href="images/favicon.ico">
+<title>Bigtable · Magnolify</title>
+<link rel="stylesheet" href="assets/stylesheets/application.451f80e5.css">
+<link rel="stylesheet" href="assets/stylesheets/application-palette.22915126.css">
+<link rel="stylesheet" href="lib/material__tabs/dist/mdc.tabs.min.css">
+<link rel="stylesheet" href="lib/prettify/prettify.css">
+<script src="assets/javascripts/modernizr.1aa3b519.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono">
+<style>
+body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}
+code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}
+</style>
+<link rel="stylesheet" href="assets/fonts/font-awesome.css">
+<link rel="stylesheet" href="assets/fonts/material-icons.css">
+<link rel="stylesheet" href="assets/stylesheets/paradox-material-theme.css">
+</head>
+<body
+data-md-color-primary="white"
+data-md-color-accent="indigo"
+>
+<input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+<input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+<label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
+<header class="md-header" data-md-component="header">
+<nav class="md-header-nav md-grid">
+<div class="md-flex">
+<div class="md-flex__cell md-flex__cell--shrink">
+<a href="index.html" title="Magnolify" class="md-header-nav__button md-logo">
+<img src="images/logo.png" width="24" height="24">
+</a>
+</div>
+<div class="md-flex__cell md-flex__cell--shrink">
+<label class="md-icon md-icon--menu md-header-nav__button" for="__drawer"></label>
+</div>
+<div class="md-flex__cell md-flex__cell--stretch">
+<div class="md-flex__ellipsis md-header-nav__title" data-md-component="title">
+<span class="md-header-nav__topic">
+Magnolify
+</span>
+<span class="md-header-nav__topic">
+Bigtable
+</span>
+</div>
+</div>
+<div class="md-flex__cell md-flex__cell--shrink">
+<label class="md-icon md-icon--search md-header-nav__button" for="__search"></label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input type="text" class="md-search__input" name="query" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query" data-md-state="active">
+<label class="md-icon md-search__icon" for="__search"></label>
+<button type="reset" class="md-icon md-search__icon" data-md-component="reset" tabindex="-1">&#xE5CD;</button>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix>
+<div class="md-search-result" data-md-component="result">
+<div class="md-search-result__meta">
+Type to start searching
+</div>
+<ol class="md-search-result__list"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+<div class="md-flex__cell md-flex__cell--shrink">
+<div class="md-header-nav__source">
+<a href="https://github.com/spotify/magnolify"
+title="Go to repository"
+class="md-source"
+data-md-source="github">
+<div class="md-source__icon">
+<i class="fa fa-github"></i>
+</div>
+<div class="md-source__repository">
+spotify/magnolify
+</div>
+</a>
+
+</div>
+</div>
+</div>
+</nav>
+</header>
+
+<div class="md-container">
+<main class="md-main">
+<div class="md-main__inner md-grid" data-md-component="container">
+<div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav class="md-nav md-nav--primary" data-md-level="0" style="visibility: hidden">
+<label class="md-nav__title md-nav__title--site" for="drawer">
+<a href="index.html" title="Magnolify" class="md-nav__button md-logo">
+<span class="md-nav__button md-logo">
+<img src="images/logo.png" width="24" height="24">
+</a>
+<a href="index.html" title="Magnolify">
+Magnolify
+</a>
+</label>
+<div class="md-nav__source">
+<a href="https://github.com/spotify/magnolify"
+title="Go to repository"
+class="md-source"
+data-md-source="github">
+<div class="md-source__icon">
+<i class="fa fa-github"></i>
+</div>
+<div class="md-source__repository">
+spotify/magnolify
+</div>
+</a>
+
+</div>
+<ul>
+  <li><a href="avro.html" class="page">Avro</a></li>
+  <li><a href="bigquery.html" class="page">BigQuery</a></li>
+  <li><a href="bigtable.html" class="active page">Bigtable</a></li>
+  <li><a href="cats.html" class="page">Cats</a></li>
+  <li><a href="datastore.html" class="page">Datastore</a></li>
+  <li><a href="guava.html" class="page">Guava</a></li>
+  <li><a href="neo4j.html" class="page">Neo4j</a></li>
+  <li><a href="parquet.html" class="page">Parquet</a></li>
+  <li><a href="protobuf.html" class="page">Protobuf</a></li>
+  <li><a href="refined.html" class="page">Refined</a></li>
+  <li><a href="scalacheck.html" class="page">Scalacheck</a></li>
+  <li><a href="tensorflow.html" class="page">Tensorflow</a></li>
+  <li><a href="enums.html" class="page">EnumType</a></li>
+  <li><a href="mapping.html" class="page">Type Mapping</a></li>
+  <li><a href="scaladoc.html" class="page">Scaladoc</a></li>
+</ul>
+<nav class="md-nav md-nav--secondary">
+</nav>
+
+</nav>
+<ul style="display: none">
+<li class="md-nav__item md-version" id="project.version">
+<label class="md-nav__link" for="__version">
+<i class="md-icon" title="Version">label_outline</i> 0.7-ed96b4a*
+</label>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="md-content">
+<article class="md-content__inner md-typeset">
+<div class="md-content__searchable">
+<h1><a href="#bigtable" name="bigtable" class="anchor"><span class="anchor-link"></span></a>Bigtable</h1>
+<p><code>BigtableType[T]</code> provides conversion between Scala type <code>T</code> and Bigtable <code>Row</code>/<code>Seq[Mutation]</code> for read/write. Custom support for type <code>T</code> can be added with an implicit instance of <code>BigtableField[T]</code>.</p>
+<pre class="prettyprint"><code class="language-scala mdoc:compile-only">import java.net.URI
+case class Inner(long: Long, str: String, uri: URI)
+case class Outer(inner: Inner)
+val record = Outer(Inner(1L, &quot;hello&quot;, URI.create(&quot;https://www.spotify.com&quot;)))
+
+import magnolify.bigtable._
+import com.google.bigtable.v2.{Mutation, Row}
+import com.google.protobuf.ByteString
+
+// Encode custom type URI as String
+implicit val uriField: BigtableField[URI] = BigtableField.from[String](URI.create)(_.toString)
+
+val bigtableType = BigtableType[Outer]
+val mutations: Seq[Mutation] = bigtableType(record, &quot;ColumnFamily&quot;)
+val row: Row = BigtableType.mutationsToRow(ByteString.copyFromUtf8(&quot;RowKey&quot;), mutations)
+val copy: Outer = bigtableType(row, &quot;ColumnFamily&quot;)
+</code></pre>
+<p><code>BigtableType</code> encodes each field in a separate column qualifier of the same name. It encodes nested fields by joining field names as <code>field_a.field_b.field_c</code>. Repeated types are not supported. Enum-like types map to strings. See <a href="enums.html">EnumType</a> for more details.</p>
+<p>To use a different field case format in target records, add an optional <code>CaseMapper</code> argument to <code>BigtableType</code>. The following example maps <code>firstName</code> &amp; <code>lastName</code> to <code>first_name</code> &amp; <code>last_name</code>.</p>
+<pre class="prettyprint"><code class="language-scala mdoc:compile-only">import magnolify.bigtable._
+import magnolify.shared.CaseMapper
+import com.google.common.base.CaseFormat
+
+case class LowerCamel(firstName: String, lastName: String)
+
+val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_UNDERSCORE).convert _
+val bigtableType = BigtableType[LowerCamel](CaseMapper(toSnakeCase))
+bigtableType(LowerCamel(&quot;John&quot;, &quot;Doe&quot;), &quot;cf&quot;)
+</code></pre>
+</div>
+<div>
+<a href="https://github.com/spotify/magnolify/tree/master/site/src/main/paradox/bigtable.md" title="Edit this page" class="md-source-file md-edit">
+Edit this page
+</a>
+</div>
+<div class="print-only">
+<span class="md-source-file md-version">
+0.7-ed96b4a*
+</span>
+</div>
+</article>
+</div>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-nav">
+<nav class="md-footer-nav__inner md-grid">
+<a href="bigquery.html" title="BigQuery" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+<div class="md-flex__cell md-flex__cell--shrink">
+<i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
+</div>
+<div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+<span class="md-flex__ellipsis">
+<span class="md-footer-nav__direction">
+Previous
+</span>
+BigQuery
+</span>
+</div>
+</a>
+<a href="cats.html" title="Cats" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+<div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+<span class="md-flex__ellipsis">
+<span class="md-footer-nav__direction">
+Next
+</span>
+Cats
+</span>
+</div>
+<div class="md-flex__cell md-flex__cell--shrink">
+<i class="md-icon md-icon--arrow-forward md-footer-nav__button"></i>
+</div>
+</a>
+</nav>
+</div>
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-footer-copyright">
+<div class="md-footer-copyright__highlight">
+Copyright (C) 2024 Spotify AB
+</div>
+Powered by
+<a href="https://github.com/lightbend/paradox">Paradox</a>
+and
+<a href="https://jonas.github.io/paradox-material-theme/">Paradox Material Theme</a>
+
+</div>
+<div class="md-footer-social">
+<a href="https://github.com/spotify" class="md-footer-social__link fa fa-github"></a><a href="https://twitter.com/spotifyeng" class="md-footer-social__link fa fa-twitter"></a>
+</div>
+
+</div>
+</div>
+</footer>
+
+</div>
+<script src="assets/javascripts/application.583bbe55.js"></script>
+<script src="assets/javascripts/paradox-material-theme.js"></script>
+<script>app.initialize({version:"0.17",url:{base:"."}})</script>
+<script type="text/javascript" src="lib/prettify/prettify.js"></script>
+<script type="text/javascript" src="lib/prettify/lang-scala.js"></script>
+<script type="text/javascript">
+document.addEventListener("DOMContentLoaded", function(event) {
+window.prettyPrint && prettyPrint();
+});
+</script>
+</body>
+</html>
