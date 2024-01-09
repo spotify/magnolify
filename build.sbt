@@ -106,17 +106,21 @@ val scala3 = "3.3.1"
 val scala213 = "2.13.12"
 val scala212 = "2.12.18"
 val scalaDefault = scala213
+val scala3Projects = List(
+  "shared",
+  "test"
+)
 
 // github actions
 val java17 = JavaSpec.corretto("17")
 val java11 = JavaSpec.corretto("11")
 val javaDefault = java17
 
-val scala3Cond = "matrix.scala == '3'"
-val scala3Projects = List(
-  "shared",
-  "test"
-)
+val condIsScala3 = "matrix.scala == '3'"
+val condNotScala3 = s"!($condIsScala3)"
+val condIsMain = "github.ref == 'refs/heads/main'"
+val condIsTag = "startsWith(github.ref, 'refs/tags/v')"
+
 ThisBuild / scalaVersion := scalaDefault
 ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
@@ -131,11 +135,11 @@ ThisBuild / githubWorkflowBuild ~= { steps: Seq[WorkflowStep] =>
   steps.flatMap {
     case s if s.name.contains("Test") =>
       Seq(
-        s.withCond(Some(s"!($scala3Cond)")),
+        s.withCond(Some(condNotScala3)),
         WorkflowStep.Sbt(
           scala3Projects.map(p => s"$p/test"),
           name = Some("Test"),
-          cond = Some(scala3Cond)
+          cond = Some(condIsScala3)
         )
       )
     case s =>
@@ -143,7 +147,7 @@ ThisBuild / githubWorkflowBuild ~= { steps: Seq[WorkflowStep] =>
         s.name.contains("Check binary compatibility") ||
         s.name.contains("Generate API documentation")
       ) {
-        Seq(s.withCond(Some(s"!($scala3Cond)")))
+        Seq(s.withCond(Some(condNotScala3)))
       } else {
         Seq(s)
       }
@@ -178,6 +182,39 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
           List("avro/test"),
           env = Map("JAVA_OPTS" -> "-Davro.version=1.8.2"),
           name = Some("Test")
+        )
+      ),
+    scalas = List(CrossVersion.binaryScalaVersion(scalaDefault)),
+    javas = List(javaDefault)
+  ),
+  WorkflowJob(
+    "site",
+    "Generate Site",
+    WorkflowStep.CheckoutFull ::
+      WorkflowStep.SetupJava(List(javaDefault)) :::
+      List(
+        WorkflowStep.Run(
+          List("scripts/gha_setup.sh"),
+          name = Some("Setup GitHub Action")
+        ),
+        WorkflowStep.Sbt(
+          List("site/makeSite"),
+          name = Some("Generate site")
+        ),
+        WorkflowStep.Use(
+          UseRef.Public("peaceiris", "actions-gh-pages", "v3.9.3"),
+          env = Map(
+            "github_token" -> "${{ secrets.GITHUB_TOKEN }}",
+            "publish_dir" -> {
+              val path = (ThisBuild / baseDirectory).value.toPath.toAbsolutePath
+                .relativize((site / target).value.toPath)
+              // os-independent path rendering ...
+              (0 until path.getNameCount).map(path.getName).mkString("/")
+            },
+            "keep_files" -> "true"
+          ),
+          name = Some("Publish site"),
+          cond = Some(condIsTag)
         )
       ),
     scalas = List(CrossVersion.binaryScalaVersion(scalaDefault)),
