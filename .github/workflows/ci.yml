@@ -95,11 +95,11 @@ jobs:
 
       - name: Make target directories
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
-        run: mkdir -p refined/target shared/target tensorflow/target parquet/target tools/target protobuf/target jmh/target bigquery/target avro/target scalacheck/target datastore/target neo4j/target cats/target bigtable/target guava/target project/target
+        run: mkdir -p refined/target shared/target unidocs/target tensorflow/target parquet/target site/target tools/target protobuf/target jmh/target bigquery/target avro/target scalacheck/target datastore/target neo4j/target cats/target bigtable/target guava/target project/target
 
       - name: Compress target directories
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
-        run: tar cf targets.tar refined/target shared/target tensorflow/target parquet/target tools/target protobuf/target jmh/target bigquery/target avro/target scalacheck/target datastore/target neo4j/target cats/target bigtable/target guava/target project/target
+        run: tar cf targets.tar refined/target shared/target unidocs/target tensorflow/target parquet/target site/target tools/target protobuf/target jmh/target bigquery/target avro/target scalacheck/target datastore/target neo4j/target cats/target bigtable/target guava/target project/target
 
       - name: Upload target directories
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
@@ -338,3 +338,41 @@ jobs:
         env:
           JAVA_OPTS: '-Davro.version=1.8.2'
         run: sbt '++ ${{ matrix.scala }}' avro/test
+
+  site:
+    name: Generate Site
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        scala: [2.13]
+        java: [corretto@17]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout current branch (full)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java (corretto@17)
+        id: setup-java-corretto-17
+        if: matrix.java == 'corretto@17'
+        uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: 17
+          cache: sbt
+
+      - name: sbt update
+        if: matrix.java == 'corretto@17' && steps.setup-java-corretto-17.outputs.cache-hit == 'false'
+        run: sbt +update
+
+      - name: Generate site
+        run: sbt '++ ${{ matrix.scala }}' site/makeSite
+
+      - name: Publish site
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: site/target
+          keep_files: true
+        uses: peaceiris/actions-gh-pages@v3.9.3

@@ -1,5 +1,4 @@
-ExampleType
-===========
+# Tensorflow
 
 `ExampleType[T]` provides conversion between Scala type `T` and TensorFlow `Example`. Custom support for type `T` can be added with an implicit instance of `ExampleField[T]`.
 
@@ -25,7 +24,7 @@ val copy = exampleType.from(exampleBuilder.build)
 
 `ExampleType` encodes each field in a `Feature` of the same name. It encodes nested fields by joining field names as `field_a.field_b.field_c`. Optional and repeated types are not supported in a nested field.
 
-Additional `ExampleField[T]` instances for `Byte`, `Char`, `Short`, `Int`, `Double`, `Boolean`, `String`, and enum-like types are available from `import magnolify.tensorflow.unsafe._`. These conversions are unsafe due to potential overflow and encoding errors.  Enum-like types map to strings. See [enums.md](https://github.com/spotify/magnolify/tree/master/docs/enums.md) for more details.
+Additional `ExampleField[T]` instances for `Byte`, `Char`, `Short`, `Int`, `Double`, `Boolean`, `String`, and enum-like types are available from `import magnolify.tensorflow.unsafe._`. These conversions are unsafe due to potential overflow and encoding errors.  Enum-like types map to strings. See @ref:[EnumType](enums.md) for more details.
 
 To use a different field case format in target records, add an optional `CaseMapper` argument to `ExampleType`. The following example maps `firstName` & `lastName` to `first_name` & `last_name`.
 

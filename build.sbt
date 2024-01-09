@@ -15,6 +15,7 @@
  */
 import sbt._
 import sbtprotoc.ProtocPlugin.ProtobufConfig
+import com.github.sbt.git.SbtGit.GitKeys.gitRemoteRepo
 import com.typesafe.tools.mima.core._
 
 val magnoliaScala2Version = "1.1.6"
@@ -105,17 +106,21 @@ val scala3 = "3.3.1"
 val scala213 = "2.13.12"
 val scala212 = "2.12.18"
 val scalaDefault = scala213
+val scala3Projects = List(
+  "shared",
+  "test"
+)
 
 // github actions
 val java17 = JavaSpec.corretto("17")
 val java11 = JavaSpec.corretto("11")
 val javaDefault = java17
 
-val scala3Cond = "matrix.scala == '3'"
-val scala3Projects = List(
-  "shared",
-  "test"
-)
+val condIsScala3 = "matrix.scala == '3'"
+val condNotScala3 = s"!($condIsScala3)"
+val condIsMain = "github.ref == 'refs/heads/main'"
+val condIsTag = "startsWith(github.ref, 'refs/tags/v')"
+
 ThisBuild / scalaVersion := scalaDefault
 ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
@@ -130,11 +135,11 @@ ThisBuild / githubWorkflowBuild ~= { steps: Seq[WorkflowStep] =>
   steps.flatMap {
     case s if s.name.contains("Test") =>
       Seq(
-        s.withCond(Some(s"!($scala3Cond)")),
+        s.withCond(Some(condNotScala3)),
         WorkflowStep.Sbt(
           scala3Projects.map(p => s"$p/test"),
           name = Some("Test"),
-          cond = Some(scala3Cond)
+          cond = Some(condIsScala3)
         )
       )
     case s =>
@@ -142,7 +147,7 @@ ThisBuild / githubWorkflowBuild ~= { steps: Seq[WorkflowStep] =>
         s.name.contains("Check binary compatibility") ||
         s.name.contains("Generate API documentation")
       ) {
-        Seq(s.withCond(Some(s"!($scala3Cond)")))
+        Seq(s.withCond(Some(condNotScala3)))
       } else {
         Seq(s)
       }
@@ -177,6 +182,35 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
           List("avro/test"),
           env = Map("JAVA_OPTS" -> "-Davro.version=1.8.2"),
           name = Some("Test")
+        )
+      ),
+    scalas = List(CrossVersion.binaryScalaVersion(scalaDefault)),
+    javas = List(javaDefault)
+  ),
+  WorkflowJob(
+    "site",
+    "Generate Site",
+    WorkflowStep.CheckoutFull ::
+      WorkflowStep.SetupJava(List(javaDefault)) :::
+      List(
+        WorkflowStep.Sbt(
+          List("site/makeSite"),
+          name = Some("Generate site")
+        ),
+        WorkflowStep.Use(
+          UseRef.Public("peaceiris", "actions-gh-pages", "v3.9.3"),
+          env = Map(
+            "github_token" -> "${{ secrets.GITHUB_TOKEN }}",
+            "publish_dir" -> {
+              val path = (ThisBuild / baseDirectory).value.toPath.toAbsolutePath
+                .relativize((site / target).value.toPath)
+              // os-independent path rendering ...
+              (0 until path.getNameCount).map(path.getName).mkString("/")
+            },
+            "keep_files" -> "true"
+          ),
+          name = Some("Publish site"),
+          cond = Some(condIsTag)
         )
       ),
     scalas = List(CrossVersion.binaryScalaVersion(scalaDefault)),
@@ -623,4 +657,85 @@ lazy val jmh: Project = project
       "org.apache.avro" % "avro" % avroVersion % Test,
       "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Test
     )
+  )
+
+// =======================================================================
+// Site settings
+// =======================================================================
+lazy val site = project
+  .in(file("site"))
+  .enablePlugins(
+    ParadoxSitePlugin,
+    ParadoxMaterialThemePlugin,
+    GhpagesPlugin,
+    SiteScaladocPlugin,
+    MdocPlugin
+  )
+  .dependsOn(
+    avro % "compile->compile,provided",
+    bigquery % "compile->compile,provided",
+    bigtable % "compile->compile,provided",
+    cats % "compile->compile,provided",
+    datastore % "compile->compile,provided",
+    guava % "compile->compile,provided",
+    neo4j % "compile->compile,provided",
+    parquet % "compile->compile,provided",
+    protobuf % "compile->compile,provided",
+    refined % "compile->compile,provided",
+    shared,
+    scalacheck % "compile->compile,provided",
+    tensorflow % "compile->compile,provided",
+    unidocs
+  )
+  .settings(commonSettings)
+  .settings(
+    description := "Magnolify - Documentation",
+    fork := false,
+    publish / skip := true,
+    autoAPIMappings := true,
+    gitRemoteRepo := "git@github.com:spotify/magnolify.git",
+    // mdoc
+    // pre-compile md using mdoc
+    mdocIn := (paradox / sourceDirectory).value,
+    mdocExtraArguments ++= Seq("--no-link-hygiene"),
+    // paradox
+    Compile / paradox / sourceManaged := mdocOut.value,
+    paradoxProperties ++= Map(
+      "github.base_url" -> "https://github.com/spotify/magnolify"
+    ),
+    Compile / paradoxMaterialTheme := ParadoxMaterialTheme()
+      .withFavicon("images/favicon.ico")
+      .withColor("white", "indigo")
+      .withLogo("images/logo.png")
+      .withCopyright("Copyright (C) 2024 Spotify AB")
+      .withRepository(uri("https://github.com/spotify/magnolify"))
+      .withSocial(uri("https://github.com/spotify"), uri("https://twitter.com/spotifyeng")),
+    // sbt-site
+    addMappingsToSiteDir(
+      unidocs / ScalaUnidoc / packageDoc / mappings,
+      unidocs / ScalaUnidoc / siteSubdirName
+    ),
+    makeSite := makeSite.dependsOn(mdoc.toTask("")).value
+  )
+
+lazy val unidocs = project
+  .in(file("unidocs"))
+  .enablePlugins(TypelevelUnidocPlugin)
+  .settings(commonSettings)
+  .settings(
+    moduleName := "magnolify-docs",
+    crossScalaVersions := Seq(scalaDefault),
+    scalaVersion := scalaDefault,
+    // unidoc
+    ScalaUnidoc / siteSubdirName := "api",
+    ScalaUnidoc / scalacOptions := Seq.empty,
+    ScalaUnidoc / unidoc / unidocProjectFilter := inAnyProject -- inProjects(test, jmh),
+    ScalaUnidoc / unidoc / unidocAllClasspaths ~= { cp =>
+      // somehow protobuf 2 is in classpath and fails doc
+      cp.map(_.filterNot(_.data.getName.endsWith("protobuf-java-2.5.0.jar")))
+    },
+    ScalaUnidoc / unidoc / unidocAllSources ~= { sources =>
+      // filter out doc from generated proto TFMD sources
+      sources.map(_.filterNot(_.getPath.contains("compiled_proto")))
+    }
   )
