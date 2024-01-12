@@ -122,7 +122,7 @@ val condIsMain = "github.ref == 'refs/heads/main'"
 val condIsTag = "startsWith(github.ref, 'refs/tags/v')"
 
 ThisBuild / scalaVersion := scalaDefault
-ThisBuild / crossScalaVersions := Seq( /*scala3,*/ scala213, scala212) // delay scala3 for 0.8
+ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
 ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
 ThisBuild / tlJdkRelease := Some(8)
@@ -250,6 +250,8 @@ lazy val keepExistingHeader =
 val commonSettings = Seq(
   // So far most projects do no support scala 3
   crossScalaVersions := Seq(scala213, scala212),
+  // skip scala 3 publishing until ready
+  publish / skip := (publish / skip).value || (scalaVersion.value == scala3),
   scalaVersion := scalaDefault,
   scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((3, _)) =>
