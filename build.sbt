@@ -696,11 +696,10 @@ lazy val site = project
     gitRemoteRepo := "git@github.com:spotify/magnolify.git",
     // mdoc
     // pre-compile md using mdoc
-    mdocIn := (paradox / sourceDirectory).value,
     mdocExtraArguments ++= Seq("--no-link-hygiene"),
     // paradox
-    Compile / paradox / sourceManaged := mdocOut.value,
-    paradoxProperties ++= Map(
+    Compile / paradoxOverlayDirectories += mdocOut.value,
+    Compile / paradoxProperties ++= Map(
       "github.base_url" -> "https://github.com/spotify/magnolify"
     ),
     Compile / paradoxMaterialTheme := ParadoxMaterialTheme()
