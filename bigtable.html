@@ -161,7 +161,7 @@ spotify/magnolify
 <ul style="display: none">
 <li class="md-nav__item md-version" id="project.version">
 <label class="md-nav__link" for="__version">
-<i class="md-icon" title="Version">label_outline</i> 0.7-ed96b4a*
+<i class="md-icon" title="Version">label_outline</i> 0.7-8153389*
 </label>
 </li>
 </ul>
@@ -173,7 +173,7 @@ spotify/magnolify
 <div class="md-content__searchable">
 <h1><a href="#bigtable" name="bigtable" class="anchor"><span class="anchor-link"></span></a>Bigtable</h1>
 <p><code>BigtableType[T]</code> provides conversion between Scala type <code>T</code> and Bigtable <code>Row</code>/<code>Seq[Mutation]</code> for read/write. Custom support for type <code>T</code> can be added with an implicit instance of <code>BigtableField[T]</code>.</p>
-<pre class="prettyprint"><code class="language-scala mdoc:compile-only">import java.net.URI
+<pre class="prettyprint"><code class="language-scala">import java.net.URI
 case class Inner(long: Long, str: String, uri: URI)
 case class Outer(inner: Inner)
 val record = Outer(Inner(1L, &quot;hello&quot;, URI.create(&quot;https://www.spotify.com&quot;)))
@@ -192,7 +192,7 @@ val copy: Outer = bigtableType(row, &quot;ColumnFamily&quot;)
 </code></pre>
 <p><code>BigtableType</code> encodes each field in a separate column qualifier of the same name. It encodes nested fields by joining field names as <code>field_a.field_b.field_c</code>. Repeated types are not supported. Enum-like types map to strings. See <a href="enums.html">EnumType</a> for more details.</p>
 <p>To use a different field case format in target records, add an optional <code>CaseMapper</code> argument to <code>BigtableType</code>. The following example maps <code>firstName</code> &amp; <code>lastName</code> to <code>first_name</code> &amp; <code>last_name</code>.</p>
-<pre class="prettyprint"><code class="language-scala mdoc:compile-only">import magnolify.bigtable._
+<pre class="prettyprint"><code class="language-scala">import magnolify.bigtable._
 import magnolify.shared.CaseMapper
 import com.google.common.base.CaseFormat
 
@@ -204,13 +204,13 @@ bigtableType(LowerCamel(&quot;John&quot;, &quot;Doe&quot;), &quot;cf&quot;)
 </code></pre>
 </div>
 <div>
-<a href="https://github.com/spotify/magnolify/tree/master/site/src/main/paradox/bigtable.md" title="Edit this page" class="md-source-file md-edit">
+<a href="https://github.com/spotify/magnolify/tree/master/site/target/mdoc/bigtable.md" title="Edit this page" class="md-source-file md-edit">
 Edit this page
 </a>
 </div>
 <div class="print-only">
 <span class="md-source-file md-version">
-0.7-ed96b4a*
+0.7-8153389*
 </span>
 </div>
 </article>

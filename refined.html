@@ -161,7 +161,7 @@ spotify/magnolify
 <ul style="display: none">
 <li class="md-nav__item md-version" id="project.version">
 <label class="md-nav__link" for="__version">
-<i class="md-icon" title="Version">label_outline</i> 0.7-ed96b4a*
+<i class="md-icon" title="Version">label_outline</i> 0.7-8153389*
 </label>
 </li>
 </ul>
@@ -173,7 +173,7 @@ spotify/magnolify
 <div class="md-content__searchable">
 <h1><a href="#refined" name="refined" class="anchor"><span class="anchor-link"></span></a>Refined</h1>
 <p><a href="https://github.com/fthomas/refined">Refined</a> is a Scala library for refining types with type-level predicates which constrain the set of values described by the refined type.</p>
-<pre class="prettyprint"><code class="language-scala mdoc:compile-only">import eu.timepit.refined._
+<pre class="prettyprint"><code class="language-scala">import eu.timepit.refined._
 import eu.timepit.refined.api._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.numeric._
@@ -190,7 +190,7 @@ val url = &quot;foo&quot;
 Record(refineV.unsafeFrom(x), refineV.unsafeFrom(url))
 </code></pre>
 <p>Magnolify works with Refined through some extra implicits.</p>
-<pre class="prettyprint"><code class="language-scala mdoc:compile-only">import eu.timepit.refined.api._
+<pre class="prettyprint"><code class="language-scala">import eu.timepit.refined.api._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.numeric._
 import eu.timepit.refined.string._
@@ -205,13 +205,13 @@ at(Record(42, &quot;https://www.spotify.com&quot;))
 </code></pre>
 </div>
 <div>
-<a href="https://github.com/spotify/magnolify/tree/master/site/src/main/paradox/refined.md" title="Edit this page" class="md-source-file md-edit">
+<a href="https://github.com/spotify/magnolify/tree/master/site/target/mdoc/refined.md" title="Edit this page" class="md-source-file md-edit">
 Edit this page
 </a>
 </div>
 <div class="print-only">
 <span class="md-source-file md-version">
-0.7-ed96b4a*
+0.7-8153389*
 </span>
 </div>
 </article>

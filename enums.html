@@ -161,7 +161,7 @@ spotify/magnolify
 <ul style="display: none">
 <li class="md-nav__item md-version" id="project.version">
 <label class="md-nav__link" for="__version">
-<i class="md-icon" title="Version">label_outline</i> 0.7-ed96b4a*
+<i class="md-icon" title="Version">label_outline</i> 0.7-8153389*
 </label>
 </li>
 </ul>
@@ -174,7 +174,7 @@ spotify/magnolify
 <h1><a href="#enumtype" name="enumtype" class="anchor"><span class="anchor-link"></span></a>EnumType</h1>
 <p><code>EnumType[T]</code> provides conversion between enum-like types and their string names. Supported enum-like types are Java <code>enum</code>, Scala <code>Enumeration</code>, and <code>sealed trait</code> with <code>case object</code>s. <code>AvroType[T]</code> and <code>ProtobufType[T]</code> use it to map to their native enum types, i.e. <code>EnumSymbol</code> and <code>ProtocolMessageEnum</code>, while other converters map to strings.</p>
 <p><code>CaseMapper</code> supports enums too.</p>
-<pre class="prettyprint"><code class="language-scala mdoc">object Color extends Enumeration {
+<pre class="prettyprint"><code class="language-scala">object Color extends Enumeration {
   type Type = Value
   val Red, Green, Blue = Value
 }
@@ -182,21 +182,25 @@ spotify/magnolify
 import magnolify.shared._
 // Encode as [&quot;red&quot;, &quot;green&quot;, &quot;blue&quot;]
 implicit val enumType: EnumType[Color.Type] = EnumType.scalaEnumType[Color.Type].map(CaseMapper(_.toLowerCase))
+// enumType: EnumType[Color.Type] = magnolify.shared.EnumType$$anon$1@ece7783
 </code></pre>
 <p>An enum-like type can be wrapped inside a <code>magnolify.shared.UnsafeEnum[T]</code> to handle unknown cases. This could be useful for scenarios like schema evolution, or working with bad data.</p>
-<pre class="prettyprint"><code class="language-scala mdoc">UnsafeEnum(Color.Red) // Known(Red)
+<pre class="prettyprint"><code class="language-scala">UnsafeEnum(Color.Red) // Known(Red)
+// res0: UnsafeEnum.Known[Color.Value] = Known(value = Red) // Known(Red)
 UnsafeEnum.from[Color.Type](&quot;Red&quot;) // Known(Red)
+// res1: UnsafeEnum[Color.Type] = Unknown(value = &quot;Red&quot;) // Known(Red)
 UnsafeEnum.from[Color.Type](&quot;Purple&quot;) // Unknown(Purple)
+// res2: UnsafeEnum[Color.Type] = Unknown(value = &quot;Purple&quot;)
 </code></pre>
 </div>
 <div>
-<a href="https://github.com/spotify/magnolify/tree/master/site/src/main/paradox/enums.md" title="Edit this page" class="md-source-file md-edit">
+<a href="https://github.com/spotify/magnolify/tree/master/site/target/mdoc/enums.md" title="Edit this page" class="md-source-file md-edit">
 Edit this page
 </a>
 </div>
 <div class="print-only">
 <span class="md-source-file md-version">
-0.7-ed96b4a*
+0.7-8153389*
 </span>
 </div>
 </article>

@@ -161,7 +161,7 @@ spotify/magnolify
 <ul style="display: none">
 <li class="md-nav__item md-version" id="project.version">
 <label class="md-nav__link" for="__version">
-<i class="md-icon" title="Version">label_outline</i> 0.7-ed96b4a*
+<i class="md-icon" title="Version">label_outline</i> 0.7-8153389*
 </label>
 </li>
 </ul>
@@ -173,7 +173,7 @@ spotify/magnolify
 <div class="md-content__searchable">
 <h1><a href="#bigquery" name="bigquery" class="anchor"><span class="anchor-link"></span></a>BigQuery</h1>
 <p><code>TableRowType[T]</code> provides conversion between Scala type <code>T</code> and BigQuery <code>TableRow</code>. Custom support for type <code>T</code> can be added with an implicit instance of <code>TableRowField[T]</code>.</p>
-<pre class="prettyprint"><code class="language-scala mdoc:compile-only">import java.net.URI
+<pre class="prettyprint"><code class="language-scala">import java.net.URI
 case class Inner(long: Long, str: String, uri: URI)
 case class Outer(inner: Inner)
 val record = Outer(Inner(1L, &quot;hello&quot;, URI.create(&quot;https://www.spotify.com&quot;)))
@@ -193,13 +193,13 @@ val schema = tableRowType.schema
 </code></pre>
 <p>Additional <code>TableRowField[T]</code> instances for <code>Byte</code>, <code>Char</code>, <code>Short</code>, <code>Int</code>, <code>Float</code>, and enum-like types are available from <code>import magnolify.bigquery.unsafe._</code>. These conversions are unsafe due to potential overflow or encoding errors. See <a href="enums.html">EnumType</a> for more details.</p>
 <p>To populate BigQuery table and field <code>description</code>s, annotate the case class and its fields with the <code>@description</code> annotation.</p>
-<pre class="prettyprint"><code class="language-scala mdoc:compile-only">import magnolify.bigquery._
+<pre class="prettyprint"><code class="language-scala">import magnolify.bigquery._
 
 @description(&quot;My record&quot;)
 case class Record(@description(&quot;int field&quot;) i: Int, @description(&quot;string field&quot;) s: String)
 </code></pre>
 <p>The <code>@description</code> annotation can also be extended to support custom format.</p>
-<pre class="prettyprint"><code class="language-scala mdoc:compile-only">import magnolify.bigquery._
+<pre class="prettyprint"><code class="language-scala">import magnolify.bigquery._
 
 class myDesc(description: String, version: Int)
   extends description(s&quot;description: $description, version: $version&quot;)
@@ -208,7 +208,7 @@ class myDesc(description: String, version: Int)
 case class Record(@myDesc(&quot;int field&quot;, 1) i: Int, @myDesc(&quot;string field&quot;, 2) s: String)
 </code></pre>
 <p>To use a different field case format in target records, add an optional <code>CaseMapper</code> argument to <code>TableRowType</code>. The following example maps <code>firstName</code> &amp; <code>lastName</code> to <code>first_name</code> &amp; <code>last_name</code>.</p>
-<pre class="prettyprint"><code class="language-scala mdoc:compile-only">import magnolify.bigquery._
+<pre class="prettyprint"><code class="language-scala">import magnolify.bigquery._
 import magnolify.shared.CaseMapper
 import com.google.common.base.CaseFormat
 
@@ -220,13 +220,13 @@ tableRowType.to(LowerCamel(&quot;John&quot;, &quot;Doe&quot;))
 </code></pre>
 </div>
 <div>
-<a href="https://github.com/spotify/magnolify/tree/master/site/src/main/paradox/bigquery.md" title="Edit this page" class="md-source-file md-edit">
+<a href="https://github.com/spotify/magnolify/tree/master/site/target/mdoc/bigquery.md" title="Edit this page" class="md-source-file md-edit">
 Edit this page
 </a>
 </div>
 <div class="print-only">
 <span class="md-source-file md-version">
-0.7-ed96b4a*
+0.7-8153389*
 </span>
 </div>
 </article>

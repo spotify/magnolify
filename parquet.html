@@ -155,16 +155,47 @@ spotify/magnolify
   <li><a href="scaladoc.html" class="page">Scaladoc</a></li>
 </ul>
 <nav class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">Table of contents</label>
+<ul>
+  <li><a href="parquet.html#parquet" class="header">Parquet</a>
+  <ul>
+    <li><a href="parquet.html#case-mapping" class="header">Case Mapping</a></li>
+    <li><a href="parquet.html#enums" class="header">Enums</a></li>
+    <li><a href="parquet.html#logical-types" class="header">Logical Types</a></li>
+    <li><a href="parquet.html#avro-compatibility" class="header">Avro Compatibility</a></li>
+    <li><a href="parquet.html#field-descriptions" class="header">Field Descriptions</a></li>
+  </ul></li>
+</ul>
 </nav>
 
 </nav>
 <ul style="display: none">
 <li class="md-nav__item md-version" id="project.version">
 <label class="md-nav__link" for="__version">
-<i class="md-icon" title="Version">label_outline</i> 0.7-ed96b4a*
+<i class="md-icon" title="Version">label_outline</i> 0.7-8153389*
 </label>
 </li>
 </ul>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">Table of contents</label>
+<ul>
+  <li><a href="parquet.html#parquet" class="header">Parquet</a>
+  <ul>
+    <li><a href="parquet.html#case-mapping" class="header">Case Mapping</a></li>
+    <li><a href="parquet.html#enums" class="header">Enums</a></li>
+    <li><a href="parquet.html#logical-types" class="header">Logical Types</a></li>
+    <li><a href="parquet.html#avro-compatibility" class="header">Avro Compatibility</a></li>
+    <li><a href="parquet.html#field-descriptions" class="header">Field Descriptions</a></li>
+  </ul></li>
+</ul>
+</nav>
+
 </div>
 </div>
 </div>
@@ -173,7 +204,7 @@ spotify/magnolify
 <div class="md-content__searchable">
 <h1><a href="#parquet" name="parquet" class="anchor"><span class="anchor-link"></span></a>Parquet</h1>
 <p><code>ParquetType[T]</code> provides read and write support between Scala type <code>T</code> and the Parquet columnar storage format. Custom support for type <code>T</code> can be added with an implicit instance of <code>ParquetField[T]</code>.</p>
-<pre class="prettyprint"><code class="language-scala mdoc:compile-only">import java.net.URI
+<pre class="prettyprint"><code class="language-scala">import java.net.URI
 case class Inner(long: Long, str: String, uri: URI)
 case class Outer(inner: Inner)
 val record = Outer(Inner(1L, &quot;hello&quot;, URI.create(&quot;https://www.spotify.com&quot;)))
@@ -189,9 +220,9 @@ val parquetType = ParquetType[Outer]
 val schema = parquetType.schema
 </code></pre>
 <p>Use <code>ParquetType#readBuilder</code> and <code>ParquetType#writeBuilder</code> to create new file reader and writer instances. See <a href="https://github.com/spotify/magnolify/tree/master/parquet/src/test/scala/magnolify/parquet/test/HadoopSuite.scala">HadoopSuite.scala</a> for examples with Hadoop IO.</p>
-<p>Enum-like types map to strings. See <a href="enums.html">EnumType</a> for more details. Additional <code>ParquetField[T]</code> instances for <code>Char</code> and <code>UnsafeEnum[T]</code> are available from <code>import magnolify.parquet.unsafe._</code>. This conversions is unsafe due to potential overflow.</p>
+<h2><a href="#case-mapping" name="case-mapping" class="anchor"><span class="anchor-link"></span></a>Case Mapping</h2>
 <p>To use a different field case format in target records, add an optional <code>CaseMapper</code> argument to <code>ParquetType</code>. The following example maps <code>firstName</code> &amp; <code>lastName</code> to <code>first_name</code> &amp; <code>last_name</code>.</p>
-<pre class="prettyprint"><code class="language-scala mdoc:compile-only">import magnolify.shared.CaseMapper
+<pre class="prettyprint"><code class="language-scala">import magnolify.shared.CaseMapper
 import com.google.common.base.CaseFormat
 import magnolify.parquet._
 
@@ -200,18 +231,71 @@ case class LowerCamel(firstName: String, lastName: String)
 val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_UNDERSCORE).convert _
 val parquetType = ParquetType[LowerCamel](CaseMapper(toSnakeCase))
 </code></pre>
+<h2><a href="#enums" name="enums" class="anchor"><span class="anchor-link"></span></a>Enums</h2>
+<p>Enum-like types map to strings. See <a href="enums.html">EnumType</a> for more details. Additional <code>ParquetField[T]</code> instances for <code>Char</code> and <code>UnsafeEnum[T]</code> are available from <code>import magnolify.parquet.unsafe._</code>. This conversions is unsafe due to potential overflow.</p>
+<h2><a href="#logical-types" name="logical-types" class="anchor"><span class="anchor-link"></span></a>Logical Types</h2>
 <p>Parquet <code>decimal</code> logical type maps to <code>BigDecimal</code> and supports the following encodings:</p>
-<pre class="prettyprint"><code class="language-scala mdoc:compile-only">import magnolify.parquet._
+<pre class="prettyprint"><code class="language-scala">import magnolify.parquet._
 
 val pfDecimal32 = ParquetField.decimal32(9, 0)
 val pfDecimal64 = ParquetField.decimal64(18, 0)
 val pfDecimalFixed = ParquetField.decimalFixed(8, 18, 0)
 val pfDecimalBinary = ParquetField.decimalBinary(20, 0)
 </code></pre>
-<p>Among the date/time types, <code>DATE</code> maps to <code>java.time.LocalDate</code>. The other types, <code>TIME</code> and <code>TIMESTAMP</code>, map to <code>OffsetTime</code>/<code>LocalTime</code> and <code>Instant</code>/<code>LocalDateTime</code> with <code>isAdjustedToUTC</code> set to <code>true</code>/<code>false</code>. They can be in nano, micro, or milliseconds precision with <code>import magnolify.parquet.logical.{nanos,micros,millis}._</code>.</p>
-<p>Note that Parquet&rsquo;s official Avro support maps <code>REPEATED</code> fields to an <code>array</code> field inside a nested group. Use <code>import magnolify.parquet.ParquetArray.AvroCompat._</code> to ensure compatibility with Avro.</p>
+<p>For a full specification of Date/Time mappings in Parquet, see <a href="mapping.html">Type Mappings</a>.</p>
+<h2><a href="#avro-compatibility" name="avro-compatibility" class="anchor"><span class="anchor-link"></span></a>Avro Compatibility</h2>
+<p>The official Parquet format specification supports the <code>REPEATED</code> modifier to denote array types. By default, magnolify-parquet conforms to this specification:</p>
+<pre class="prettyprint"><code class="language-scala">import magnolify.parquet._
+
+case class MyRecord(listField: List[Int])
+ParquetType[MyRecord].schema
+// res3: org.apache.parquet.schema.MessageType = message repl.MdocSession.MdocApp.MyRecord {
+//   repeated int32 listField (INTEGER(32,true));
+// }
+//
+</code></pre>
+<p>However, the parquet-avro API encodes array types differently: as a nested array inside a required group.</p>
+<pre class="prettyprint"><code class="language-scala">import org.apache.avro.Schema
+val avroSchema = new Schema.Parser().parse(&quot;{\&quot;type\&quot;:\&quot;record\&quot;,\&quot;name\&quot;:\&quot;MyRecord\&quot;,\&quot;fields\&quot;:[{\&quot;name\&quot;: \&quot;listField\&quot;, \&quot;type\&quot;: {\&quot;type\&quot;: \&quot;array\&quot;, \&quot;items\&quot;: \&quot;string\&quot;}}]}&quot;)
+// avroSchema: Schema = {&quot;type&quot;:&quot;record&quot;,&quot;name&quot;:&quot;MyRecord&quot;,&quot;fields&quot;:[{&quot;name&quot;:&quot;listField&quot;,&quot;type&quot;:{&quot;type&quot;:&quot;array&quot;,&quot;items&quot;:&quot;string&quot;}}]}
+
+import org.apache.parquet.avro.AvroSchemaConverter
+new AvroSchemaConverter().convert(avroSchema)
+// res4: org.apache.parquet.schema.MessageType = message MyRecord {
+//   required group listField (LIST) {
+//     repeated binary array (STRING);
+//   }
+// }
+//
+</code></pre>
+<p>Due to this discrepancy, <strong>by default, a Repeated type (i.e. a <code>List</code> or <code>Seq</code>) written by parquet-avro isn&rsquo;t readable by magnolify-parquet, and vice versa</strong>.</p>
+<p>To address this, magnolify-parquet supports an &ldquo;Avro compatibility mode&rdquo; that, when enabled, will:</p>
+<ul>
+  <li>Use the same Repeated schema format as parquet-avro</li>
+  <li>Write an additional metadata key, <code>parquet.avro.schema</code>, to the Parquet file footer, containing the equivalent Avro schema.</li>
+</ul>
+<h3><a href="#enabling-avro-compatibility-mode" name="enabling-avro-compatibility-mode" class="anchor"><span class="anchor-link"></span></a>Enabling Avro Compatibility Mode</h3>
+<p>You can enable this mode by importing <code>magnolify.parquet.ParquetArray.AvroCompat._</code>:</p>
+<pre class="prettyprint"><code class="language-scala">import magnolify.parquet._
+import magnolify.parquet.ParquetArray.AvroCompat._
+
+case class MyRecord(listField: List[Int])
+// List schema matches parquet-avro spec
+ParquetType[MyRecord].schema
+// res6: org.apache.parquet.schema.MessageType = message repl.MdocSession.MdocApp5.MyRecord {
+//   required group listField (LIST) {
+//     repeated int32 array (INTEGER(32,true));
+//   }
+// }
+// 
+
+// This String value of this schema will be written to the Parquet metadata key `parquet.avro.schema`
+ParquetType[MyRecord].avroSchema
+// res7: org.apache.avro.Schema = {&quot;type&quot;:&quot;record&quot;,&quot;name&quot;:&quot;MyRecord&quot;,&quot;namespace&quot;:&quot;repl.MdocSession.MdocApp5&quot;,&quot;fields&quot;:[{&quot;name&quot;:&quot;listField&quot;,&quot;type&quot;:{&quot;type&quot;:&quot;array&quot;,&quot;items&quot;:&quot;int&quot;}}]}
+</code></pre>
+<h2><a href="#field-descriptions" name="field-descriptions" class="anchor"><span class="anchor-link"></span></a>Field Descriptions</h2>
 <p>The top level class and all fields (including nested class fields) can be annotated with <code>@doc</code> annotation. Note that nested classes annotations are ignored.</p>
-<pre class="prettyprint"><code class="language-scala mdoc:compile-only">import magnolify.shared._
+<pre class="prettyprint"><code class="language-scala">import magnolify.shared._
 
 @doc(&quot;This is ignored&quot;)
 case class NestedClass(@doc(&quot;nested field annotation&quot;) i: Int)
@@ -219,15 +303,41 @@ case class NestedClass(@doc(&quot;nested field annotation&quot;) i: Int)
 @doc(&quot;Top level annotation&quot;)
 case class TopLevelType(@doc(&quot;field annotation&quot;) pd: NestedClass)
 </code></pre>
+<p>Note that field descriptions are <em>not</em> natively supported by the Parquet format. Instead, the <code>@doc</code> annotation ensures that in Avro compat mode, the generated Avro schema written to the metadata key <code>parquet.avro.schema</code> will contain the specified field description:</p>
+<pre class="prettyprint"><code class="language-scala">import magnolify.parquet._
+// AvroCompat is required to write `parquet.avro.schema` key to file metadata
+import magnolify.parquet.ParquetArray.AvroCompat._
+import magnolify.shared._
+
+@doc(&quot;Top level annotation&quot;)
+case class MyRecord(@doc(&quot;field annotation&quot;) listField: List[Int])
+
+val writer = ParquetType[MyRecord]
+  .writeBuilder(HadoopOutputFile.fromPath(path, new Configuration()))
+  .build()
+// writer: org.apache.parquet.hadoop.ParquetWriter[MyRecord] = org.apache.parquet.hadoop.ParquetWriter@62122d05
+writer.write(MyRecord(List(1,2,3)))
+writer.close()
+
+// Note that Parquet MessageType schema doesn&#39;t contain descriptor, but serialized Avro schema does
+ParquetFileReader.open(HadoopInputFile.fromPath(path, new Configuration())).getFileMetaData
+// res12: org.apache.parquet.hadoop.metadata.FileMetaData = FileMetaData{schema: message repl.MdocSession.MdocApp9.MyRecord {
+//   required group listField (LIST) {
+//     repeated int32 array (INTEGER(32,true));
+//   }
+// }
+// , metadata: {writer.model.name=magnolify, parquet.avro.schema={&quot;type&quot;:&quot;record&quot;,&quot;name&quot;:&quot;MyRecord&quot;,&quot;namespace&quot;:&quot;repl.MdocSession.MdocApp9&quot;,&quot;doc&quot;:&quot;Top level annotation&quot;,&quot;fields&quot;:[{&quot;name&quot;:&quot;listField&quot;,&quot;type&quot;:{&quot;type&quot;:&quot;array&quot;,&quot;items&quot;:&quot;int&quot;},&quot;doc&quot;:&quot;field annotation&quot;}]}}}
+</code></pre>
+<p><strong>Therefore, <a href="#enabling-avro-compatibility-mode">enabling Avro compatibility mode</a> via the <code>AvroCompat</code> import is required to use the <code>@doc</code> annotation with ParquetType.</strong></p>
 </div>
 <div>
-<a href="https://github.com/spotify/magnolify/tree/master/site/src/main/paradox/parquet.md" title="Edit this page" class="md-source-file md-edit">
+<a href="https://github.com/spotify/magnolify/tree/master/site/target/mdoc/parquet.md" title="Edit this page" class="md-source-file md-edit">
 Edit this page
 </a>
 </div>
 <div class="print-only">
 <span class="md-source-file md-version">
-0.7-ed96b4a*
+0.7-8153389*
 </span>
 </div>
 </article>
