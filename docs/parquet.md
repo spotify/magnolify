@@ -70,7 +70,7 @@ import org.apache.parquet.avro.AvroSchemaConverter
 new AvroSchemaConverter().convert(avroSchema)
 ```
 
-Due to this discrepancy, **by default, a repeated type written by parquet-avro isn't readable by magnolify-parquet, and vice versa**.
+Due to this discrepancy, **by default, a Repeated type (i.e. a `List` or `Seq`) written by parquet-avro isn't readable by magnolify-parquet, and vice versa**.
 
 To address this, magnolify-parquet supports an "Avro compatibility mode" that, when enabled, will:
 
@@ -120,6 +120,7 @@ val path = new Path(Files.createTempDirectory("parquet-tmp").toFile.getAbsoluteP
 
 ```scala mdoc
 import magnolify.parquet._
+// AvroCompat is required to write `parquet.avro.schema` key to file metadata
 import magnolify.parquet.ParquetArray.AvroCompat._
 import magnolify.shared._
 
@@ -135,4 +136,4 @@ writer.close()
 ParquetFileReader.open(HadoopInputFile.fromPath(path, new Configuration())).getFileMetaData
 ```
 
-**Therefore, the `@doc` annotation has no effect if AvroCompat mode is not enabled.**
+**Therefore, enabling [Avro compatibility mode](#avro-compatibility) via the `AvroCompat` import is required to use the `@doc` annotation with ParquetType.**
