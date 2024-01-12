@@ -133,6 +133,7 @@ val writer = ParquetType[MyRecord]
 writer.write(MyRecord(List(1,2,3)))
 writer.close()
 
+// Note that Parquet MessageType schema doesn't contain descriptor, but serialized Avro schema does
 ParquetFileReader.open(HadoopInputFile.fromPath(path, new Configuration())).getFileMetaData
 ```
 
