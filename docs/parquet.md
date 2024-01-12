@@ -21,7 +21,7 @@ val schema = parquetType.schema
 
 Use `ParquetType#readBuilder` and `ParquetType#writeBuilder` to create new file reader and writer instances. See [HadoopSuite.scala](https://github.com/spotify/magnolify/tree/master/parquet/src/test/scala/magnolify/parquet/test/HadoopSuite.scala) for examples with Hadoop IO.
 
-Enum-like types map to strings. See @ref:[EnumType](enums.md) for more details. Additional `ParquetField[T]` instances for `Char` and `UnsafeEnum[T]` are available from `import magnolify.parquet.unsafe._`. This conversions is unsafe due to potential overflow.
+## Case Mapping
 
 To use a different field case format in target records, add an optional `CaseMapper` argument to `ParquetType`. The following example maps `firstName` & `lastName` to `first_name` & `last_name`.
 
@@ -36,6 +36,12 @@ val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_UNDERSCORE
 val parquetType = ParquetType[LowerCamel](CaseMapper(toSnakeCase))
 ```
 
+## Enums
+
+Enum-like types map to strings. See @ref:[EnumType](enums.md) for more details. Additional `ParquetField[T]` instances for `Char` and `UnsafeEnum[T]` are available from `import magnolify.parquet.unsafe._`. This conversions is unsafe due to potential overflow.
+
+## Logical Types
+
 Parquet `decimal` logical type maps to `BigDecimal` and supports the following encodings:
 
 ```scala mdoc:compile-only
@@ -47,9 +53,9 @@ val pfDecimalFixed = ParquetField.decimalFixed(8, 18, 0)
 val pfDecimalBinary = ParquetField.decimalBinary(20, 0)
 ```
 
-Among the date/time types, `DATE` maps to `java.time.LocalDate`. The other types, `TIME` and `TIMESTAMP`, map to `OffsetTime`/`LocalTime` and `Instant`/`LocalDateTime` with `isAdjustedToUTC` set to `true`/`false`. They can be in nano, micro, or milliseconds precision with `import magnolify.parquet.logical.{nanos,micros,millis}._`.
+For a full specification of Date/Time mappings in Parquet, see @ref:[Type Mappings](mapping.md).
 
-## Avro compatibility
+## Avro Compatibility
 
 The official Parquet format specification supports the `REPEATED` modifier to denote array types. By default, magnolify-parquet conforms to this specification:
 
@@ -77,6 +83,8 @@ To address this, magnolify-parquet supports an "Avro compatibility mode" that, w
 - Use the same Repeated schema format as parquet-avro
 - Write an additional metadata key, `parquet.avro.schema`, to the Parquet file footer, containing the equivalent Avro schema.
 
+### Enabling Avro Compatibility Mode
+
 You can enable this mode by importing `magnolify.parquet.ParquetArray.AvroCompat._`:
 
 ```scala mdoc:reset
@@ -91,7 +99,7 @@ ParquetType[MyRecord].schema
 ParquetType[MyRecord].avroSchema
 ```
 
-## Field descriptions
+## Field Descriptions
 
 The top level class and all fields (including nested class fields) can be annotated with `@doc` annotation. Note that nested classes annotations are ignored.
 
@@ -137,4 +145,4 @@ writer.close()
 ParquetFileReader.open(HadoopInputFile.fromPath(path, new Configuration())).getFileMetaData
 ```
 
-**Therefore, enabling [Avro compatibility mode](#avro-compatibility) via the `AvroCompat` import is required to use the `@doc` annotation with ParquetType.**
+**Therefore, [enabling Avro compatibility mode](#enabling-avro-compatibility-mode) via the `AvroCompat` import is required to use the `@doc` annotation with ParquetType.**
