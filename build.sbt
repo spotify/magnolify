@@ -18,7 +18,7 @@ import sbtprotoc.ProtocPlugin.ProtobufConfig
 import com.github.sbt.git.SbtGit.GitKeys.gitRemoteRepo
 import com.typesafe.tools.mima.core._
 
-val magnoliaScala2Version = "1.1.6"
+val magnoliaScala2Version = "1.1.8"
 val magnoliaScala3Version = "1.3.4"
 
 val algebirdVersion = "0.13.10"
@@ -26,16 +26,16 @@ val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.2")
 val bigqueryVersion = "v2-rev20231111-2.0.0"
 val bigtableVersion = "2.30.0"
 val catsVersion = "2.10.0"
-val datastoreVersion = "2.17.6"
-val guavaVersion = "32.1.3-jre"
+val datastoreVersion = "2.18.0"
+val guavaVersion = "33.0.0-jre"
 val hadoopVersion = "3.3.6"
-val jacksonVersion = "2.16.0"
-val jodaTimeVersion = "2.12.5"
+val jacksonVersion = "2.16.1"
+val jodaTimeVersion = "2.12.6"
 val munitVersion = "0.7.29"
 val neo4jDriverVersion = "4.4.12"
 val paigesVersion = "0.4.3"
 val parquetVersion = "1.13.1"
-val protobufVersion = "3.25.1"
+val protobufVersion = "3.25.2"
 val refinedVersion = "0.11.0"
 val scalaCollectionCompatVersion = "2.11.0"
 val scalacheckVersion = "1.17.0"
