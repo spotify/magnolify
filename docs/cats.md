@@ -30,7 +30,7 @@ val mon: a.Monoid[Record] = implicitly[a.Monoid[Record]]
 ```
 Semi-automatic derivation needs to be called explicitly.
 
-```scala mdoc:fail
+```scala mdoc:fail:silent
 import magnolify.cats.semiauto._
 import cats._
 
