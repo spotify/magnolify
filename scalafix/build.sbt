@@ -11,7 +11,7 @@ inThisBuild(
     semanticdbVersion := scalafixSemanticdb.revision,
     semanticdbIncludeInJar := true,
     scalafmtOnCompile := false,
-    scalafmtConfig := baseDirectory.value / ".." / ".scalafmt.conf",
+    scalafmtConfig := baseDirectory.value / ".." / ".scalafmt.conf"
   )
 )
 
@@ -52,10 +52,10 @@ def magnolify(version: String): List[ModuleID] = {
     "magnolify-tensorflow"
   )
 
-  val libs = List (
+  val libs = List(
     "org.apache.avro" % "avro" % "1.11.2",
     "com.google.apis" % "google-api-services-bigquery" % "v2-rev20231111-2.0.0",
-    "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % "2.32.0",
+    "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % "2.33.0",
     "org.typelevel" %% "cats-core" % "2.10.0",
     "com.google.cloud.datastore" % "datastore-v1-proto-client" % "2.18.2",
     "com.google.guava" % "guava" % "33.0.0-jre",
@@ -79,7 +79,6 @@ lazy val `output-0_7` = project
   .settings(
     libraryDependencies ++= magnolify("0.7.0")
   )
-
 
 lazy val magnolify0_7 = ConfigAxis("-magnolify-0_7", "-0_7-")
 
