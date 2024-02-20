@@ -709,7 +709,7 @@ lazy val site = project
       .withFavicon("images/favicon.ico")
       .withColor("white", "indigo")
       .withLogo("images/logo.png")
-      .withCopyright("Copyright (C) 2024 Spotify AB")
+      .withCopyright(s"Copyright (C) $currentYear Spotify AB")
       .withRepository(uri("https://github.com/spotify/magnolify"))
       .withSocial(uri("https://github.com/spotify"), uri("https://twitter.com/spotifyeng")),
     // sbt-site
