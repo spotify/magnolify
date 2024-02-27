@@ -276,8 +276,8 @@ object BigtableField {
         val n = buf.getInt
         val b = fc.newBuilder
         btf.size match {
-          case Some(size) =>
-            val ba = new Array[Byte](size)
+          case Some(s) =>
+            val ba = new Array[Byte](s)
             (1 to n).foreach { _ =>
               buf.get(ba)
               b += btf.fromByteString(ByteString.copyFrom(ba))
@@ -295,15 +295,15 @@ object BigtableField {
 
       override def toByteString(v: C[T]): ByteString = {
         val buf = btf.size match {
-          case Some(size) =>
-            val bb = ByteBuffer.allocate(java.lang.Integer.BYTES + v.size * size)
+          case Some(s) =>
+            val bb = ByteBuffer.allocate(java.lang.Integer.BYTES + v.size * s)
             bb.putInt(v.size)
             v.foreach(x => bb.put(btf.toByteString(x).asReadOnlyByteBuffer()))
             bb
           case None =>
             val vs = v.map(btf.toByteString)
-            val size = java.lang.Integer.BYTES * (v.size + 1) + vs.iterator.map(_.size()).sum
-            val bb = ByteBuffer.allocate(size)
+            val s = java.lang.Integer.BYTES * (v.size + 1) + vs.iterator.map(_.size()).sum
+            val bb = ByteBuffer.allocate(s)
             bb.putInt(v.size)
             vs.foreach { v =>
               bb.putInt(v.size())

@@ -226,7 +226,7 @@ class AvroTypeSuite extends MagnolifySuite {
     test("MicrosLogicalTypes") {
       val schema = AvroType[LogicalMicros].schema
       assertLogicalType(schema, "i", "timestamp-micros")
-      assertLogicalType(schema, "ldt", "local-timestamp-micros", false)
+      assertLogicalType(schema, "ldt", "local-timestamp-micros", backwardsCompatible = false)
       assertLogicalType(schema, "lt", "time-micros")
       assertLogicalType(schema, "jdt", "timestamp-micros")
       assertLogicalType(schema, "jlt", "time-micros")
@@ -240,7 +240,7 @@ class AvroTypeSuite extends MagnolifySuite {
     test("MilliLogicalTypes") {
       val schema = AvroType[LogicalMillis].schema
       assertLogicalType(schema, "i", "timestamp-millis")
-      assertLogicalType(schema, "ldt", "local-timestamp-millis", false)
+      assertLogicalType(schema, "ldt", "local-timestamp-millis", backwardsCompatible = false)
       assertLogicalType(schema, "lt", "time-millis")
       assertLogicalType(schema, "jdt", "timestamp-millis")
       assertLogicalType(schema, "jlt", "time-millis")
