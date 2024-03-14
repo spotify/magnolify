@@ -58,7 +58,7 @@ def magnolify(version: String): List[ModuleID] = {
     "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % "2.33.0",
     "org.typelevel" %% "cats-core" % "2.10.0",
     "com.google.cloud.datastore" % "datastore-v1-proto-client" % "2.18.4",
-    "com.google.guava" % "guava" % "33.0.0-jre",
+    "com.google.guava" % "guava" % "33.1.0-jre",
     "org.neo4j.driver" % "neo4j-java-driver" % "4.4.12",
     "org.apache.parquet" % "parquet-hadoop" % "1.13.1",
     "com.google.protobuf" % "protobuf-java" % "3.25.3",
