@@ -403,6 +403,36 @@ class AvroTypeSuite extends MagnolifySuite {
       at(BigDec(BigDecimal("3.14159265358979323846")))
     }
   }
+
+  test("Copy bytes when reading from byte buffer") {
+    def toBytes[T](values: Seq[T])(implicit at: AvroType[T]): Array[Byte] = {
+      val bytes = new ByteArrayOutputStream()
+      val datumWriter = new GenericDatumWriter[GenericRecord](at.schema)
+      val binaryEncoder = EncoderFactory.get().binaryEncoder(bytes, null)
+      values.map(at.apply).foreach(datumWriter.write(_, binaryEncoder))
+      binaryEncoder.flush()
+      bytes.toByteArray
+    }
+
+    def fromBytes[T](bytes: Array[Byte])(implicit at: AvroType[T]): Seq[T] = {
+      val datumReader = new GenericDatumReader[GenericRecord](at.schema)
+      val decoder = DecoderFactory.get().binaryDecoder(bytes, null)
+      Seq.unfold[T, Option[GenericRecord]](None) { record =>
+        if (decoder.isEnd) {
+          None
+        } else {
+          val datum = datumReader.read(record.orNull, decoder)
+          val element = at.from(datum)
+          val reuse = Some(datum)
+          Some((element, reuse))
+        }
+      }
+    }
+
+    val expected = List(DefaultBytes(Array(1, 2)), DefaultBytes(Array(3, 4)))
+    val actual = fromBytes[DefaultBytes](toBytes(expected))
+    assertEquals(actual, expected)
+  }
 }
 
 case class Unsafe(b: Byte, c: Char, s: Short)
