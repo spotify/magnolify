@@ -417,16 +417,14 @@ class AvroTypeSuite extends MagnolifySuite {
     def fromBytes[T](bytes: Array[Byte])(implicit at: AvroType[T]): Seq[T] = {
       val datumReader = new GenericDatumReader[GenericRecord](at.schema)
       val decoder = DecoderFactory.get().binaryDecoder(bytes, null)
-      Seq.unfold[T, Option[GenericRecord]](None) { record =>
-        if (decoder.isEnd) {
-          None
-        } else {
-          val datum = datumReader.read(record.orNull, decoder)
-          val element = at.from(datum)
-          val reuse = Some(datum)
-          Some((element, reuse))
-        }
+      // Seq.unfold is not available in Scala 2.12 / collection-compat yet
+      val b = Seq.newBuilder[T]
+      var datum: GenericRecord = null
+      while (!decoder.isEnd) {
+        datum = datumReader.read(datum, decoder)
+        b += at.from(datum)
       }
+      b.result()
     }
 
     val expected = List(DefaultBytes(Array(1, 2)), DefaultBytes(Array(3, 4)))
