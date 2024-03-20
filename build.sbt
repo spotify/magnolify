@@ -220,7 +220,10 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 )
 
 // mima
-ThisBuild / mimaBinaryIssueFilters ++= Seq()
+ThisBuild / mimaBinaryIssueFilters ++= Seq(
+  // genFunnelMacro should not be available to users
+  ProblemFilters.exclude[DirectMissingMethodProblem]("magnolify.guava.auto.package.genFunnelMacro")
+)
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.8.0")
 
 // protobuf
