@@ -201,10 +201,16 @@ object AvroField {
     override protected def buildSchema(cm: CaseMapper): Schema = Schema.create(Schema.Type.BYTES)
     // `JacksonUtils.toJson` expects `Array[Byte]` for `BYTES` defaults
     override def makeDefault(d: ByteBuffer)(cm: CaseMapper): Array[Byte] = d.array()
-    override def from(v: ByteBuffer)(cm: CaseMapper): ByteBuffer = v
+    // copy to avoid issue in case original buffer is reused
+    override def from(v: ByteBuffer)(cm: CaseMapper): ByteBuffer = {
+      val ptr = v.asReadOnlyBuffer()
+      ByteBuffer.allocate(ptr.remaining()).put(ptr)
+    }
     override def to(v: ByteBuffer)(cm: CaseMapper): ByteBuffer = v
   }
-  implicit val afBytes: AvroField[Array[Byte]] = from[ByteBuffer](_.array())(ByteBuffer.wrap)
+  implicit val afBytes: AvroField[Array[Byte]] =
+    AvroField.from[ByteBuffer](_.array())(ByteBuffer.wrap)
+
   implicit val afCharSequence: AvroField[CharSequence] = id[CharSequence](Schema.Type.STRING)
   implicit val afString: AvroField[String] = new Aux[String, String, String] {
     override protected def buildSchema(cm: CaseMapper): Schema = {
