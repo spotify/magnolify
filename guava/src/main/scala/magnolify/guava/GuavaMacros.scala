@@ -18,7 +18,7 @@ package magnolify.guava
 
 import scala.reflect.macros.whitebox
 
-object GuavaMacros {
+private object GuavaMacros {
   def genFunnelMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
