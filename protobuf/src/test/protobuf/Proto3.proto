@@ -45,6 +45,7 @@ message CollectionP3 {
     repeated int32 a = 1;
     repeated int32 l = 2;
     repeated int32 v = 3;
+    repeated int32 s = 4;
 }
 
 message MoreCollectionP3 {
