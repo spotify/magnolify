@@ -58,6 +58,7 @@ object Simple {
       hash = 31 * hash + util.Arrays.hashCode(a)
       hash = 31 * hash + Objects.hashCode(l)
       hash = 31 * hash + Objects.hashCode(v)
+      hash = 31 * hash + Objects.hashCode(s)
       hash
     }
 
@@ -65,7 +66,8 @@ object Simple {
       case that: Collections =>
         Objects.deepEquals(this.a, that.a) &&
         Objects.equals(this.l, that.l) &&
-        Objects.equals(this.v, that.v)
+        Objects.equals(this.v, that.v) &&
+        Objects.equals(this.s, that.s)
       case _ => false
     }
   }
