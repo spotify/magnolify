@@ -51,7 +51,7 @@ object Simple {
     o: Option[Required],
     l: List[Required]
   )
-  case class Collections(a: Array[Int], l: List[Int], v: Vector[Int]) {
+  case class Collections(a: Array[Int], l: List[Int], v: Vector[Int], s: Set[Int]) {
 
     override def hashCode(): Int = {
       var hash = 1
