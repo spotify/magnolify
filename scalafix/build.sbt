@@ -54,7 +54,7 @@ def magnolify(version: String): List[ModuleID] = {
 
   val libs = List(
     "org.apache.avro" % "avro" % "1.11.2",
-    "com.google.apis" % "google-api-services-bigquery" % "v2-rev20231111-2.0.0",
+    "com.google.apis" % "google-api-services-bigquery" % "v2-rev20240229-2.0.0",
     "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % "2.33.0",
     "org.typelevel" %% "cats-core" % "2.10.0",
     "com.google.cloud.datastore" % "datastore-v1-proto-client" % "2.18.4",
