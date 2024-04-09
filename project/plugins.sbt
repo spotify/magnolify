@@ -8,8 +8,3 @@ addSbtPlugin("org.scalameta" % "sbt-mdoc" % "2.5.2")
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.0.11")
 addSbtPlugin("org.typelevel" % "sbt-typelevel" % "0.6.7")
 addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.4.7")
-
-// sbt-site plugin conflict. Remove after update
-dependencyOverrides ++= Seq(
-  "org.scala-lang.modules" %% "scala-xml" % "2.2.0"
-)
