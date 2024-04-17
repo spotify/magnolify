@@ -63,7 +63,7 @@ def magnolify(version: String): List[ModuleID] = {
     "org.apache.parquet" % "parquet-hadoop" % "1.13.1",
     "com.google.protobuf" % "protobuf-java" % "3.25.3",
     "eu.timepit" %% "refined" % "0.11.1",
-    "org.scalacheck" %% "scalacheck" % "1.17.0",
+    "org.scalacheck" %% "scalacheck" % "1.17.1",
     "org.tensorflow" % "tensorflow-core-api" % "0.5.0"
   )
 
