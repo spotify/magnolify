@@ -20,7 +20,7 @@ import com.github.sbt.git.SbtGit.GitKeys.gitRemoteRepo
 import com.typesafe.tools.mima.core._
 
 val magnoliaScala2Version = "1.1.8"
-val magnoliaScala3Version = "1.3.4"
+val magnoliaScala3Version = "1.3.5"
 
 val algebirdVersion = "0.13.10"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.2")
