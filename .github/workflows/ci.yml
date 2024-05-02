@@ -305,7 +305,9 @@ jobs:
         run: sbt '++ ${{ matrix.scala }}' coverage test coverageAggregate
 
       - name: Upload coverage report
-        run: 'bash <(curl -s https://codecov.io/bash)'
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   avro-legacy:
     name: Test with legacy avro
