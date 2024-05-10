@@ -18,7 +18,7 @@ package magnolify.shared
 
 import magnolia1.{CaseClass, SealedTrait}
 
-import scala.annotation.{implicitNotFound, nowarn}
+import scala.annotation.implicitNotFound
 
 trait EnumTypeDerivation {
   type Typeclass[T] = EnumType[T]
@@ -32,7 +32,6 @@ trait EnumTypeDerivation {
 
   implicit def genEnumValue[T]: EnumValue[T] = macro EnumTypeMacros.genEnumValueMacro[T]
 
-  @nowarn
   def join[T: EnumValue](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
     val n = caseClass.typeName.short
     val ns = caseClass.typeName.owner

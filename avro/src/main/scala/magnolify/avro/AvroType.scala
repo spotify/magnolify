@@ -27,7 +27,7 @@ import org.joda.{time => joda}
 import java.nio.{ByteBuffer, ByteOrder}
 import java.time._
 import java.{util => ju}
-import scala.annotation.{implicitNotFound, nowarn}
+import scala.annotation.implicitNotFound
 import scala.collection.concurrent
 import scala.collection.compat._
 import scala.jdk.CollectionConverters._
@@ -222,7 +222,6 @@ object AvroField {
     override def to(v: String)(cm: CaseMapper): String = v
   }
 
-  @nowarn("msg=parameter lp in method afEnum is never used")
   implicit def afEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): AvroField[T] =
     // Avro 1.9+ added a type parameter for `GenericEnumSymbol`, breaking 1.8 compatibility
     // Some reader, i.e. `AvroParquetReader` reads enums as `Utf8`
