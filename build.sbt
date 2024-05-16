@@ -41,6 +41,7 @@ val refinedVersion = "0.11.1"
 val scalaCollectionCompatVersion = "2.12.0"
 val scalacheckVersion = "1.17.0"
 val shapelessVersion = "2.3.10"
+val slf4jVersion = "2.0.13"
 val tensorflowMetadataVersion = "1.10.0"
 val tensorflowVersion = "0.5.0"
 
@@ -292,7 +293,8 @@ val commonSettings = Seq(
   ),
   libraryDependencies ++= Seq(
     "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion,
-    "joda-time" % "joda-time" % jodaTimeVersion % Provided
+    "joda-time" % "joda-time" % jodaTimeVersion % Provided,
+    "org.slf4j" % "slf4j-simple" % slf4jVersion % Test
   ) ++ (CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((3, _)) =>
       Seq(
@@ -307,9 +309,11 @@ val commonSettings = Seq(
     case _ =>
       throw new Exception("Unsupported scala version")
   }),
-  // https://github.com/typelevel/scalacheck/pull/427#issuecomment-424330310
-  // FIXME: workaround for Java serialization issues
-  Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
+  Test / fork := true,
+  Test / javaOptions ++= Seq(
+    "-Dorg.slf4j.simpleLogger.defaultLogLevel=info",
+    "-Dorg.slf4j.simpleLogger.logFile=target/magnolify.log"
+  )
 )
 
 lazy val root = tlCrossRootProject
