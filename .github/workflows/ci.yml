@@ -244,7 +244,7 @@ jobs:
         run: sbt +update
 
       - name: Submit Dependencies
-        uses: scalacenter/sbt-dependency-submission@v2
+        uses: scalacenter/sbt-dependency-submission@v3
         with:
           modules-ignore: test_3 test_2.13 test_2.12 magnolify-docs_2.13 magnolify_3 magnolify_2.13 magnolify_2.12 site_2.13 site_2.12 magnolify_3 magnolify_2.13 magnolify_2.12 magnolify_3 magnolify_2.13 magnolify_2.12
           configs-ignore: test scala-tool scala-doc-tool test-internal
