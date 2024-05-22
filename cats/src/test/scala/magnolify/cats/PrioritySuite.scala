@@ -17,6 +17,7 @@
 package magnolify.cats
 
 import cats.*
+import magnolify.cats.auto.*
 import magnolify.shims.MurmurHash3Compat
 import magnolify.test.*
 import magnolify.test.Simple.*
@@ -24,7 +25,7 @@ import magnolify.test.Simple.*
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
 
-class PrioritySuite extends MagnolifySuite with magnolify.cats.AutoDerivation {
+class PrioritySuite extends MagnolifySuite {
 
   private def test[T: ClassTag: Hash: Show]: Unit =
     test(s"Priority.${className[T]}") {

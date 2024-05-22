@@ -26,7 +26,8 @@ import scala.reflect.{classTag, ClassTag}
 object ScopeTest {
   case class Sets(s: Set[Int])
 
-  object Auto extends magnolify.cats.AutoDerivation {
+  object Auto {
+    import magnolify.cats.auto.*
     val s: Show[Numbers] = implicitly
     val eq: Eq[Numbers] = implicitly
     val hash: Hash[Numbers] = implicitly
