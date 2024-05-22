@@ -46,7 +46,7 @@ val tensorflowMetadataVersion = "1.10.0"
 val tensorflowVersion = "0.5.0"
 
 // project
-ThisBuild / tlBaseVersion := "0.7"
+ThisBuild / tlBaseVersion := "0.8"
 ThisBuild / tlSonatypeUseLegacyHost := true
 ThisBuild / organization := "com.spotify"
 ThisBuild / organizationName := "Spotify AB"
