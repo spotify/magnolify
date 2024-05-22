@@ -45,7 +45,7 @@ object ArbitraryDerivation {
               // pick a fixed subtype to have a chance to stop recursion
               Gen.const(subtypes.size + size)
             }
-          subtypeGen <- Gen.resize(size - 1, sealedTrait.subtypes(i).typeclass.arbitrary)
+          subtypeGen <- Gen.resize(size - 1, subtypes(i).typeclass.arbitrary)
         } yield subtypeGen
       }
     }
