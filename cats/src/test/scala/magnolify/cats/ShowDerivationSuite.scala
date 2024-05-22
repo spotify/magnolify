@@ -30,7 +30,6 @@ import java.time.Duration
 import scala.reflect.*
 
 class ShowDerivationSuite extends MagnolifySuite {
-  import magnolify.scalacheck.auto.genArbitrary
   import magnolify.cats.auto.genShow
 
   private def test[T: Arbitrary: ClassTag: Show]: Unit = {

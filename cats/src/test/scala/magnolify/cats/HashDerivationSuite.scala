@@ -29,7 +29,6 @@ import scala.reflect.*
 
 class HashDerivationSuite extends MagnolifySuite {
   import magnolify.cats.auto.genHash
-  import magnolify.scalacheck.auto.genArbitrary
 
   private def test[T: Arbitrary: ClassTag: Cogen: Hash](exclusions: String*): Unit = {
     // TODO val hash = ensureSerializable(implicitly[Hash[T]])
