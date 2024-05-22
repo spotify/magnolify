@@ -14,32 +14,34 @@
  * limitations under the License.
  */
 import sbt._
+import sbt.util.CacheImplicits._
 import sbtprotoc.ProtocPlugin.ProtobufConfig
 import com.github.sbt.git.SbtGit.GitKeys.gitRemoteRepo
 import com.typesafe.tools.mima.core._
 
-val magnoliaScala2Version = "1.1.6"
-val magnoliaScala3Version = "1.3.4"
+val magnoliaScala2Version = "1.1.9"
+val magnoliaScala3Version = "1.3.6"
 
 val algebirdVersion = "0.13.10"
-val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.2")
-val bigqueryVersion = "v2-rev20231111-2.0.0"
-val bigtableVersion = "2.30.0"
+val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.3")
+val bigqueryVersion = "v2-rev20240229-2.0.0"
+val bigtableVersion = "2.39.3"
 val catsVersion = "2.10.0"
-val datastoreVersion = "2.17.6"
-val guavaVersion = "32.1.3-jre"
-val hadoopVersion = "3.3.6"
-val jacksonVersion = "2.16.0"
-val jodaTimeVersion = "2.12.5"
+val datastoreVersion = "2.19.3"
+val guavaVersion = "33.2.0-jre"
+val hadoopVersion = "3.4.0"
+val jacksonVersion = "2.17.1"
+val jodaTimeVersion = "2.12.7"
 val munitVersion = "0.7.29"
 val neo4jDriverVersion = "4.4.12"
 val paigesVersion = "0.4.3"
-val parquetVersion = "1.13.1"
-val protobufVersion = "3.25.1"
-val refinedVersion = "0.11.0"
-val scalaCollectionCompatVersion = "2.11.0"
+val parquetVersion = "1.14.0"
+val protobufVersion = "3.25.2"
+val refinedVersion = "0.11.1"
+val scalaCollectionCompatVersion = "2.12.0"
 val scalacheckVersion = "1.17.0"
-val shapelessVersion = "2.3.10"
+val shapelessVersion = "2.3.12"
+val slf4jVersion = "2.0.13"
 val tensorflowMetadataVersion = "1.10.0"
 val tensorflowVersion = "0.5.0"
 
@@ -102,9 +104,9 @@ ThisBuild / developers := List(
 )
 
 // scala versions
-val scala3 = "3.3.1"
-val scala213 = "2.13.12"
-val scala212 = "2.12.18"
+val scala3 = "3.3.3"
+val scala213 = "2.13.14"
+val scala212 = "2.12.19"
 val scalaDefault = scala213
 val scala3Projects = List(
   "shared",
@@ -165,8 +167,9 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
           List("coverage", "test", "coverageAggregate"),
           name = Some("Test coverage")
         ),
-        WorkflowStep.Run(
-          List("bash <(curl -s https://codecov.io/bash)"),
+        WorkflowStep.Use(
+          UseRef.Public("codecov", "codecov-action", "v4"),
+          Map("token" -> "${{ secrets.CODECOV_TOKEN }}"),
           name = Some("Upload coverage report")
         )
       ),
@@ -220,7 +223,11 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 )
 
 // mima
-ThisBuild / mimaBinaryIssueFilters ++= Seq()
+ThisBuild / mimaBinaryIssueFilters ++= Seq(
+  // genFunnelMacro should not be available to users
+  ProblemFilters.exclude[DirectMissingMethodProblem]("magnolify.guava.auto.package.genFunnelMacro")
+)
+ThisBuild / tlVersionIntroduced := Map("3" -> "0.8.0")
 
 // protobuf
 ThisBuild / PB.protocVersion := protobufVersion
@@ -251,6 +258,8 @@ lazy val keepExistingHeader =
 val commonSettings = Seq(
   // So far most projects do no support scala 3
   crossScalaVersions := Seq(scala213, scala212),
+  // skip scala 3 publishing until ready
+  publish / skip := (publish / skip).value || (scalaVersion.value == scala3),
   scalaVersion := scalaDefault,
   scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((3, _)) =>
@@ -287,7 +296,8 @@ val commonSettings = Seq(
   ),
   libraryDependencies ++= Seq(
     "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion,
-    "joda-time" % "joda-time" % jodaTimeVersion % Provided
+    "joda-time" % "joda-time" % jodaTimeVersion % Provided,
+    "org.slf4j" % "slf4j-simple" % slf4jVersion % Test
   ) ++ (CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((3, _)) =>
       Seq(
@@ -302,9 +312,11 @@ val commonSettings = Seq(
     case _ =>
       throw new Exception("Unsupported scala version")
   }),
-  // https://github.com/typelevel/scalacheck/pull/427#issuecomment-424330310
-  // FIXME: workaround for Java serialization issues
-  Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
+  Test / fork := true,
+  Test / javaOptions ++= Seq(
+    "-Dorg.slf4j.simpleLogger.defaultLogLevel=info",
+    "-Dorg.slf4j.simpleLogger.logFile=target/magnolify.log"
+  )
 )
 
 lazy val root = tlCrossRootProject
@@ -551,6 +563,11 @@ lazy val protobuf = project
     description := "Magnolia add-on for Google Protocol Buffer"
   )
 
+val tensorflowMetadataSourcesDir =
+  settingKey[File]("Directory containing TensorFlow metadata proto files")
+val tensorflowMetadata =
+  taskKey[Seq[File]]("Retrieve TensorFlow metadata proto files")
+
 lazy val tensorflow = project
   .in(file("tensorflow"))
   .dependsOn(
@@ -571,14 +588,34 @@ lazy val tensorflow = project
     // remove compilation warnings for generated java files
     javacOptions ~= { _.filterNot(_ == "-Xlint:all") },
     // tensorflow metadata protos are not packaged into a jar. Manually extract them as external
+    Compile / tensorflowMetadataSourcesDir := target.value / s"metadata-$tensorflowMetadataVersion",
     Compile / PB.protoSources += target.value / s"metadata-$tensorflowMetadataVersion",
+    Compile / tensorflowMetadata := {
+      def work(tensorFlowMetadataVersion: String) = {
+        val tfMetadata = url(
+          s"https://github.com/tensorflow/metadata/archive/refs/tags/v$tensorFlowMetadataVersion.zip"
+        )
+        IO.unzipURL(tfMetadata, target.value, "*.proto").toSeq
+      }
+
+      val cacheStoreFactory = streams.value.cacheStoreFactory
+      val root = (Compile / tensorflowMetadataSourcesDir).value
+      val tracker =
+        Tracked.inputChanged(cacheStoreFactory.make("input")) { (versionChanged, version: String) =>
+          val cached = Tracked.outputChanged(cacheStoreFactory.make("output")) {
+            (outputChanged: Boolean, files: Seq[HashFileInfo]) =>
+              if (versionChanged || outputChanged) work(version)
+              else files.map(_.file)
+          }
+          cached(() => (root ** "*.proto").get().map(FileInfo.hash(_)))
+        }
+
+      tracker(tensorflowMetadataVersion)
+    },
     Compile / PB.unpackDependencies := {
-      val tfMetadata = new URL(
-        s"https://github.com/tensorflow/metadata/archive/refs/tags/v$tensorflowMetadataVersion.zip"
-      )
-      val protoFiles = IO.unzipURL(tfMetadata, target.value, _.endsWith(".proto"))
-      val root = target.value / s"metadata-$tensorflowMetadataVersion"
-      val metadataDep = ProtocPlugin.UnpackedDependency(protoFiles.toSeq, Seq.empty)
+      val protoFiles = (Compile / tensorflowMetadata).value
+      val root = (Compile / tensorflowMetadataSourcesDir).value
+      val metadataDep = ProtocPlugin.UnpackedDependency(protoFiles, Seq.empty)
       val deps = (Compile / PB.unpackDependencies).value
       new ProtocPlugin.UnpackedDependencies(deps.mappedFiles ++ Map(root -> metadataDep))
     },
@@ -700,18 +737,17 @@ lazy val site = project
     gitRemoteRepo := "git@github.com:spotify/magnolify.git",
     // mdoc
     // pre-compile md using mdoc
-    mdocIn := (paradox / sourceDirectory).value,
     mdocExtraArguments ++= Seq("--no-link-hygiene"),
     // paradox
-    Compile / paradox / sourceManaged := mdocOut.value,
-    paradoxProperties ++= Map(
+    Compile / paradoxOverlayDirectories += mdocOut.value,
+    Compile / paradoxProperties ++= Map(
       "github.base_url" -> "https://github.com/spotify/magnolify"
     ),
     Compile / paradoxMaterialTheme := ParadoxMaterialTheme()
       .withFavicon("images/favicon.ico")
       .withColor("white", "indigo")
       .withLogo("images/logo.png")
-      .withCopyright("Copyright (C) 2024 Spotify AB")
+      .withCopyright(s"Copyright (C) $currentYear Spotify AB")
       .withRepository(uri("https://github.com/spotify/magnolify"))
       .withSocial(uri("https://github.com/spotify"), uri("https://twitter.com/spotifyeng")),
     // sbt-site

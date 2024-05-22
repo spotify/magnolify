@@ -56,7 +56,12 @@ trait SerializableCanBuildFromLowPrio3 extends SerializableCanBuildFromLowPrio4 
     SerializableCanBuildFrom(Stream.newBuilder[A])
 }
 
-trait SerializableCanBuildFromLowPrio4 {
+trait SerializableCanBuildFromLowPrio4 extends SerializableCanBuildFromLowPrio5 {
   implicit def lazyListCBF[A]: SerializableCanBuildFrom[Any, A, LazyList[A]] =
     SerializableCanBuildFrom(LazyList.newBuilder[A])
+}
+
+trait SerializableCanBuildFromLowPrio5 {
+  implicit def setCBF[A]: SerializableCanBuildFrom[Any, A, Set[A]] =
+    SerializableCanBuildFrom(Set.newBuilder[A])
 }

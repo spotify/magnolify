@@ -210,8 +210,10 @@ case class NestedKey(@key k: RecordKey)
 case class EntityIndex(
   default: String,
   @excludeFromIndexes excludedDefault: String,
-  @excludeFromIndexes(true) excluded: String,
-  @excludeFromIndexes(false) included: String
+  @excludeFromIndexes(exclude = true) excluded: String,
+  @excludeFromIndexes(exclude = false) included: String
 )
 
-case class DoubleEntityIndex(@excludeFromIndexes(true) @excludeFromIndexes(false) i: Int)
+case class DoubleEntityIndex(
+  @excludeFromIndexes(exclude = true) @excludeFromIndexes(exclude = false) i: Int
+)

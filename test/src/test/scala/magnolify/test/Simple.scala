@@ -51,13 +51,14 @@ object Simple {
     o: Option[Required],
     l: List[Required]
   )
-  case class Collections(a: Array[Int], l: List[Int], v: Vector[Int]) {
+  case class Collections(a: Array[Int], l: List[Int], v: Vector[Int], s: Set[Int]) {
 
     override def hashCode(): Int = {
       var hash = 1
       hash = 31 * hash + util.Arrays.hashCode(a)
       hash = 31 * hash + Objects.hashCode(l)
       hash = 31 * hash + Objects.hashCode(v)
+      hash = 31 * hash + Objects.hashCode(s)
       hash
     }
 
@@ -65,7 +66,8 @@ object Simple {
       case that: Collections =>
         Objects.deepEquals(this.a, that.a) &&
         Objects.equals(this.l, that.l) &&
-        Objects.equals(this.v, that.v)
+        Objects.equals(this.v, that.v) &&
+        Objects.equals(this.s, that.s)
       case _ => false
     }
   }

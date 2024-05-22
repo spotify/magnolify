@@ -71,6 +71,11 @@ class FunnelDerivationSuite extends MagnolifySuite {
   test[Collections]
   test[Custom]
 
+  // test unwrapped
+  test[Int]
+  test[List[Int]]
+  test[List[Required]]
+
   test("AnyVal") {
     implicit val f: Funnel[HasValueClass] = FunnelDerivation[HasValueClass]
     test[HasValueClass]

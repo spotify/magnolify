@@ -159,25 +159,25 @@ class RefinedSuite extends MagnolifySuite {
     import magnolify.refined.protobuf._
     val tpe1 = ensureSerializable(ProtobufType[ProtoRequired, RequiredP3])
     val required = ProtoRequired(
-      true,
-      record.pct,
-      refineV.unsafeFrom(record.uuid.value)
+      b = true,
+      i = record.pct,
+      s = refineV.unsafeFrom(record.uuid.value)
     )
     assertEquals(tpe1(tpe1(required)), required)
 
     val tpe2 = ensureSerializable(ProtobufType[ProtoNullable, NullableP3])
     val nullable = ProtoNullable(
-      Some(true),
-      Some(record.pct),
-      Some(refineV.unsafeFrom(record.url.get.value))
+      b = Some(true),
+      i = Some(record.pct),
+      s = Some(refineV.unsafeFrom(record.url.get.value))
     )
     assertEquals(tpe2(tpe2(nullable)), nullable)
 
     val tpe3 = ensureSerializable(ProtobufType[ProtoRepeated, RepeatedP3])
     val repeated = ProtoRepeated(
-      List(true),
-      List(record.pct),
-      List(refineV.unsafeFrom("US"), refineV.unsafeFrom("UK"))
+      b = List(true),
+      i = List(record.pct),
+      s = List(refineV.unsafeFrom("US"), refineV.unsafeFrom("UK"))
     )
     assertEquals(tpe3(tpe3(repeated)), repeated)
 

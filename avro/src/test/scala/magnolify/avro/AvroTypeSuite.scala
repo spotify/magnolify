@@ -226,7 +226,7 @@ class AvroTypeSuite extends MagnolifySuite {
     test("MicrosLogicalTypes") {
       val schema = AvroType[LogicalMicros].schema
       assertLogicalType(schema, "i", "timestamp-micros")
-      assertLogicalType(schema, "ldt", "local-timestamp-micros", false)
+      assertLogicalType(schema, "ldt", "local-timestamp-micros", backwardsCompatible = false)
       assertLogicalType(schema, "lt", "time-micros")
       assertLogicalType(schema, "jdt", "timestamp-micros")
       assertLogicalType(schema, "jlt", "time-micros")
@@ -240,7 +240,7 @@ class AvroTypeSuite extends MagnolifySuite {
     test("MilliLogicalTypes") {
       val schema = AvroType[LogicalMillis].schema
       assertLogicalType(schema, "i", "timestamp-millis")
-      assertLogicalType(schema, "ldt", "local-timestamp-millis", false)
+      assertLogicalType(schema, "ldt", "local-timestamp-millis", backwardsCompatible = false)
       assertLogicalType(schema, "lt", "time-millis")
       assertLogicalType(schema, "jdt", "timestamp-millis")
       assertLogicalType(schema, "jlt", "time-millis")
@@ -402,6 +402,34 @@ class AvroTypeSuite extends MagnolifySuite {
     interceptMessage[ArithmeticException]("Rounding necessary") {
       at(BigDec(BigDecimal("3.14159265358979323846")))
     }
+  }
+
+  test("Copy bytes when reading from byte buffer") {
+    def toBytes[T](values: Seq[T])(implicit at: AvroType[T]): Array[Byte] = {
+      val bytes = new ByteArrayOutputStream()
+      val datumWriter = new GenericDatumWriter[GenericRecord](at.schema)
+      val binaryEncoder = EncoderFactory.get().binaryEncoder(bytes, null)
+      values.map(at.apply).foreach(datumWriter.write(_, binaryEncoder))
+      binaryEncoder.flush()
+      bytes.toByteArray
+    }
+
+    def fromBytes[T](bytes: Array[Byte])(implicit at: AvroType[T]): Seq[T] = {
+      val datumReader = new GenericDatumReader[GenericRecord](at.schema)
+      val decoder = DecoderFactory.get().binaryDecoder(bytes, null)
+      // Seq.unfold is not available in Scala 2.12 / collection-compat yet
+      val b = Seq.newBuilder[T]
+      var datum: GenericRecord = null
+      while (!decoder.isEnd) {
+        datum = datumReader.read(datum, decoder)
+        b += at.from(datum)
+      }
+      b.result()
+    }
+
+    val expected = List(DefaultBytes(Array(1, 2)), DefaultBytes(Array(3, 4)))
+    val actual = fromBytes[DefaultBytes](toBytes(expected))
+    assertEquals(actual, expected)
   }
 }
 

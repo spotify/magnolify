@@ -23,7 +23,6 @@ import magnolify.cats.auto.genEq
 import magnolify.cats.TestEq.eqArray
 import magnolify.cats.TestEq.eqDuration
 import magnolify.cats.TestEq.eqUri
-import magnolify.scalacheck.auto._
 import magnolify.scalacheck.TestArbitrary._
 import magnolify.scalacheck.TestCogen._
 import magnolify.test.ADT._

@@ -32,6 +32,7 @@ import org.apache.parquet.io.api._
 import org.apache.parquet.io.{InputFile, OutputFile}
 import org.apache.parquet.schema.MessageType
 import org.slf4j.LoggerFactory
+import org.typelevel.scalaccompat.annotation.nowarn
 
 sealed trait ParquetArray
 
@@ -126,8 +127,10 @@ object ParquetType {
 
     override def init(context: hadoop.InitContext): hadoop.ReadSupport.ReadContext = {
       if (parquetType == null) {
-        parquetType =
-          SerializationUtils.fromBase64[ParquetType[T]](context.getConfiguration.get(ReadTypeKey))
+        // Use deprecated getConfiguration
+        // Recommended getParquetConfiguration is only available for parquet 1.14+
+        val readKeyType = context.getConfiguration.get(ReadTypeKey): @nowarn("cat=deprecation")
+        parquetType = SerializationUtils.fromBase64[ParquetType[T]](readKeyType)
       }
 
       val metadata = context.getKeyValueMetadata
