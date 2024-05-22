@@ -20,7 +20,8 @@ import magnolify.test.Simple.*
 import org.scalacheck.*
 
 object ScopeTest {
-  object Auto extends magnolify.scalacheck.AutoDerivations {
+  object Auto {
+    import magnolify.scalacheck.auto.*
     implicitly[Arbitrary[Numbers]]
     implicitly[Cogen[Numbers]]
     implicitly[Arbitrary[Numbers => Numbers]]
