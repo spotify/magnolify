@@ -20,13 +20,13 @@ import org.scalacheck.{Arbitrary, Cogen}
 
 import scala.reflect.macros.*
 object ScalaCheckMacros {
-  def genArbitraryMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
+  def autoDerivationArbitrary[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.scalacheck.ArbitraryDerivation.gen[$wtt]"""
   }
 
-  def genCogenMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
+  def autoDerivationCogen[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
     import c.universe._
     val wtt = weakTypeTag[T]
     q"""_root_.magnolify.scalacheck.CogenDerivation.gen[$wtt]"""
@@ -35,6 +35,7 @@ object ScalaCheckMacros {
 }
 
 trait AutoDerivations {
-  implicit def genArbitrary[T]: Arbitrary[T] = macro ScalaCheckMacros.genArbitraryMacro[T]
-  implicit def genCogen[T]: Cogen[T] = macro ScalaCheckMacros.genCogenMacro[T]
+  implicit def autoDerivationArbitrary[T]: Arbitrary[T] =
+    macro ScalaCheckMacros.autoDerivationArbitrary[T]
+  implicit def autoDerivationCogen[T]: Cogen[T] = macro ScalaCheckMacros.autoDerivationCogen[T]
 }

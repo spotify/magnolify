@@ -27,7 +27,7 @@ import scala.reflect.*
 
 class CogenDerivationSuite extends MagnolifySuite {
   import TestArbitrary.arbSeed
-  import magnolify.scalacheck.auto.genCogen
+  import magnolify.scalacheck.auto.autoDerivationCogen
 
   private def test[T: ClassTag](implicit arb: Arbitrary[T], t: Cogen[T]): Unit = {
     // TODO val co = ensureSerializable(t)
@@ -60,8 +60,9 @@ class CogenDerivationSuite extends MagnolifySuite {
 
   // magnolia scala3 limitation:
   // For a recursive structures it is required to assign the derived value to an implicit variable
-  implicit val cogenNode: Cogen[Node] = genCogen
-  implicit val cogenGNode: Cogen[GNode[Int]] = genCogen
+  import magnolify.scalacheck.semiauto.semiautoDerivationCogen
+  implicit val cogenNode: Cogen[Node] = Cogen.gen
+  implicit val cogenGNode: Cogen[GNode[Int]] = Cogen.gen
 
   test[Node]
   test[GNode[Int]]
