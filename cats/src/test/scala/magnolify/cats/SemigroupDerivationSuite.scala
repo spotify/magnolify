@@ -30,8 +30,8 @@ import scala.reflect.*
 
 class SemigroupDerivationSuite extends MagnolifySuite {
   import SemigroupDerivationSuite.*
-  import magnolify.cats.auto.genSemigroup
-  import magnolify.scalacheck.auto.genArbitrary
+  import magnolify.scalacheck.auto.*
+  import magnolify.cats.auto.autoDerivationSemigroup
 
   private def test[T: Arbitrary: ClassTag: Eq: Semigroup]: Unit = {
     // TODO val sg = ensureSerializable(implicitly[Semigroup[T]])

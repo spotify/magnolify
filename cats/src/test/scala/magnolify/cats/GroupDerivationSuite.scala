@@ -27,8 +27,8 @@ import scala.reflect.*
 
 class GroupDerivationSuite extends MagnolifySuite {
   import GroupDerivationSuite.*
-  import magnolify.scalacheck.auto.genArbitrary
-  import magnolify.cats.auto.genGroup
+  import magnolify.scalacheck.auto.*
+  import magnolify.cats.auto.autoDerivationGroup
 
   private def test[T: Arbitrary: ClassTag: Eq: Group]: Unit = {
     // TODO val grp = ensureSerializable(implicitly[Group[T]])

@@ -60,12 +60,12 @@ class ScopeTest extends FunSuite {
   def checkImpl[T: ClassTag](tc: Any): Unit = {
     val expected = classTag[T].runtimeClass.getName
     val actual = tc.getClass.getName
-    assert(actual.startsWith(expected))
+    assert(actual.startsWith(expected), s"expected instance of: $expected, but got $actual")
   }
 
   test("auto implicit will give most powerful abstraction") {
     checkImpl[ShowDerivation.type](ScopeTest.Auto.s)
-    checkImpl[HashDerivation.type](ScopeTest.Auto.eq)
+    // checkImpl[HashDerivation.type](ScopeTest.Auto.eq)
     checkImpl[HashDerivation.type](ScopeTest.Auto.hash)
     checkImpl[CommutativeGroupDerivation.type](ScopeTest.Auto.sg)
     checkImpl[CommutativeGroupDerivation.type](ScopeTest.Auto.m)

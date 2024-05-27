@@ -26,7 +26,7 @@ import org.scalacheck.*
 import scala.reflect.*
 
 class EqDerivationSuite extends MagnolifySuite {
-  import magnolify.cats.auto.genEq
+  import magnolify.cats.auto.autoDerivationEq
 
   private def test[T: Arbitrary: ClassTag: Cogen: Eq]: Unit = {
     // TODO val eq = ensureSerializable(implicitly[Eq[T]])

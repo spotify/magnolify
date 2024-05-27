@@ -28,8 +28,8 @@ import scala.reflect.*
 
 class CommutativeGroupDerivationSuite extends MagnolifySuite {
   import CommutativeGroupDerivationSuite.*
-  import magnolify.scalacheck.auto.genArbitrary
-  import magnolify.cats.auto.genCommutativeGroup
+  import magnolify.scalacheck.auto.*
+  import magnolify.cats.auto.autoDerivationCommutativeGroup
 
   private def test[T: Arbitrary: ClassTag: Eq: CommutativeGroup]: Unit = {
     // TODO val cg = ensureSerializable(implicitly[CommutativeGroup[T]])

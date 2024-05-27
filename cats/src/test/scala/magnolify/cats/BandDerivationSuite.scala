@@ -28,8 +28,8 @@ import scala.reflect.*
 
 class BandDerivationSuite extends MagnolifySuite {
   import BandDerivationSuite.*
-  import magnolify.scalacheck.auto.genArbitrary
-  import magnolify.cats.auto.genBand
+  import magnolify.scalacheck.auto.*
+  import magnolify.cats.auto.autoDerivationBand
 
   private def test[T: Arbitrary: ClassTag: Eq: Band]: Unit = {
     // TODO val band = ensureSerializable(implicitly[Band[T]])

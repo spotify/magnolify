@@ -31,8 +31,8 @@ import scala.reflect.*
 
 class MonoidDerivationSuite extends MagnolifySuite {
   import MonoidDerivationSuite.*
-  import magnolify.scalacheck.auto.genArbitrary
-  import magnolify.cats.auto.genMonoid
+  import magnolify.scalacheck.auto.*
+  import magnolify.cats.auto.autoDerivationMonoid
 
   private def test[T: Arbitrary: ClassTag: Eq: Monoid]: Unit = {
     // TODO val mon = ensureSerializable(implicitly[Monoid[T]])

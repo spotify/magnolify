@@ -20,6 +20,7 @@ import cats.Show
 import cats.kernel.*
 
 import scala.deriving.Mirror
+import scala.util.NotGiven
 
 // set implicit priority to avoid conflicts
 // see: https://typelevel.org/cats/guidelines.html#implicit-instance-priority
@@ -29,33 +30,48 @@ import scala.deriving.Mirror
 trait AutoDerivation extends LowPriority0Implicits
 
 trait LowPriority0Implicits extends LowPriority1Implicits:
-  inline implicit def genShow[T](using Mirror.Of[T]): Show[T] = ShowDerivation.gen[T]
+  inline implicit def autoDerivationShow[T](using Mirror.Of[T]): Show[T] =
+    ShowDerivation.gen[T]
   // CommutativeGroup <: Group | CommutativeMonoid
-  inline implicit def genCommutativeGroup[T](using Mirror.Of[T]): CommutativeGroup[T] =
+  inline implicit def autoDerivationCommutativeGroup[T](using
+    Mirror.Of[T]
+  ): CommutativeGroup[T] =
     CommutativeGroupDerivation.gen[T]
   // Hash <: Eq
-  inline implicit def genHash[T](using Mirror.Of[T]): Hash[T] = HashDerivation.gen[T]
+  inline implicit def autoDerivationHash[T](using Mirror.Of[T]): Hash[T] =
+    HashDerivation.gen[T]
 
 trait LowPriority1Implicits extends LowPriority2Implicits:
-  inline implicit def genEq[T](using Mirror.Of[T]): Eq[T] = EqDerivation.gen[T]
+  inline implicit def autoDerivationEq[T](using Mirror.Of[T]): Eq[T] =
+    EqDerivation.gen[T]
   // Group <: Monoid
-  inline implicit def genGroup[T](using Mirror.Of[T]): Group[T] = GroupDerivation.gen[T]
+  inline implicit def autoDerivationGroup[T](using Mirror.Of[T]): Group[T] =
+    GroupDerivation.gen[T]
 
 trait LowPriority2Implicits extends LowPriority3Implicits:
   // CommutativeMonoid <: Monoid | CommutativeSemigroup
-  inline implicit def genCommutativeMonoid[T](using Mirror.Of[T]): CommutativeMonoid[T] =
+  inline implicit def autoDerivationCommutativeMonoid[T](using
+    Mirror.Of[T]
+  ): CommutativeMonoid[T] =
     CommutativeMonoidDerivation.gen[T]
 
 trait LowPriority3Implicits extends LowPriority4Implicits:
   // CommutativeSemigroup <: Semigroup
-  inline implicit def genCommutativeSemigroup[T](using Mirror.Of[T]): CommutativeSemigroup[T] =
+  inline implicit def autoDerivationCommutativeSemigroup[T](using
+    Mirror.Of[T]
+  ): CommutativeSemigroup[T] =
     CommutativeSemigroupDerivation.gen[T]
   // Monoid <: Semigroup
-  inline implicit def genMonoid[T](using Mirror.Of[T]): Monoid[T] = MonoidDerivation.gen[T]
+  inline implicit def autoDerivationMonoid[T](using Mirror.Of[T]): Monoid[T] =
+    MonoidDerivation.gen[T]
 
 trait LowPriority4Implicits extends LowPriority5Implicits:
   // Band <: Semigroup
-  inline implicit def genBand[T](using Mirror.Of[T]): Band[T] = BandDerivation.gen[T]
+  inline implicit def autoDerivationBand[T](using Mirror.Of[T]): Band[T] =
+    BandDerivation.gen[T]
 
 trait LowPriority5Implicits:
-  inline implicit def genSemigroup[T](using Mirror.Of[T]): Semigroup[T] = SemigroupDerivation.gen[T]
+  inline implicit def autoDerivationSemigroup[T](using
+    Mirror.Of[T]
+  ): Semigroup[T] =
+    SemigroupDerivation.gen[T]

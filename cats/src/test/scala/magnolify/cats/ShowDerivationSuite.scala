@@ -30,7 +30,7 @@ import java.time.Duration
 import scala.reflect.*
 
 class ShowDerivationSuite extends MagnolifySuite {
-  import magnolify.cats.auto.genShow
+  import magnolify.cats.auto.autoDerivationShow
 
   private def test[T: Arbitrary: ClassTag: Show]: Unit = {
     // val show = ensureSerializable(implicitly[Show[T]])

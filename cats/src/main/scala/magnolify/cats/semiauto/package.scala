@@ -16,7 +16,10 @@
 
 package magnolify.cats
 
-package object semiauto extends CatsImplicits {
+import cats.Show
+import cats.kernel.*
+
+package object semiauto {
 
   @deprecated("Use Band.gen[T] instead", "0.7.0")
   val BandDerivation = magnolify.cats.BandDerivation
@@ -36,5 +39,43 @@ package object semiauto extends CatsImplicits {
   val SemigroupDerivation = magnolify.cats.SemigroupDerivation
   @deprecated("Use Show.gen[T] instead", "0.7.0")
   val ShowDerivation = magnolify.cats.ShowDerivation
+
+  implicit def semiautoDerivationBand(b: Band.type): magnolify.cats.BandDerivation.type =
+    magnolify.cats.BandDerivation
+
+  implicit def semiautoDerivationCommutativeGroup(
+    cg: CommutativeGroup.type
+  ): magnolify.cats.CommutativeGroupDerivation.type =
+    magnolify.cats.CommutativeGroupDerivation
+
+  implicit def semiautoDerivationCommutativeMonoid(
+    cm: CommutativeMonoid.type
+  ): magnolify.cats.CommutativeMonoidDerivation.type =
+    magnolify.cats.CommutativeMonoidDerivation
+
+  implicit def semiautoDerivationCommutativeSemigroup(
+    cm: CommutativeSemigroup.type
+  ): magnolify.cats.CommutativeSemigroupDerivation.type =
+    magnolify.cats.CommutativeSemigroupDerivation
+
+  implicit def semiautoDerivationEq(eq: Eq.type): magnolify.cats.EqDerivation.type =
+    magnolify.cats.EqDerivation
+
+  implicit def semiautoDerivationGroup(g: Group.type): magnolify.cats.GroupDerivation.type =
+    magnolify.cats.GroupDerivation
+
+  implicit def semiautoDerivationHash(h: Hash.type): magnolify.cats.HashDerivation.type =
+    magnolify.cats.HashDerivation
+
+  implicit def semiautoDerivationMonoid(m: Monoid.type): magnolify.cats.MonoidDerivation.type =
+    magnolify.cats.MonoidDerivation
+
+  implicit def semiautoDerivationSemigroup(
+    sg: Semigroup.type
+  ): magnolify.cats.SemigroupDerivation.type =
+    magnolify.cats.SemigroupDerivation
+
+  implicit def semiautoDerivationShow(sg: Show.type): magnolify.cats.ShowDerivation.type =
+    magnolify.cats.ShowDerivation
 
 }

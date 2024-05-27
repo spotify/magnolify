@@ -28,8 +28,8 @@ import scala.reflect.*
 
 class CommutativeMonoidDerivationSuite extends MagnolifySuite {
   import CommutativeMonoidDerivationSuite.*
-  import magnolify.scalacheck.auto.genArbitrary
-  import magnolify.cats.auto.genCommutativeMonoid
+  import magnolify.scalacheck.auto.*
+  import magnolify.cats.auto.autoDerivationCommutativeMonoid
 
   private def test[T: Arbitrary: ClassTag: Eq: CommutativeMonoid]: Unit = {
     // TODO val cm = ensureSerializable(implicitly[CommutativeMonoid[T]])
