@@ -30,7 +30,7 @@ import scala.reflect._
 
 class ArbitraryDerivationSuite extends MagnolifySuite {
   import TestArbitrary.arbSeed
-  import magnolify.scalacheck.auto.genArbitrary
+  import magnolify.scalacheck.auto.autoDerivationArbitrary
 
   private def test[T: ClassTag](implicit t: Arbitrary[T]): Unit = {
     // TODO val g = ensureSerializable(t).arbitrary
@@ -73,8 +73,9 @@ class ArbitraryDerivationSuite extends MagnolifySuite {
 
   // magnolia scala3 limitation:
   // For a recursive structures it is required to assign the derived value to an implicit variable
-  implicit val arbNode: Arbitrary[Node] = genArbitrary
-  implicit val arbGNode: Arbitrary[GNode[Int]] = genArbitrary
+  import magnolify.scalacheck.semiauto.semiautoDerivationArbitrary
+  implicit val arbNode: Arbitrary[Node] = Arbitrary.gen
+  implicit val arbGNode: Arbitrary[GNode[Int]] = Arbitrary.gen
 
   test[Node]
   test[GNode[Int]]

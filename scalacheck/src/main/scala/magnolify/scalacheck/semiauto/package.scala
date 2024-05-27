@@ -25,8 +25,10 @@ package object semiauto {
   @deprecated("Use Gogen.gen[T] instead", "0.7.0")
   val CogenDerivation = magnolify.scalacheck.CogenDerivation
 
-  implicit def genArbitrary(a: Arbitrary.type): magnolify.scalacheck.ArbitraryDerivation.type =
+  implicit def semiautoDerivationArbitrary(
+    a: Arbitrary.type
+  ): magnolify.scalacheck.ArbitraryDerivation.type =
     magnolify.scalacheck.ArbitraryDerivation
-  implicit def genCogen(c: Cogen.type): magnolify.scalacheck.CogenDerivation.type =
+  implicit def semiautoDerivationCogen(c: Cogen.type): magnolify.scalacheck.CogenDerivation.type =
     magnolify.scalacheck.CogenDerivation
 }
