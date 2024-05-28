@@ -19,7 +19,6 @@ package magnolify.shared
 import magnolify.test.*
 import magnolify.test.Simple.*
 
-import scala.annotation.nowarn
 import scala.util.{Properties, Try}
 
 class EnumTypeSuite extends MagnolifySuite {
@@ -101,37 +100,10 @@ class EnumTypeSuite extends MagnolifySuite {
            |        ^
            |""".stripMargin
 
-      @nowarn
       val scala3Error =
-        """|error:
-           |No given instance of type magnolify.shared.EnumType[Option[magnolify.test.ADT.Color]] was found for parameter et of method apply in object EnumType.
-           |I found:
+        """|error: Cannot prove that Some[magnolify.test.ADT.Color] <:< Singleton.
            |
-           |    magnolify.shared.EnumType.gen[Option[magnolify.test.ADT.Color]](
-           |      {
-           |        final class $anon() extends Object(), Serializable {
-           |          type MirroredMonoType = Option[magnolify.test.ADT.Color]
-           |        }
-           |        (new $anon():Object & Serializable)
-           |      }.$asInstanceOf[
-           |
-           |          scala.deriving.Mirror.Sum{
-           |            type MirroredMonoType² = Option[magnolify.test.ADT.Color];
-           |              type MirroredType = Option[magnolify.test.ADT.Color];
-           |              type MirroredLabel = ("Option" : String);
-           |              type MirroredElemTypes = (None.type, Some[magnolify.test.ADT.Color]);
-           |              type MirroredElemLabels = (("None$" : String), ("Some" : String))
-           |          }
-           |
-           |      ]
-           |    )
-           |
-           |But method gen in trait EnumTypeCompanionMacros1 does not match type magnolify.shared.EnumType[Option[magnolify.test.ADT.Color]]
-           |
-           |where:    MirroredMonoType  is a type in an anonymous class locally defined in class EnumTypeSuite which is an alias of Option[magnolify.test.ADT.Color]
-           |          MirroredMonoType² is a type in trait Mirror with bounds""".stripMargin + " \n" + """|.
-           |EnumType[Option[ADT.Color]]
-           |                          ^
+           |                                      ^
            |""".stripMargin
 
       if (Properties.versionNumberString.startsWith("2.12")) {
