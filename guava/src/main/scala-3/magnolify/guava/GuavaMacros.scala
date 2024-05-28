@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Spotify AB
+ * Copyright 2023 Spotify AB
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 
 package magnolify.guava
 
-import scala.reflect.macros.whitebox
+import com.google.common.hash.Funnel
 
-private object GuavaMacros {
-  def genFunnelMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
-    import c.universe._
-    val wtt = weakTypeTag[T]
-    q"""_root_.magnolify.guava.semiauto.FunnelDerivation.apply[$wtt]"""
-  }
-}
+import scala.deriving.Mirror
+
+trait SemiAutoDerivations:
+  inline def genFunnel[T](using Mirror.Of[T]): Funnel[T] = FunnelDerivation.derivedMirror[T]
+
+trait AutoDerivations:
+  inline given genFunnel[T](using Mirror.Of[T]): Funnel[T] = FunnelDerivation.derivedMirror[T]
