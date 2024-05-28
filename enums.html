@@ -161,7 +161,7 @@ spotify/magnolify
 <ul style="display: none">
 <li class="md-nav__item md-version" id="project.version">
 <label class="md-nav__link" for="__version">
-<i class="md-icon" title="Version">label_outline</i> 0.7.2
+<i class="md-icon" title="Version">label_outline</i> 0.7.3
 </label>
 </li>
 </ul>
@@ -182,7 +182,7 @@ spotify/magnolify
 import magnolify.shared._
 // Encode as [&quot;red&quot;, &quot;green&quot;, &quot;blue&quot;]
 implicit val enumType: EnumType[Color.Type] = EnumType.scalaEnumType[Color.Type].map(CaseMapper(_.toLowerCase))
-// enumType: EnumType[Color.Type] = magnolify.shared.EnumType$$anon$1@1235b5b9
+// enumType: EnumType[Color.Type] = magnolify.shared.EnumType$$anon$1@2df32e13
 </code></pre>
 <p>An enum-like type can be wrapped inside a <code>magnolify.shared.UnsafeEnum[T]</code> to handle unknown cases. This could be useful for scenarios like schema evolution, or working with bad data.</p>
 <pre class="prettyprint"><code class="language-scala">UnsafeEnum(Color.Red) // Known(Red)
@@ -200,7 +200,7 @@ Edit this page
 </div>
 <div class="print-only">
 <span class="md-source-file md-version">
-0.7.2
+0.7.3
 </span>
 </div>
 </article>
