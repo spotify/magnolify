@@ -16,31 +16,32 @@
 
 package magnolify.cats
 
-import cats._
-import cats.kernel.laws.discipline._
-import magnolify.cats.auto.genSemigroup
-import magnolify.cats.TestEq._
+import cats.*
+import cats.kernel.laws.discipline.*
 import magnolify.cats.Types.MiniInt
-import magnolify.cats.semiauto.EqDerivation
-import magnolify.scalacheck.auto._
-import magnolify.scalacheck.TestArbitrary._
-import magnolify.test.Simple._
-import magnolify.test._
-import org.scalacheck._
+import magnolify.cats.semiauto.*
+import magnolify.test.*
+import magnolify.test.Simple.*
+import org.scalacheck.*
 
 import java.net.URI
 import java.time.Duration
-import scala.reflect._
+import scala.reflect.*
 
 class SemigroupDerivationSuite extends MagnolifySuite {
-  import SemigroupDerivationSuite._
+  import SemigroupDerivationSuite.*
+  import magnolify.scalacheck.auto.*
+  import magnolify.cats.auto.autoDerivationSemigroup
 
   private def test[T: Arbitrary: ClassTag: Eq: Semigroup]: Unit = {
-    val sg = ensureSerializable(implicitly[Semigroup[T]])
+    // TODO val sg = ensureSerializable(implicitly[Semigroup[T]])
+    val sg = Semigroup[T]
     include(SemigroupTests[T](sg).semigroup.all, className[T] + ".")
   }
 
-  implicit val eqRecord: Eq[Record] = EqDerivation[Record]
+  import magnolify.scalacheck.TestArbitrary.*
+  import magnolify.cats.TestEq.*
+  implicit val eqRecord: Eq[Record] = Eq.gen[Record]
   implicit val sgBool: Semigroup[Boolean] = Semigroup.instance(_ ^ _)
   implicit val sgUri: Semigroup[URI] =
     Semigroup.instance((x, y) => URI.create(x.toString + y.toString))

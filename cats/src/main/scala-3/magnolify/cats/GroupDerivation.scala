@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-package magnolify.cats.semiauto
+package magnolify.cats
 
 import cats.Group
-import magnolia1._
+import magnolia1.*
 
-import scala.annotation.implicitNotFound
-import scala.collection.compat._
+import scala.deriving.Mirror
 
-object GroupDerivation {
-  type Typeclass[T] = Group[T]
+object GroupDerivation extends ProductDerivation[Group]:
 
-  def join[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+  def join[T](caseClass: CaseClass[Group, T]): Group[T] =
     val emptyImpl = MonoidMethods.empty(caseClass)
     val combineImpl = SemigroupMethods.combine(caseClass)
     val combineNImpl = GroupMethods.combineN(caseClass)
@@ -34,7 +32,7 @@ object GroupDerivation {
     val inverseImpl = GroupMethods.inverse(caseClass)
     val removeImpl = GroupMethods.remove(caseClass)
 
-    new Group[T] {
+    new Group[T]:
       override def empty: T = emptyImpl()
       override def combine(x: T, y: T): T = combineImpl(x, y)
       override def combineN(a: T, n: Int): T = combineNImpl(a, n)
@@ -42,17 +40,12 @@ object GroupDerivation {
       override def combineAllOption(as: IterableOnce[T]): Option[T] = combineAllOptionImpl(as)
       override def inverse(a: T): T = inverseImpl(a)
       override def remove(a: T, b: T): T = removeImpl(a, b)
-    }
-  }
+  end join
 
-  @implicitNotFound("Cannot derive Group for sealed trait")
-  private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = ???
+  inline def gen[T](using Mirror.Of[T]): Group[T] = derivedMirror[T]
+end GroupDerivation
 
-  implicit def apply[T]: Typeclass[T] = macro Magnolia.gen[T]
-}
-
-private object GroupMethods {
+private object GroupMethods:
   def combineN[T, Typeclass[T] <: Group[T]](caseClass: CaseClass[Typeclass, T]): (T, Int) => T = {
     val emptyImpl = MonoidMethods.empty(caseClass)
     val combineImpl = SemigroupMethods.combine(caseClass)
@@ -71,8 +64,7 @@ private object GroupMethods {
   }
 
   def inverse[T, Typeclass[T] <: Group[T]](caseClass: CaseClass[Typeclass, T]): T => T =
-    a => caseClass.construct(p => p.typeclass.inverse(p.dereference(a)))
+    a => caseClass.construct(p => p.typeclass.inverse(p.deref(a)))
 
   def remove[T, Typeclass[T] <: Group[T]](caseClass: CaseClass[Typeclass, T]): (T, T) => T =
-    (a, b) => caseClass.construct(p => p.typeclass.remove(p.dereference(a), p.dereference(b)))
-}
+    (a, b) => caseClass.construct(p => p.typeclass.remove(p.deref(a), p.deref(b)))
