@@ -16,10 +16,10 @@
 
 package magnolify.shared
 
-import magnolia1.Magnolia
 import scala.reflect.macros.whitebox
 
 object EnumTypeMacros {
+
   def scalaEnumTypeMacro[T: c.WeakTypeTag](
     c: whitebox.Context
   )(annotations: c.Expr[AnnotationType[T]]): c.Tree = {
@@ -44,18 +44,20 @@ object EnumTypeMacros {
     val tpe = weakTypeOf[T]
     val symbol = tpe.typeSymbol
     if (symbol.isModuleClass) {
-      q"new _root_.magnolify.shared.EnumType.EnumValue[$tpe]{}"
+      q"new _root_.magnolify.shared.EnumTypeDerivation.EnumValue[$tpe]{}"
     } else {
       c.abort(c.enclosingPosition, "EnumType value must be an object")
     }
   }
+
+  def derivationEnumTypeMacro[T: c.WeakTypeTag](c: whitebox.Context): c.Tree = {
+    import c.universe._
+    val tpe = weakTypeOf[T]
+    q"_root_.magnolify.shared.EnumTypeDerivation.gen[$tpe]"
+  }
 }
 
-trait EnumTypeCompanionMacros extends EnumTypeCompanionLowPrioMacros {
+trait EnumTypeCompanionMacros extends EnumTypeDerivation {
   implicit def scalaEnumType[T <: Enumeration#Value: AnnotationType]: EnumType[T] =
     macro EnumTypeMacros.scalaEnumTypeMacro[T]
-}
-
-trait EnumTypeCompanionLowPrioMacros extends EnumTypeDerivation {
-  implicit def gen[T]: EnumType[T] = macro Magnolia.gen[T]
 }

@@ -16,11 +16,15 @@
 
 package magnolify.shared
 
-import magnolia1.{CaseClass, SealedTrait}
+import magnolia1._
 
 import scala.annotation.implicitNotFound
 
 trait EnumTypeDerivation {
+  implicit def gen[T]: EnumType[T] = macro EnumTypeMacros.derivationEnumTypeMacro[T]
+}
+
+object EnumTypeDerivation {
   type Typeclass[T] = EnumType[T]
 
   // EnumType can only be split into objects with fixed name
@@ -49,7 +53,7 @@ trait EnumTypeDerivation {
     val ns = sealedTrait.typeName.owner
     val subs = sealedTrait.subtypes.map(_.typeclass)
     val values = subs.flatMap(_.values).sorted.toList
-    val annotations = (sealedTrait.annotations ++ subs.flatMap(_.annotations)).toList
+    val annotations = sealedTrait.inheritedAnnotations.toList ++ sealedTrait.annotations.toList
     EnumType.create(
       n,
       ns,
@@ -60,4 +64,6 @@ trait EnumTypeDerivation {
       v => subs.find(_.name == v).get.from(v)
     )
   }
+
+  def gen[T]: EnumType[T] = macro Magnolia.gen[T]
 }

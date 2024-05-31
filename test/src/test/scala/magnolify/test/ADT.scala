@@ -34,10 +34,18 @@ object ADT {
 
   @ScalaAnnotation("Color")
   sealed trait Color
-  @ScalaAnnotation("Red")
-  case object Red extends Color
-  case object Green extends Color
-  case object Blue extends Color
+  @ScalaAnnotation("PrimaryColor")
+  sealed trait PrimaryColor extends Color
+  case object Red extends PrimaryColor
+  case object Green extends PrimaryColor
+  case object Blue extends PrimaryColor
+  @ScalaAnnotation("SecondaryColor")
+  sealed abstract class SecondaryColor(p1: PrimaryColor, p2: PrimaryColor) extends Color {
+    def primaryColors: Set[PrimaryColor] = Set(p1, p2)
+  }
+  case object Yellow extends SecondaryColor(Red, Green)
+  case object Cyan extends SecondaryColor(Green, Blue)
+  case object Magenta extends SecondaryColor(Red, Blue)
 
   // This is needed to simulate an error with "no valid constructor"
   // exception on attempt to deserialize a case object implementing an abstract class without

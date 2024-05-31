@@ -47,15 +47,31 @@ class EnumTypeSuite extends MagnolifySuite {
   }
 
   test("ADT") {
-    val et = ensureSerializable(EnumType[ADT.Color])
-    assertEquals(et.name, "Color")
-    assertEquals(et.namespace, "magnolify.test.ADT")
-    assertEquals(et.values, List("Blue", "Green", "Red")) // ADTs are ordered alphabetically
-    assertEquals(et.from("Red"), ADT.Red)
-    assertEquals(et.to(ADT.Red), "Red")
+    val etPrimaryColor = ensureSerializable(EnumType[ADT.PrimaryColor])
+    assertEquals(etPrimaryColor.name, "PrimaryColor")
+    assertEquals(etPrimaryColor.namespace, "magnolify.test.ADT")
+    assertEquals(
+      etPrimaryColor.values,
+      List("Blue", "Green", "Red")
+    ) // ADTs are ordered alphabetically
+    assertEquals(etPrimaryColor.from("Red"), ADT.Red)
+    assertEquals(etPrimaryColor.to(ADT.Red), "Red")
     // Magnolia does not capture Java annotations
-    val as = et.annotations.collect { case a: ScalaAnnotation => a.value }
-    assertEquals(as, List("Color", "Red"))
+    val annPrimaryColor = etPrimaryColor.annotations.collect { case a: ScalaAnnotation => a.value }
+    assertEquals(annPrimaryColor, List("Color", "PrimaryColor"))
+
+    val etColor = ensureSerializable(EnumType[ADT.Color])
+    assertEquals(etColor.name, "Color")
+    assertEquals(etColor.namespace, "magnolify.test.ADT")
+    assertEquals(
+      etColor.values,
+      List("Blue", "Cyan", "Green", "Magenta", "Red", "Yellow")
+    ) // ADTs are ordered alphabetically
+    assertEquals(etColor.from("Magenta"), ADT.Magenta)
+    assertEquals(etColor.to(ADT.Magenta), "Magenta")
+    // Magnolia does not capture Java annotations
+    val as = etColor.annotations.collect { case a: ScalaAnnotation => a.value }
+    assertEquals(as, List("Color"))
   }
 
   test("ADT No Default Constructor") {
@@ -72,14 +88,18 @@ class EnumTypeSuite extends MagnolifySuite {
     {
       val error = compileErrors("EnumType.gen[Option[ADT.Color]]")
       val scala2Error =
-        """|error: Cannot derive EnumType.EnumValue. EnumType only works for sum types
+        """|error:
+           |magnolia: could not find EnumType.Typeclass for type magnolify.test.ADT.Color
+           |    in parameter 'value' of product type Some[magnolify.test.ADT.Color]
+           |    in coproduct type Option[magnolify.test.ADT.Color]
+           |
            |EnumType.gen[Option[ADT.Color]]
            |            ^
            |""".stripMargin
       val scala3Error =
-        """|error: Cannot prove that Some[magnolify.test.ADT.Color] <:< Singleton.
-           |
-           |                                      ^
+        """|error: Cannot derive EnumType for non singleton sum type
+           |      val error = compileErrors("EnumType.gen[Option[ADT.Color]]")
+           |                              ^
            |""".stripMargin
       if (Properties.versionNumberString.startsWith("2.12")) {
         assertNoDiff(error, scala2Error)
@@ -101,9 +121,9 @@ class EnumTypeSuite extends MagnolifySuite {
            |""".stripMargin
 
       val scala3Error =
-        """|error: Cannot prove that Some[magnolify.test.ADT.Color] <:< Singleton.
-           |
-           |                                      ^
+        """|error: Cannot derive EnumType for non singleton sum type
+           |      val error = compileErrors("EnumType[Option[ADT.Color]]")
+           |                              ^
            |""".stripMargin
 
       if (Properties.versionNumberString.startsWith("2.12")) {
@@ -132,7 +152,7 @@ class EnumTypeSuite extends MagnolifySuite {
   }
 
   test("ADT CaseMapper") {
-    val et = ensureSerializable(EnumType[ADT.Color](CaseMapper(_.toLowerCase)))
+    val et = ensureSerializable(EnumType[ADT.PrimaryColor](CaseMapper(_.toLowerCase)))
     assertEquals(et.values, List("blue", "green", "red")) // ADTs are ordered alphabetically
     assertEquals(et.from("red"), ADT.Red)
     assertEquals(et.to(ADT.Red), "red")

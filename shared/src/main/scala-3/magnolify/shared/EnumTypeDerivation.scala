@@ -16,62 +16,41 @@
 
 package magnolify.shared
 
-import magnolia1.{CaseClass, CommonDerivation, SealedTrait, SealedTraitDerivation}
+import magnolia1.*
 
 import scala.compiletime.*
 import scala.deriving.Mirror
 
+trait EnumTypeDerivation:
+  implicit inline def gen[T](using mirror: Mirror.Of[T]): EnumType[T] = EnumTypeDerivation.gen[T]
+
 // Do not extend Derivation so we can add an extra check when deriving the sum type
-trait EnumTypeDerivation extends CommonDerivation[EnumType] with SealedTraitDerivation:
+object EnumTypeDerivation:
 
-  transparent inline def subtypes[T, SubtypeTuple <: Tuple](
-    m: Mirror.SumOf[T],
-    idx: Int = 0 // no longer used, kept for bincompat
-  ): List[SealedTrait.Subtype[Typeclass, T, _]] =
-    subtypesFromMirror[T, SubtypeTuple](m, idx)
+  private transparent inline def values[A, S <: Tuple](m: Mirror.Of[A]): List[A] =
+    inline erasedValue[S] match
+      case _: EmptyTuple =>
+        Nil
+      case _: (s *: tail) =>
+        val infos = summonFrom {
+          case mm: Mirror.SumOf[`s`] =>
+            values[A, mm.MirroredElemTypes](mm.asInstanceOf[m.type])
+          case mm: Mirror.ProductOf[`s`] if Macro.isObject[`s`] =>
+            List(mm.fromProduct(EmptyTuple).asInstanceOf[A])
+          case _ =>
+            error("Cannot derive EnumType for non singleton sum type")
+        }
+        infos ::: values[A, tail](m)
 
-  inline def derivedMirrorSum[A](sum: Mirror.SumOf[A]): EnumType[A] =
-    summonAll[Tuple.Map[sum.MirroredElemTypes, [S] =>> S <:< Singleton]] // assert all singleton
-    split(sealedTraitFromMirror(sum))
+  inline implicit def gen[T](using mirror: Mirror.Of[T]): EnumType[T] =
+    val s = values[T, T *: EmptyTuple](mirror).sortBy(_.toString)
+    val it = Macro.typeInfo[T]
+    val annotations = Macro.inheritedAnns[T] ++ Macro.anns[T]
 
-  inline def derivedMirror[A](using mirror: Mirror.Of[A]): EnumType[A] =
-    inline mirror match
-      case sum: Mirror.SumOf[A]         => derivedMirrorSum[A](sum)
-      case product: Mirror.ProductOf[A] => derivedMirrorProduct[A](product)
-
-  inline def derived[A](using Mirror.Of[A]): EnumType[A] = derivedMirror[A]
-
-  protected override inline def deriveSubtype[s](m: Mirror.Of[s]): EnumType[s] =
-    derivedMirror[s](using m)
-
-  def join[T](caseClass: CaseClass[EnumType, T]): EnumType[T] =
-    // fail at runtime since we can't prevent derivation
-    // see https://github.com/softwaremill/magnolia/issues/267
-    require(caseClass.isObject, s"Cannot derive EnumType[T] for case class ${caseClass.typeInfo}")
-    val n = caseClass.typeInfo.short
-    val ns = caseClass.typeInfo.owner
     EnumType.create(
-      n,
-      ns,
-      List(n),
-      caseClass.annotations.toList,
-      _ => caseClass.rawConstruct(Nil)
-    )
-  end join
-
-  def split[T](sealedTrait: SealedTrait[EnumType, T]): EnumType[T] =
-    val n = sealedTrait.typeInfo.short
-    val ns = sealedTrait.typeInfo.owner
-    val subs = sealedTrait.subtypes.map(_.typeclass)
-    val values = subs.flatMap(_.values).sorted.toList
-    val annotations = (sealedTrait.annotations ++ subs.flatMap(_.annotations)).toList
-    EnumType.create(
-      n,
-      ns,
-      values,
+      it.short,
+      it.owner,
+      s.map(_.toString),
       annotations,
-      // it is ok to use the inefficient find here because it will be called only once
-      // and cached inside an instance of EnumType
-      v => subs.find(_.name == v).get.from(v)
+      name => s.find(_.toString == name).get
     )
-  end split
