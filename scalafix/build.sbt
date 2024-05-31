@@ -56,7 +56,7 @@ def magnolify(version: String): List[ModuleID] = {
     "org.apache.avro" % "avro" % "1.11.2",
     "com.google.apis" % "google-api-services-bigquery" % "v2-rev20240229-2.0.0",
     "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % "2.33.0",
-    "org.typelevel" %% "cats-core" % "2.10.0",
+    "org.typelevel" %% "cats-core" % "2.12.0",
     "com.google.cloud.datastore" % "datastore-v1-proto-client" % "2.18.4",
     "com.google.guava" % "guava" % "33.1.0-jre",
     "org.neo4j.driver" % "neo4j-java-driver" % "4.4.12",
