@@ -1,82 +1,87 @@
 syntax = "proto3";
 
-package magnolify.protobuf;
+package magnolify.protobuf.v3;
 
 option java_package = "magnolify.protobuf";
 
-message IntegersP3 {
+message Integers {
     int32 i = 1;
     int64 l = 2;
 }
 
-message FloatsP3 {
+message Floats {
     float f = 1;
     double d = 2;
 }
 
-message RequiredP3 {
+message Required {
     bool b = 1;
     string s = 2;
     int32 i = 3;
 }
 
-message NullableP3 {
+message Nullable {
     optional bool b = 1;
     optional string s = 2;
     optional int32 i = 3;
 }
 
-message RepeatedP3 {
+message Repeated {
     repeated bool b = 1;
     repeated string s = 2;
     repeated int32 i = 3;
 }
 
-message NestedP3 {
+message Nested {
     bool b = 1;
     string s = 2;
     int32 i = 3;
-    RequiredP3 r = 4;
-    optional RequiredP3 o = 5;
-    repeated RequiredP3 l = 6;
+    Required r = 4;
+    optional Required o = 5;
+    repeated Required l = 6;
 }
 
-message CollectionP3 {
+message Collection {
     repeated int32 a = 1;
     repeated int32 l = 2;
     repeated int32 v = 3;
     repeated int32 s = 4;
 }
 
-message MoreCollectionP3 {
+message MoreCollection {
     repeated int32 i = 1;
     repeated int32 s = 2;
     repeated int32 is = 3;
 }
 
-message EnumsP3 {
-    enum JavaEnums {
-        RED = 0;
-        GREEN = 1;
-        BLUE = 2;
-    }
-    enum ScalaEnums {
-        Red = 0;
-        Green = 1;
-        Blue = 2;
-    }
-    JavaEnums j = 1;
-    ScalaEnums s = 2; // Enumeration
-    ScalaEnums a = 3; // ADT
-    optional JavaEnums jo = 4;
-    optional ScalaEnums so = 5; // Enumeration
-    optional ScalaEnums ao = 6; // ADT
-    repeated JavaEnums jr = 7;
-    repeated ScalaEnums sr = 8; // Enumeration
-    repeated ScalaEnums ar = 9; // ADT
+enum UpperCaseColor {
+    RED = 0;
+    GREEN = 1;
+    BLUE = 2;
 }
 
-message UnsafeEnumsP3 {
+enum CamelCaseColor {
+    Red = 0;
+    Green = 1;
+    Blue = 2;
+    Yellow = 3;
+    Cyan = 4;
+    Magenta = 5;
+}
+
+message Enums {
+    UpperCaseColor j = 1;
+    CamelCaseColor s = 2; // Enumeration
+    CamelCaseColor a = 3; // ADT
+    optional UpperCaseColor jo = 4;
+    optional CamelCaseColor so = 5; // Enumeration
+    optional CamelCaseColor ao = 6; // ADT
+    repeated UpperCaseColor jr = 7;
+    repeated CamelCaseColor sr = 8; // Enumeration
+    repeated CamelCaseColor ar = 9; // ADT
+}
+
+message UnsafeEnums {
     string j = 1;
     string s = 2;
     string a = 3;
@@ -88,21 +93,21 @@ message UnsafeEnumsP3 {
     repeated string ar = 9;
 }
 
-message CustomP3 {
+message Custom {
     string u = 1;
     int64 d = 2;
 }
 
-message BytesP3 {
+message Bytes {
     bytes b = 1;
 }
 
-message UpperCaseP3 {
+message UpperCase {
     string FIRSTFIELD = 1;
     string SECONDFIELD = 2;
-    UpperCaseInnerP3 INNERFIELD = 3;
+    UpperCaseInner INNERFIELD = 3;
 }
 
-message UpperCaseInnerP3 {
+message UpperCaseInner {
     string INNERFIRST = 1;
 }

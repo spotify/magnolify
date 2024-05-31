@@ -1,82 +1,87 @@
 syntax = "proto2";
 
-package magnolify.protobuf;
+package magnolify.protobuf.v2;
 
 option java_package = "magnolify.protobuf";
 
-message IntegersP2 {
+message Integers {
     required int32 i = 1;
     required int64 l = 2;
 }
 
-message FloatsP2 {
+message Floats {
     required float f = 1;
     required double d = 2;
 }
 
-message RequiredP2 {
+message Required {
     required bool b = 1;
     required string s = 2;
     required int32 i = 3;
 }
 
-message NullableP2 {
+message Nullable {
     optional bool b = 1;
     optional string s = 2;
     optional int32 i = 3;
 }
 
-message RepeatedP2 {
+message Repeated {
     repeated bool b = 1;
     repeated string s = 2;
     repeated int32 i = 3;
 }
 
-message NestedP2 {
+message Nested {
     required bool b = 1;
     required string s = 2;
     required int32 i = 3;
-    required RequiredP2 r = 4;
-    optional RequiredP2 o = 5;
-    repeated RequiredP2 l = 6;
+    required Required r = 4;
+    optional Required o = 5;
+    repeated Required l = 6;
 }
 
-message CollectionP2 {
+message Collection {
     repeated int32 a = 1;
     repeated int32 l = 2;
     repeated int32 v = 3;
     repeated int32 s = 4;
 }
 
-message MoreCollectionP2 {
+message MoreCollection {
     repeated int32 i = 1;
     repeated int32 s = 2;
     repeated int32 is = 3;
 }
 
-message EnumsP2 {
-    enum JavaEnums {
-        RED = 0;
-        GREEN = 1;
-        BLUE = 2;
-    }
-    enum ScalaEnums {
-        Red = 0;
-        Green = 1;
-        Blue = 2;
-    }
-    required JavaEnums j = 1;
-    required ScalaEnums s = 2; // Enumeration
-    required ScalaEnums a = 3; // ADT
-    optional JavaEnums jo = 4;
-    optional ScalaEnums so = 5; // Enumeration
-    optional ScalaEnums ao = 6; // ADT
-    repeated JavaEnums jr = 7;
-    repeated ScalaEnums sr = 8; // Enumeration
-    repeated ScalaEnums ar = 9; // ADT
+enum UpperCaseColor {
+    RED = 0;
+    GREEN = 1;
+    BLUE = 2;
 }
 
-message UnsafeEnumsP2 {
+enum CamelCaseColor {
+    Red = 0;
+    Green = 1;
+    Blue = 2;
+    Yellow = 3;
+    Cyan = 4;
+    Magenta = 5;
+}
+
+message Enums {
+    required UpperCaseColor j = 1;
+    required CamelCaseColor s = 2; // Enumeration
+    required CamelCaseColor a = 3; // ADT
+    optional UpperCaseColor jo = 4;
+    optional CamelCaseColor so = 5; // Enumeration
+    optional CamelCaseColor ao = 6; // ADT
+    repeated UpperCaseColor jr = 7;
+    repeated CamelCaseColor sr = 8; // Enumeration
+    repeated CamelCaseColor ar = 9; // ADT
+}
+
+message UnsafeEnums {
     required string j = 1;
     required string s = 2;
     required string a = 3;
@@ -88,16 +93,16 @@ message UnsafeEnumsP2 {
     repeated string ar = 9;
 }
 
-message CustomP2 {
+message Custom {
     required string u = 1;
     required int64 d = 2;
 }
 
-message BytesP2 {
+message Bytes {
     required bytes b = 1;
 }
 
-message DefaultRequiredP2 {
+message DefaultRequired {
     required int32 i = 1 [default = 123];
     required int64 l = 2 [default = 456];
     required float f = 3 [default = 1.23];
@@ -105,12 +110,12 @@ message DefaultRequiredP2 {
     required bool b = 5 [default = true];
     required string s = 6 [default = "abc"];
     required bytes bs = 7 [default = "def"];
-    required EnumsP2.JavaEnums je = 8 [default = GREEN];
-    required EnumsP2.ScalaEnums se = 9 [default = Green]; // Enumeration
-    required EnumsP2.ScalaEnums ae = 10 [default = Green]; // ADT
+    required UpperCaseColor je = 8 [default = GREEN];
+    required CamelCaseColor se = 9 [default = Green]; // Enumeration
+    required CamelCaseColor ae = 10 [default = Cyan]; // ADT
 }
 
-message DefaultNullableP2 {
+message DefaultNullable {
     optional int32 i = 1 [default = 123];
     optional int64 l = 2 [default = 456];
     optional float f = 3 [default = 1.23];
@@ -118,7 +123,7 @@ message DefaultNullableP2 {
     optional bool b = 5 [default = true];
     optional string s = 6 [default = "abc"];
     optional bytes bs = 7 [default = "def"];
-    optional EnumsP2.JavaEnums je = 8 [default = GREEN];
-    optional EnumsP2.ScalaEnums se = 9 [default = Green]; // Enumeration
-    optional EnumsP2.ScalaEnums ae = 10 [default = Green]; // ADT
+    optional UpperCaseColor je = 8 [default = GREEN];
+    optional CamelCaseColor se = 9 [default = Green]; // Enumeration
+    optional CamelCaseColor ae = 10 [default = Cyan]; // ADT
 }
