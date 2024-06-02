@@ -62,7 +62,7 @@ def magnolify(version: String): List[ModuleID] = {
     "org.neo4j.driver" % "neo4j-java-driver" % "4.4.12",
     "org.apache.parquet" % "parquet-hadoop" % "1.14.0",
     "com.google.protobuf" % "protobuf-java" % "3.25.3",
-    "eu.timepit" %% "refined" % "0.11.1",
+    "eu.timepit" %% "refined" % "0.11.2",
     "org.scalacheck" %% "scalacheck" % "1.17.1",
     "org.tensorflow" % "tensorflow-core-api" % "0.5.0"
   )
