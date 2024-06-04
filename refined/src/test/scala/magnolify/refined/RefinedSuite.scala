@@ -59,6 +59,7 @@ object RefinedSuite {
   case class ProtoNullable(b: Option[Boolean], i: Option[Percent], s: Option[ProtoUrl])
   case class ProtoRepeated(b: List[Boolean], i: List[Percent], s: List[ProtoCountry])
 }
+
 class RefinedSuite extends MagnolifySuite {
   import RefinedSuite._
 
@@ -157,7 +158,7 @@ class RefinedSuite extends MagnolifySuite {
     import magnolify.protobuf._
     import magnolify.protobuf.Proto3._
     import magnolify.refined.protobuf._
-    val tpe1 = ensureSerializable(ProtobufType[ProtoRequired, RequiredP3])
+    val tpe1 = ensureSerializable(ProtobufType[ProtoRequired, Required])
     val required = ProtoRequired(
       b = true,
       i = record.pct,
@@ -165,7 +166,7 @@ class RefinedSuite extends MagnolifySuite {
     )
     assertEquals(tpe1(tpe1(required)), required)
 
-    val tpe2 = ensureSerializable(ProtobufType[ProtoNullable, NullableP3])
+    val tpe2 = ensureSerializable(ProtobufType[ProtoNullable, Nullable])
     val nullable = ProtoNullable(
       b = Some(true),
       i = Some(record.pct),
@@ -173,7 +174,7 @@ class RefinedSuite extends MagnolifySuite {
     )
     assertEquals(tpe2(tpe2(nullable)), nullable)
 
-    val tpe3 = ensureSerializable(ProtobufType[ProtoRepeated, RepeatedP3])
+    val tpe3 = ensureSerializable(ProtobufType[ProtoRepeated, Repeated])
     val repeated = ProtoRepeated(
       b = List(true),
       i = List(record.pct),
@@ -181,7 +182,7 @@ class RefinedSuite extends MagnolifySuite {
     )
     assertEquals(tpe3(tpe3(repeated)), repeated)
 
-    val bad = NullableP3.newBuilder().setB(true).setI(42).setS("foo").build()
+    val bad = Nullable.newBuilder().setB(true).setI(42).setS("foo").build()
     val msg = """Both predicates of (isValidUrl("foo") || "foo".matches("^$")) failed. """ +
       """Left: Url predicate failed: URI is not absolute """ +
       """Right: Predicate failed: "foo".matches("^$")."""
