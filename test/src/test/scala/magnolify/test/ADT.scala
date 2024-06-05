@@ -33,7 +33,7 @@ object ADT {
   case class Circle(r: Int) extends Shape
 
   @ScalaAnnotation("Color")
-  sealed trait Color
+  sealed trait Color extends Serializable // Serializable needed for 2.12
   @ScalaAnnotation("PrimaryColor")
   sealed trait PrimaryColor extends Color
   case object Red extends PrimaryColor
