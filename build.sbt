@@ -267,7 +267,7 @@ val commonSettings = Seq(
         "-Yretain-trees",
         // tolerate some nested macro expansion
         "-Xmax-inlines",
-        "64"
+        "128"
       )
     case Some((2, 13)) =>
       Seq(

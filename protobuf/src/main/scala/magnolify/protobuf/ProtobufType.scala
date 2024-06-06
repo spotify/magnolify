@@ -27,6 +27,7 @@ import magnolify.shims.FactoryCompat
 import scala.annotation.implicitNotFound
 import scala.collection.concurrent
 import scala.reflect.ClassTag
+import scala.util.Try
 import scala.jdk.CollectionConverters.*
 import scala.collection.compat.*
 
@@ -241,7 +242,8 @@ object ProtobufField {
       .asInstanceOf[Array[E]]
       .map(e => e.name() -> e)
       .toMap
-    val default = et.from(map.values.find(_.getNumber == 0).get.name())
+
+    val default = et.from(map.values.find(e => Try(e.getNumber).getOrElse(-1) == 0).get.name())
     aux2[T, EnumValueDescriptor](default)(e => et.from(e.getName))(e =>
       map(et.to(e)).getValueDescriptor
     )

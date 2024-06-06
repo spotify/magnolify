@@ -17,7 +17,6 @@
 package magnolify.shared
 
 import scala.quoted.*
-import scala.deriving.Mirror
 
 object EnumTypeMacros:
   def scalaEnumTypeMacro[T: Type](annotations: Expr[AnnotationType[T]])(using
@@ -35,13 +34,8 @@ object EnumTypeMacros:
     val map = '{ $e.values.iterator.map(x => x.toString -> x.asInstanceOf[T]).toMap.apply(_) }
     '{ EnumType.create[T]($n, $ns, $vs, $as, $map) }
 
-trait EnumTypeCompanionMacros extends EnumTypeCompanionMacros0
-
-trait EnumTypeCompanionMacros0 extends EnumTypeCompanionMacros1:
+trait EnumTypeCompanionMacros extends EnumTypeDerivation:
   inline implicit def scalaEnumType[T <: Enumeration#Value](using
     annotations: AnnotationType[T]
   ): EnumType[T] =
     ${ EnumTypeMacros.scalaEnumTypeMacro[T]('annotations) }
-
-trait EnumTypeCompanionMacros1 extends EnumTypeDerivation:
-  inline implicit def gen[T](using Mirror.Of[T]): EnumType[T] = derivedMirror[T]
