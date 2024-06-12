@@ -72,10 +72,13 @@ class ProtobufTypeSuite extends BaseProtobufTypeSuite {
   test[UnsafeChar, IntegersP2]
   test[UnsafeShort, IntegersP2]
 
-  test[Collections, CollectionP2]
-  test[Collections, CollectionP3]
-  test[MoreCollections, MoreCollectionP2]
-  test[MoreCollections, MoreCollectionP3]
+  test[Collections, CollectionsP2]
+  test[Collections, CollectionsP3]
+  test[MoreCollections, MoreCollectionsP2]
+  test[MoreCollections, MoreCollectionsP3]
+
+  test[Maps, MapsP2]
+  test[Maps, MapsP3]
 
   test("AnyVal") {
     test[ProtoHasValueClass, IntegersP2]
@@ -165,6 +168,7 @@ object Proto3Enums {
     ProtobufField.enum[ADT.Color, EnumsP3.ScalaEnums]
 }
 
+case class Maps(mp: Map[String, Int], mn: Map[String, Nested])
 case class ProtoValueClass(value: Long) extends AnyVal
 case class ProtoHasValueClass(i: Int, l: ProtoValueClass)
 case class UnsafeByte(i: Byte, l: Long)
