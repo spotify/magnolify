@@ -51,6 +51,7 @@ object Simple {
     o: Option[Required],
     l: List[Required]
   )
+
   case class Collections(a: Array[Int], l: List[Int], v: Vector[Int], s: Set[Int]) {
 
     override def hashCode(): Int = {
@@ -71,7 +72,12 @@ object Simple {
       case _ => false
     }
   }
-  case class MoreCollections(i: Iterable[Int], s: Seq[Int], is: IndexedSeq[Int])
+  case class MoreCollections(
+    i: Iterable[Int],
+    s: Seq[Int],
+    is: IndexedSeq[Int]
+  )
+
   case class Enums(
     j: JavaEnums.Color,
     s: ScalaEnums.Color.Type,
@@ -94,6 +100,7 @@ object Simple {
     sr: List[UnsafeEnum[ScalaEnums.Color.Type]],
     ar: List[UnsafeEnum[ADT.Color]]
   )
+
   case class Custom(u: URI, d: Duration)
 
   case class LowerCamel(firstField: String, secondField: String, innerField: LowerCamelInner)

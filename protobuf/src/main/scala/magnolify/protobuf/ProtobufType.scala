@@ -19,7 +19,7 @@ package magnolify.protobuf
 import java.lang.reflect.Method
 import java.util as ju
 import com.google.protobuf.Descriptors.{Descriptor, EnumValueDescriptor, FieldDescriptor}
-import com.google.protobuf.{ByteString, Message, ProtocolMessageEnum}
+import com.google.protobuf.{ByteString, MapEntry, Message, ProtocolMessageEnum}
 import magnolia1.*
 import magnolify.shared.*
 import magnolify.shims.FactoryCompat
@@ -54,17 +54,13 @@ object ProtobufType {
           r.checkDefaults(descriptor)(cm)
         }
 
-        @transient private var _newBuilder: Method = _
-        private def newBuilder: Message.Builder = {
-          if (_newBuilder == null) {
-            _newBuilder = ct.runtimeClass.getMethod("newBuilder")
-          }
+        @transient private lazy val _newBuilder: Method = ct.runtimeClass.getMethod("newBuilder")
+        private def newBuilder(): Message.Builder =
           _newBuilder.invoke(null).asInstanceOf[Message.Builder]
-        }
 
         private val caseMapper: CaseMapper = cm
         override def from(v: MsgT): T = r.from(v)(caseMapper)
-        override def to(v: T): MsgT = r.to(v, newBuilder)(caseMapper).asInstanceOf[MsgT]
+        override def to(v: T): MsgT = r.to(v, newBuilder())(caseMapper).asInstanceOf[MsgT]
       }
     case _ =>
       throw new IllegalArgumentException(s"ProtobufType can only be created from Record. Got $f")
@@ -130,6 +126,10 @@ object ProtobufField {
             }
           )
 
+        private def newFieldBuilder(b: Message.Builder)(f: FieldDescriptor): Message.Builder =
+          if (f.getType != FieldDescriptor.Type.MESSAGE) null
+          else b.newBuilderForField(f)
+
         override def checkDefaults(descriptor: Descriptor)(cm: CaseMapper): Unit = {
           val fields = getFields(descriptor)(cm)
           caseClass.parameters.foreach { p =>
@@ -169,17 +169,11 @@ object ProtobufField {
 
         override def to(v: T, bu: Message.Builder)(cm: CaseMapper): Message = {
           val fields = getFields(bu.getDescriptorForType)(cm)
-
           caseClass.parameters
             .foldLeft(bu) { (b, p) =>
               val field = fields(p.index)
-              val value = if (field.getType == FieldDescriptor.Type.MESSAGE) {
-                // nested records
-                p.typeclass.to(p.dereference(v), b.newBuilderForField(field))(cm)
-              } else {
-                // non-nested
-                p.typeclass.to(p.dereference(v), null)(cm)
-              }
+              val builder = newFieldBuilder(bu)(field)
+              val value = p.typeclass.to(p.dereference(v), builder)(cm)
               if (value == null) b else b.setField(field, value)
             }
             .build()
@@ -283,5 +277,45 @@ object ProtobufField {
 
       override def to(v: C[T], b: Message.Builder)(cm: CaseMapper): ju.List[f.ToT] =
         if (v.isEmpty) null else v.iterator.map(f.to(_, b)(cm)).toList.asJava
+    }
+
+  implicit def pfMap[K, V](implicit
+    kf: ProtobufField[K],
+    vf: ProtobufField[V]
+  ): ProtobufField[Map[K, V]] =
+    new Aux[Map[K, V], ju.List[MapEntry[kf.FromT, vf.FromT]], ju.List[MapEntry[kf.ToT, vf.ToT]]] {
+
+      override val default: Option[Map[K, V]] = Some(Map.empty)
+
+      override def from(v: ju.List[MapEntry[kf.FromT, vf.FromT]])(cm: CaseMapper): Map[K, V] = {
+        val b = Map.newBuilder[K, V]
+        if (v != null) {
+          b ++= v.asScala.map(me => kf.from(me.getKey)(cm) -> vf.from(me.getValue)(cm))
+        }
+        b.result()
+      }
+
+      private def newFieldBuilder(b: Message.Builder)(f: FieldDescriptor): Message.Builder =
+        if (f.getType != FieldDescriptor.Type.MESSAGE) null
+        else b.newBuilderForField(f)
+
+      override def to(v: Map[K, V], b: Message.Builder)(
+        cm: CaseMapper
+      ): ju.List[MapEntry[kf.ToT, vf.ToT]] = {
+        if (v.isEmpty) {
+          null
+        } else {
+          val keyField = b.getDescriptorForType.findFieldByName("key")
+          val valueField = b.getDescriptorForType.findFieldByName("value")
+          v.map { case (k, v) =>
+            b
+              .setField(keyField, kf.to(k, newFieldBuilder(b)(keyField))(cm))
+              .setField(valueField, vf.to(v, newFieldBuilder(b)(valueField))(cm))
+              .build()
+              .asInstanceOf[MapEntry[kf.ToT, vf.ToT]]
+          }.toList
+            .asJava
+        }
+      }
     }
 }
