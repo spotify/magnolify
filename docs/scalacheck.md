@@ -25,6 +25,6 @@ import org.scalacheck._
 case class Inner(int: Int, str: String)
 case class Outer(inner: Inner)
 
-val arb: Arbitrary[Outer] = ArbitraryDerivation[Outer]
-val cogen: Cogen[Outer] = CogenDerivation[Outer]
+val arb: Arbitrary[Outer] = Arbitrary.gen[Outer]
+val cogen: Cogen[Outer] = Cogen.gen[Outer]
 ```
