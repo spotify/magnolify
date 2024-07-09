@@ -65,7 +65,7 @@ object Predicate {
     }
 
     def wrap[T](addFn: (PrimitiveConverter, T) => Unit): T => ScalaFieldT = {
-      lazy val converter = pf.newConverter
+      lazy val converter = pf.newConverter(pf.schema(CaseMapper.identity))
       value => {
         addFn(converter.asPrimitiveConverter(), value)
         converter.get
