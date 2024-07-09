@@ -30,7 +30,7 @@ import org.apache.parquet.hadoop.{
 }
 import org.apache.parquet.io.api._
 import org.apache.parquet.io.{InputFile, OutputFile}
-import org.apache.parquet.schema.MessageType
+import org.apache.parquet.schema.{MessageType, Type}
 import org.slf4j.LoggerFactory
 import org.typelevel.scalaccompat.annotation.nowarn
 
@@ -73,7 +73,7 @@ sealed trait ParquetType[T] extends Serializable {
   def writeBuilder(file: OutputFile): WriteBuilder[T] = new WriteBuilder(file, writeSupport)
 
   def write(c: RecordConsumer, v: T): Unit = ()
-  def newConverter: TypeConverter[T] = null
+  def newConverter(writerSchema: Type): TypeConverter[T] = null
 }
 
 object ParquetType {
@@ -97,8 +97,10 @@ object ParquetType {
 
         override val avroCompat: Boolean =
           pa == ParquetArray.AvroCompat.avroCompat || f.hasAvroArray
+
         override def write(c: RecordConsumer, v: T): Unit = r.write(c, v)(cm)
-        override def newConverter: TypeConverter[T] = r.newConverter
+        override def newConverter(writerSchema: Type): TypeConverter[T] =
+          r.newConverter(writerSchema)
       }
     case _ =>
       throw new IllegalArgumentException(s"ParquetType can only be created from Record. Got $f")
@@ -151,9 +153,22 @@ object ParquetType {
         )
       }
 
-      val requestedSchema = Schema.message(parquetType.schema)
+      val requestedSchema = {
+        val s = Schema.message(parquetType.schema)
+        // If reading Avro, roundtrip schema using parquet-avro converter to ensure array compatibility;
+        // magnolify-parquet does not automatically wrap repeated fields into a group like parquet-avro does
+        if (isAvroFile) {
+          val converter = new AvroSchemaConverter()
+          converter.convert(converter.convert(s))
+        } else {
+          s
+        }
+      }
       Schema.checkCompatibility(context.getFileSchema, requestedSchema)
-      new hadoop.ReadSupport.ReadContext(requestedSchema, java.util.Collections.emptyMap())
+      new hadoop.ReadSupport.ReadContext(
+        requestedSchema,
+        java.util.Collections.emptyMap()
+      )
     }
 
     override def prepareForRead(
@@ -163,7 +178,7 @@ object ParquetType {
       readContext: hadoop.ReadSupport.ReadContext
     ): RecordMaterializer[T] =
       new RecordMaterializer[T] {
-        private val root = parquetType.newConverter
+        private val root = parquetType.newConverter(fileSchema)
         override def getCurrentRecord: T = root.get
         override def getRootConverter: GroupConverter = root.asGroupConverter()
       }
