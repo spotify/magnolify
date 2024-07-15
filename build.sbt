@@ -326,6 +326,7 @@ lazy val root = tlCrossRootProject
     avro,
     bigquery,
     bigtable,
+    bom,
     cats,
     datastore,
     guava,
@@ -338,6 +339,37 @@ lazy val root = tlCrossRootProject
     neo4j,
     test,
     tools
+  )
+
+lazy val bom = project
+  .in(file("bom"))
+  .enablePlugins(BillOfMaterialsPlugin)
+  .disablePlugins(TypelevelSettingsPlugin)
+  .settings(
+    // Just one BOM including all cross Scala versions
+    crossVersion := CrossVersion.disabled,
+    // Create BOM in the first run
+    crossScalaVersions := Seq(scalaDefault),
+    moduleName := "magnolify-bom",
+    bomIncludeProjects := Seq(
+      avro,
+      bigquery,
+      bigtable,
+      cats,
+      datastore,
+      guava,
+      parquet,
+      protobuf,
+      refined,
+      scalacheck,
+      shared,
+      tensorflow,
+      neo4j,
+      tools
+    ),
+    // only releases after 0.7.4
+    tlMimaPreviousVersions := tlMimaPreviousVersions.value
+      .filter(v => VersionNumber(v).numbers.last >= 4)
   )
 
 lazy val shared = project
