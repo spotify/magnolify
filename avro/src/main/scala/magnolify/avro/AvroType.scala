@@ -203,12 +203,11 @@ object AvroField {
 
   implicit val afCharSequence: AvroField[CharSequence] = id[CharSequence](Schema.Type.STRING)
   implicit val afString: AvroField[String] = new Aux[String, String, String] {
-    override protected def buildSchema(cm: CaseMapper): Schema =
-      SchemaBuilder
-        .builder()
-        .stringBuilder()
-        .prop(GenericData.STRING_PROP, GenericData.StringType.String)
-        .endString()
+    override protected def buildSchema(cm: CaseMapper): Schema = {
+      val schema = SchemaBuilder.builder().stringType()
+      GenericData.setStringType(schema, GenericData.StringType.String)
+      schema
+    }
     override def from(v: String)(cm: CaseMapper): String = v
     override def to(v: String)(cm: CaseMapper): String = v
   }
@@ -272,11 +271,11 @@ object AvroField {
 
   implicit def afStringMap[T](implicit f: AvroField[T]): AvroField[Map[String, T]] =
     new Aux[Map[String, T], ju.Map[String, f.FromT], ju.Map[String, f.ToT]] {
-      override protected def buildSchema(cm: CaseMapper): Schema =
-        SchemaBuilder
-          .map()
-          .prop(GenericData.STRING_PROP, GenericData.StringType.String)
-          .values(f.schema(cm))
+      override protected def buildSchema(cm: CaseMapper): Schema = {
+        val schema = SchemaBuilder.map().values(f.schema(cm))
+        GenericData.setStringType(schema, GenericData.StringType.String)
+        schema
+      }
       override def fallbackDefault: ju.Map[String, f.ToT] = ju.Collections.emptyMap()
       override def from(v: ju.Map[String, f.FromT])(cm: CaseMapper): Map[String, T] =
         v.asScala.map { case (k, v) => k -> f.from(v)(cm) }.toMap
