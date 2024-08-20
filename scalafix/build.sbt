@@ -59,7 +59,7 @@ def magnolify(version: String): List[ModuleID] = {
     "org.typelevel" %% "cats-core" % "2.12.0",
     "com.google.cloud.datastore" % "datastore-v1-proto-client" % "2.18.4",
     "com.google.guava" % "guava" % "33.1.0-jre",
-    "org.neo4j.driver" % "neo4j-java-driver" % "4.4.12",
+    "org.neo4j.driver" % "neo4j-java-driver" % "4.4.18",
     "org.apache.parquet" % "parquet-hadoop" % "1.14.1",
     "com.google.protobuf" % "protobuf-java" % "3.25.3",
     "eu.timepit" %% "refined" % "0.11.2",
