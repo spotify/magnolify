@@ -774,6 +774,7 @@ lazy val site = project
   )
   .dependsOn(
     avro % "compile->compile,provided",
+    beam % "compile->compile,provided",
     bigquery % "compile->compile,provided",
     bigtable % "compile->compile,provided",
     cats % "compile->compile,provided",
