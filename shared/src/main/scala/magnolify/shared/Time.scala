@@ -59,7 +59,7 @@ object Time {
   // micros /////////////////////////////////////////////////////
   @inline def microsToInstant(microsFromEpoch: Long): Instant = {
     val epochSeconds = TimeUnit.MICROSECONDS.toSeconds(microsFromEpoch)
-    val nanoAdjustment = TimeUnit.MICROSECONDS.toNanos(microsFromEpoch % 1_000_000L)
+    val nanoAdjustment = TimeUnit.MICROSECONDS.toNanos(microsFromEpoch % 1000000L)
     Instant.ofEpochSecond(epochSeconds, nanoAdjustment)
   }
   @inline def microsFromInstant(instant: Instant): Long = {
@@ -114,7 +114,7 @@ object Time {
   // nanos /////////////////////////////////////////////////////
   // Long does not technically have enough range for Instant
   @inline def nanosToInstant(epochNanos: Long): Instant =
-    Instant.ofEpochSecond(TimeUnit.NANOSECONDS.toSeconds(epochNanos), epochNanos % 1_000_000_000L)
+    Instant.ofEpochSecond(TimeUnit.NANOSECONDS.toSeconds(epochNanos), epochNanos % 1000000000L)
   @inline def nanosFromInstant(instant: Instant): Long =
     TimeUnit.SECONDS.toNanos(instant.getEpochSecond) + instant.getNano
   @inline def nanosToJodaInstant(nanosFromEpoch: Long): joda.Instant =
