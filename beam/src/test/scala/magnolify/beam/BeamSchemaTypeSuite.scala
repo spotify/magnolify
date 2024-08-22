@@ -79,6 +79,12 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
     test[UnsafeEnums]
   }
 
+  property("Date") {
+    import magnolify.beam.logical.date.*
+    test[JavaDate]
+    test[JodaDate]
+  }
+
   property("Millis") {
     import magnolify.beam.logical.millis.*
     test[JavaTime]
@@ -127,6 +133,11 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
     val record = bst(HasValueClass(ValueClass("String")))
     assert(record.getValue[String]("vc").equals("String"))
   }
+
+  property("Sql") {
+    import magnolify.beam.logical.sql.*
+    test[Sql]
+  }
 }
 
 case class Bs(bs: ByteString)
@@ -137,9 +148,17 @@ case class Logical(
   ul: List[UUID],
   ulo: List[Option[UUID]]
 )
+
+case class Sql(
+  i: Instant,
+  dt: LocalDateTime,
+  t: LocalTime,
+  d: LocalDate
+)
+case class JavaDate(d: LocalDate)
+case class JodaDate(jd: joda.LocalDate)
 case class JavaTime(
   i: Instant,
-  d: LocalDate,
   dt: LocalDateTime,
   t: LocalTime
 )

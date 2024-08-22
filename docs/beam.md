@@ -21,7 +21,31 @@ val copy: Outer = beamSchemaType.from(row)
 val schema = beamSchemaType.schema
 ```
 
-Enum-like types map to the Beam logical [Enum type]((https://beam.apache.org/documentation/programming-guide/#enumerationtype)). See @ref:[EnumType](enums.md) for more details. `UnsafeEnum[T]` instances are available from `import magnolify.beam.unsafe._`.
+## Enums
+Enum-like types map to the Beam logical [Enum type]((https://beam.apache.org/documentation/programming-guide/#enumerationtype)). See @ref:[EnumType](enums.md) for more details. `UnsafeEnum[T]` instances are available from `import magnolify.beam.unsafe.*`.
+
+## Time and dates
+
+Java and joda `LocalDate` types are available via `import magnolify.beam.logical.date.*`
+
+For date-time, instants, and durations, use `import magnolify.beam.logical.millis.*`, `import magnolify.beam.logical.micros.*` or `import magnolify.beam.logical.nanos.*` as appropriate for your use-case.
+Note that joda types have only millisecond resolution, so excess precision will be discarded when used with `micros` or `nanos`.
+
+Where possible, Beam logical types are used and joda types defer to these implementations:
+
+* Beam's `DATETIME` primitive type maps to the millisecond-precision java and joda `Instant`s and the joda `DateTime`.
+* The `DateTime` logical type is used for millisecond-precision java and joda `LocalDateTime`
+* The `NanosInstant` logical type is used for nanosecond-precision java and joda `Instant`
+* The `Time` logical type is used for nanosecond-precision java and joda `LocalTime`
+* The `NanosDuration` logical type is used for java and joda `Duration`
+
+Beam's `MicrosInstant` should not be used as it throws exceptions when presented with greater-than-microsecond precision data.
+
+## SQL types
+
+SQL-compatible logical types are supported via `import magnolify.beam.logical.sql.*`
+
+## Case mapping
 
 To use a different field case format in target records, add an optional `CaseMapper` argument to `BeamSchemaType`:
 
@@ -36,7 +60,3 @@ val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_UNDERSCORE
 val beamSchemaType = BeamSchemaType[LowerCamel](CaseMapper(toSnakeCase))
 beamSchemaType.to(LowerCamel("John", "Doe")) // Row(first_name: John, last_name: Doe)
 ```
-
-Use `import magnolify.beam.logical.millis._`, `import magnolify.beam.logical.micros._` or `import magnolify.beam.logical.nanos._` as appropriate for your use-case.
-Beam's `DATETIME` type maps to the millisecond-precision `java.time.Instant`.
-Beam's `DateTime` logical type is used for millisecond-precision `java.time.LocalDateTime`, the `NanosInstant` logical type for nanosecond-precision `java.time.Instant`, the `Time` logical type for nanosecond-precision `java.time.LocalTime`, and the `NanosDuration` logical type for `java.time.Duration`.

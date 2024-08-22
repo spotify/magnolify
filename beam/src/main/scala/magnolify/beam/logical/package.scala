@@ -18,12 +18,24 @@ package magnolify.beam
 
 import org.apache.beam.sdk.schemas.logicaltypes
 import org.apache.beam.sdk.schemas.Schema.FieldType
+import org.apache.beam.sdk.schemas.logicaltypes.SqlTypes
 import org.joda.time as joda
 
 import java.time as jt
+import java.time.temporal.ChronoField
 
 package object logical {
   import magnolify.shared.Time._
+
+  object date {
+    implicit val bsfLocalDate: BeamSchemaField[jt.LocalDate] =
+      BeamSchemaField.id[jt.LocalDate](_ => FieldType.logicalType(new logicaltypes.Date))
+    private lazy val EpochJodaDate = new joda.LocalDate(1970, 1, 1)
+    implicit val bsfJodaLocalDate: BeamSchemaField[joda.LocalDate] =
+      BeamSchemaField.from[jt.LocalDate](jtld =>
+        EpochJodaDate.plusDays(jtld.get(ChronoField.EPOCH_DAY))
+      )(d => jt.LocalDate.ofEpochDay(joda.Days.daysBetween(EpochJodaDate, d).getDays.toLong))
+  }
 
   object millis {
     implicit val bsfInstantMillis: BeamSchemaField[jt.Instant] =
@@ -32,13 +44,12 @@ package object logical {
       BeamSchemaField.from[jt.Instant](i => millisToJodaInstant(millisFromInstant(i)))(i =>
         millisToInstant(millisFromJodaInstant(i))
       )
-    // joda.DateTime only has millisecond resolution
     implicit val bsfJodaDateTimeMillis: BeamSchemaField[joda.DateTime] =
       BeamSchemaField.from[jt.Instant](i => millisToJodaDateTime(millisFromInstant(i)))(dt =>
         millisToInstant(millisFromJodaDateTime(dt))
       )
 
-    implicit val bsLocalTimeMillis: BeamSchemaField[jt.LocalTime] =
+    implicit val bsfLocalTimeMillis: BeamSchemaField[jt.LocalTime] =
       BeamSchemaField.from[Int](millisToLocalTime)(millisFromLocalTime)
     implicit val bsfJodaLocalTimeMillis: BeamSchemaField[joda.LocalTime] =
       BeamSchemaField.from[Int](millisToJodaLocalTime)(millisFromJodaLocalTime)
@@ -70,6 +81,7 @@ package object logical {
 
     implicit val bsfLocalTimeMicros: BeamSchemaField[jt.LocalTime] =
       BeamSchemaField.from[Long](microsToLocalTime)(microsFromLocalTime)
+    // joda.LocalTime only has millisecond resolution, so excess precision is discarded
     implicit val bsfJodaLocalTimeMicros: BeamSchemaField[joda.LocalTime] =
       BeamSchemaField.from[Long](microsToJodaLocalTime)(microsFromJodaLocalTime)
 
@@ -89,6 +101,7 @@ package object logical {
   object nanos {
     implicit val bsfInstantNanos: BeamSchemaField[jt.Instant] =
       BeamSchemaField.id[jt.Instant](_ => FieldType.logicalType(new logicaltypes.NanosInstant()))
+    // joda.Instant has millisecond precision, excess precision discarded
     implicit val bsfJodaInstantNanos: BeamSchemaField[joda.Instant] =
       BeamSchemaField.from[jt.Instant](i => nanosToJodaInstant(nanosFromInstant(i)))(i =>
         nanosToInstant(nanosFromJodaInstant(i))
@@ -99,8 +112,9 @@ package object logical {
         nanosToInstant(nanosFromJodaDateTime(i))
       )
 
-    implicit val bsLocalTimeNanos: BeamSchemaField[jt.LocalTime] =
+    implicit val bsfLocalTimeNanos: BeamSchemaField[jt.LocalTime] =
       BeamSchemaField.id[jt.LocalTime](_ => FieldType.logicalType(new logicaltypes.Time()))
+    // joda.LocalTime only has millisecond resolution, so excess precision is discarded
     implicit val bsfJodaLocalTimeNanos: BeamSchemaField[joda.LocalTime] =
       BeamSchemaField.from[jt.LocalTime](lt => nanosToJodaLocalTime(nanosFromLocalTime(lt)))(lt =>
         nanosToLocalTime(nanosFromJodaLocalTime(lt))
@@ -121,5 +135,16 @@ package object logical {
       BeamSchemaField.from[jt.Duration](d => nanosToJodaDuration(nanosFromDuration(d)))(d =>
         nanosToDuration(nanosFromJodaDuration(d))
       )
+  }
+
+  object sql {
+    implicit val bsfSqlLocalTime: BeamSchemaField[jt.LocalTime] =
+      BeamSchemaField.id(_ => FieldType.logicalType(SqlTypes.TIME))
+    implicit val bsfSqlInstant: BeamSchemaField[jt.Instant] =
+      BeamSchemaField.id(_ => FieldType.logicalType(SqlTypes.TIMESTAMP))
+    implicit val bsfSqlLocalDateTime: BeamSchemaField[jt.LocalDateTime] =
+      BeamSchemaField.id(_ => FieldType.logicalType(SqlTypes.DATETIME))
+    implicit val bsfSqlLocalDate: BeamSchemaField[jt.LocalDate] =
+      BeamSchemaField.id(_ => FieldType.logicalType(SqlTypes.DATE))
   }
 }
