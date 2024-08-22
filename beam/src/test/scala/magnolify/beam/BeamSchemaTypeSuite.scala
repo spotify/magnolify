@@ -21,14 +21,17 @@ import magnolify.cats.auto.*
 import magnolify.cats.TestEq.*
 import magnolify.scalacheck.auto.*
 import magnolify.scalacheck.TestArbitrary.*
+import magnolify.shared.CaseMapper
 import magnolify.test.MagnolifySuite
 import magnolify.test.Simple.*
+import org.apache.beam.sdk.schemas.Schema
 import org.joda.time as joda
 import org.scalacheck.{Arbitrary, Gen, Prop}
 
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 import java.util.UUID
 import scala.reflect.ClassTag
+import scala.jdk.CollectionConverters.*
 
 class BeamSchemaTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit
@@ -60,6 +63,8 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
   test[Maps]
   test[Logical]
 
+  // FIXME value classes
+
   {
     import magnolify.beam.unsafe._
     import magnolify.shared.TestEnumType._
@@ -71,37 +76,54 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
     Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(BigDecimal(_)))
   test[Decimal]
 
-  {
-    import magnolify.beam.logical.millis._
-    test[Time]
-    test[Joda]
+  test("Millis") {
+    import magnolify.beam.logical.millis.*
+    test[JavaTime]
+    test[JodaTime]
   }
 
-//  {
-//    //   FIXME need special Eq instances that are lossy
-//    import magnolify.beam.logical.micros._
-//    test[Time]
-//    test[Joda]
-//  }
-//
-//  {
-////   FIXME need special Eq instances that are lossy
-//    import magnolify.beam.logical.nanos._
-//    test[Time]
-//    test[Joda]
-//  }
+  test("Micros") {
+    import magnolify.beam.logical.micros.*
+    test[JavaTime]
+    test[JodaTime]
+  }
 
-//  {
-//    implicit val bst: BeamSchemaType[LowerCamel] =
-//      BeamSchemaType[LowerCamel](CaseMapper(_.toUpperCase))
-//    test[LowerCamel]
-//
-//    test("LowerCamel mapping") {
-//      val schema = bst.schema
-//      // FIXME
-//    }
-//  }
+  test("Nanos") {
+    import magnolify.beam.logical.nanos.*
+    test[JavaTime]
+    test[JodaTime]
+  }
 
+  {
+    implicit val bst: BeamSchemaType[LowerCamel] =
+      BeamSchemaType[LowerCamel](CaseMapper(_.toUpperCase))
+    test[LowerCamel]
+
+    test("LowerCamel mapping") {
+      val schema = bst.schema
+
+      val fields = LowerCamel.fields.map(_.toUpperCase)
+      assertEquals(schema.getFields.asScala.map(_.getName()).toSeq, fields)
+      assertEquals(
+        schema.getField("INNERFIELD").getType.getRowSchema.getFields.asScala.map(_.getName()).toSeq,
+        Seq("INNERFIRST")
+      )
+    }
+  }
+
+  test("ValueClass") {
+    // value classes should act only as fields
+    intercept[IllegalArgumentException] {
+      BeamSchemaType[ValueClass]
+    }
+
+    implicit val bst: BeamSchemaType[HasValueClass] = BeamSchemaType[HasValueClass]
+    test[HasValueClass]
+
+    assert(bst.schema.getField("vc").getType == Schema.FieldType.STRING)
+    val record = bst(HasValueClass(ValueClass("String")))
+    assert(record.getValue("vc").equals("String"))
+  }
 }
 
 case class Decimal(bd: BigDecimal, bdo: Option[BigDecimal])
@@ -111,14 +133,13 @@ case class Logical(
   ul: List[UUID],
   ulo: List[Option[UUID]]
 )
-
-case class Time(
+case class JavaTime(
   i: Instant,
   d: LocalDate,
   dt: LocalDateTime,
   t: LocalTime
 )
-case class Joda(
+case class JodaTime(
   i: joda.Instant,
   dt: joda.DateTime,
   lt: joda.LocalTime,

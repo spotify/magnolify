@@ -19,7 +19,7 @@ package magnolify.beam
 import magnolia1.*
 import magnolify.shared.*
 import org.apache.beam.sdk.schemas.Schema
-import org.apache.beam.sdk.schemas.Schema.{FieldType, LogicalType}
+import org.apache.beam.sdk.schemas.Schema.FieldType
 import org.apache.beam.sdk.values.Row
 import org.joda.time as joda
 import com.google.protobuf.ByteString
@@ -27,7 +27,6 @@ import magnolify.shims.FactoryCompat
 import org.apache.beam.sdk.schemas.logicaltypes as logicaltypes
 
 import java.nio.ByteBuffer
-import java.time.LocalDate
 import java.{time as jt, util as ju}
 import scala.annotation.implicitNotFound
 import scala.collection.concurrent
@@ -87,24 +86,8 @@ object BeamSchemaField {
       override def to(v: T)(cm: CaseMapper): ToT = toFn(v)
     }
 
-//  private[magnolify] def aux2[T, Repr](fieldTypeFn: CaseMapper => FieldType)(fromFn: Repr => T)(
-//    toFn: T => Repr
-//  ): BeamSchemaField[T] =
-//    aux[T, Repr, Repr](fieldTypeFn)(fromFn)(toFn)
-
   private[magnolify] def id[T](ft: CaseMapper => FieldType): BeamSchemaField[T] =
     aux[T, T, T](ft)(identity)(identity)
-
-  private[magnolify] def logicalId[T](ft: CaseMapper => FieldType): BeamSchemaField[T] = id(ft)
-
-//  private[magnolify] def logicalId[T](ft: CaseMapper => FieldType): BeamSchemaLogicalField[T] =
-//    new BeamSchemaLogicalField[T] {
-//      type FromT = T
-//      type ToT = T
-//      override def fieldType(cm: CaseMapper): FieldType = ft(cm)
-//      override def from(v: FromT)(cm: CaseMapper): T = v
-//      override def to(v: T)(cm: CaseMapper): ToT = v
-//    }
 
   def from[T]: FromWord[T] = new FromWord[T]
 
@@ -116,24 +99,6 @@ object BeamSchemaField {
         override def to(v: U)(cm: CaseMapper): ToT = bsf.to(g(v))(cm)
       }
   }
-
-//  def logicalType[T]: LogicalWord[T] = new LogicalWord[T]
-//
-//  class LogicalWord[T] {
-//    def apply[From, To](lt: LogicalType[From, ?], nullable: Boolean = false): BeamSchemaLogicalField[T] = {
-//      new BeamSchemaLogicalField[T] {
-//        type FromT = From
-//        type ToT = To
-//        override def logicalType: LogicalType[From, To] = lt
-//        override def fieldType(cm: CaseMapper): FieldType =
-//          FieldType.logicalType(logicalType).withNullable(nullable)
-//        override def from(v: From)(cm: CaseMapper): T =
-//          throw new UnsupportedOperationException("Do not call from() on logical types")
-//        override def to(v: T)(cm: CaseMapper): To =
-//          throw new UnsupportedOperationException("Do not call to() on logical types")
-//      }
-//    }
-//  }
 
   sealed trait Record[T] extends Aux[T, Row, Row] {
     @transient private lazy val schemaCache: concurrent.Map[ju.UUID, Schema] =
@@ -153,17 +118,15 @@ object BeamSchemaField {
 
   def join[T](caseClass: CaseClass[Typeclass, T]): BeamSchemaField[T] = {
     if (caseClass.isValueClass) {
-      // FIXME
-//      val p = caseClass.parameters.head
-//      val tc = p.typeclass
-//      new BeamSchemaField[T] {
-//        override type FromT = tc.FromT
-//        override type ToT = tc.ToT
-//        // override protected def buildSchema(cm: CaseMapper): Schema = tc.buildSchema(cm)
-//        override def from(v: FromT)(cm: CaseMapper): T = caseClass.construct(_ => tc.fromAny(v)(cm))
-//        override def to(v: T)(cm: CaseMapper): ToT = tc.to(p.dereference(v))(cm)
-//      }
-      ???
+      val p = caseClass.parameters.head
+      val tc = p.typeclass
+      new BeamSchemaField[T] {
+        override type FromT = tc.FromT
+        override type ToT = tc.ToT
+        override def fieldType(cm: CaseMapper): FieldType = tc.fieldType(cm)
+        override def from(v: FromT)(cm: CaseMapper): T = caseClass.construct(_ => tc.fromAny(v)(cm))
+        override def to(v: T)(cm: CaseMapper): ToT = tc.to(p.dereference(v))(cm)
+      }
     } else {
       new Record[T] {
         override def fieldType(cm: CaseMapper): FieldType = FieldType.row(schema(cm))
@@ -171,7 +134,7 @@ object BeamSchemaField {
         override protected def buildSchema(cm: CaseMapper): Schema =
           caseClass.parameters
             .foldLeft(Schema.builder()) { case (s, p) =>
-              s.addField(p.label, p.typeclass.fieldType(cm))
+              s.addField(cm.map(p.label), p.typeclass.fieldType(cm))
             }
             .build()
 
@@ -229,20 +192,10 @@ object BeamSchemaField {
     )(_.bigDecimal)
 
   implicit val bsfUUID: BeamSchemaField[ju.UUID] =
-    logicalId[ju.UUID](_ => FieldType.logicalType(new logicaltypes.UuidLogicalType))
-//    new BeamSchemaLogicalField[ju.UUID] {
-//      type FromT = ju.UUID
-//      type ToT = ju.UUID
-//      val logicalType = new logicaltypes.UuidLogicalType
-//      override def fieldType(cm: CaseMapper): FieldType = FieldType.logicalType(logicalType)
-//      override def from(v: ju.UUID)(cm: CaseMapper): ju.UUID = v
-//      override def to(v: ju.UUID)(cm: CaseMapper): ju.UUID = v
-//    }
+    id[ju.UUID](_ => FieldType.logicalType(new logicaltypes.UuidLogicalType))
 
-//  implicit val bsfLocalDate: BeamSchemaField[jt.LocalDate] =
-//    from[Long](LocalDate.ofEpochDay)(_.toEpochDay)
   implicit val bsfLocalDate: BeamSchemaField[jt.LocalDate] =
-    logicalId[jt.LocalDate](_ => FieldType.logicalType(new logicaltypes.Date))
+    id[jt.LocalDate](_ => FieldType.logicalType(new logicaltypes.Date))
   private lazy val EpochJodaDate = new joda.LocalDate(1970, 1, 1)
   implicit val bsfJodaLocalDate: BeamSchemaField[joda.LocalDate] =
     from[Int](daysFromEpoch => EpochJodaDate.plusDays(daysFromEpoch))(d =>
@@ -292,18 +245,6 @@ object BeamSchemaField {
     ti: C[T] => Iterable[T],
     fc: FactoryCompat[T, C[T]]
   ): BeamSchemaField[C[T]] = {
-//    f match {
-//      case l: BeamSchemaLogicalField[T] =>
-//        new BeamSchemaLogicalField[C[T]] {
-//          type FromT = ju.List[l.FromT]
-//          type ToT = ju.List[l.ToT]
-//          override def fieldType(cm: CaseMapper): FieldType = FieldType.iterable(l.fieldType(cm))
-//          override def to(v: C[T])(cm: CaseMapper): ToT =
-//            v.iterator.map(l.to(_)(cm)).toList.asJava
-//          override def from(v: FromT)(cm: CaseMapper): C[T] =
-//            fc.fromSpecific(v.asScala.iterator.map(p => l.from(p)(cm)))
-//        }
-//      case _: BeamSchemaField[_] =>
     new Aux[C[T], ju.List[f.FromT], ju.List[f.ToT]] {
       override def from(v: ju.List[f.FromT])(cm: CaseMapper): C[T] =
         fc.fromSpecific(v.asScala.iterator.map(p => f.from(p)(cm)))
@@ -311,23 +252,9 @@ object BeamSchemaField {
         v.iterator.map(f.to(_)(cm)).toList.asJava
       override def fieldType(cm: CaseMapper): FieldType = FieldType.iterable(f.fieldType(cm))
     }
-//    }
   }
 
   implicit def bsfOption[T](implicit f: BeamSchemaField[T]): BeamSchemaField[Option[T]] = {
-//    f match {
-//      case l: BeamSchemaLogicalField[T] =>
-//        new BeamSchemaLogicalField[Option[T]] {
-//          type FromT = l.FromT
-//          type ToT = l.ToT
-//          override def fieldType(cm: CaseMapper): FieldType = l.fieldType(cm).withNullable(true)
-//          override def to(v: Option[T])(cm: CaseMapper): ToT = v match {
-//            case None        => null.asInstanceOf[ToT]
-//            case Some(value) => l.to(value)(cm)
-//          }
-//          override def from(v: FromT)(cm: CaseMapper): Option[T] = Option(v).map(l.from(_)(cm))
-//        }
-//      case _: BeamSchemaField[T] =>
     new Aux[Option[T], f.FromT, f.ToT] {
       override def from(v: f.FromT)(cm: CaseMapper): Option[T] =
         if (v == null) None else Some(f.from(v)(cm))
@@ -337,6 +264,5 @@ object BeamSchemaField {
       }
       override def fieldType(cm: CaseMapper): FieldType = f.fieldType(cm).withNullable(true)
     }
-//    }
   }
 }
