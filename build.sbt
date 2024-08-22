@@ -505,7 +505,7 @@ lazy val beam = project
     description := "Magnolia add-on for Apache Beam",
     libraryDependencies ++= Seq(
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion % Provided,
-      "com.google.protobuf" % "protobuf-java" % protobufVersion % ProtobufConfig,
+      "com.google.protobuf" % "protobuf-java" % protobufVersion % ProtobufConfig
     )
   )
 
