@@ -52,23 +52,11 @@ def magnolify(version: String): List[ModuleID] = {
     "magnolify-tensorflow"
   )
 
-  val libs = List(
-    "org.apache.avro" % "avro" % "1.11.2",
-    "com.google.apis" % "google-api-services-bigquery" % "v2-rev20240229-2.0.0",
-    "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % "2.33.0",
-    "org.typelevel" %% "cats-core" % "2.12.0",
-    "com.google.cloud.datastore" % "datastore-v1-proto-client" % "2.18.4",
-    "com.google.guava" % "guava" % "33.1.0-jre",
-    "org.neo4j.driver" % "neo4j-java-driver" % "4.4.12",
-    "org.apache.parquet" % "parquet-hadoop" % "1.14.1",
-    "com.google.protobuf" % "protobuf-java" % "3.25.3",
-    "eu.timepit" %% "refined" % "0.11.2",
-    "org.scalacheck" %% "scalacheck" % "1.17.1",
-    "org.tensorflow" % "tensorflow-core-api" % "0.5.0"
-  )
-
-  modules.map("com.spotify" %% _ % version) ++ libs
+  modules.map { name => ("com.spotify" %% name % version % "compile->compile,provided") }
 }
+
+// coursied does not respect compile->compile,provided
+ThisBuild / useCoursier := false
 
 lazy val `input-0_7` = project
   .settings(
