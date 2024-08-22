@@ -221,7 +221,7 @@ object AvroField {
     override def from(v: String)(cm: CaseMapper): String = v
     override def to(v: String)(cm: CaseMapper): String = v
   }
-f
+
   implicit def afEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): AvroField[T] =
     // Avro 1.9+ added a type parameter for `GenericEnumSymbol`, breaking 1.8 compatibility
     // Some reader, i.e. `AvroParquetReader` reads enums as `Utf8`

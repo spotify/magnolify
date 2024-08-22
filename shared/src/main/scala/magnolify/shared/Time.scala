@@ -13,7 +13,7 @@ object Time {
     Instant.ofEpochMilli(millisFromEpoch)
   @inline def millisFromInstant(instant: Instant): Long = instant.toEpochMilli
   @inline def millisToJodaInstant(millisFromEpoch: Long): joda.Instant =
-    new joda.Instant(millisFromEpoch)
+    joda.Instant.ofEpochMilli(millisFromEpoch)
   @inline def millisFromJodaInstant(instant: joda.Instant): Long = instant.getMillis
 
   @inline def millisToLocalTime(millisFromMidnight: Int): LocalTime =
@@ -39,7 +39,7 @@ object Time {
 
   @inline def millisToDuration(millis: Long): Duration = Duration.ofMillis(millis)
   @inline def millisFromDuration(d: Duration): Long =
-    TimeUnit.SECONDS.toMillis(d.getSeconds) + TimeUnit.NANOSECONDS.toMillis(d.getNano)
+    TimeUnit.SECONDS.toMillis(d.getSeconds) + TimeUnit.NANOSECONDS.toMillis(d.getNano.toLong)
   @inline def millisToJodaDuration(millis: Long): joda.Duration = joda.Duration.millis(millis)
   @inline def millisFromJodaDuration(d: joda.Duration): Long = d.getMillis
 
@@ -62,7 +62,7 @@ object Time {
     }
   }
   @inline def microsToJodaInstant(microsFromEpoch: Long): joda.Instant =
-    new joda.Instant(TimeUnit.MICROSECONDS.toMillis(microsFromEpoch), joda.DateTimeZone.UTC)
+    joda.Instant.ofEpochMilli(TimeUnit.MICROSECONDS.toMillis(microsFromEpoch))
   @inline def microsFromJodaInstant(instant: joda.Instant): Long =
     TimeUnit.MILLISECONDS.toMicros(instant.getMillis)
 
@@ -78,7 +78,7 @@ object Time {
   @inline def microsToJodaLocalTime(microsFromMidnight: Long): joda.LocalTime =
     joda.LocalTime.fromMillisOfDay(TimeUnit.MICROSECONDS.toMillis(microsFromMidnight))
   @inline def microsFromJodaLocalTime(lt: joda.LocalTime): Long =
-    TimeUnit.MILLISECONDS.toMicros(lt.millisOfDay().get())
+    TimeUnit.MILLISECONDS.toMicros(lt.millisOfDay().get().toLong)
 
   @inline def microsToLocalDateTime(microsFromEpoch: Long): LocalDateTime =
     LocalDateTime.ofInstant(microsToInstant(microsFromEpoch), ZoneOffset.UTC)
@@ -88,7 +88,7 @@ object Time {
   @inline def microsToDuration(micros: Long): Duration =
     Duration.ofMillis(TimeUnit.MICROSECONDS.toMillis(micros))
   @inline def microsFromDuration(d: Duration): Long =
-    TimeUnit.SECONDS.toMicros(d.getSeconds) + TimeUnit.NANOSECONDS.toMicros(d.getNano)
+    TimeUnit.SECONDS.toMicros(d.getSeconds) + TimeUnit.NANOSECONDS.toMicros(d.getNano.toLong)
   @inline def microsToJodaDuration(micros: Long): joda.Duration =
     joda.Duration.millis(TimeUnit.MICROSECONDS.toMillis(micros))
   @inline def microsFromJodaDuration(d: joda.Duration): Long =
@@ -99,9 +99,9 @@ object Time {
   @inline def nanosToInstant(epochNanos: Long): Instant =
     Instant.ofEpochSecond(TimeUnit.NANOSECONDS.toSeconds(epochNanos), epochNanos % 1_000_000_000L)
   @inline def nanosFromInstant(instant: Instant): Long =
-    TimeUnit.MILLISECONDS.toNanos(instant.toEpochMilli) + instant.getNano
+    TimeUnit.SECONDS.toNanos(instant.getEpochSecond) + instant.getNano
   @inline def nanosToJodaInstant(nanosFromEpoch: Long): joda.Instant =
-    new joda.Instant(TimeUnit.NANOSECONDS.toMillis(nanosFromEpoch), joda.DateTimeZone.UTC)
+    joda.Instant.ofEpochMilli(TimeUnit.NANOSECONDS.toMillis(nanosFromEpoch))
   @inline def nanosFromJodaInstant(instant: joda.Instant): Long =
     TimeUnit.MILLISECONDS.toNanos(instant.getMillis)
 
@@ -116,7 +116,7 @@ object Time {
   @inline def nanosToJodaLocalTime(nanosFromMidnight: Long): joda.LocalTime =
     joda.LocalTime.fromMillisOfDay(TimeUnit.NANOSECONDS.toMillis(nanosFromMidnight))
   @inline def nanosFromJodaLocalTime(lt: joda.LocalTime): Long =
-    TimeUnit.MILLISECONDS.toNanos(lt.millisOfDay().get())
+    TimeUnit.MILLISECONDS.toNanos(lt.millisOfDay().get().toLong)
 
   @inline def nanosToLocalDateTime(nanosFromEpoch: Long): LocalDateTime =
     LocalDateTime.ofInstant(nanosToInstant(nanosFromEpoch), ZoneOffset.UTC)

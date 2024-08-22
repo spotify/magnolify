@@ -24,7 +24,7 @@ import org.apache.beam.sdk.values.Row
 import org.joda.time as joda
 import com.google.protobuf.ByteString
 import magnolify.shims.FactoryCompat
-import org.apache.beam.sdk.schemas.logicaltypes as logicaltypes
+import org.apache.beam.sdk.schemas.logicaltypes
 
 import java.nio.ByteBuffer
 import java.{time as jt, util as ju}
@@ -112,9 +112,26 @@ object BeamSchemaField {
   type Typeclass[T] = BeamSchemaField[T]
   implicit def gen[T]: BeamSchemaField[T] = macro Magnolia.gen[T]
 
-  @implicitNotFound("Cannot derive BeamSchemaField for sealed trait") // TODO does this make sense?
+  // TODO beam schemas support OneOf
+  @implicitNotFound("Cannot derive BeamSchemaField for sealed trait")
   private sealed trait Dispatchable[T]
   def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): BeamSchemaField[T] = ???
+  //  new BeamSchemaField[T] {
+  //    override type FromT = ???
+  //    override type ToT = ???
+  //    override def fieldType(cm: CaseMapper): FieldType = {
+  //      FieldType.logicalType(
+  //        logicaltypes.OneOfType.create(
+  //          sealedTrait.subtypes.map { sub =>
+  //            Field.of(s"${sub.typeName.owner}.${sub.typeName.short}", sub.typeclass.fieldType(cm))
+  //          }
+  //          .asJava
+  //        )
+  //      )
+  //    }
+  //    override def from(v: this.type)(cm: CaseMapper): T = ???
+  //    override def to(v: T)(cm: CaseMapper): this.type = ???
+  //  }
 
   def join[T](caseClass: CaseClass[Typeclass, T]): BeamSchemaField[T] = {
     if (caseClass.isValueClass) {
@@ -233,7 +250,6 @@ object BeamSchemaField {
     new Aux[Map[K, V], ju.Map[bsfK.FromT, bsfV.FromT], ju.Map[bsfK.ToT, bsfV.ToT]] {
       override def fieldType(cm: CaseMapper): FieldType =
         FieldType.map(bsfK.fieldType(cm), bsfV.fieldType(cm))
-      // TODO need to convert/not convert logical types
       override def from(v: ju.Map[bsfK.FromT, bsfV.FromT])(cm: CaseMapper): Map[K, V] =
         v.asScala.map { case (k, v) => bsfK.from(k)(cm) -> bsfV.from(v)(cm) }.toMap
       override def to(v: Map[K, V])(cm: CaseMapper): ju.Map[bsfK.ToT, bsfV.ToT] =

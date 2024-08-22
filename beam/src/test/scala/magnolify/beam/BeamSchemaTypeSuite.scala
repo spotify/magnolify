@@ -17,6 +17,7 @@
 package magnolify.beam
 
 import cats.*
+import com.google.protobuf.ByteString
 import magnolify.cats.auto.*
 import magnolify.cats.TestEq.*
 import magnolify.scalacheck.auto.*
@@ -51,6 +52,12 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
     }
   }
 
+  implicit val arbByteString: Arbitrary[ByteString] =
+    Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
+  implicit val arbBigDecimal: Arbitrary[BigDecimal] =
+    Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(BigDecimal(_)))
+  implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
+
   test[Integers]
   test[Floats]
   test[Required]
@@ -60,10 +67,10 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
   test[Collections]
   test[MoreCollections]
 
+  test[Bs]
   test[Maps]
   test[Logical]
-
-  // FIXME value classes
+  test[Decimal]
 
   {
     import magnolify.beam.unsafe._
@@ -72,23 +79,19 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
     test[UnsafeEnums]
   }
 
-  implicit val arbBigDecimal: Arbitrary[BigDecimal] =
-    Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(BigDecimal(_)))
-  test[Decimal]
-
-  test("Millis") {
+  property("Millis") {
     import magnolify.beam.logical.millis.*
     test[JavaTime]
     test[JodaTime]
   }
 
-  test("Micros") {
+  property("Micros") {
     import magnolify.beam.logical.micros.*
     test[JavaTime]
     test[JodaTime]
   }
 
-  test("Nanos") {
+  property("Nanos") {
     import magnolify.beam.logical.nanos.*
     test[JavaTime]
     test[JodaTime]
@@ -122,10 +125,11 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
 
     assert(bst.schema.getField("vc").getType == Schema.FieldType.STRING)
     val record = bst(HasValueClass(ValueClass("String")))
-    assert(record.getValue("vc").equals("String"))
+    assert(record.getValue[String]("vc").equals("String"))
   }
 }
 
+case class Bs(bs: ByteString)
 case class Decimal(bd: BigDecimal, bdo: Option[BigDecimal])
 case class Logical(
   u: UUID,
@@ -148,7 +152,14 @@ case class JodaTime(
 case class Maps(
   ms: Map[String, String],
   mi: Map[Int, Int],
+  ml: Map[Long, Long],
+  md: Map[Double, Double],
+  mf: Map[Float, Float],
+  mb: Map[Byte, Byte],
+  msh: Map[Short, Short],
+  mba: Map[Byte, Array[Byte]],
+  mbs: Map[ByteString, Array[Byte]],
   mso: Map[Option[String], Option[String]],
-  ml: Map[UUID, UUID],
+  mu: Map[UUID, UUID],
   mlo: Map[Option[UUID], Option[UUID]]
 )

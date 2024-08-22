@@ -22,7 +22,6 @@ import org.joda.{time => joda}
 
 import java.time._
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
-import java.util.concurrent.TimeUnit
 
 package object logical {
   import magnolify.shared.Time._

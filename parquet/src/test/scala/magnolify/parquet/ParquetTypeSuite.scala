@@ -165,17 +165,17 @@ class ParquetTypeSuite extends MagnolifySuite {
 
   test[Logical]
 
-  {
+  property("Millis") {
     import magnolify.parquet.logical.millis._
     test[Time]
   }
 
-  {
+  property("Micros") {
     import magnolify.parquet.logical.micros._
     test[Time]
   }
 
-  {
+  property("Nanos") {
     import magnolify.parquet.logical.nanos._
     test[Time]
   }

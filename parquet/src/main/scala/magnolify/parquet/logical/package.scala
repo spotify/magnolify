@@ -19,21 +19,12 @@ package magnolify.parquet
 import java.time._
 
 import magnolify.parquet.ParquetField.Primitive
-import org.apache.parquet.schema.LogicalTypeAnnotation
 import org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit
 
 package object logical {
   import magnolify.shared.Time._
   // TIME (millis i32, micros i64, nanos, i64), UTC true/false
   // TIMESTAMP (millis, micros, nanos), UTC true/false
-
-  private trait TimeTypes {
-    protected def unit: TimeUnit
-    protected def ts(adjusted: Boolean): LogicalTypeAnnotation =
-      LogicalTypeAnnotation.timestampType(adjusted, unit)
-    protected def time(adjusted: Boolean): LogicalTypeAnnotation =
-      LogicalTypeAnnotation.timeType(adjusted, unit)
-  }
 
   object millis extends TimeTypes {
     protected val unit = TimeUnit.MILLIS
