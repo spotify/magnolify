@@ -28,6 +28,7 @@ import org.apache.beam.sdk.schemas.logicaltypes
 import java.nio.ByteBuffer
 import java.util as ju
 import scala.annotation.implicitNotFound
+import scala.collection.compat.*
 import scala.collection.concurrent
 import scala.jdk.CollectionConverters.*
 
