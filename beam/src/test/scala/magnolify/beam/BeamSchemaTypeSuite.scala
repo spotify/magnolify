@@ -166,7 +166,8 @@ case class JodaTime(
   i: joda.Instant,
   dt: joda.DateTime,
   lt: joda.LocalTime,
-  d: joda.Duration
+  d: joda.Duration,
+  ldt: joda.LocalDateTime
 )
 case class Maps(
   ms: Map[String, String],
