@@ -27,6 +27,7 @@ import magnolify.shims.FactoryCompat
 import org.apache.beam.sdk.schemas.logicaltypes
 
 import java.nio.ByteBuffer
+import java.time.temporal.ChronoField
 import java.{time as jt, util as ju}
 import scala.annotation.implicitNotFound
 import scala.collection.concurrent
@@ -215,8 +216,8 @@ object BeamSchemaField {
     id[jt.LocalDate](_ => FieldType.logicalType(new logicaltypes.Date))
   private lazy val EpochJodaDate = new joda.LocalDate(1970, 1, 1)
   implicit val bsfJodaLocalDate: BeamSchemaField[joda.LocalDate] =
-    from[Int](daysFromEpoch => EpochJodaDate.plusDays(daysFromEpoch))(d =>
-      joda.Days.daysBetween(EpochJodaDate, d).getDays
+    from[jt.LocalDate](jtld => EpochJodaDate.plusDays(jtld.get(ChronoField.EPOCH_DAY)))(d =>
+      jt.LocalDate.ofEpochDay(joda.Days.daysBetween(EpochJodaDate, d).getDays.toLong)
     )
 
   implicit def bsfEnum[T](implicit et: EnumType[T], lp: shapeless.LowPriority): BeamSchemaField[T] =
