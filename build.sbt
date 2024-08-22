@@ -225,7 +225,15 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 // mima
 ThisBuild / mimaBinaryIssueFilters ++= Seq(
   // genFunnelMacro should not be available to users
-  ProblemFilters.exclude[DirectMissingMethodProblem]("magnolify.guava.auto.package.genFunnelMacro")
+  ProblemFilters.exclude[DirectMissingMethodProblem]("magnolify.guava.auto.package.genFunnelMacro"),
+  // incorrectly named implicit
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.parquet.logical.package#micros.pfTimestampMillis"
+  ),
+  // incorrectly named implicit
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.parquet.logical.package#micros.pfLocalDateTimeMillis"
+  )
 )
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.8.0")
 
@@ -506,7 +514,9 @@ lazy val beam = project
     libraryDependencies ++= Seq(
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion % Provided,
       "com.google.protobuf" % "protobuf-java" % protobufVersion % ProtobufConfig
-    )
+    ),
+    // TODO remove this line after release
+    tlMimaPreviousVersions := Set.empty
   )
 
 lazy val bigquery = project
