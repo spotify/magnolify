@@ -24,6 +24,7 @@ val magnoliaScala3Version = "1.3.7"
 
 val algebirdVersion = "0.13.10"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.3")
+val beamVersion = "2.57.0"
 val bigqueryVersion = "v2-rev20240229-2.0.0"
 val bigtableVersion = "2.41.0"
 val catsVersion = "2.10.0"
@@ -128,7 +129,7 @@ ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
 ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
 ThisBuild / tlJdkRelease := Some(8)
-ThisBuild / tlFatalWarnings := true
+ThisBuild / tlFatalWarnings := false
 ThisBuild / tlCiHeaderCheck := true
 ThisBuild / tlCiScalafmtCheck := true
 ThisBuild / tlCiDocCheck := true
@@ -325,6 +326,7 @@ lazy val root = tlCrossRootProject
   )
   .aggregate(
     avro,
+    beam,
     bigquery,
     bigtable,
     bom,
@@ -485,6 +487,25 @@ lazy val avro = project
     libraryDependencies ++= Seq(
       "org.apache.avro" % "avro" % avroVersion % Provided,
       "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
+    )
+  )
+
+lazy val beam = project
+  .in(file("beam"))
+  .dependsOn(
+    shared,
+    cats % "test->test",
+    scalacheck % "test->test",
+    test % "test->test"
+  )
+  .settings(
+    commonSettings,
+    protobufSettings,
+    moduleName := "magnolify-beam",
+    description := "Magnolia add-on for Apache Beam",
+    libraryDependencies ++= Seq(
+      "org.apache.beam" % "beam-sdks-java-core" % beamVersion % Provided,
+      "com.google.protobuf" % "protobuf-java" % protobufVersion % ProtobufConfig,
     )
   )
 

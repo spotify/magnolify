@@ -60,6 +60,8 @@ object TestEq {
   implicit val eqJodaDateTime: Eq[joda.DateTime] = Eq.fromUniversalEquals
   implicit val eqJodaLocalTime: Eq[joda.LocalTime] = Eq.fromUniversalEquals
   implicit val eqJodaLocalDateTime: Eq[joda.LocalDateTime] = Eq.fromUniversalEquals
+  implicit val eqJodaDuration: Eq[joda.Duration] = Eq.fromUniversalEquals
+  implicit val eqJodaInstant: Eq[joda.Instant] = Eq.fromUniversalEquals
 
   // enum
   implicit lazy val eqJavaEnum: Eq[JavaEnums.Color] = Eq.fromUniversalEquals

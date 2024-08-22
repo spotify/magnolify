@@ -79,6 +79,10 @@ object TestArbitrary {
       joda.LocalDateTime.parse(ldt.toString)
     }
   }
+  implicit val arbJodaDuration: Arbitrary[joda.Duration] =
+    Arbitrary(Gen.posNum[Long].map(joda.Duration.millis))
+  implicit val arbJodaInstant: Arbitrary[joda.Instant] =
+    Arbitrary(Gen.posNum[Long].map(l => new joda.Instant(l)))
 
   // enum
   implicit lazy val arbJavaEnum: Arbitrary[JavaEnums.Color] =
