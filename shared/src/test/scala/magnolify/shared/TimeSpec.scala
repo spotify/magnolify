@@ -133,9 +133,9 @@ class TimeSpec extends Properties("Time") with TimeArbitrary {
   }
 
   property(s"millis-datetime-joda") =
-    forAll((v: joda.DateTime) => (millisFromJodaDateTime andThen millisToJodaDateTime)(v) == v)
+    forAll((v: joda.DateTime) => (millisFromJodaDateTime _ andThen millisToJodaDateTime)(v) == v)
   property(s"micros-datetime-joda") =
-    forAll((v: joda.DateTime) => (microsFromJodaDateTime andThen microsToJodaDateTime)(v) == v)
+    forAll((v: joda.DateTime) => (microsFromJodaDateTime _ andThen microsToJodaDateTime)(v) == v)
   property(s"nanos-datetime-joda") =
-    forAll((v: joda.DateTime) => (nanosFromJodaDateTime andThen nanosToJodaDateTime)(v) == v)
+    forAll((v: joda.DateTime) => (nanosFromJodaDateTime _ andThen nanosToJodaDateTime)(v) == v)
 }
