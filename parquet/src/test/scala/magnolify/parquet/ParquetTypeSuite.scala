@@ -138,6 +138,27 @@ class ParquetTypeSuite extends MagnolifySuite {
     Arbitrary(Gen.choose(-max, max).map(BigDecimal.apply))
   }
 
+  test("Decimal range") {
+    intercept[IllegalArgumentException] {
+      ParquetField.decimal32(0, 0)
+    }
+    intercept[IllegalArgumentException] {
+      ParquetField.decimal32(1, 10)
+    }
+    intercept[IllegalArgumentException] {
+      ParquetField.decimal64(0, 0)
+    }
+    intercept[IllegalArgumentException] {
+      ParquetField.decimal64(1, 19)
+    }
+    intercept[IllegalArgumentException] {
+      ParquetField.decimalFixed(0, 1)
+    }
+    intercept[IllegalArgumentException] {
+      ParquetField.decimalFixed(2, 5) // capacity = 4
+    }
+  }
+
   {
     implicit val arbBigDecimal: Arbitrary[BigDecimal] = decimal(9)
     implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimal32(9, 0)

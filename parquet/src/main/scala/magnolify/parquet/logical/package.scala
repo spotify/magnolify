@@ -66,9 +66,9 @@ package object logical {
     override protected val unit = TimeUnit.NANOS
 
     // TIMESTAMP
-    implicit val pfTimestampMillis: Primitive[Instant] =
+    implicit val pfTimestampNanos: Primitive[Instant] =
       ParquetField.logicalType[Long](ts(true))(nanosToInstant)(nanosFromInstant)
-    implicit val pfLocalDateTimeMillis: Primitive[LocalDateTime] =
+    implicit val pfLocalDateTimeNanos: Primitive[LocalDateTime] =
       ParquetField.logicalType[Long](ts(false))(nanosToLocalDateTime)(nanosFromLocalDateTime)
 
     // TIME

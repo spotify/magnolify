@@ -29,7 +29,8 @@ import org.apache.beam.sdk.schemas.Schema
 import org.joda.time as joda
 import org.scalacheck.{Arbitrary, Gen, Prop}
 
-import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
+import java.nio.ByteBuffer
+import java.time.{Duration, Instant, LocalDate, LocalDateTime, LocalTime}
 import java.util.UUID
 import scala.reflect.ClassTag
 import scala.jdk.CollectionConverters.*
@@ -67,7 +68,7 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
   test[Collections]
   test[MoreCollections]
 
-  test[Bs]
+  test[Others]
   test[Maps]
   test[Logical]
   test[Decimal]
@@ -140,7 +141,7 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
   }
 }
 
-case class Bs(bs: ByteString)
+case class Others(bs: ByteString, cs: CharSequence, bb: ByteBuffer, c: Char)
 case class Decimal(bd: BigDecimal, bdo: Option[BigDecimal])
 case class Logical(
   u: UUID,
@@ -160,7 +161,8 @@ case class JodaDate(jd: joda.LocalDate)
 case class JavaTime(
   i: Instant,
   dt: LocalDateTime,
-  t: LocalTime
+  t: LocalTime,
+  d: Duration
 )
 case class JodaTime(
   i: joda.Instant,

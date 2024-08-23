@@ -179,9 +179,9 @@ object BeamSchemaField {
 
   // BYTE	An 8-bit signed value
   implicit val bsfByte: BeamSchemaField[Byte] = id[Byte](_ => FieldType.BYTE)
-  implicit val bsfChar: BeamSchemaField[Char] = from[Byte](_.toChar)(_.toByte)
   // INT16	A 16-bit signed value
   implicit val bsfShort: BeamSchemaField[Short] = id[Short](_ => FieldType.INT16)
+  implicit val bsfChar: BeamSchemaField[Char] = from[Short](_.toChar)(_.toShort)
   // INT32	A 32-bit signed value
   implicit val bsfInt: BeamSchemaField[Int] = id[Int](_ => FieldType.INT32)
   // INT64	A 64-bit signed value
