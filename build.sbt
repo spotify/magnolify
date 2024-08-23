@@ -233,6 +233,14 @@ ThisBuild / mimaBinaryIssueFilters ++= Seq(
   // incorrectly named implicit
   ProblemFilters.exclude[DirectMissingMethodProblem](
     "magnolify.parquet.logical.package#micros.pfLocalDateTimeMillis"
+  ),
+  // incorrectly named implicit
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.parquet.logical.package#nanos.pfTimestampMillis"
+  ),
+  // incorrectly named implicit
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.parquet.logical.package#nanos.pfLocalDateTimeMillis"
   )
 )
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.8.0")
