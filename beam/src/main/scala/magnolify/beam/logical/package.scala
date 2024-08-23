@@ -20,6 +20,7 @@ import org.apache.beam.sdk.schemas.logicaltypes
 import org.apache.beam.sdk.schemas.Schema.FieldType
 import org.apache.beam.sdk.schemas.logicaltypes.SqlTypes
 import org.joda.time as joda
+import org.joda.time.chrono.ISOChronology
 
 import java.time as jt
 import java.time.temporal.ChronoField
@@ -33,21 +34,19 @@ package object logical {
     private lazy val EpochJodaDate = new joda.LocalDate(1970, 1, 1)
     implicit val bsfJodaLocalDate: BeamSchemaField[joda.LocalDate] =
       BeamSchemaField.from[jt.LocalDate](jtld =>
-        EpochJodaDate.plusDays(jtld.get(ChronoField.EPOCH_DAY))
+        EpochJodaDate.plusDays(jtld.getLong(ChronoField.EPOCH_DAY).toInt)
       )(d => jt.LocalDate.ofEpochDay(joda.Days.daysBetween(EpochJodaDate, d).getDays.toLong))
   }
 
   object millis {
-    implicit val bsfInstantMillis: BeamSchemaField[jt.Instant] =
-      BeamSchemaField.id[jt.Instant](_ => FieldType.DATETIME)
+    implicit lazy val bsfInstantMillis: BeamSchemaField[jt.Instant] =
+      BeamSchemaField.from[joda.Instant](i => millisToInstant(millisFromJodaInstant(i)))(i =>
+        millisToJodaInstant(millisFromInstant(i))
+      )
     implicit val bsfJodaInstantMillis: BeamSchemaField[joda.Instant] =
-      BeamSchemaField.from[jt.Instant](i => millisToJodaInstant(millisFromInstant(i)))(i =>
-        millisToInstant(millisFromJodaInstant(i))
-      )
+      BeamSchemaField.id[joda.Instant](_ => FieldType.DATETIME)
     implicit val bsfJodaDateTimeMillis: BeamSchemaField[joda.DateTime] =
-      BeamSchemaField.from[jt.Instant](i => millisToJodaDateTime(millisFromInstant(i)))(dt =>
-        millisToInstant(millisFromJodaDateTime(dt))
-      )
+      BeamSchemaField.from[joda.Instant](_.toDateTime(ISOChronology.getInstanceUTC))(_.toInstant)
 
     implicit val bsfLocalTimeMillis: BeamSchemaField[jt.LocalTime] =
       BeamSchemaField.from[Int](millisToLocalTime)(millisFromLocalTime)

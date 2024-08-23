@@ -60,5 +60,5 @@
     one of: `magnolify.parquet.ParquetField.{decimal32, decimal64, decimalFixed, decimalBinary}`.
 15. Map key type in avro is fixed to string. Scala Map key type must be either `String` or `CharSequence`.
 16. Beam logical [Enumeration type](https://beam.apache.org/documentation/programming-guide/#enumerationtype)
-17. See [beam.md][protobuf.md](https://github.com/spotify/magnolify/blob/master/docs/beam.md) for details
+17. See [beam.md](https://github.com/spotify/magnolify/blob/master/docs/beam.md) for details
 18. Beam logical [UUID type](https://beam.apache.org/releases/javadoc/2.58.1/org/apache/beam/sdk/schemas/logicaltypes/UuidLogicalType.html)

@@ -45,7 +45,7 @@ object TestEq {
     // Can only be used as a key value list
     m.map { case (k, v) => k.toString -> v }
   }
-  implicit val eqByteBuffer: Eq[ByteBuffer] = Eq.by(_.array())
+  implicit lazy val eqByteBuffer: Eq[ByteBuffer] = Eq.by(_.array())
 
   // java-time
   implicit lazy val eqInstant: Eq[Instant] = Eq.fromUniversalEquals
@@ -56,12 +56,12 @@ object TestEq {
   implicit lazy val eqDuration: Eq[Duration] = Eq.fromUniversalEquals
 
   // joda-time
-  implicit val eqJodaDate: Eq[joda.LocalDate] = Eq.fromUniversalEquals
-  implicit val eqJodaDateTime: Eq[joda.DateTime] = Eq.fromUniversalEquals
-  implicit val eqJodaLocalTime: Eq[joda.LocalTime] = Eq.fromUniversalEquals
-  implicit val eqJodaLocalDateTime: Eq[joda.LocalDateTime] = Eq.fromUniversalEquals
-  implicit val eqJodaDuration: Eq[joda.Duration] = Eq.fromUniversalEquals
-  implicit val eqJodaInstant: Eq[joda.Instant] = Eq.fromUniversalEquals
+  implicit lazy val eqJodaDate: Eq[joda.LocalDate] = Eq.fromUniversalEquals
+  implicit lazy val eqJodaDateTime: Eq[joda.DateTime] = Eq.fromUniversalEquals
+  implicit lazy val eqJodaLocalTime: Eq[joda.LocalTime] = Eq.fromUniversalEquals
+  implicit lazy val eqJodaLocalDateTime: Eq[joda.LocalDateTime] = Eq.fromUniversalEquals
+  implicit lazy val eqJodaDuration: Eq[joda.Duration] = Eq.fromUniversalEquals
+  implicit lazy val eqJodaInstant: Eq[joda.Instant] = Eq.fromUniversalEquals
 
   // enum
   implicit lazy val eqJavaEnum: Eq[JavaEnums.Color] = Eq.fromUniversalEquals

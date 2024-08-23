@@ -43,12 +43,17 @@ class ParquetTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit
     t: ParquetType[T],
     eq: Eq[T]
+  ): Unit = testNamed[T](className[T])
+
+  private def testNamed[T: Arbitrary](name: String)(implicit
+    t: ParquetType[T],
+    eq: Eq[T]
   ): Unit = {
     // Ensure serializable even after evaluation of `schema`
     t.schema: Unit
     val tpe = ensureSerializable(t)
 
-    property(className[T]) {
+    property(name) {
       Prop.forAll { (t: T) =>
         val out = new TestOutputFile
         val writer = tpe.writeBuilder(out).build()
@@ -162,43 +167,43 @@ class ParquetTypeSuite extends MagnolifySuite {
   {
     implicit val arbBigDecimal: Arbitrary[BigDecimal] = decimal(9)
     implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimal32(9, 0)
-    test[Decimal]
+    testNamed[Decimal]("Decimal32")
   }
 
   {
     implicit val arbBigDecimal: Arbitrary[BigDecimal] = decimal(18)
     implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimal64(18, 0)
-    test[Decimal]
+    testNamed[Decimal]("Decimal64")
   }
 
   {
     implicit val arbBigDecimal: Arbitrary[BigDecimal] = decimal(18)
     // math.floor(math.log10(math.pow(2, 8*8-1) - 1)) = 18 digits
     implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimalFixed(8, 18, 0)
-    test[Decimal]
+    testNamed[Decimal]("DecimalFixed")
   }
 
   {
     implicit val arbBigDecimal: Arbitrary[BigDecimal] = decimal(20)
     implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimalBinary(20, 0)
-    test[Decimal]
+    testNamed[Decimal]("DecimalBinary")
   }
 
   test[Logical]
 
-  property("Millis") {
+  {
     import magnolify.parquet.logical.millis._
-    test[Time]
+    testNamed[Time]("TimeMillis")
   }
 
-  property("Micros") {
+  {
     import magnolify.parquet.logical.micros._
-    test[Time]
+    testNamed[Time]("TimeMicros")
   }
 
-  property("Nanos") {
+  {
     import magnolify.parquet.logical.nanos._
-    test[Time]
+    testNamed[Time]("TimeNanos")
   }
 
   {

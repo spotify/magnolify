@@ -39,12 +39,17 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit
     bst: BeamSchemaType[T],
     eq: Eq[T]
+  ): Unit = testNamed[T](className[T])
+
+  private def testNamed[T: Arbitrary](name: String)(implicit
+    bst: BeamSchemaType[T],
+    eq: Eq[T]
   ): Unit = {
     // Ensure serializable even after evaluation of `schema`
     bst.schema: Unit
     ensureSerializable(bst)
 
-    property(className[T]) {
+    property(name) {
       Prop.forAll { (t: T) =>
         val converted = bst.apply(t)
         val roundtripped = bst.apply(converted)
@@ -68,6 +73,7 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
   test[Collections]
   test[MoreCollections]
 
+  test[Empty]
   test[Others]
   test[Maps]
   test[Logical]
@@ -80,28 +86,28 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
     test[UnsafeEnums]
   }
 
-  property("Date") {
+  {
     import magnolify.beam.logical.date.*
     test[JavaDate]
     test[JodaDate]
   }
 
-  property("Millis") {
+  {
     import magnolify.beam.logical.millis.*
-    test[JavaTime]
-    test[JodaTime]
+    testNamed[JavaTime]("JavaMillis")
+    testNamed[JodaTime]("JodaMillis")
   }
 
-  property("Micros") {
+  {
     import magnolify.beam.logical.micros.*
-    test[JavaTime]
-    test[JodaTime]
+    testNamed[JavaTime]("JavaMicros")
+    testNamed[JodaTime]("JodaMicros")
   }
 
-  property("Nanos") {
+  {
     import magnolify.beam.logical.nanos.*
-    test[JavaTime]
-    test[JodaTime]
+    testNamed[JavaTime]("JavaNanos")
+    testNamed[JodaTime]("JodaNanos")
   }
 
   {
@@ -109,9 +115,8 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
       BeamSchemaType[LowerCamel](CaseMapper(_.toUpperCase))
     test[LowerCamel]
 
-    test("LowerCamel mapping") {
+    {
       val schema = bst.schema
-
       val fields = LowerCamel.fields.map(_.toUpperCase)
       assertEquals(schema.getFields.asScala.map(_.getName()).toSeq, fields)
       assertEquals(
@@ -121,7 +126,7 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
     }
   }
 
-  test("ValueClass") {
+  {
     // value classes should act only as fields
     intercept[IllegalArgumentException] {
       BeamSchemaType[ValueClass]
@@ -135,12 +140,13 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
     assert(record.getValue[String]("vc").equals("String"))
   }
 
-  property("Sql") {
+  {
     import magnolify.beam.logical.sql.*
     test[Sql]
   }
 }
 
+case class Empty()
 case class Others(bs: ByteString, cs: CharSequence, bb: ByteBuffer, c: Char)
 case class Decimal(bd: BigDecimal, bdo: Option[BigDecimal])
 case class Logical(
