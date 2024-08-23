@@ -388,7 +388,8 @@ lazy val shared = project
     commonSettings,
     crossScalaVersions := Seq(scala3, scala213, scala212),
     moduleName := "magnolify-shared",
-    description := "Shared code for Magnolify"
+    description := "Shared code for Magnolify",
+    libraryDependencies += "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
   )
 
 // shared code for unit tests
@@ -408,7 +409,7 @@ lazy val test = project
 lazy val scalacheck = project
   .in(file("scalacheck"))
   .dependsOn(
-    shared,
+    shared % "test->test,compile->compile",
     test % "test->test"
   )
   .settings(
