@@ -159,8 +159,10 @@ object BeamSchemaField {
           caseClass.construct(p => p.typeclass.fromAny(v.getValue[Any](p.index))(cm))
 
         override def to(v: T)(cm: CaseMapper): Row = {
-          val values = caseClass.parameters.map(p => p.typeclass.to(p.dereference(v))(cm))
-          Row.withSchema(schema(cm)).addValues(values: _*).build()
+          val values = caseClass.parameters.map { p =>
+            p.typeclass.to(p.dereference(v))(cm).asInstanceOf[Object]
+          }
+          Row.withSchema(schema(cm)).addValues(values.asJava).build()
         }
       }
     }
