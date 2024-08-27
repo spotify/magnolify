@@ -23,6 +23,7 @@ import magnolify.cats.TestEq.*
 import magnolify.scalacheck.auto.*
 import magnolify.scalacheck.TestArbitrary.*
 import magnolify.shared.CaseMapper
+import magnolify.test.ADT
 import magnolify.test.MagnolifySuite
 import magnolify.test.Simple.*
 import org.apache.beam.sdk.schemas.Schema
@@ -78,6 +79,11 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
   test[Maps]
   test[Logical]
   test[Decimal]
+
+  {
+    import magnolify.shared.TestEnumType._
+    test[SealedTest]
+  }
 
   {
     import magnolify.beam.unsafe._
@@ -191,3 +197,5 @@ case class Maps(
   mu: Map[UUID, UUID],
   mlo: Map[Option[UUID], Option[UUID]]
 )
+
+case class SealedTest(shape: ADT.Shape, point: ADT.Rect, enumColor: ADT.Color)

@@ -31,6 +31,9 @@ object ADT {
   case object Space extends Shape
   case class Point(x: Int, y: Int) extends Shape
   case class Circle(r: Int) extends Shape
+  sealed trait RectShape extends Shape
+  case class Square(origin: Point, sideLength: Int) extends RectShape
+  case class Rect(origin: Point, width: Int, length: Int) extends RectShape
 
   @ScalaAnnotation("Color")
   sealed trait Color

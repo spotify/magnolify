@@ -19,7 +19,7 @@ package magnolify.beam
 import magnolia1.*
 import magnolify.shared.*
 import org.apache.beam.sdk.schemas.Schema
-import org.apache.beam.sdk.schemas.Schema.FieldType
+import org.apache.beam.sdk.schemas.Schema.{Field, FieldType}
 import org.apache.beam.sdk.values.Row
 import com.google.protobuf.ByteString
 import magnolify.shims.FactoryCompat
@@ -27,7 +27,6 @@ import org.apache.beam.sdk.schemas.logicaltypes
 
 import java.nio.ByteBuffer
 import java.util as ju
-import scala.annotation.implicitNotFound
 import scala.collection.compat.*
 import scala.collection.concurrent
 import scala.jdk.CollectionConverters.*
@@ -112,26 +111,43 @@ object BeamSchemaField {
   type Typeclass[T] = BeamSchemaField[T]
   implicit def gen[T]: BeamSchemaField[T] = macro Magnolia.gen[T]
 
-  // TODO beam schemas support OneOf
-  @implicitNotFound("Cannot derive BeamSchemaField for sealed trait")
-  private sealed trait Dispatchable[T]
-  def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): BeamSchemaField[T] = ???
-  //  new BeamSchemaField[T] {
-  //    override type FromT = ???
-  //    override type ToT = ???
-  //    override def fieldType(cm: CaseMapper): FieldType = {
-  //      FieldType.logicalType(
-  //        logicaltypes.OneOfType.create(
-  //          sealedTrait.subtypes.map { sub =>
-  //            Field.of(s"${sub.typeName.owner}.${sub.typeName.short}", sub.typeclass.fieldType(cm))
-  //          }
-  //          .asJava
-  //        )
-  //      )
-  //    }
-  //    override def from(v: this.type)(cm: CaseMapper): T = ???
-  //    override def to(v: T)(cm: CaseMapper): this.type = ???
-  //  }
+  def split[T](
+    sealedTrait: SealedTrait[Typeclass, T]
+  )(implicit r: shapeless.Refute[EnumType[T]]): BeamSchemaField[T] =
+    new BeamSchemaField[T] {
+      override type FromT = logicaltypes.OneOfType.Value
+      override type ToT = logicaltypes.OneOfType.Value
+
+      private def enumName(sub: Subtype[Typeclass, T]): String =
+        s"${sub.typeName.owner}.${sub.typeName.short}"
+
+      @transient private lazy val beamOneOfTypeCache
+        : concurrent.Map[ju.UUID, logicaltypes.OneOfType] = concurrent.TrieMap.empty
+      private def beamOneOfType(cm: CaseMapper): logicaltypes.OneOfType =
+        beamOneOfTypeCache.getOrElseUpdate(
+          cm.uuid,
+          logicaltypes.OneOfType.create(
+            sealedTrait.subtypes.map { sub =>
+              Field.of(enumName(sub), sub.typeclass.fieldType(cm))
+            }.asJava
+          )
+        )
+
+      override def fieldType(cm: CaseMapper): FieldType =
+        FieldType.logicalType(beamOneOfType(cm))
+      def from(v: logicaltypes.OneOfType.Value)(cm: CaseMapper): T = {
+        val idx = v.getCaseType.getValue
+        sealedTrait.subtypes.find(_.index == idx) match {
+          case None      => throw new IllegalArgumentException(s"OneOf index not found: [$idx]")
+          case Some(sub) => sub.typeclass.fromAny(v.getValue)(cm)
+        }
+      }
+
+      def to(v: T)(cm: CaseMapper): logicaltypes.OneOfType.Value =
+        sealedTrait.split(v)(sub =>
+          beamOneOfType(cm).createValue(enumName(sub), sub.typeclass.to(sub.cast(v))(cm))
+        )
+    }
 
   def join[T](caseClass: CaseClass[Typeclass, T]): BeamSchemaField[T] = {
     if (caseClass.isValueClass) {
