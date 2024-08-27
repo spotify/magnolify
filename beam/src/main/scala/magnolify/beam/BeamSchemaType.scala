@@ -34,7 +34,7 @@ import scala.jdk.CollectionConverters.*
 
 // https://beam.apache.org/documentation/programming-guide/#schema-definition
 sealed trait BeamSchemaType[T] extends Converter[T, Row, Row] {
-  val schema: Schema
+  def schema: Schema
   def apply(r: Row): T = from(r)
   def apply(t: T): Row = to(t)
 }
@@ -159,19 +159,8 @@ object BeamSchemaField {
           caseClass.construct(p => p.typeclass.fromAny(v.getValue[Any](p.index))(cm))
 
         override def to(v: T)(cm: CaseMapper): Row = {
-          val zero: Either[Row.Builder, Row.FieldValueBuilder] = Left(Row.withSchema(schema(cm)))
-          val eitherBuilder = caseClass.parameters
-            .foldLeft(zero) { (eitherBuilder, p) =>
-              val value = p.typeclass.to(p.dereference(v))(cm)
-              eitherBuilder match {
-                case Left(rowBuilder)    => Right(rowBuilder.withFieldValue(p.index, value))
-                case Right(fieldBuilder) => Right(fieldBuilder.withFieldValue(p.index, value))
-              }
-            }
-          eitherBuilder match {
-            case Left(rb)  => rb.build()
-            case Right(fb) => fb.build()
-          }
+          val values = caseClass.parameters.map(p => p.typeclass.to(p.dereference(v))(cm))
+          Row.withSchema(schema(cm)).addValues(values: _*).build()
         }
       }
     }

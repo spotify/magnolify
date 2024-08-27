@@ -129,7 +129,7 @@ ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
 ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
 ThisBuild / tlJdkRelease := Some(8)
-ThisBuild / tlFatalWarnings := false
+ThisBuild / tlFatalWarnings := true
 ThisBuild / tlCiHeaderCheck := true
 ThisBuild / tlCiScalafmtCheck := true
 ThisBuild / tlCiDocCheck := true
@@ -522,7 +522,7 @@ lazy val beam = project
     description := "Magnolia add-on for Apache Beam",
     libraryDependencies ++= Seq(
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion % Provided,
-      "com.google.protobuf" % "protobuf-java" % protobufVersion % ProtobufConfig
+      "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
     ),
     // TODO remove this line after release
     tlMimaPreviousVersions := Set.empty
