@@ -45,10 +45,10 @@ object BeamSchemaType {
   def apply[T](cm: CaseMapper)(implicit f: BeamSchemaField[T]): BeamSchemaType[T] = {
     f match {
       case r: BeamSchemaField.Record[_] =>
-        r.schema(cm) // fail fast on bad annotations
+        val mappedSchema = r.schema(cm) // fail fast on bad annotations
         new BeamSchemaType[T] {
           private val caseMapper: CaseMapper = cm
-          @transient override lazy val schema: Schema = r.schema(caseMapper)
+          override lazy val schema: Schema = mappedSchema
 
           override def from(v: Row): T = r.from(v)(caseMapper)
           override def to(v: T): Row = r.to(v)(caseMapper)
