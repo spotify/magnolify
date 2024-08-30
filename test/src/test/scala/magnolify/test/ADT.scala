@@ -30,7 +30,7 @@ object ADT {
   sealed trait Shape
   case object Space extends Shape
   case class Point(x: Int, y: Int) extends Shape
-  case class Circle(center: Point, r: Int) extends Shape
+  case class Circle(r: Int) extends Shape
   sealed trait Quadrilateral extends Shape
   case class Square(origin: Point, sideLength: Int) extends Quadrilateral
   case class Rect(origin: Point, width: Int, length: Int) extends Quadrilateral
