@@ -199,8 +199,6 @@ object BeamSchemaField {
   implicit val bsfDouble: BeamSchemaField[Double] = id[Double](_ => FieldType.DOUBLE)
   // STRING	A string
   implicit val bsfString: BeamSchemaField[String] = id[String](_ => FieldType.STRING)
-  implicit val bsfCharSeq: BeamSchemaField[CharSequence] =
-    from[String](_.asInstanceOf[CharSequence])(_.toString)
   // BOOLEAN	A boolean value
   implicit val bsfBoolean: BeamSchemaField[Boolean] = id[Boolean](_ => FieldType.BOOLEAN)
   // BYTES	A raw byte array

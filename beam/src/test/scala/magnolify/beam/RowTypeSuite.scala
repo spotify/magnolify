@@ -153,7 +153,7 @@ class RowTypeSuite extends MagnolifySuite {
 }
 
 case class Empty()
-case class Others(bs: ByteString, cs: CharSequence, bb: ByteBuffer, c: Char)
+case class Others(bs: ByteString, bb: ByteBuffer, c: Char)
 case class Decimal(bd: BigDecimal, bdo: Option[BigDecimal])
 case class Logical(
   u: UUID,
