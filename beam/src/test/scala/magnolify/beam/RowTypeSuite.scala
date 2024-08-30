@@ -36,14 +36,14 @@ import java.util.UUID
 import scala.reflect.ClassTag
 import scala.jdk.CollectionConverters.*
 
-class BeamSchemaTypeSuite extends MagnolifySuite {
+class RowTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit
-    bst: BeamSchemaType[T],
+    bst: RowType[T],
     eq: Eq[T]
   ): Unit = testNamed[T](className[T])
 
   private def testNamed[T: Arbitrary](name: String)(implicit
-    bst: BeamSchemaType[T],
+    bst: RowType[T],
     eq: Eq[T]
   ): Unit = {
     // Ensure serializable even after evaluation of `schema`
@@ -117,8 +117,8 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
   }
 
   {
-    implicit val bst: BeamSchemaType[LowerCamel] =
-      BeamSchemaType[LowerCamel](CaseMapper(_.toUpperCase))
+    implicit val bst: RowType[LowerCamel] =
+      RowType[LowerCamel](CaseMapper(_.toUpperCase))
     test[LowerCamel]
 
     {
@@ -135,10 +135,10 @@ class BeamSchemaTypeSuite extends MagnolifySuite {
   {
     // value classes should act only as fields
     intercept[IllegalArgumentException] {
-      BeamSchemaType[ValueClass]
+      RowType[ValueClass]
     }
 
-    implicit val bst: BeamSchemaType[HasValueClass] = BeamSchemaType[HasValueClass]
+    implicit val bst: RowType[HasValueClass] = RowType[HasValueClass]
     test[HasValueClass]
 
     assert(bst.schema.getField("vc").getType == Schema.FieldType.STRING)

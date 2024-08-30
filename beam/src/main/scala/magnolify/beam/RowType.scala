@@ -32,21 +32,21 @@ import scala.collection.concurrent
 import scala.jdk.CollectionConverters.*
 
 // https://beam.apache.org/documentation/programming-guide/#schema-definition
-sealed trait BeamSchemaType[T] extends Converter[T, Row, Row] {
+sealed trait RowType[T] extends Converter[T, Row, Row] {
   def schema: Schema
   def apply(r: Row): T = from(r)
   def apply(t: T): Row = to(t)
 }
 
-object BeamSchemaType {
-  implicit def apply[T: BeamSchemaField]: BeamSchemaType[T] =
-    BeamSchemaType[T](CaseMapper.identity)
+object RowType {
+  implicit def apply[T: BeamSchemaField]: RowType[T] =
+    RowType[T](CaseMapper.identity)
 
-  def apply[T](cm: CaseMapper)(implicit f: BeamSchemaField[T]): BeamSchemaType[T] = {
+  def apply[T](cm: CaseMapper)(implicit f: BeamSchemaField[T]): RowType[T] = {
     f match {
       case r: BeamSchemaField.Record[_] =>
         val mappedSchema = r.schema(cm) // fail fast on bad annotations
-        new BeamSchemaType[T] {
+        new RowType[T] {
           private val caseMapper: CaseMapper = cm
           override lazy val schema: Schema = mappedSchema
 
@@ -55,7 +55,7 @@ object BeamSchemaType {
         }
       case _ =>
         throw new IllegalArgumentException(
-          s"BeamSchemaType can only be created from Record. Got $f"
+          s"RowType can only be created from Record. Got $f"
         )
     }
   }

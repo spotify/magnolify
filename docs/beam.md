@@ -1,6 +1,6 @@
 # Beam
 
-`BeamSchemaType[T]` provides conversion between Scala type `T` and a [Beam Schema](https://beam.apache.org/documentation/programming-guide/#schema-definition). Custom support for type `T` can be added with an implicit intsance of `BeamSchemaField[T]`.
+`RowType[T]` provides conversion between Scala type `T` and a [Beam Schema](https://beam.apache.org/documentation/programming-guide/#schema-definition). Custom support for type `T` can be added with an implicit intsance of `BeamSchemaField[T]`.
 
 ```scala mdoc:compile-only
 import java.net.URI
@@ -13,12 +13,12 @@ import magnolify.beam.*
 // Encode custom type URI as String
 implicit val uriField: BeamSchemaField[URI] = BeamSchemaField.from[String](URI.create)(_.toString)
 
-val beamSchemaType = BeamSchemaType[Outer]
-val row = beamSchemaType.to(record)
-val copy: Outer = beamSchemaType.from(row)
+val rowType = RowType[Outer]
+val row = rowType.to(record)
+val copy: Outer = rowType.from(row)
 
 // Beam Schema
-val schema = beamSchemaType.schema
+val schema = rowType.schema
 ```
 
 ## Enums
@@ -47,7 +47,7 @@ SQL-compatible logical types are supported via `import magnolify.beam.logical.sq
 
 ## Case mapping
 
-To use a different field case format in target records, add an optional `CaseMapper` argument to `BeamSchemaType`:
+To use a different field case format in target records, add an optional `CaseMapper` argument to `RowType`:
 
 ```scala mdoc:compile-only
 import magnolify.beam.*
@@ -57,6 +57,6 @@ import com.google.common.base.CaseFormat
 case class LowerCamel(firstName: String, lastName: String)
 
 val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_UNDERSCORE).convert _
-val beamSchemaType = BeamSchemaType[LowerCamel](CaseMapper(toSnakeCase))
-beamSchemaType.to(LowerCamel("John", "Doe")) // Row(first_name: John, last_name: Doe)
+val rowType = RowType[LowerCamel](CaseMapper(toSnakeCase))
+rowType.to(LowerCamel("John", "Doe")) // Row(first_name: John, last_name: Doe)
 ```
