@@ -417,7 +417,7 @@ lazy val test = project
 lazy val scalacheck = project
   .in(file("scalacheck"))
   .dependsOn(
-    shared % "test->test,compile->compile",
+    shared % "compile,test->test",
     test % "test->test"
   )
   .settings(
