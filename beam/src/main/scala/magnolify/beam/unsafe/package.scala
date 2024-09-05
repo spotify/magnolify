@@ -19,6 +19,6 @@ package magnolify.beam
 import magnolify.shared.*
 
 package object unsafe {
-  implicit def afUnsafeEnum[T: EnumType]: BeamSchemaField[UnsafeEnum[T]] =
-    BeamSchemaField.from[String](UnsafeEnum.from[T])(UnsafeEnum.to[T])
+  implicit def afUnsafeEnum[T: EnumType]: RowField[UnsafeEnum[T]] =
+    RowField.from[String](UnsafeEnum.from[T])(UnsafeEnum.to[T])
 }

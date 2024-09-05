@@ -29,121 +29,121 @@ package object logical {
   import magnolify.shared.Time._
 
   object date {
-    implicit val bsfLocalDate: BeamSchemaField[jt.LocalDate] =
-      BeamSchemaField.id[jt.LocalDate](_ => FieldType.logicalType(new logicaltypes.Date))
+    implicit val rfLocalDate: RowField[jt.LocalDate] =
+      RowField.id[jt.LocalDate](_ => FieldType.logicalType(new logicaltypes.Date))
     private lazy val EpochJodaDate = new joda.LocalDate(1970, 1, 1)
-    implicit val bsfJodaLocalDate: BeamSchemaField[joda.LocalDate] =
-      BeamSchemaField.from[jt.LocalDate](jtld =>
+    implicit val rfJodaLocalDate: RowField[joda.LocalDate] =
+      RowField.from[jt.LocalDate](jtld =>
         EpochJodaDate.plusDays(jtld.getLong(ChronoField.EPOCH_DAY).toInt)
       )(d => jt.LocalDate.ofEpochDay(joda.Days.daysBetween(EpochJodaDate, d).getDays.toLong))
   }
 
   object millis {
-    implicit lazy val bsfInstantMillis: BeamSchemaField[jt.Instant] =
-      BeamSchemaField.from[joda.Instant](i => millisToInstant(millisFromJodaInstant(i)))(i =>
+    implicit lazy val rfInstantMillis: RowField[jt.Instant] =
+      RowField.from[joda.Instant](i => millisToInstant(millisFromJodaInstant(i)))(i =>
         millisToJodaInstant(millisFromInstant(i))
       )
-    implicit val bsfJodaInstantMillis: BeamSchemaField[joda.Instant] =
-      BeamSchemaField.id[joda.Instant](_ => FieldType.DATETIME)
-    implicit val bsfJodaDateTimeMillis: BeamSchemaField[joda.DateTime] =
-      BeamSchemaField.from[joda.Instant](_.toDateTime(ISOChronology.getInstanceUTC))(_.toInstant)
+    implicit val rfJodaInstantMillis: RowField[joda.Instant] =
+      RowField.id[joda.Instant](_ => FieldType.DATETIME)
+    implicit val rfJodaDateTimeMillis: RowField[joda.DateTime] =
+      RowField.from[joda.Instant](_.toDateTime(ISOChronology.getInstanceUTC))(_.toInstant)
 
-    implicit val bsfLocalTimeMillis: BeamSchemaField[jt.LocalTime] =
-      BeamSchemaField.from[Int](millisToLocalTime)(millisFromLocalTime)
-    implicit val bsfJodaLocalTimeMillis: BeamSchemaField[joda.LocalTime] =
-      BeamSchemaField.from[Int](millisToJodaLocalTime)(millisFromJodaLocalTime)
+    implicit val rfLocalTimeMillis: RowField[jt.LocalTime] =
+      RowField.from[Int](millisToLocalTime)(millisFromLocalTime)
+    implicit val rfJodaLocalTimeMillis: RowField[joda.LocalTime] =
+      RowField.from[Int](millisToJodaLocalTime)(millisFromJodaLocalTime)
 
-    implicit val bsfLocalDateTimeMillis: BeamSchemaField[jt.LocalDateTime] =
-      BeamSchemaField.id[jt.LocalDateTime](_ => FieldType.logicalType(new logicaltypes.DateTime()))
-    implicit val bsfJodaLocalDateTimeMillis: BeamSchemaField[joda.LocalDateTime] =
-      BeamSchemaField.from[jt.LocalDateTime](ldt =>
+    implicit val rfLocalDateTimeMillis: RowField[jt.LocalDateTime] =
+      RowField.id[jt.LocalDateTime](_ => FieldType.logicalType(new logicaltypes.DateTime()))
+    implicit val rfJodaLocalDateTimeMillis: RowField[joda.LocalDateTime] =
+      RowField.from[jt.LocalDateTime](ldt =>
         millisToJodaLocalDateTime(millisFromLocalDateTime(ldt))
       )(ldt => millisToLocalDateTime(millisFromJodaLocalDateTime(ldt)))
 
-    implicit val bsfDurationMillis: BeamSchemaField[jt.Duration] =
-      BeamSchemaField.from[Long](millisToDuration)(millisFromDuration)
-    implicit val bsfJodaDurationMillis: BeamSchemaField[joda.Duration] =
-      BeamSchemaField.from[Long](millisToJodaDuration)(millisFromJodaDuration)
+    implicit val rfDurationMillis: RowField[jt.Duration] =
+      RowField.from[Long](millisToDuration)(millisFromDuration)
+    implicit val rfJodaDurationMillis: RowField[joda.Duration] =
+      RowField.from[Long](millisToJodaDuration)(millisFromJodaDuration)
   }
 
   object micros {
     // NOTE: logicaltypes.MicrosInstant() cannot be used as it throws assertion
     // errors when greater-than-microsecond precision data is used
-    implicit val bsfInstantMicros: BeamSchemaField[jt.Instant] =
-      BeamSchemaField.from[Long](microsToInstant)(microsFromInstant)
+    implicit val rfInstantMicros: RowField[jt.Instant] =
+      RowField.from[Long](microsToInstant)(microsFromInstant)
     // joda.Instant has millisecond precision, excess precision discarded
-    implicit val bsfJodaInstantMicros: BeamSchemaField[joda.Instant] =
-      BeamSchemaField.from[Long](microsToJodaInstant)(microsFromJodaInstant)
+    implicit val rfJodaInstantMicros: RowField[joda.Instant] =
+      RowField.from[Long](microsToJodaInstant)(microsFromJodaInstant)
     // joda.DateTime only has millisecond resolution, so excess precision is discarded
-    implicit val bsfJodaDateTimeMicros: BeamSchemaField[joda.DateTime] =
-      BeamSchemaField.from[Long](microsToJodaDateTime)(microsFromJodaDateTime)
+    implicit val rfJodaDateTimeMicros: RowField[joda.DateTime] =
+      RowField.from[Long](microsToJodaDateTime)(microsFromJodaDateTime)
 
-    implicit val bsfLocalTimeMicros: BeamSchemaField[jt.LocalTime] =
-      BeamSchemaField.from[Long](microsToLocalTime)(microsFromLocalTime)
+    implicit val rfLocalTimeMicros: RowField[jt.LocalTime] =
+      RowField.from[Long](microsToLocalTime)(microsFromLocalTime)
     // joda.LocalTime only has millisecond resolution, so excess precision is discarded
-    implicit val bsfJodaLocalTimeMicros: BeamSchemaField[joda.LocalTime] =
-      BeamSchemaField.from[Long](microsToJodaLocalTime)(microsFromJodaLocalTime)
+    implicit val rfJodaLocalTimeMicros: RowField[joda.LocalTime] =
+      RowField.from[Long](microsToJodaLocalTime)(microsFromJodaLocalTime)
 
-    implicit val bsfLocalDateTimeMicros: BeamSchemaField[jt.LocalDateTime] =
-      BeamSchemaField.from[Long](microsToLocalDateTime)(microsFromLocalDateTime)
+    implicit val rfLocalDateTimeMicros: RowField[jt.LocalDateTime] =
+      RowField.from[Long](microsToLocalDateTime)(microsFromLocalDateTime)
     // joda.LocalDateTime has millisecond precision, excess precision discarded
-    implicit val bsfJodaLocalDateTimeMicros: BeamSchemaField[joda.LocalDateTime] =
-      BeamSchemaField.from[Long](microsToJodaLocalDateTime)(microsFromJodaLocalDateTime)
+    implicit val rfJodaLocalDateTimeMicros: RowField[joda.LocalDateTime] =
+      RowField.from[Long](microsToJodaLocalDateTime)(microsFromJodaLocalDateTime)
 
-    implicit val bsfDurationMicros: BeamSchemaField[jt.Duration] =
-      BeamSchemaField.from[Long](microsToDuration)(microsFromDuration)
+    implicit val rfDurationMicros: RowField[jt.Duration] =
+      RowField.from[Long](microsToDuration)(microsFromDuration)
     // joda.Duration has millisecond precision, excess precision discarded
-    implicit val bsfJodaDurationMicros: BeamSchemaField[joda.Duration] =
-      BeamSchemaField.from[Long](microsToJodaDuration)(microsFromJodaDuration)
+    implicit val rfJodaDurationMicros: RowField[joda.Duration] =
+      RowField.from[Long](microsToJodaDuration)(microsFromJodaDuration)
   }
 
   object nanos {
-    implicit val bsfInstantNanos: BeamSchemaField[jt.Instant] =
-      BeamSchemaField.id[jt.Instant](_ => FieldType.logicalType(new logicaltypes.NanosInstant()))
+    implicit val rfInstantNanos: RowField[jt.Instant] =
+      RowField.id[jt.Instant](_ => FieldType.logicalType(new logicaltypes.NanosInstant()))
     // joda.Instant has millisecond precision, excess precision discarded
-    implicit val bsfJodaInstantNanos: BeamSchemaField[joda.Instant] =
-      BeamSchemaField.from[jt.Instant](i => nanosToJodaInstant(nanosFromInstant(i)))(i =>
+    implicit val rfJodaInstantNanos: RowField[joda.Instant] =
+      RowField.from[jt.Instant](i => nanosToJodaInstant(nanosFromInstant(i)))(i =>
         nanosToInstant(nanosFromJodaInstant(i))
       )
     // joda.DateTime only has millisecond resolution
-    implicit val bsfJodaDateTimeNanos: BeamSchemaField[joda.DateTime] =
-      BeamSchemaField.from[jt.Instant](i => nanosToJodaDateTime(nanosFromInstant(i)))(i =>
+    implicit val rfJodaDateTimeNanos: RowField[joda.DateTime] =
+      RowField.from[jt.Instant](i => nanosToJodaDateTime(nanosFromInstant(i)))(i =>
         nanosToInstant(nanosFromJodaDateTime(i))
       )
 
-    implicit val bsfLocalTimeNanos: BeamSchemaField[jt.LocalTime] =
-      BeamSchemaField.id[jt.LocalTime](_ => FieldType.logicalType(new logicaltypes.Time()))
+    implicit val rfLocalTimeNanos: RowField[jt.LocalTime] =
+      RowField.id[jt.LocalTime](_ => FieldType.logicalType(new logicaltypes.Time()))
     // joda.LocalTime only has millisecond resolution, so excess precision is discarded
-    implicit val bsfJodaLocalTimeNanos: BeamSchemaField[joda.LocalTime] =
-      BeamSchemaField.from[jt.LocalTime](lt => nanosToJodaLocalTime(nanosFromLocalTime(lt)))(lt =>
+    implicit val rfJodaLocalTimeNanos: RowField[joda.LocalTime] =
+      RowField.from[jt.LocalTime](lt => nanosToJodaLocalTime(nanosFromLocalTime(lt)))(lt =>
         nanosToLocalTime(nanosFromJodaLocalTime(lt))
       )
 
-    implicit val bsfLocalDateTimeNanos: BeamSchemaField[jt.LocalDateTime] =
-      BeamSchemaField.from[Long](nanosToLocalDateTime)(nanosFromLocalDateTime)
+    implicit val rfLocalDateTimeNanos: RowField[jt.LocalDateTime] =
+      RowField.from[Long](nanosToLocalDateTime)(nanosFromLocalDateTime)
     // joda.LocalDateTime has millisecond precision, excess precision discarded
-    implicit val bsfJodaLocalDateTimeMicros: BeamSchemaField[joda.LocalDateTime] =
-      BeamSchemaField.from[jt.LocalDateTime](ldt =>
-        nanosToJodaLocalDateTime(nanosFromLocalDateTime(ldt))
-      )(ldt => nanosToLocalDateTime(nanosFromJodaLocalDateTime(ldt)))
+    implicit val rfJodaLocalDateTimeMicros: RowField[joda.LocalDateTime] =
+      RowField.from[jt.LocalDateTime](ldt => nanosToJodaLocalDateTime(nanosFromLocalDateTime(ldt)))(
+        ldt => nanosToLocalDateTime(nanosFromJodaLocalDateTime(ldt))
+      )
 
-    implicit val bsfDurationNanos: BeamSchemaField[jt.Duration] =
-      BeamSchemaField.id[jt.Duration](_ => FieldType.logicalType(new logicaltypes.NanosDuration()))
+    implicit val rfDurationNanos: RowField[jt.Duration] =
+      RowField.id[jt.Duration](_ => FieldType.logicalType(new logicaltypes.NanosDuration()))
     // joda.Duration has millisecond precision, excess precision discarded
-    implicit val bsfJodaDurationNanos: BeamSchemaField[joda.Duration] =
-      BeamSchemaField.from[jt.Duration](d => nanosToJodaDuration(nanosFromDuration(d)))(d =>
+    implicit val rfJodaDurationNanos: RowField[joda.Duration] =
+      RowField.from[jt.Duration](d => nanosToJodaDuration(nanosFromDuration(d)))(d =>
         nanosToDuration(nanosFromJodaDuration(d))
       )
   }
 
   object sql {
-    implicit val bsfSqlLocalTime: BeamSchemaField[jt.LocalTime] =
-      BeamSchemaField.id(_ => FieldType.logicalType(SqlTypes.TIME))
-    implicit val bsfSqlInstant: BeamSchemaField[jt.Instant] =
-      BeamSchemaField.id(_ => FieldType.logicalType(SqlTypes.TIMESTAMP))
-    implicit val bsfSqlLocalDateTime: BeamSchemaField[jt.LocalDateTime] =
-      BeamSchemaField.id(_ => FieldType.logicalType(SqlTypes.DATETIME))
-    implicit val bsfSqlLocalDate: BeamSchemaField[jt.LocalDate] =
-      BeamSchemaField.id(_ => FieldType.logicalType(SqlTypes.DATE))
+    implicit val rfSqlLocalTime: RowField[jt.LocalTime] =
+      RowField.id(_ => FieldType.logicalType(SqlTypes.TIME))
+    implicit val rfSqlInstant: RowField[jt.Instant] =
+      RowField.id(_ => FieldType.logicalType(SqlTypes.TIMESTAMP))
+    implicit val rfSqlLocalDateTime: RowField[jt.LocalDateTime] =
+      RowField.id(_ => FieldType.logicalType(SqlTypes.DATETIME))
+    implicit val rfSqlLocalDate: RowField[jt.LocalDate] =
+      RowField.id(_ => FieldType.logicalType(SqlTypes.DATE))
   }
 }

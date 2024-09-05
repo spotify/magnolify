@@ -1,6 +1,6 @@
 # Beam
 
-`RowType[T]` provides conversion between Scala type `T` and a [Beam Schema](https://beam.apache.org/documentation/programming-guide/#schema-definition). Custom support for type `T` can be added with an implicit intsance of `BeamSchemaField[T]`.
+`RowType[T]` provides conversion between Scala type `T` and a Beam Row, backed by a [Beam Schema](https://beam.apache.org/documentation/programming-guide/#schema-definition). Custom support for type `T` can be added with an implicit instance of `RowField[T]`.
 
 ```scala mdoc:compile-only
 import java.net.URI
@@ -11,7 +11,7 @@ val record = Outer(Inner(1L, "hello", URI.create("https://www.spotify.com")))
 
 import magnolify.beam.*
 // Encode custom type URI as String
-implicit val uriField: BeamSchemaField[URI] = BeamSchemaField.from[String](URI.create)(_.toString)
+implicit val uriField: RowField[URI] = RowField.from[String](URI.create)(_.toString)
 
 val rowType = RowType[Outer]
 val row = rowType.to(record)
