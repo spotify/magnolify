@@ -32,7 +32,8 @@ val guavaVersion = "33.3.0-jre"
 val hadoopVersion = "3.4.0"
 val jacksonVersion = "2.17.2"
 val jodaTimeVersion = "2.12.7"
-val munitVersion = "1.0.0"
+val munitVersion = "1.0.1"
+val munitScalacheckVersion = "1.0.0"
 val neo4jDriverVersion = "4.4.18"
 val paigesVersion = "0.4.4"
 val parquetVersion = "1.14.2"
@@ -390,7 +391,8 @@ lazy val test = project
   .settings(
     crossScalaVersions := Seq(scala3, scala213, scala212),
     libraryDependencies ++= Seq(
-      "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
+      "org.scalameta" %% "munit" % munitVersion % Test,
+      "org.scalameta" %% "munit-scalacheck" % munitScalacheckVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion % Test
     )
   )
