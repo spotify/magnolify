@@ -18,8 +18,10 @@ package magnolify.parquet
 
 import org.apache.hadoop.conf.Configuration
 
-import java.util.Objects
-
+/**
+ * Properties for reading and writing Magnolify ParquetType classes,
+ * configurable via a Hadoop [[Configuration]] instance.
+ */
 object MagnolifyParquetProperties {
   val WriteGroupedArrays: String = "magnolify.parquet.write-grouped-arrays"
   val WriteGroupedArraysDefault: Boolean = false
@@ -32,8 +34,6 @@ object MagnolifyParquetProperties {
 
   // Hash any Configuration values that might affect schema creation to use as part of Schema cache key
   private[parquet] def hashValues(conf: Configuration): Int = {
-    Objects.hash(
-      Option(conf.get(WriteGroupedArrays)).map(_.toBoolean).getOrElse(WriteGroupedArraysDefault)
-    )
+    Option(conf.get(WriteGroupedArrays)).map(_.toBoolean).getOrElse(WriteGroupedArraysDefault).hashCode()
   }
 }

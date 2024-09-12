@@ -29,9 +29,9 @@ import org.apache.parquet.io.api._
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 import org.apache.parquet.schema.Type.Repetition
 import org.apache.parquet.schema.{LogicalTypeAnnotation, Type, Types}
-import org.typelevel.scalaccompat.annotation.nowarn
 
-import scala.annotation.implicitNotFound
+import scala.annotation.{implicitNotFound, nowarn}
+import scala.collection.compat._
 import scala.collection.concurrent
 
 sealed trait ParquetField[T] extends Serializable {
