@@ -238,7 +238,7 @@ class ParquetTypeSuite extends MagnolifySuite {
       conf.setBoolean(MagnolifyParquetProperties.WriteGroupedArrays, true)
       val writeContext = pt.writeSupport.init(conf)
       assertEquals(avroCompliantSchema, writeContext.getSchema.toString)
-      assertEquals(pt.schema(Some(conf)), writeContext.getSchema)
+      assertEquals(pt.schema(conf), writeContext.getSchema)
     }
 
     // Assert that WriteSupport uses non-grouped schema otherwise
@@ -247,7 +247,7 @@ class ParquetTypeSuite extends MagnolifySuite {
       conf.setBoolean(MagnolifyParquetProperties.WriteGroupedArrays, false)
       val writeContext = pt.writeSupport.init(conf)
       assertEquals(nonAvroCompliantSchema, writeContext.getSchema.toString)
-      assertEquals(pt.schema(Some(conf)), writeContext.getSchema)
+      assertEquals(pt.schema(conf), writeContext.getSchema)
     }
   }
 }

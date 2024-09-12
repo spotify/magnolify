@@ -60,10 +60,11 @@ object ParquetArray {
 sealed trait ParquetType[T] extends Serializable {
   import ParquetType._
 
-  def schema: MessageType = schema(None)
-  def schema(conf: Option[Configuration]): MessageType
-  def avroSchema: AvroSchema = avroSchema(None)
-  def avroSchema(conf: Option[Configuration]): AvroSchema
+  def schema: MessageType = schema(new Configuration())
+  def schema(conf: Configuration): MessageType
+
+  def avroSchema: AvroSchema = avroSchema(new Configuration())
+  def avroSchema(conf: Configuration): AvroSchema
 
   def setupInput(job: Job): Unit = {
     job.setInputFormatClass(classOf[ParquetInputFormat[T]])
@@ -98,9 +99,9 @@ object ParquetType {
   )(implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] = f match {
     case r: ParquetField.Record[_] =>
       new ParquetType[T] {
-        @transient override def schema(conf: Option[Configuration]): MessageType =
-          Schema.message(r.schema(cm, conf.getOrElse(new Configuration())))
-        @transient override def avroSchema(conf: Option[Configuration]): AvroSchema = {
+        @transient override def schema(conf: Configuration): MessageType =
+          Schema.message(r.schema(cm, conf))
+        @transient override def avroSchema(conf: Configuration): AvroSchema = {
           val s = new AvroSchemaConverter().convert(schema(conf))
           // add doc to avro schema
           val fieldDocs = f.fieldDocs(cm)
@@ -142,7 +143,7 @@ object ParquetType {
       }
 
       val requestedSchema = {
-        val s = Schema.message(parquetType.schema(Some(context.getConfiguration))): @nowarn(
+        val s = Schema.message(parquetType.schema(context.getConfiguration)): @nowarn(
           "cat=deprecation"
         )
         // If reading Avro, roundtrip schema using parquet-avro converter to ensure array compatibility;
@@ -184,7 +185,7 @@ object ParquetType {
         parquetType = SerializationUtils.fromBase64[ParquetType[T]](configuration.get(WriteTypeKey))
       }
 
-      val schema = Schema.message(parquetType.schema(Some(configuration)))
+      val schema = Schema.message(parquetType.schema(configuration))
       val metadata = new java.util.HashMap[String, String]()
 
       if (
@@ -196,7 +197,7 @@ object ParquetType {
         try {
           metadata.put(
             AVRO_SCHEMA_METADATA_KEY,
-            parquetType.avroSchema(Some(configuration)).toString()
+            parquetType.avroSchema(configuration).toString()
           )
         } catch {
           // parquet-avro has greater schema restrictions than magnolify-parquet, e.g., parquet-avro does not
