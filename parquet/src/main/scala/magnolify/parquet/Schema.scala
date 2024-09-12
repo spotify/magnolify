@@ -124,7 +124,9 @@ private object Schema {
       !isRepetitionBackwardCompatible(writer, reader) ||
       writer.isPrimitive != reader.isPrimitive
     ) {
-      throw new InvalidRecordException(s"$writer found: expected $reader")
+      throw new InvalidRecordException(
+        s"Writer schema `$writer` incompatible with reader schema `$reader``"
+      )
     }
 
     writer match {
