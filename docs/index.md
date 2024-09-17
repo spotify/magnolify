@@ -11,6 +11,7 @@ A collection of [Magnolia](https://github.com/propensive/magnolia) add-ons for c
 This library includes the following modules.
 
 - @ref:[`magnolify-avro`](avro.md) - conversion between Scala types and [Apache Avro](https://github.com/apache/avro) `GenericRecord`
+- @ref:[`magnolify-beam`](beam.md) - conversion between Scala types and [Apache Beam](https://beam.apache.org/) [schema types](https://beam.apache.org/documentation/programming-guide/#schemas)
 - @ref:[`magnolify-bigquery`](bigquery.md) - conversion between Scala types and [Google Cloud BigQuery](https://cloud.google.com/bigquery/) `TableRow`
 - @ref:[`magnolify-bigtable`](bigtable.md) - conversion between Scala types and [Google Cloud Bigtable](https://cloud.google.com/bigtable) to `Mutation`, from `Row`
 - @ref:[`magnolify-cats`](cats.md) - type class derivation for [Cats](https://github.com/typelevel/cats), specifically
@@ -35,6 +36,7 @@ Complete type mapping @ref:[here](mapping.md).
 
 @@@ index
 - @ref:[Avro](avro.md)
+- @ref:[Beam](beam.md)
 - @ref:[BigQuery](bigquery.md)
 - @ref:[Bigtable](bigtable.md)
 - @ref:[Cats](cats.md)

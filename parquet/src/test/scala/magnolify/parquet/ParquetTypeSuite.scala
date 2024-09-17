@@ -43,12 +43,17 @@ class ParquetTypeSuite extends MagnolifySuite {
   private def test[T: Arbitrary: ClassTag](implicit
     t: ParquetType[T],
     eq: Eq[T]
+  ): Unit = testNamed[T](className[T])
+
+  private def testNamed[T: Arbitrary](name: String)(implicit
+    t: ParquetType[T],
+    eq: Eq[T]
   ): Unit = {
     // Ensure serializable even after evaluation of `schema`
     t.schema: Unit
     val tpe = ensureSerializable(t)
 
-    property(className[T]) {
+    property(name) {
       Prop.forAll { (t: T) =>
         val out = new TestOutputFile
         val writer = tpe.writeBuilder(out).build()
@@ -138,46 +143,67 @@ class ParquetTypeSuite extends MagnolifySuite {
     Arbitrary(Gen.choose(-max, max).map(BigDecimal.apply))
   }
 
+  test("Decimal range") {
+    intercept[IllegalArgumentException] {
+      ParquetField.decimal32(0, 0)
+    }
+    intercept[IllegalArgumentException] {
+      ParquetField.decimal32(1, 10)
+    }
+    intercept[IllegalArgumentException] {
+      ParquetField.decimal64(0, 0)
+    }
+    intercept[IllegalArgumentException] {
+      ParquetField.decimal64(1, 19)
+    }
+    intercept[IllegalArgumentException] {
+      ParquetField.decimalFixed(0, 1)
+    }
+    intercept[IllegalArgumentException] {
+      ParquetField.decimalFixed(2, 5) // capacity = 4
+    }
+  }
+
   {
     implicit val arbBigDecimal: Arbitrary[BigDecimal] = decimal(9)
     implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimal32(9, 0)
-    test[Decimal]
+    testNamed[Decimal]("Decimal32")
   }
 
   {
     implicit val arbBigDecimal: Arbitrary[BigDecimal] = decimal(18)
     implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimal64(18, 0)
-    test[Decimal]
+    testNamed[Decimal]("Decimal64")
   }
 
   {
     implicit val arbBigDecimal: Arbitrary[BigDecimal] = decimal(18)
     // math.floor(math.log10(math.pow(2, 8*8-1) - 1)) = 18 digits
     implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimalFixed(8, 18, 0)
-    test[Decimal]
+    testNamed[Decimal]("DecimalFixed")
   }
 
   {
     implicit val arbBigDecimal: Arbitrary[BigDecimal] = decimal(20)
     implicit val pfBigDecimal: ParquetField[BigDecimal] = ParquetField.decimalBinary(20, 0)
-    test[Decimal]
+    testNamed[Decimal]("DecimalBinary")
   }
 
   test[Logical]
 
   {
     import magnolify.parquet.logical.millis._
-    test[Time]
+    testNamed[Time]("TimeMillis")
   }
 
   {
     import magnolify.parquet.logical.micros._
-    test[Time]
+    testNamed[Time]("TimeMicros")
   }
 
   {
     import magnolify.parquet.logical.nanos._
-    test[Time]
+    testNamed[Time]("TimeNanos")
   }
 
   {

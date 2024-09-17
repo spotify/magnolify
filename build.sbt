@@ -24,6 +24,7 @@ val magnoliaScala3Version = "1.3.7"
 
 val algebirdVersion = "0.13.10"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.3")
+val beamVersion = "2.57.0"
 val bigqueryVersion = "v2-rev20240229-2.0.0"
 val bigtableVersion = "2.43.0"
 val catsVersion = "2.12.0"
@@ -225,7 +226,23 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 // mima
 ThisBuild / mimaBinaryIssueFilters ++= Seq(
   // genFunnelMacro should not be available to users
-  ProblemFilters.exclude[DirectMissingMethodProblem]("magnolify.guava.auto.package.genFunnelMacro")
+  ProblemFilters.exclude[DirectMissingMethodProblem]("magnolify.guava.auto.package.genFunnelMacro"),
+  // incorrectly named implicit
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.parquet.logical.package#micros.pfTimestampMillis"
+  ),
+  // incorrectly named implicit
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.parquet.logical.package#micros.pfLocalDateTimeMillis"
+  ),
+  // incorrectly named implicit
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.parquet.logical.package#nanos.pfTimestampMillis"
+  ),
+  // incorrectly named implicit
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.parquet.logical.package#nanos.pfLocalDateTimeMillis"
+  )
 )
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.8.0")
 
@@ -326,6 +343,7 @@ lazy val root = tlCrossRootProject
   )
   .aggregate(
     avro,
+    beam,
     bigquery,
     bigtable,
     bom,
@@ -379,7 +397,8 @@ lazy val shared = project
     commonSettings,
     crossScalaVersions := Seq(scala3, scala213, scala212),
     moduleName := "magnolify-shared",
-    description := "Shared code for Magnolify"
+    description := "Shared code for Magnolify",
+    libraryDependencies += "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
   )
 
 // shared code for unit tests
@@ -400,7 +419,7 @@ lazy val test = project
 lazy val scalacheck = project
   .in(file("scalacheck"))
   .dependsOn(
-    shared,
+    shared % "compile,test->test",
     test % "test->test"
   )
   .settings(
@@ -488,6 +507,27 @@ lazy val avro = project
       "org.apache.avro" % "avro" % avroVersion % Provided,
       "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
     )
+  )
+
+lazy val beam = project
+  .in(file("beam"))
+  .dependsOn(
+    shared,
+    cats % "test->test",
+    scalacheck % "test->test",
+    test % "test->test"
+  )
+  .settings(
+    commonSettings,
+    protobufSettings,
+    moduleName := "magnolify-beam",
+    description := "Magnolia add-on for Apache Beam",
+    libraryDependencies ++= Seq(
+      "org.apache.beam" % "beam-sdks-java-core" % beamVersion % Provided,
+      "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
+    ),
+    // TODO remove this line after release
+    tlMimaPreviousVersions := Set.empty
   )
 
 lazy val bigquery = project
@@ -745,6 +785,7 @@ lazy val site = project
   )
   .dependsOn(
     avro % "compile->compile,provided",
+    beam % "compile->compile,provided",
     bigquery % "compile->compile,provided",
     bigtable % "compile->compile,provided",
     cats % "compile->compile,provided",
