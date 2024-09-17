@@ -16,7 +16,6 @@
 
 package magnolify.jmh
 
-import magnolify.jmh.MagnolifyBench.nested
 import magnolify.parquet.{MagnolifyParquetProperties, ParquetType, TestInputFile, TestOutputFile}
 
 import java.util.concurrent.TimeUnit
@@ -102,7 +101,7 @@ class ParquetReadState(pt: ParquetType[Nested]) {
   def setup(): Unit = {
     out = new TestOutputFile
     val writer = pt.writeBuilder(out).build()
-    writer.write(nested)
+    writer.write(MagnolifyBench.nested)
     writer.close()
 
     val in = new TestInputFile(out.getBytes)
