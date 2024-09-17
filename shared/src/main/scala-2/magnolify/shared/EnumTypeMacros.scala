@@ -16,7 +16,6 @@
 
 package magnolify.shared
 
-import magnolia1.Magnolia
 import scala.reflect.macros.whitebox
 
 object EnumTypeMacros {
@@ -51,11 +50,7 @@ object EnumTypeMacros {
   }
 }
 
-trait EnumTypeCompanionMacros extends EnumTypeCompanionLowPrioMacros {
+trait EnumTypeCompanionMacros extends EnumTypeDerivation {
   implicit def scalaEnumType[T <: Enumeration#Value: AnnotationType]: EnumType[T] =
     macro EnumTypeMacros.scalaEnumTypeMacro[T]
-}
-
-trait EnumTypeCompanionLowPrioMacros extends EnumTypeDerivation {
-  implicit def gen[T]: EnumType[T] = macro Magnolia.gen[T]
 }

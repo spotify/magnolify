@@ -16,19 +16,25 @@
 
 package magnolify.scalacheck
 
-import magnolify.scalacheck.semiauto.ArbitraryDerivation
+import magnolify.scalacheck.semiauto.*
 import magnolify.shared.UnsafeEnum
-import magnolify.test.ADT._
+import magnolify.test.ADT.*
 import magnolify.test.JavaEnums
-import magnolify.test.Simple._
-import org.joda.{time => joda}
-import org.scalacheck._
+import magnolify.test.Simple.*
+import org.joda.time as joda
+import org.scalacheck.*
+import org.scalacheck.rng.Seed
 
 import java.net.URI
 import java.nio.ByteBuffer
-import java.time._
+import java.time.*
 
 object TestArbitrary {
+  // seed
+  implicit lazy val arbSeed: Arbitrary[Seed] = Arbitrary(
+    Arbitrary.arbLong.arbitrary.map(Seed.apply)
+  )
+
   // null
   implicit lazy val arbNull: Arbitrary[Null] = Arbitrary(Gen.const(null))
 
@@ -93,29 +99,29 @@ object TestArbitrary {
   }
 
   // ADT
-  implicit lazy val arbNode: Arbitrary[Node] = ArbitraryDerivation[Node]
-  implicit lazy val arbGNode: Arbitrary[GNode[Int]] = ArbitraryDerivation[GNode[Int]]
-  implicit lazy val arbShape: Arbitrary[Shape] = ArbitraryDerivation[Shape]
-  implicit lazy val arbColor: Arbitrary[Color] = ArbitraryDerivation[Color]
-  implicit lazy val arbPerson: Arbitrary[Person] = ArbitraryDerivation[Person]
+  implicit lazy val arbNode: Arbitrary[Node] = Arbitrary.gen[Node]
+  implicit lazy val arbGNode: Arbitrary[GNode[Int]] = Arbitrary.gen[GNode[Int]]
+  implicit lazy val arbShape: Arbitrary[Shape] = Arbitrary.gen[Shape]
+  implicit lazy val arbColor: Arbitrary[Color] = Arbitrary.gen[Color]
+  implicit lazy val arbPerson: Arbitrary[Person] = Arbitrary.gen[Person]
 
   // simple
-  implicit lazy val arbIntegers: Arbitrary[Integers] = ArbitraryDerivation[Integers]
-  implicit lazy val arbFloats: Arbitrary[Floats] = ArbitraryDerivation[Floats]
-  implicit lazy val arbNumbers: Arbitrary[Numbers] = ArbitraryDerivation[Numbers]
-  implicit lazy val arbRequired: Arbitrary[Required] = ArbitraryDerivation[Required]
-  implicit lazy val arbNullable: Arbitrary[Nullable] = ArbitraryDerivation[Nullable]
-  implicit lazy val arbRepeated: Arbitrary[Repeated] = ArbitraryDerivation[Repeated]
-  implicit lazy val arbNested: Arbitrary[Nested] = ArbitraryDerivation[Nested]
-  implicit lazy val arbCollections: Arbitrary[Collections] = ArbitraryDerivation[Collections]
+  implicit lazy val arbIntegers: Arbitrary[Integers] = Arbitrary.gen[Integers]
+  implicit lazy val arbFloats: Arbitrary[Floats] = Arbitrary.gen[Floats]
+  implicit lazy val arbNumbers: Arbitrary[Numbers] = Arbitrary.gen[Numbers]
+  implicit lazy val arbRequired: Arbitrary[Required] = Arbitrary.gen[Required]
+  implicit lazy val arbNullable: Arbitrary[Nullable] = Arbitrary.gen[Nullable]
+  implicit lazy val arbRepeated: Arbitrary[Repeated] = Arbitrary.gen[Repeated]
+  implicit lazy val arbNested: Arbitrary[Nested] = Arbitrary.gen[Nested]
+  implicit lazy val arbCollections: Arbitrary[Collections] = Arbitrary.gen[Collections]
   implicit lazy val arbMoreCollections: Arbitrary[MoreCollections] =
-    ArbitraryDerivation[MoreCollections]
-  implicit lazy val arbEnums: Arbitrary[Enums] = ArbitraryDerivation[Enums]
-  implicit lazy val arbUnsafeEnums: Arbitrary[UnsafeEnums] = ArbitraryDerivation[UnsafeEnums]
-  implicit lazy val arbCustom: Arbitrary[Custom] = ArbitraryDerivation[Custom]
-  implicit lazy val arbLowerCamel: Arbitrary[LowerCamel] = ArbitraryDerivation[LowerCamel]
+    Arbitrary.gen[MoreCollections]
+  implicit lazy val arbEnums: Arbitrary[Enums] = Arbitrary.gen[Enums]
+  implicit lazy val arbUnsafeEnums: Arbitrary[UnsafeEnums] = Arbitrary.gen[UnsafeEnums]
+  implicit lazy val arbCustom: Arbitrary[Custom] = Arbitrary.gen[Custom]
+  implicit lazy val arbLowerCamel: Arbitrary[LowerCamel] = Arbitrary.gen[LowerCamel]
   implicit lazy val arbLowerCamelInner: Arbitrary[LowerCamelInner] =
-    ArbitraryDerivation[LowerCamelInner]
+    Arbitrary.gen[LowerCamelInner]
 
   // other
   implicit lazy val arbUri: Arbitrary[URI] = Arbitrary(Gen.alphaNumStr.map(URI.create))

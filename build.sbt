@@ -47,7 +47,7 @@ val tensorflowMetadataVersion = "1.15.0"
 val tensorflowVersion = "0.5.0"
 
 // project
-ThisBuild / tlBaseVersion := "0.7"
+ThisBuild / tlBaseVersion := "0.8"
 ThisBuild / tlSonatypeUseLegacyHost := true
 ThisBuild / organization := "com.spotify"
 ThisBuild / organizationName := "Spotify AB"
@@ -111,7 +111,8 @@ val scala212 = "2.12.20"
 val scalaDefault = scala213
 val scala3Projects = List(
   "shared",
-  "test"
+  "test",
+  "scalacheck"
 )
 
 // github actions
@@ -269,7 +270,9 @@ val commonSettings = Seq(
         "-Yretain-trees",
         // tolerate some nested macro expansion
         "-Xmax-inlines",
-        "64"
+        "64",
+        // silence warnings. dotty doesn't have unused-imports category nor origin support yet
+        "-Wconf:msg=unused import:s"
       )
     case Some((2, 13)) =>
       Seq(
@@ -407,6 +410,7 @@ lazy val scalacheck = project
     commonSettings,
     moduleName := "magnolify-scalacheck",
     description := "Magnolia add-on for ScalaCheck",
+    crossScalaVersions := Seq(scala3, scala213, scala212),
     libraryDependencies += "org.scalacheck" %% "scalacheck" % scalacheckVersion % Provided
   )
 
