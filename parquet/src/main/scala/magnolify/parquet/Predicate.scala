@@ -17,7 +17,6 @@
 package magnolify.parquet
 
 import magnolify.shared.CaseMapper
-import org.apache.hadoop.conf.Configuration
 import org.apache.parquet.filter2.predicate.Operators.Column
 import org.apache.parquet.filter2.predicate.{
   FilterApi,
@@ -54,7 +53,9 @@ object Predicate {
     pf: ParquetField.Primitive[ScalaFieldT]
   ): FilterPredicate = {
     val fieldType =
-      pf.schema(CaseMapper.identity, new Configuration()).asPrimitiveType().getPrimitiveTypeName
+      pf.schema(CaseMapper.identity, MagnolifyParquetProperties.WriteGroupedArraysDefault)
+        .asPrimitiveType()
+        .getPrimitiveTypeName
 
     val column = fieldType match {
       case PrimitiveTypeName.INT32                           => FilterApi.intColumn(fieldName)
@@ -67,7 +68,9 @@ object Predicate {
     }
 
     def wrap[T](addFn: (PrimitiveConverter, T) => Unit): T => ScalaFieldT = {
-      lazy val converter = pf.newConverter(pf.schema(CaseMapper.identity, new Configuration()))
+      lazy val converter = pf.newConverter(
+        pf.schema(CaseMapper.identity, MagnolifyParquetProperties.WriteGroupedArraysDefault)
+      )
       value => {
         addFn(converter.asPrimitiveConverter(), value)
         converter.get

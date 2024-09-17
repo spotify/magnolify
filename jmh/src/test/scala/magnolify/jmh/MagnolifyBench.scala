@@ -20,14 +20,14 @@ import magnolify.jmh.MagnolifyBench.nested
 import magnolify.parquet.{MagnolifyParquetProperties, ParquetType, TestInputFile, TestOutputFile}
 
 import java.util.concurrent.TimeUnit
-import magnolify.scalacheck.auto.*
-import magnolify.test.Simple.*
+import magnolify.scalacheck.auto._
+import magnolify.test.Simple._
 import org.apache.hadoop.conf.Configuration
 import org.apache.parquet.hadoop.{ParquetReader, ParquetWriter}
-import org.scalacheck.*
-import org.openjdk.jmh.annotations.*
+import org.scalacheck._
+import org.openjdk.jmh.annotations._
 
-import scala.jdk.CollectionConverters.*
+import scala.jdk.CollectionConverters._
 
 object MagnolifyBench {
   val seed: rng.Seed = rng.Seed(0)
@@ -94,7 +94,7 @@ class AvroBench {
 }
 
 @State(Scope.Benchmark)
-class ParquetReadState()(implicit pt: ParquetType[Nested]) {
+class ParquetReadState(pt: ParquetType[Nested]) {
   var out: TestOutputFile = null
   var reader: ParquetReader[Nested] = null
 
@@ -116,7 +116,7 @@ class ParquetReadState()(implicit pt: ParquetType[Nested]) {
 }
 
 @State(Scope.Benchmark)
-class ParquetWriteState()(implicit pt: ParquetType[Nested]) {
+class ParquetWriteState(pt: ParquetType[Nested]) {
   var writer: ParquetWriter[Nested] = null
 
   @Setup(Level.Invocation)
@@ -131,16 +131,27 @@ class ParquetWriteState()(implicit pt: ParquetType[Nested]) {
   }
 }
 
+object ParquetStates {
+  def confWithGroupedArraysProp(propValue: Boolean): Configuration = {
+    val conf = new Configuration()
+    conf.setBoolean(MagnolifyParquetProperties.WriteGroupedArrays, propValue)
+    conf
+  }
+  class DefaultParquetReadState extends ParquetReadState(ParquetType[Nested](confWithGroupedArraysProp(false)))
+  class DefaultParquetWriteState extends ParquetWriteState(ParquetType[Nested](confWithGroupedArraysProp(false)))
+
+  class ParquetAvroCompatReadState extends ParquetReadState(ParquetType[Nested](confWithGroupedArraysProp(true)))
+  class ParquetAvroCompatWriteState extends ParquetWriteState(ParquetType[Nested](confWithGroupedArraysProp(true)))
+}
 
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @State(Scope.Thread)
 class ParquetBench {
   import MagnolifyBench._
-  implicit val pt: ParquetType[Nested] = ParquetType[Nested]
 
-  @Benchmark def parquetWrite(state: ParquetWriteState): Unit = state.writer.write(nested)
-  @Benchmark def parquetRead(state: ParquetReadState): Nested = state.reader.read()
+  @Benchmark def parquetWrite(state: ParquetStates.DefaultParquetWriteState): Unit = state.writer.write(nested)
+  @Benchmark def parquetRead(state: ParquetStates.DefaultParquetReadState): Nested = state.reader.read()
 }
 
 @BenchmarkMode(Array(Mode.AverageTime))
@@ -148,12 +159,9 @@ class ParquetBench {
 @State(Scope.Thread)
 class ParquetAvroCompatBench {
   import MagnolifyBench._
-  val conf = new Configuration()
-  conf.setBoolean(MagnolifyParquetProperties.WriteGroupedArrays, MagnolifyParquetProperties.WriteGroupedArraysDefault)
-  implicit val pt: ParquetType[Nested] = ParquetType[Nested](conf)
 
-  @Benchmark def parquetWrite(state: ParquetWriteState): Unit = state.writer.write(nested)
-  @Benchmark def parquetRead(state: ParquetReadState): Nested = state.reader.read()
+  @Benchmark def parquetWrite(state: ParquetStates.ParquetAvroCompatWriteState): Unit = state.writer.write(nested)
+  @Benchmark def parquetRead(state: ParquetStates.ParquetAvroCompatReadState): Nested = state.reader.read()
 }
 
 @BenchmarkMode(Array(Mode.AverageTime))
