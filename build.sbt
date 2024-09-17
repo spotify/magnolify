@@ -708,6 +708,7 @@ lazy val jmh: Project = project
     cats % Test,
     datastore % Test,
     guava % Test,
+    parquet % "test->test",
     protobuf % "test->test",
     scalacheck % Test,
     tensorflow % Test,
@@ -727,7 +728,12 @@ lazy val jmh: Project = project
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
       "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
       "org.apache.avro" % "avro" % avroVersion % Test,
-      "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Test
+      "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Test,
+      "org.apache.parquet" % "parquet-avro" % parquetVersion % Test,
+      "org.apache.parquet" % "parquet-column" % parquetVersion % Test,
+      "org.apache.parquet" % "parquet-hadoop" % parquetVersion % Test,
+      "org.apache.hadoop" % "hadoop-common" % hadoopVersion % Test,
+      "org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion % Test
     )
   )
 
