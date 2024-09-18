@@ -160,7 +160,8 @@ class ExampleBench {
   private val exampleNested = implicitly[Arbitrary[ExampleNested]].arbitrary(prms, seed).get
   private val example = exampleType.to(exampleNested).build()
   @Benchmark def exampleTo: Example.Builder = exampleType.to(exampleNested)
-  @Benchmark def exampleFrom: ExampleNested = exampleType.from(example.getFeatures.getFeatureMap.asScala.toMap)
+  @Benchmark def exampleFrom: ExampleNested =
+    exampleType.from(example.getFeatures.getFeatureMap.asScala.toMap)
 }
 
 @BenchmarkMode(Array(Mode.AverageTime))
@@ -169,8 +170,10 @@ class ExampleBench {
 class ParquetMagnolifyBench {
   import MagnolifyBench._
 
-  @Benchmark def parquetWrite(state: ParquetStates.ParquetCaseClassWriteState): Unit = state.writer.write(nested)
-  @Benchmark def parquetRead(state: ParquetStates.ParquetCaseClassReadState): Nested = state.reader.read()
+  @Benchmark def parquetWrite(state: ParquetStates.ParquetCaseClassWriteState): Unit =
+    state.writer.write(nested)
+  @Benchmark def parquetRead(state: ParquetStates.ParquetCaseClassReadState): Nested =
+    state.reader.read()
 }
 
 @BenchmarkMode(Array(Mode.AverageTime))
@@ -183,8 +186,10 @@ class ParquetAvroBench {
 
   private val record = AvroType[Nested].to(nested)
 
-  @Benchmark def parquetWrite(state: ParquetStates.ParquetAvroWriteState): Unit = state.writer.write(record)
-  @Benchmark def parquetRead(state: ParquetStates.ParquetAvroReadState): GenericRecord = state.reader.read()
+  @Benchmark def parquetWrite(state: ParquetStates.ParquetAvroWriteState): Unit =
+    state.writer.write(record)
+  @Benchmark def parquetRead(state: ParquetStates.ParquetAvroReadState): GenericRecord =
+    state.reader.read()
 }
 
 object ParquetStates {
@@ -203,7 +208,12 @@ object ParquetStates {
   import org.apache.parquet.column.impl.ColumnWriteStoreV1
 
   @State(Scope.Benchmark)
-  class ReadState[T](schema: MessageType, writeSupport: WriteSupport[T], readSupport: ReadSupport[T], record: T) {
+  class ReadState[T](
+    schema: MessageType,
+    writeSupport: WriteSupport[T],
+    readSupport: ReadSupport[T],
+    record: T
+  ) {
     import org.apache.parquet.hadoop.api.InitContext
 
     var reader: RecordReader[T] = null
@@ -233,7 +243,8 @@ object ParquetStates {
           conf,
           new java.util.HashMap,
           schema,
-          readSupport.init(new InitContext(conf, new java.util.HashMap, schema)))
+          readSupport.init(new InitContext(conf, new java.util.HashMap, schema))
+        )
       ): @nowarn("cat=deprecation")
     }
   }
@@ -260,24 +271,41 @@ object ParquetStates {
 
   // R/W support for Group <-> Case Class Conversion (magnolify-parquet)
   private val parquetType = ParquetType[Nested]
-  class ParquetCaseClassReadState extends ParquetStates.ReadState[Nested](
-    parquetType.schema, parquetType.writeSupport, parquetType.readSupport, nested
-  )
-  class ParquetCaseClassWriteState extends ParquetStates.WriteState[Nested](
-    parquetType.schema, parquetType.writeSupport
-  )
+  class ParquetCaseClassReadState
+      extends ParquetStates.ReadState[Nested](
+        parquetType.schema,
+        parquetType.writeSupport,
+        parquetType.readSupport,
+        nested
+      )
+  class ParquetCaseClassWriteState
+      extends ParquetStates.WriteState[Nested](
+        parquetType.schema,
+        parquetType.writeSupport
+      )
 
   // R/W support for Group <-> Avro Conversion (parquet-avro)
   private val avroType = AvroType[Nested]
-  class ParquetAvroReadState extends ParquetStates.ReadState[GenericRecord](
-    parquetType.schema,
-    new AvroWriteSupport[GenericRecord](parquetType.schema, parquetType.avroSchema, GenericData.get()),
-    new AvroReadSupport[GenericRecord](GenericData.get()), avroType.to(nested)
-  )
-  class ParquetAvroWriteState extends ParquetStates.WriteState[GenericRecord](
-    parquetType.schema,
-    new AvroWriteSupport[GenericRecord](parquetType.schema, parquetType.avroSchema, GenericData.get())
-  )
+  class ParquetAvroReadState
+      extends ParquetStates.ReadState[GenericRecord](
+        parquetType.schema,
+        new AvroWriteSupport[GenericRecord](
+          parquetType.schema,
+          parquetType.avroSchema,
+          GenericData.get()
+        ),
+        new AvroReadSupport[GenericRecord](GenericData.get()),
+        avroType.to(nested)
+      )
+  class ParquetAvroWriteState
+      extends ParquetStates.WriteState[GenericRecord](
+        parquetType.schema,
+        new AvroWriteSupport[GenericRecord](
+          parquetType.schema,
+          parquetType.avroSchema,
+          GenericData.get()
+        )
+      )
 }
 
 // Collections are not supported
