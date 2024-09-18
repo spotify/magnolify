@@ -16,13 +16,13 @@
 
 package magnolify.jmh
 
-import magnolify.parquet.{MagnolifyParquetProperties, ParquetType, TestInputFile, TestOutputFile}
+import magnolify.parquet.ParquetType.WriteSupport
+import magnolify.parquet.{MagnolifyParquetProperties, ParquetType}
 
 import java.util.concurrent.TimeUnit
 import magnolify.scalacheck.auto._
 import magnolify.test.Simple._
 import org.apache.hadoop.conf.Configuration
-import org.apache.parquet.hadoop.{ParquetReader, ParquetWriter}
 import org.scalacheck._
 import org.openjdk.jmh.annotations._
 
@@ -94,39 +94,65 @@ class AvroBench {
 
 @State(Scope.Benchmark)
 class ParquetReadState(pt: ParquetType[Nested]) {
-  var out: TestOutputFile = null
-  var reader: ParquetReader[Nested] = null
+  import org.apache.parquet.io._
+  import org.apache.parquet.column.impl.ColumnWriteStoreV1
+  import org.apache.parquet.column.ParquetProperties
+  import org.apache.parquet.hadoop.api.InitContext
+
+  var reader: RecordReader[Nested] = null
 
   @Setup(Level.Invocation)
   def setup(): Unit = {
-    out = new TestOutputFile
-    val writer = pt.writeBuilder(out).build()
-    writer.write(MagnolifyBench.nested)
-    writer.close()
+    // Write page
+    val columnIO = new ColumnIOFactory(true).getColumnIO(pt.schema)
+    val memPageStore = new ParquetInMemoryPageStore(1)
+    val columns = new ColumnWriteStoreV1(
+      pt.schema,
+      memPageStore,
+      ParquetProperties.builder.withPageSize(800).withDictionaryEncoding(false).build
+    )
+    val writeSupport = pt.writeSupport
+    val recordWriter = columnIO.getRecordWriter(columns)
+    writeSupport.prepareForWrite(recordWriter)
+    writeSupport.write(MagnolifyBench.nested)
+    recordWriter.flush()
+    columns.flush()
 
-    val in = new TestInputFile(out.getBytes)
-    reader = pt.readBuilder(in).build()
-  }
-
-  @TearDown(Level.Invocation)
-  def tearDown(): Unit = {
-    reader.close()
+    // Read and convert page
+    val conf = new Configuration()
+    val readSupport = pt.readSupport
+    reader = columnIO.getRecordReader(
+      memPageStore,
+      readSupport.prepareForRead(
+        conf,
+        new java.util.HashMap,
+        pt.schema,
+        readSupport.init(new InitContext(conf, new java.util.HashMap, pt.schema)))
+    )
   }
 }
 
 @State(Scope.Benchmark)
 class ParquetWriteState(pt: ParquetType[Nested]) {
-  var writer: ParquetWriter[Nested] = null
+  import org.apache.parquet.io._
+  import org.apache.parquet.column.impl.ColumnWriteStoreV1
+  import org.apache.parquet.column.ParquetProperties
+
+  var writer: WriteSupport[Nested] = null
 
   @Setup(Level.Invocation)
   def setup(): Unit = {
-    val out = new TestOutputFile
-    writer = pt.writeBuilder(out).build()
-  }
-
-  @TearDown(Level.Invocation)
-  def tearDown(): Unit = {
-    writer.close()
+    val columnIO = new ColumnIOFactory(true).getColumnIO(pt.schema)
+    val memPageStore = new ParquetInMemoryPageStore(1)
+    val columns = new ColumnWriteStoreV1(
+      pt.schema,
+      memPageStore,
+      ParquetProperties.builder.withPageSize(800).withDictionaryEncoding(false).build
+    )
+    val writeSupport = pt.writeSupport
+    val recordWriter = columnIO.getRecordWriter(columns)
+    writeSupport.prepareForWrite(recordWriter)
+    this.writer = writeSupport
   }
 }
 
