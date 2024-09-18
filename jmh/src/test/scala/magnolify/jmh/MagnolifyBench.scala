@@ -23,6 +23,9 @@ import magnolify.test.Simple._
 import org.scalacheck._
 import org.openjdk.jmh.annotations._
 
+import scala.annotation.nowarn
+import scala.jdk.CollectionConverters._
+
 object MagnolifyBench {
   val seed: rng.Seed = rng.Seed(0)
   val prms: Gen.Parameters = Gen.Parameters.default
@@ -157,7 +160,124 @@ class ExampleBench {
   private val exampleNested = implicitly[Arbitrary[ExampleNested]].arbitrary(prms, seed).get
   private val example = exampleType.to(exampleNested).build()
   @Benchmark def exampleTo: Example.Builder = exampleType.to(exampleNested)
-  @Benchmark def exampleFrom: ExampleNested = exampleType.from(example)
+  @Benchmark def exampleFrom: ExampleNested = exampleType.from(example.getFeatures.getFeatureMap.asScala.toMap)
+}
+
+@BenchmarkMode(Array(Mode.AverageTime))
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
+@State(Scope.Thread)
+class ParquetMagnolifyBench {
+  import MagnolifyBench._
+
+  @Benchmark def parquetWrite(state: ParquetStates.ParquetCaseClassWriteState): Unit = state.writer.write(nested)
+  @Benchmark def parquetRead(state: ParquetStates.ParquetCaseClassReadState): Nested = state.reader.read()
+}
+
+@BenchmarkMode(Array(Mode.AverageTime))
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
+@State(Scope.Thread)
+class ParquetAvroBench {
+  import MagnolifyBench._
+  import magnolify.avro._
+  import org.apache.avro.generic.GenericRecord
+
+  private val record = AvroType[Nested].to(nested)
+
+  @Benchmark def parquetWrite(state: ParquetStates.ParquetAvroWriteState): Unit = state.writer.write(record)
+  @Benchmark def parquetRead(state: ParquetStates.ParquetAvroReadState): GenericRecord = state.reader.read()
+}
+
+object ParquetStates {
+  import MagnolifyBench._
+  import magnolify.avro._
+  import magnolify.parquet._
+  import magnolify.parquet.ParquetArray.AvroCompat._
+  import org.apache.avro.generic.{GenericData, GenericRecord}
+  import org.apache.hadoop.conf.Configuration
+  import org.apache.parquet.conf.PlainParquetConfiguration
+  import org.apache.parquet.avro.{AvroReadSupport, AvroWriteSupport}
+  import org.apache.parquet.column.ParquetProperties
+  import org.apache.parquet.hadoop.api.{ReadSupport, WriteSupport}
+  import org.apache.parquet.schema.MessageType
+  import org.apache.parquet.io._
+  import org.apache.parquet.column.impl.ColumnWriteStoreV1
+
+  @State(Scope.Benchmark)
+  class ReadState[T](schema: MessageType, writeSupport: WriteSupport[T], readSupport: ReadSupport[T], record: T) {
+    import org.apache.parquet.hadoop.api.InitContext
+
+    var reader: RecordReader[T] = null
+
+    @Setup(Level.Invocation)
+    def setup(): Unit = {
+      // Write page
+      val columnIO = new ColumnIOFactory(true).getColumnIO(schema)
+      val memPageStore = new ParquetInMemoryPageStore(1)
+      val columns = new ColumnWriteStoreV1(
+        schema,
+        memPageStore,
+        ParquetProperties.builder.withPageSize(800).withDictionaryEncoding(false).build
+      )
+      val recordWriter = columnIO.getRecordWriter(columns)
+      writeSupport.init(new PlainParquetConfiguration())
+      writeSupport.prepareForWrite(recordWriter)
+      writeSupport.write(record)
+      recordWriter.flush()
+      columns.flush()
+
+      // Read and convert page
+      val conf = new Configuration()
+      reader = columnIO.getRecordReader(
+        memPageStore,
+        readSupport.prepareForRead(
+          conf,
+          new java.util.HashMap,
+          schema,
+          readSupport.init(new InitContext(conf, new java.util.HashMap, schema)))
+      ): @nowarn("cat=deprecation")
+    }
+  }
+
+  @State(Scope.Benchmark)
+  class WriteState[T](schema: MessageType, writeSupport: WriteSupport[T]) {
+    var writer: WriteSupport[T] = null
+
+    @Setup(Level.Invocation)
+    def setup(): Unit = {
+      val columnIO = new ColumnIOFactory(true).getColumnIO(schema)
+      val memPageStore = new ParquetInMemoryPageStore(1)
+      val columns = new ColumnWriteStoreV1(
+        schema,
+        memPageStore,
+        ParquetProperties.builder.withPageSize(800).withDictionaryEncoding(false).build
+      )
+      val recordWriter = columnIO.getRecordWriter(columns)
+      writeSupport.init(new PlainParquetConfiguration())
+      writeSupport.prepareForWrite(recordWriter)
+      this.writer = writeSupport
+    }
+  }
+
+  // R/W support for Group <-> Case Class Conversion (magnolify-parquet)
+  private val parquetType = ParquetType[Nested]
+  class ParquetCaseClassReadState extends ParquetStates.ReadState[Nested](
+    parquetType.schema, parquetType.writeSupport, parquetType.readSupport, nested
+  )
+  class ParquetCaseClassWriteState extends ParquetStates.WriteState[Nested](
+    parquetType.schema, parquetType.writeSupport
+  )
+
+  // R/W support for Group <-> Avro Conversion (parquet-avro)
+  private val avroType = AvroType[Nested]
+  class ParquetAvroReadState extends ParquetStates.ReadState[GenericRecord](
+    parquetType.schema,
+    new AvroWriteSupport[GenericRecord](parquetType.schema, parquetType.avroSchema, GenericData.get()),
+    new AvroReadSupport[GenericRecord](GenericData.get()), avroType.to(nested)
+  )
+  class ParquetAvroWriteState extends ParquetStates.WriteState[GenericRecord](
+    parquetType.schema,
+    new AvroWriteSupport[GenericRecord](parquetType.schema, parquetType.avroSchema, GenericData.get())
+  )
 }
 
 // Collections are not supported
