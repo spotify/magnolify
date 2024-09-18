@@ -222,23 +222,23 @@ object ParquetStates {
     def setup(): Unit = {
       // Write page
       val columnIO = new ColumnIOFactory(true).getColumnIO(schema)
-      val memPageStore = new ParquetInMemoryPageStore(1)
-      val columns = new ColumnWriteStoreV1(
+      val pageStore = new ParquetInMemoryPageStore(1)
+      val columnWriteStore = new ColumnWriteStoreV1(
         schema,
-        memPageStore,
+        pageStore,
         ParquetProperties.builder.withPageSize(800).withDictionaryEncoding(false).build
       )
-      val recordWriter = columnIO.getRecordWriter(columns)
+      val recordConsumer = columnIO.getRecordWriter(columnWriteStore)
       writeSupport.init(new PlainParquetConfiguration())
-      writeSupport.prepareForWrite(recordWriter)
+      writeSupport.prepareForWrite(recordConsumer)
       writeSupport.write(record)
-      recordWriter.flush()
-      columns.flush()
+      recordConsumer.flush()
+      columnWriteStore.flush()
 
-      // Read and convert page
+      // Set up reader
       val conf = new Configuration()
       reader = columnIO.getRecordReader(
-        memPageStore,
+        pageStore,
         readSupport.prepareForRead(
           conf,
           new java.util.HashMap,
@@ -255,16 +255,17 @@ object ParquetStates {
 
     @Setup(Level.Invocation)
     def setup(): Unit = {
-      val columnIO = new ColumnIOFactory(true).getColumnIO(schema)
-      val memPageStore = new ParquetInMemoryPageStore(1)
-      val columns = new ColumnWriteStoreV1(
-        schema,
-        memPageStore,
-        ParquetProperties.builder.withPageSize(800).withDictionaryEncoding(false).build
-      )
-      val recordWriter = columnIO.getRecordWriter(columns)
+      val recordConsumer = new ColumnIOFactory(true)
+        .getColumnIO(schema)
+        .getRecordWriter(
+          new ColumnWriteStoreV1(
+            schema,
+            new ParquetInMemoryPageStore(1),
+            ParquetProperties.builder.withPageSize(800).withDictionaryEncoding(false).build
+          )
+        )
       writeSupport.init(new PlainParquetConfiguration())
-      writeSupport.prepareForWrite(recordWriter)
+      writeSupport.prepareForWrite(recordConsumer)
       this.writer = writeSupport
     }
   }
