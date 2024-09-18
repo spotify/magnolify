@@ -167,29 +167,22 @@ class ExampleBench {
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @State(Scope.Thread)
-class ParquetMagnolifyBench {
+class ParquetBench {
   import MagnolifyBench._
-
-  @Benchmark def parquetWrite(state: ParquetStates.ParquetCaseClassWriteState): Unit =
-    state.writer.write(nested)
-  @Benchmark def parquetRead(state: ParquetStates.ParquetCaseClassReadState): Nested =
-    state.reader.read()
-}
-
-@BenchmarkMode(Array(Mode.AverageTime))
-@OutputTimeUnit(TimeUnit.NANOSECONDS)
-@State(Scope.Thread)
-class ParquetAvroBench {
-  import MagnolifyBench._
+  import ParquetStates._
   import magnolify.avro._
   import org.apache.avro.generic.GenericRecord
 
-  private val record = AvroType[Nested].to(nested)
+  private val genericRecord = AvroType[Nested].to(nested)
 
-  @Benchmark def parquetWrite(state: ParquetStates.ParquetAvroWriteState): Unit =
-    state.writer.write(record)
-  @Benchmark def parquetRead(state: ParquetStates.ParquetAvroReadState): GenericRecord =
+  @Benchmark def parquetWriteMagnolify(state: ParquetCaseClassWriteState): Unit =
+    state.writer.write(nested)
+  @Benchmark def parquetWriteAvro(state: ParquetAvroWriteState): Unit =
+    state.writer.write(genericRecord)
+
+  @Benchmark def parquetReadMagnolify(state: ParquetCaseClassReadState): Nested =
     state.reader.read()
+  @Benchmark def parquetReadAvro(state: ParquetAvroReadState): GenericRecord = state.reader.read()
 }
 
 object ParquetStates {
