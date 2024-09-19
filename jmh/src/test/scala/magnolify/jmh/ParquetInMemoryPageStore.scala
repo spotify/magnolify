@@ -27,7 +27,9 @@ import scala.collection.mutable
  * An in-memory Parquet page store modeled after parquet-java's MemPageStore, used to benchmark
  * ParquetType conversion between Parquet Groups and Scala case classes
  */
-class ParquetInMemoryPageStore(rowCount: Long) extends PageReadStore with PageWriteStore {
+class ParquetInMemoryPageStore(rowCount: Long, writeOnly: Boolean = false)
+    extends PageReadStore
+    with PageWriteStore {
   lazy val writers = new mutable.HashMap[ColumnDescriptor, ParquetInMemoryWriter]()
   lazy val readers = new mutable.HashMap[ColumnDescriptor, ParquetInMemoryReader]()
 
@@ -35,30 +37,39 @@ class ParquetInMemoryPageStore(rowCount: Long) extends PageReadStore with PageWr
     readers.getOrElseUpdate(
       path, {
         val writer = writers(path)
-        new ParquetInMemoryReader(writer.numValues, writer.pages.toList, writer.dictionaryPage)
+        new ParquetInMemoryReader(writer.pages.toList, writer.dictionaryPage)
       }
     )
 
   override def getPageWriter(path: ColumnDescriptor): PageWriter =
-    writers.getOrElseUpdate(path, new ParquetInMemoryWriter())
+    writers.getOrElseUpdate(path, new ParquetInMemoryWriter(writeOnly))
 
   override def getRowCount: Long = rowCount
 }
 
-class ParquetInMemoryReader(valueCount: Long, pages: List[DataPage], dictionaryPage: DictionaryPage)
+class ParquetInMemoryReader(pages: List[DataPageV1], dictionaryPage: DictionaryPage)
     extends PageReader {
-  lazy val pagesIt = pages.iterator
+  // Infinitely return the first page; for the purposes of benchmarking, we don't care about the data itself
+  private val page = pages.head
 
   override def readDictionaryPage(): DictionaryPage = dictionaryPage
-  override def getTotalValueCount: Long = valueCount
-  override def readPage(): DataPage = pagesIt.next()
+  override def getTotalValueCount: Long = Long.MaxValue
+  override def readPage(): DataPage = new DataPageV1(
+    page.getBytes.copy(new ByteBufferReleaser(new HeapByteBufferAllocator)),
+    page.getValueCount,
+    page.getUncompressedSize,
+    page.getStatistics,
+    page.getRlEncoding,
+    page.getDlEncoding,
+    page.getValueEncoding
+  )
 }
 
-class ParquetInMemoryWriter extends PageWriter {
+class ParquetInMemoryWriter(writeOnly: Boolean) extends PageWriter {
   var numRows = 0
   var numValues: Long = 0
   var memSize: Long = 0
-  val pages = new mutable.ListBuffer[DataPage]()
+  val pages = new mutable.ListBuffer[DataPageV1]()
   var dictionaryPage: DictionaryPage = null
 
   override def writePage(
@@ -92,20 +103,22 @@ class ParquetInMemoryWriter extends PageWriter {
     dlEncoding: Encoding,
     valuesEncoding: Encoding
   ): Unit = {
-    pages.addOne(
-      new DataPageV1(
-        bytesInput.copy(new ByteBufferReleaser(new HeapByteBufferAllocator)),
-        valueCount,
-        bytesInput.size().toInt,
-        statistics,
-        rlEncoding,
-        dlEncoding,
-        valuesEncoding
+    if (!writeOnly) {
+      pages.addOne(
+        new DataPageV1(
+          bytesInput.copy(new ByteBufferReleaser(new HeapByteBufferAllocator)),
+          valueCount,
+          bytesInput.size().toInt,
+          statistics,
+          rlEncoding,
+          dlEncoding,
+          valuesEncoding
+        )
       )
-    )
-    memSize += bytesInput.size()
-    numRows += rowCount
-    numValues += valueCount
+      memSize += bytesInput.size()
+      numRows += rowCount
+      numValues += valueCount
+    }
   }
 
   override def writePageV2(

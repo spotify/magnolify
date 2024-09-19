@@ -211,7 +211,7 @@ object ParquetStates {
 
     var reader: RecordReader[T] = null
 
-    @Setup(Level.Invocation)
+    @Setup(Level.Iteration)
     def setup(): Unit = {
       // Write page
       val columnIO = new ColumnIOFactory(true).getColumnIO(schema)
@@ -246,15 +246,19 @@ object ParquetStates {
   class WriteState[T](schema: MessageType, writeSupport: WriteSupport[T]) {
     var writer: WriteSupport[T] = null
 
-    @Setup(Level.Invocation)
+    @Setup(Level.Iteration)
     def setup(): Unit = {
       val recordConsumer = new ColumnIOFactory(true)
         .getColumnIO(schema)
         .getRecordWriter(
           new ColumnWriteStoreV1(
             schema,
-            new ParquetInMemoryPageStore(1),
-            ParquetProperties.builder.withPageSize(800).withDictionaryEncoding(false).build
+            new ParquetInMemoryPageStore(Long.MaxValue, writeOnly = true),
+            ParquetProperties.builder
+              .withPageSize(10 * 1024 * 1024)
+              .withPageRowCountLimit(Int.MaxValue)
+              .withDictionaryEncoding(false)
+              .build
           )
         )
       writeSupport.init(new PlainParquetConfiguration())
