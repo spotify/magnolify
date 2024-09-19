@@ -198,6 +198,7 @@ object ParquetStates {
   import org.apache.parquet.hadoop.api.{ReadSupport, WriteSupport}
   import org.apache.parquet.schema.MessageType
   import org.apache.parquet.io._
+  import org.apache.parquet.io.api.RecordConsumer
   import org.apache.parquet.column.impl.ColumnWriteStoreV1
 
   @State(Scope.Benchmark)
@@ -245,10 +246,11 @@ object ParquetStates {
   @State(Scope.Benchmark)
   class WriteState[T](schema: MessageType, writeSupport: WriteSupport[T]) {
     var writer: WriteSupport[T] = null
+    var recordConsumer: RecordConsumer = null
 
     @Setup(Level.Iteration)
     def setup(): Unit = {
-      val recordConsumer = new ColumnIOFactory(true)
+      recordConsumer = new ColumnIOFactory(true)
         .getColumnIO(schema)
         .getRecordWriter(
           new ColumnWriteStoreV1(
@@ -261,6 +263,8 @@ object ParquetStates {
       writeSupport.prepareForWrite(recordConsumer)
       this.writer = writeSupport
     }
+    @Setup(Level.Invocation)
+    def teardown(): Unit = recordConsumer.flush()
   }
 
   // R/W support for Group <-> Case Class Conversion (magnolify-parquet)
