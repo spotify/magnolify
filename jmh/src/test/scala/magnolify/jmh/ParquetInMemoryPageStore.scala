@@ -27,9 +27,7 @@ import scala.collection.mutable
  * An in-memory Parquet page store modeled after parquet-java's MemPageStore, used to benchmark
  * ParquetType conversion between Parquet Groups and Scala case classes
  */
-class ParquetInMemoryPageStore(rowCount: Long, writeOnly: Boolean = false)
-    extends PageReadStore
-    with PageWriteStore {
+class ParquetInMemoryPageStore(rowCount: Long) extends PageReadStore with PageWriteStore {
   lazy val writers = new mutable.HashMap[ColumnDescriptor, ParquetInMemoryWriter]()
   lazy val readers = new mutable.HashMap[ColumnDescriptor, ParquetInMemoryReader]()
 
@@ -42,7 +40,7 @@ class ParquetInMemoryPageStore(rowCount: Long, writeOnly: Boolean = false)
     )
 
   override def getPageWriter(path: ColumnDescriptor): PageWriter =
-    writers.getOrElseUpdate(path, new ParquetInMemoryWriter(writeOnly))
+    writers.getOrElseUpdate(path, new ParquetInMemoryWriter)
 
   override def getRowCount: Long = rowCount
 }
@@ -65,7 +63,7 @@ class ParquetInMemoryReader(pages: List[DataPageV1], dictionaryPage: DictionaryP
   )
 }
 
-class ParquetInMemoryWriter(writeOnly: Boolean) extends PageWriter {
+class ParquetInMemoryWriter extends PageWriter {
   var numRows = 0
   var numValues: Long = 0
   var memSize: Long = 0
@@ -103,20 +101,17 @@ class ParquetInMemoryWriter(writeOnly: Boolean) extends PageWriter {
     dlEncoding: Encoding,
     valuesEncoding: Encoding
   ): Unit = {
-    // If we don't need to read the values later, don't waste mem storing them
-    if (!writeOnly) {
-      pages.addOne(
-        new DataPageV1(
-          bytesInput.copy(new ByteBufferReleaser(new HeapByteBufferAllocator)),
-          valueCount,
-          bytesInput.size().toInt,
-          statistics,
-          rlEncoding,
-          dlEncoding,
-          valuesEncoding
-        )
+    pages.addOne(
+      new DataPageV1(
+        bytesInput.copy(new ByteBufferReleaser(new HeapByteBufferAllocator)),
+        valueCount,
+        bytesInput.size().toInt,
+        statistics,
+        rlEncoding,
+        dlEncoding,
+        valuesEncoding
       )
-    }
+    )
     memSize += bytesInput.size()
     numRows += rowCount
     numValues += valueCount

@@ -17,7 +17,6 @@
 package magnolify.jmh
 
 import java.util.concurrent.TimeUnit
-
 import magnolify.scalacheck.auto._
 import magnolify.test.Simple._
 import org.scalacheck._
@@ -198,7 +197,7 @@ object ParquetStates {
   import org.apache.parquet.hadoop.api.{ReadSupport, WriteSupport}
   import org.apache.parquet.schema.MessageType
   import org.apache.parquet.io._
-  import org.apache.parquet.io.api.RecordConsumer
+  import org.apache.parquet.io.api.{Binary, RecordConsumer}
   import org.apache.parquet.column.impl.ColumnWriteStoreV1
 
   @State(Scope.Benchmark)
@@ -244,27 +243,30 @@ object ParquetStates {
   }
 
   @State(Scope.Benchmark)
-  class WriteState[T](schema: MessageType, writeSupport: WriteSupport[T]) {
+  class WriteState[T](writeSupport: WriteSupport[T]) {
     var writer: WriteSupport[T] = null
-    var recordConsumer: RecordConsumer = null
 
     @Setup(Level.Iteration)
     def setup(): Unit = {
-      recordConsumer = new ColumnIOFactory(true)
-        .getColumnIO(schema)
-        .getRecordWriter(
-          new ColumnWriteStoreV1(
-            schema,
-            new ParquetInMemoryPageStore(Long.MaxValue, writeOnly = true),
-            ParquetProperties.builder.withDictionaryEncoding(false).build
-          )
-        )
       writeSupport.init(new PlainParquetConfiguration())
-      writeSupport.prepareForWrite(recordConsumer)
+      // Use a no-op RecordConsumer; we want to measure only the record -> group conversion, and not pollute the
+      // benchmark with background tasks like flushing pages/blocks or validating records
+      writeSupport.prepareForWrite(new RecordConsumer {
+        override def startMessage(): Unit = {}
+        override def endMessage(): Unit = {}
+        override def startField(field: String, index: Int): Unit = {}
+        override def endField(field: String, index: Int): Unit = {}
+        override def startGroup(): Unit = {}
+        override def endGroup(): Unit = {}
+        override def addInteger(value: Int): Unit = {}
+        override def addLong(value: Long): Unit = {}
+        override def addBoolean(value: Boolean): Unit = {}
+        override def addBinary(value: Binary): Unit = {}
+        override def addFloat(value: Float): Unit = {}
+        override def addDouble(value: Double): Unit = {}
+      })
       this.writer = writeSupport
     }
-    @Setup(Level.Invocation)
-    def teardown(): Unit = recordConsumer.flush()
   }
 
   // R/W support for Group <-> Case Class Conversion (magnolify-parquet)
@@ -277,10 +279,7 @@ object ParquetStates {
         nested
       )
   class ParquetCaseClassWriteState
-      extends ParquetStates.WriteState[Nested](
-        parquetType.schema,
-        parquetType.writeSupport
-      )
+      extends ParquetStates.WriteState[Nested](parquetType.writeSupport)
 
   // R/W support for Group <-> Avro Conversion (parquet-avro)
   private val avroType = AvroType[Nested]
@@ -297,7 +296,6 @@ object ParquetStates {
       )
   class ParquetAvroWriteState
       extends ParquetStates.WriteState[GenericRecord](
-        parquetType.schema,
         new AvroWriteSupport[GenericRecord](
           parquetType.schema,
           parquetType.avroSchema,
