@@ -103,6 +103,7 @@ class ParquetInMemoryWriter(writeOnly: Boolean) extends PageWriter {
     dlEncoding: Encoding,
     valuesEncoding: Encoding
   ): Unit = {
+    // If we don't need to read the values later, don't waste mem storing them
     if (!writeOnly) {
       pages.addOne(
         new DataPageV1(
@@ -115,10 +116,10 @@ class ParquetInMemoryWriter(writeOnly: Boolean) extends PageWriter {
           valuesEncoding
         )
       )
-      memSize += bytesInput.size()
-      numRows += rowCount
-      numValues += valueCount
     }
+    memSize += bytesInput.size()
+    numRows += rowCount
+    numValues += valueCount
   }
 
   override def writePageV2(
