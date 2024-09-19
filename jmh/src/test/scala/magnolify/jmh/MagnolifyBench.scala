@@ -16,17 +16,12 @@
 
 package magnolify.jmh
 
-import magnolify.parquet.ParquetType.WriteSupport
-import magnolify.parquet.{MagnolifyParquetProperties, ParquetType}
-
 import java.util.concurrent.TimeUnit
+
 import magnolify.scalacheck.auto._
 import magnolify.test.Simple._
-import org.apache.hadoop.conf.Configuration
 import org.scalacheck._
 import org.openjdk.jmh.annotations._
-
-import scala.jdk.CollectionConverters._
 
 object MagnolifyBench {
   val seed: rng.Seed = rng.Seed(0)
@@ -90,103 +85,6 @@ class AvroBench {
   @Benchmark def avroTo: GenericRecord = avroType.to(nested)
   @Benchmark def avroFrom: Nested = avroType.from(genericRecord)
   @Benchmark def avroSchema: Schema = AvroType[Nested].schema
-}
-
-@State(Scope.Benchmark)
-class ParquetReadState(pt: ParquetType[Nested]) {
-  import org.apache.parquet.io._
-  import org.apache.parquet.column.impl.ColumnWriteStoreV1
-  import org.apache.parquet.column.ParquetProperties
-  import org.apache.parquet.hadoop.api.InitContext
-
-  var reader: RecordReader[Nested] = null
-
-  @Setup(Level.Invocation)
-  def setup(): Unit = {
-    // Write page
-    val columnIO = new ColumnIOFactory(true).getColumnIO(pt.schema)
-    val memPageStore = new ParquetInMemoryPageStore(1)
-    val columns = new ColumnWriteStoreV1(
-      pt.schema,
-      memPageStore,
-      ParquetProperties.builder.withPageSize(800).withDictionaryEncoding(false).build
-    )
-    val writeSupport = pt.writeSupport
-    val recordWriter = columnIO.getRecordWriter(columns)
-    writeSupport.prepareForWrite(recordWriter)
-    writeSupport.write(MagnolifyBench.nested)
-    recordWriter.flush()
-    columns.flush()
-
-    // Read and convert page
-    val conf = new Configuration()
-    val readSupport = pt.readSupport
-    reader = columnIO.getRecordReader(
-      memPageStore,
-      readSupport.prepareForRead(
-        conf,
-        new java.util.HashMap,
-        pt.schema,
-        readSupport.init(new InitContext(conf, new java.util.HashMap, pt.schema)))
-    )
-  }
-}
-
-@State(Scope.Benchmark)
-class ParquetWriteState(pt: ParquetType[Nested]) {
-  import org.apache.parquet.io._
-  import org.apache.parquet.column.impl.ColumnWriteStoreV1
-  import org.apache.parquet.column.ParquetProperties
-
-  var writer: WriteSupport[Nested] = null
-
-  @Setup(Level.Invocation)
-  def setup(): Unit = {
-    val columnIO = new ColumnIOFactory(true).getColumnIO(pt.schema)
-    val memPageStore = new ParquetInMemoryPageStore(1)
-    val columns = new ColumnWriteStoreV1(
-      pt.schema,
-      memPageStore,
-      ParquetProperties.builder.withPageSize(800).withDictionaryEncoding(false).build
-    )
-    val writeSupport = pt.writeSupport
-    val recordWriter = columnIO.getRecordWriter(columns)
-    writeSupport.prepareForWrite(recordWriter)
-    this.writer = writeSupport
-  }
-}
-
-object ParquetStates {
-  def confWithGroupedArraysProp(propValue: Boolean): Configuration = {
-    val conf = new Configuration()
-    conf.setBoolean(MagnolifyParquetProperties.WriteGroupedArrays, propValue)
-    conf
-  }
-  class DefaultParquetReadState extends ParquetReadState(ParquetType[Nested](confWithGroupedArraysProp(false)))
-  class DefaultParquetWriteState extends ParquetWriteState(ParquetType[Nested](confWithGroupedArraysProp(false)))
-
-  class ParquetAvroCompatReadState extends ParquetReadState(ParquetType[Nested](confWithGroupedArraysProp(true)))
-  class ParquetAvroCompatWriteState extends ParquetWriteState(ParquetType[Nested](confWithGroupedArraysProp(true)))
-}
-
-@BenchmarkMode(Array(Mode.AverageTime))
-@OutputTimeUnit(TimeUnit.NANOSECONDS)
-@State(Scope.Thread)
-class ParquetBench {
-  import MagnolifyBench._
-
-  @Benchmark def parquetWrite(state: ParquetStates.DefaultParquetWriteState): Unit = state.writer.write(nested)
-  @Benchmark def parquetRead(state: ParquetStates.DefaultParquetReadState): Nested = state.reader.read()
-}
-
-@BenchmarkMode(Array(Mode.AverageTime))
-@OutputTimeUnit(TimeUnit.NANOSECONDS)
-@State(Scope.Thread)
-class ParquetAvroCompatBench {
-  import MagnolifyBench._
-
-  @Benchmark def parquetWrite(state: ParquetStates.ParquetAvroCompatWriteState): Unit = state.writer.write(nested)
-  @Benchmark def parquetRead(state: ParquetStates.ParquetAvroCompatReadState): Nested = state.reader.read()
 }
 
 @BenchmarkMode(Array(Mode.AverageTime))
@@ -259,7 +157,7 @@ class ExampleBench {
   private val exampleNested = implicitly[Arbitrary[ExampleNested]].arbitrary(prms, seed).get
   private val example = exampleType.to(exampleNested).build()
   @Benchmark def exampleTo: Example.Builder = exampleType.to(exampleNested)
-  @Benchmark def exampleFrom: ExampleNested = exampleType.from(example.getFeatures.getFeatureMap.asScala.toMap)
+  @Benchmark def exampleFrom: ExampleNested = exampleType.from(example)
 }
 
 // Collections are not supported

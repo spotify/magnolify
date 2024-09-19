@@ -31,11 +31,4 @@ object MagnolifyParquetProperties {
 
   val ReadTypeKey = "parquet.type.read.type"
   val WriteTypeKey = "parquet.type.write.type"
-
-  // Hash any Configuration values that might affect schema creation to use as part of Schema cache key
-  private[parquet] def hashValues(conf: Configuration): Int =
-    Option(conf.get(WriteGroupedArrays))
-      .map(_.toBoolean)
-      .getOrElse(WriteGroupedArraysDefault)
-      .hashCode()
 }
