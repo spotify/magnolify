@@ -244,9 +244,9 @@ object ParquetStates {
 
   @State(Scope.Benchmark)
   class WriteState[T](writeSupport: WriteSupport[T]) {
-    var writer: WriteSupport[T] = null
+    val writer = writeSupport
 
-    @Setup(Level.Iteration)
+    @Setup(Level.Trial)
     def setup(): Unit = {
       writeSupport.init(new PlainParquetConfiguration())
       // Use a no-op RecordConsumer; we want to measure only the record -> group conversion, and not pollute the
@@ -265,7 +265,6 @@ object ParquetStates {
         override def addFloat(value: Float): Unit = {}
         override def addDouble(value: Double): Unit = {}
       })
-      this.writer = writeSupport
     }
   }
 
