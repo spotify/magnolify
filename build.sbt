@@ -106,7 +106,7 @@ ThisBuild / developers := List(
 )
 
 // scala versions
-val scala3 = "3.3.3"
+val scala3 = "3.3.4"
 val scala213 = "2.13.14"
 val scala212 = "2.12.20"
 val scalaDefault = scala213
@@ -413,7 +413,16 @@ lazy val test = project
       "org.scalameta" %% "munit" % munitVersion % Test,
       "org.scalameta" %% "munit-scalacheck" % munitScalacheckVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion % Test
-    )
+    ),
+    Test / scalacOptions := {
+      val opts = (Test / scalacOptions).value
+      // silence warning.
+      // cat & origin are not valid categories and filter yet
+      CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((3, _)) => opts.filter(_ != "-Wunused:imports")
+        case _            => opts
+      }
+    }
   )
 
 lazy val scalacheck = project
