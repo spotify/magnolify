@@ -20,27 +20,28 @@ import com.github.sbt.git.SbtGit.GitKeys.gitRemoteRepo
 import com.typesafe.tools.mima.core._
 
 val magnoliaScala2Version = "1.1.10"
-val magnoliaScala3Version = "1.3.7"
+val magnoliaScala3Version = "1.3.8"
 
 val algebirdVersion = "0.13.10"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.3")
-val bigqueryVersion = "v2-rev20240229-2.0.0"
-val bigtableVersion = "2.43.0"
+val beamVersion = "2.60.0"
+val bigqueryVersion = "v2-rev20241013-2.0.0"
+val bigtableVersion = "2.48.0"
 val catsVersion = "2.12.0"
-val datastoreVersion = "2.21.2"
-val guavaVersion = "33.3.0-jre"
-val hadoopVersion = "3.4.0"
-val jacksonVersion = "2.17.2"
-val jodaTimeVersion = "2.12.7"
-val munitVersion = "1.0.1"
+val datastoreVersion = "2.24.3"
+val guavaVersion = "33.3.1-jre"
+val hadoopVersion = "3.4.1"
+val jacksonVersion = "2.18.1"
+val jodaTimeVersion = "2.13.0"
+val munitVersion = "1.0.2"
 val munitScalacheckVersion = "1.0.0"
 val neo4jDriverVersion = "4.4.18"
 val paigesVersion = "0.4.4"
-val parquetVersion = "1.14.2"
-val protobufVersion = "3.25.4"
+val parquetVersion = "1.14.4"
+val protobufVersion = "3.25.5"
 val refinedVersion = "0.11.2"
 val scalaCollectionCompatVersion = "2.12.0"
-val scalacheckVersion = "1.18.0"
+val scalacheckVersion = "1.18.1"
 val shapelessVersion = "2.3.12"
 val slf4jVersion = "2.0.16"
 val tensorflowMetadataVersion = "1.15.0"
@@ -105,7 +106,7 @@ ThisBuild / developers := List(
 )
 
 // scala versions
-val scala3 = "3.3.3"
+val scala3 = "3.3.4"
 val scala213 = "2.13.14"
 val scala212 = "2.12.20"
 val scalaDefault = scala213
@@ -168,7 +169,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
           name = Some("Test coverage")
         ),
         WorkflowStep.Use(
-          UseRef.Public("codecov", "codecov-action", "v4"),
+          UseRef.Public("codecov", "codecov-action", "v5"),
           Map("token" -> "${{ secrets.CODECOV_TOKEN }}"),
           name = Some("Upload coverage report")
         )
@@ -225,7 +226,23 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 // mima
 ThisBuild / mimaBinaryIssueFilters ++= Seq(
   // genFunnelMacro should not be available to users
-  ProblemFilters.exclude[DirectMissingMethodProblem]("magnolify.guava.auto.package.genFunnelMacro")
+  ProblemFilters.exclude[DirectMissingMethodProblem]("magnolify.guava.auto.package.genFunnelMacro"),
+  // incorrectly named implicit
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.parquet.logical.package#micros.pfTimestampMillis"
+  ),
+  // incorrectly named implicit
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.parquet.logical.package#micros.pfLocalDateTimeMillis"
+  ),
+  // incorrectly named implicit
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.parquet.logical.package#nanos.pfTimestampMillis"
+  ),
+  // incorrectly named implicit
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.parquet.logical.package#nanos.pfLocalDateTimeMillis"
+  )
 )
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.8.0")
 
@@ -326,6 +343,7 @@ lazy val root = tlCrossRootProject
   )
   .aggregate(
     avro,
+    beam,
     bigquery,
     bigtable,
     bom,
@@ -379,7 +397,8 @@ lazy val shared = project
     commonSettings,
     crossScalaVersions := Seq(scala3, scala213, scala212),
     moduleName := "magnolify-shared",
-    description := "Shared code for Magnolify"
+    description := "Shared code for Magnolify",
+    libraryDependencies += "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
   )
 
 // shared code for unit tests
@@ -394,13 +413,22 @@ lazy val test = project
       "org.scalameta" %% "munit" % munitVersion % Test,
       "org.scalameta" %% "munit-scalacheck" % munitScalacheckVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion % Test
-    )
+    ),
+    Test / scalacOptions := {
+      val opts = (Test / scalacOptions).value
+      // silence warning.
+      // cat & origin are not valid categories and filter yet
+      CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((3, _)) => opts.filter(_ != "-Wunused:imports")
+        case _            => opts
+      }
+    }
   )
 
 lazy val scalacheck = project
   .in(file("scalacheck"))
   .dependsOn(
-    shared,
+    shared % "compile,test->test",
     test % "test->test"
   )
   .settings(
@@ -488,6 +516,27 @@ lazy val avro = project
       "org.apache.avro" % "avro" % avroVersion % Provided,
       "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion % Test
     )
+  )
+
+lazy val beam = project
+  .in(file("beam"))
+  .dependsOn(
+    shared,
+    cats % "test->test",
+    scalacheck % "test->test",
+    test % "test->test"
+  )
+  .settings(
+    commonSettings,
+    protobufSettings,
+    moduleName := "magnolify-beam",
+    description := "Magnolia add-on for Apache Beam",
+    libraryDependencies ++= Seq(
+      "org.apache.beam" % "beam-sdks-java-core" % beamVersion % Provided,
+      "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
+    ),
+    // TODO remove this line after release
+    tlMimaPreviousVersions := Set.empty
   )
 
 lazy val bigquery = project
@@ -729,6 +778,7 @@ lazy val jmh: Project = project
       "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
       "org.apache.avro" % "avro" % avroVersion % Test,
       "org.tensorflow" % "tensorflow-core-api" % tensorflowVersion % Test,
+      "joda-time" % "joda-time" % jodaTimeVersion % Test,
       "org.apache.parquet" % "parquet-avro" % parquetVersion % Test,
       "org.apache.parquet" % "parquet-column" % parquetVersion % Test,
       "org.apache.parquet" % "parquet-hadoop" % parquetVersion % Test,
@@ -752,6 +802,7 @@ lazy val site = project
   )
   .dependsOn(
     avro % "compile->compile,provided",
+    beam % "compile->compile,provided",
     bigquery % "compile->compile,provided",
     bigtable % "compile->compile,provided",
     cats % "compile->compile,provided",

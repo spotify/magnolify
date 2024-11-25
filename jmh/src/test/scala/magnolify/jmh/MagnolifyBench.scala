@@ -17,11 +17,13 @@
 package magnolify.jmh
 
 import java.util.concurrent.TimeUnit
-
 import magnolify.scalacheck.auto._
 import magnolify.test.Simple._
 import org.scalacheck._
 import org.openjdk.jmh.annotations._
+
+import scala.annotation.nowarn
+import scala.jdk.CollectionConverters._
 
 object MagnolifyBench {
   val seed: rng.Seed = rng.Seed(0)
@@ -157,7 +159,148 @@ class ExampleBench {
   private val exampleNested = implicitly[Arbitrary[ExampleNested]].arbitrary(prms, seed).get
   private val example = exampleType.to(exampleNested).build()
   @Benchmark def exampleTo: Example.Builder = exampleType.to(exampleNested)
-  @Benchmark def exampleFrom: ExampleNested = exampleType.from(example)
+  @Benchmark def exampleFrom: ExampleNested =
+    exampleType.from(example.getFeatures.getFeatureMap.asScala.toMap)
+}
+
+@BenchmarkMode(Array(Mode.AverageTime))
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
+@State(Scope.Thread)
+class ParquetBench {
+  import MagnolifyBench._
+  import ParquetStates._
+  import magnolify.avro._
+  import org.apache.avro.generic.GenericRecord
+
+  private val genericRecord = AvroType[Nested].to(nested)
+
+  @Benchmark def parquetWriteMagnolify(state: ParquetCaseClassWriteState): Unit =
+    state.writer.write(nested)
+  @Benchmark def parquetWriteAvro(state: ParquetAvroWriteState): Unit =
+    state.writer.write(genericRecord)
+
+  @Benchmark def parquetReadMagnolify(state: ParquetCaseClassReadState): Nested =
+    state.reader.read()
+  @Benchmark def parquetReadAvro(state: ParquetAvroReadState): GenericRecord = state.reader.read()
+}
+
+object ParquetStates {
+  import MagnolifyBench._
+  import magnolify.avro._
+  import magnolify.parquet._
+  import magnolify.parquet.ParquetArray.AvroCompat._
+  import org.apache.avro.generic.{GenericData, GenericRecord}
+  import org.apache.hadoop.conf.Configuration
+  import org.apache.parquet.conf.PlainParquetConfiguration
+  import org.apache.parquet.avro.{AvroReadSupport, AvroWriteSupport}
+  import org.apache.parquet.column.ParquetProperties
+  import org.apache.parquet.hadoop.api.{ReadSupport, WriteSupport}
+  import org.apache.parquet.schema.MessageType
+  import org.apache.parquet.io._
+  import org.apache.parquet.io.api.{Binary, RecordConsumer}
+  import org.apache.parquet.column.impl.ColumnWriteStoreV1
+
+  @State(Scope.Benchmark)
+  class ReadState[T](
+    schema: MessageType,
+    writeSupport: WriteSupport[T],
+    readSupport: ReadSupport[T],
+    record: T
+  ) {
+    import org.apache.parquet.hadoop.api.InitContext
+
+    var reader: RecordReader[T] = null
+
+    @Setup(Level.Trial)
+    def setup(): Unit = {
+      // Write page
+      val columnIO = new ColumnIOFactory(true).getColumnIO(schema)
+      val pageStore = new ParquetInMemoryPageStore(1)
+      val columnWriteStore = new ColumnWriteStoreV1(
+        schema,
+        pageStore,
+        ParquetProperties.builder.withPageSize(800).withDictionaryEncoding(false).build
+      )
+      val recordConsumer = columnIO.getRecordWriter(columnWriteStore)
+      writeSupport.init(new PlainParquetConfiguration())
+      writeSupport.prepareForWrite(recordConsumer)
+      writeSupport.write(record)
+      recordConsumer.flush()
+      columnWriteStore.flush()
+
+      // Set up reader
+      val conf = new Configuration()
+      reader = columnIO.getRecordReader(
+        pageStore,
+        readSupport.prepareForRead(
+          conf,
+          new java.util.HashMap,
+          schema,
+          readSupport.init(new InitContext(conf, new java.util.HashMap, schema))
+        )
+      ): @nowarn("cat=deprecation")
+    }
+  }
+
+  @State(Scope.Benchmark)
+  class WriteState[T](writeSupport: WriteSupport[T]) {
+    val writer = writeSupport
+
+    @Setup(Level.Trial)
+    def setup(): Unit = {
+      writeSupport.init(new PlainParquetConfiguration())
+      // Use a no-op RecordConsumer; we want to measure only the record -> group conversion, and not pollute the
+      // benchmark with background tasks like flushing pages/blocks or validating records
+      writeSupport.prepareForWrite(new RecordConsumer {
+        override def startMessage(): Unit = {}
+        override def endMessage(): Unit = {}
+        override def startField(field: String, index: Int): Unit = {}
+        override def endField(field: String, index: Int): Unit = {}
+        override def startGroup(): Unit = {}
+        override def endGroup(): Unit = {}
+        override def addInteger(value: Int): Unit = {}
+        override def addLong(value: Long): Unit = {}
+        override def addBoolean(value: Boolean): Unit = {}
+        override def addBinary(value: Binary): Unit = {}
+        override def addFloat(value: Float): Unit = {}
+        override def addDouble(value: Double): Unit = {}
+      })
+    }
+  }
+
+  // R/W support for Group <-> Case Class Conversion (magnolify-parquet)
+  private val parquetType = ParquetType[Nested]
+  class ParquetCaseClassReadState
+      extends ParquetStates.ReadState[Nested](
+        parquetType.schema,
+        parquetType.writeSupport,
+        parquetType.readSupport,
+        nested
+      )
+  class ParquetCaseClassWriteState
+      extends ParquetStates.WriteState[Nested](parquetType.writeSupport)
+
+  // R/W support for Group <-> Avro Conversion (parquet-avro)
+  private val avroType = AvroType[Nested]
+  class ParquetAvroReadState
+      extends ParquetStates.ReadState[GenericRecord](
+        parquetType.schema,
+        new AvroWriteSupport[GenericRecord](
+          parquetType.schema,
+          parquetType.avroSchema,
+          GenericData.get()
+        ),
+        new AvroReadSupport[GenericRecord](GenericData.get()),
+        avroType.to(nested)
+      )
+  class ParquetAvroWriteState
+      extends ParquetStates.WriteState[GenericRecord](
+        new AvroWriteSupport[GenericRecord](
+          parquetType.schema,
+          parquetType.avroSchema,
+          GenericData.get()
+        )
+      )
 }
 
 // Collections are not supported
