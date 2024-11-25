@@ -16,19 +16,24 @@
 
 package magnolify.parquet
 
-import org.apache.hadoop.conf.Configuration
+import java.util.Objects
+
+trait MagnolifyParquetProperties extends Serializable {
+  def writeGroupedArrays: Boolean = false
+  def writeAvroSchemaToMetadata: Boolean = true
+
+  private[parquet] final def schemaUniquenessKey: Int = Objects.hash(writeGroupedArrays)
+}
+
+object MagnolifyParquetProperties {
+  val Default: MagnolifyParquetProperties = new MagnolifyParquetProperties {}
+}
 
 /**
- * Properties for reading and writing Magnolify ParquetType classes, configurable via a Hadoop
- * [[Configuration]] instance.
+ * If set in your core-site.xml or an explicit Configruation object passed to ParquetType, will be
+ * parsed into MagnolifyParquetProperties
  */
-object MagnolifyParquetProperties {
+object MagnolifyParquetConfigurationCompat {
   val WriteGroupedArrays: String = "magnolify.parquet.write-grouped-arrays"
-  val WriteGroupedArraysDefault: Boolean = false
-
   val WriteAvroSchemaToMetadata: String = "magnolify.parquet.write-avro-schema"
-  val WriteAvroSchemaToMetadataDefault: Boolean = true
-
-  val ReadTypeKey = "parquet.type.read.type"
-  val WriteTypeKey = "parquet.type.write.type"
 }

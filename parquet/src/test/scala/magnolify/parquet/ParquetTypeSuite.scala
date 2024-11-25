@@ -196,10 +196,10 @@ class ParquetTypeSuite extends MagnolifySuite {
     }
   }
 
-  test(s"AvroCompat") {
+  test("AvroCompat") {
     def conf(writeGroupedArrays: Boolean): Configuration = {
-      val c = new Configuration();
-      c.setBoolean(MagnolifyParquetProperties.WriteGroupedArrays, writeGroupedArrays)
+      val c = new Configuration()
+      c.setBoolean(MagnolifyParquetConfigurationCompat.WriteGroupedArrays, writeGroupedArrays)
       c
     }
 

@@ -35,44 +35,38 @@ import scala.collection.concurrent
 
 sealed trait ParquetField[T] extends Serializable {
 
-  @transient private lazy val schemaCache: concurrent.Map[Boolean, concurrent.Map[UUID, Type]] =
+  @transient private lazy val schemaCache: concurrent.Map[(Int, UUID), Type] =
     concurrent.TrieMap.empty
 
-  protected def buildSchema(cm: CaseMapper, groupArrayFields: Boolean): Type
+  protected def buildSchema(cm: CaseMapper, properties: MagnolifyParquetProperties): Type
 
   def schema(
     cm: CaseMapper,
-    groupArrayFields: Boolean
-  ): Type = {
-    if (!schemaCache.contains(groupArrayFields)) {
-      schemaCache.put(groupArrayFields, concurrent.TrieMap.empty)
-    }
-
-    schemaCache(groupArrayFields).getOrElseUpdate(
-      cm.uuid,
-      buildSchema(cm, groupArrayFields)
-    )
-  }
+    properties: MagnolifyParquetProperties
+  ): Type = schemaCache.getOrElseUpdate(
+    (properties.schemaUniquenessKey, cm.uuid),
+    buildSchema(cm, properties)
+  )
 
   def fieldDocs(cm: CaseMapper): Map[String, String]
   def typeDoc: Option[String]
 
-  protected def isGroup(groupArrayFields: Boolean): Boolean = false
+  protected def isGroup(properties: MagnolifyParquetProperties): Boolean = false
   protected def isEmpty(v: T): Boolean
   protected final def nonEmpty(v: T): Boolean = !isEmpty(v)
 
-  def write(c: RecordConsumer, v: T)(cm: CaseMapper, groupArrayFields: Boolean): Unit
+  def write(c: RecordConsumer, v: T)(cm: CaseMapper, properties: MagnolifyParquetProperties): Unit
   def newConverter(writerSchema: Type): TypeConverter[T]
 
   protected def writeGroup(
     c: RecordConsumer,
     v: T
-  )(cm: CaseMapper, groupArrayFields: Boolean): Unit = {
-    val wrapGroup = isGroup(groupArrayFields)
+  )(cm: CaseMapper, properties: MagnolifyParquetProperties): Unit = {
+    val wrapGroup = isGroup(properties)
     if (wrapGroup) {
       c.startGroup()
     }
-    write(c, v)(cm, groupArrayFields)
+    write(c, v)(cm, properties)
     if (wrapGroup) {
       c.endGroup()
     }
@@ -81,7 +75,7 @@ sealed trait ParquetField[T] extends Serializable {
 
 object ParquetField {
   sealed trait Record[T] extends ParquetField[T] {
-    override protected def isGroup(groupArrayFields: Boolean): Boolean = true
+    override protected def isGroup(properties: MagnolifyParquetProperties): Boolean = true
 
     override protected def isEmpty(v: T): Boolean = false
   }
@@ -94,14 +88,17 @@ object ParquetField {
       val p = caseClass.parameters.head
       val tc = p.typeclass
       new ParquetField[T] {
-        override protected def buildSchema(cm: CaseMapper, groupArrayFields: Boolean): Type =
-          tc.buildSchema(cm, groupArrayFields)
+        override protected def buildSchema(
+          cm: CaseMapper,
+          properties: MagnolifyParquetProperties
+        ): Type =
+          tc.buildSchema(cm, properties)
         override protected def isEmpty(v: T): Boolean = tc.isEmpty(p.dereference(v))
         override def write(c: RecordConsumer, v: T)(
           cm: CaseMapper,
-          groupArrayFields: Boolean
+          properties: MagnolifyParquetProperties
         ): Unit =
-          tc.writeGroup(c, p.dereference(v))(cm, groupArrayFields)
+          tc.writeGroup(c, p.dereference(v))(cm, properties)
         override def newConverter(writerSchema: Type): TypeConverter[T] = {
           val buffered = tc
             .newConverter(writerSchema)
@@ -115,10 +112,10 @@ object ParquetField {
       }
     } else {
       new Record[T] {
-        override def buildSchema(cm: CaseMapper, groupArrayFields: Boolean): Type =
+        override def buildSchema(cm: CaseMapper, properties: MagnolifyParquetProperties): Type =
           caseClass.parameters
             .foldLeft(Types.requiredGroup()) { (g, p) =>
-              g.addField(Schema.rename(p.typeclass.schema(cm, groupArrayFields), cm.map(p.label)))
+              g.addField(Schema.rename(p.typeclass.schema(cm, properties), cm.map(p.label)))
             }
             .named(caseClass.typeName.full)
 
@@ -148,13 +145,13 @@ object ParquetField {
         override def write(
           c: RecordConsumer,
           v: T
-        )(cm: CaseMapper, groupArrayFields: Boolean): Unit = {
+        )(cm: CaseMapper, properties: MagnolifyParquetProperties): Unit = {
           caseClass.parameters.foreach { p =>
             val x = p.dereference(v)
             if (p.typeclass.nonEmpty(x)) {
               val name = cm.map(p.label)
               c.startField(name, p.index)
-              p.typeclass.writeGroup(c, x)(cm, groupArrayFields)
+              p.typeclass.writeGroup(c, x)(cm, properties)
               c.endField(name, p.index)
             }
           }
@@ -211,13 +208,13 @@ object ParquetField {
   class FromWord[T] {
     def apply[U](f: T => U)(g: U => T)(implicit pf: Primitive[T]): Primitive[U] =
       new Primitive[U] {
-        override def buildSchema(cm: CaseMapper, groupArrayFields: Boolean): Type =
-          pf.schema(cm, groupArrayFields)
+        override def buildSchema(cm: CaseMapper, properties: MagnolifyParquetProperties): Type =
+          pf.schema(cm, properties)
         override def write(c: RecordConsumer, v: U)(
           cm: CaseMapper,
-          groupArrayFields: Boolean
+          properties: MagnolifyParquetProperties
         ): Unit =
-          pf.write(c, g(v))(cm, groupArrayFields)
+          pf.write(c, g(v))(cm, properties)
         override def newConverter(writerSchema: Type): TypeConverter[U] =
           pf.newConverter(writerSchema).asInstanceOf[TypeConverter.Primitive[T]].map(f)
 
@@ -241,9 +238,12 @@ object ParquetField {
     lta: => LogicalTypeAnnotation = null
   ): Primitive[T] =
     new Primitive[T] {
-      override def buildSchema(cm: CaseMapper, groupArrayFields: Boolean): Type =
+      override def buildSchema(cm: CaseMapper, properties: MagnolifyParquetProperties): Type =
         Schema.primitive(ptn, lta)
-      override def write(c: RecordConsumer, v: T)(cm: CaseMapper, groupArrayFields: Boolean): Unit =
+      override def write(c: RecordConsumer, v: T)(
+        cm: CaseMapper,
+        properties: MagnolifyParquetProperties
+      ): Unit =
         f(c)(v)
       override def newConverter(writerSchema: Type): TypeConverter[T] = g
       override type ParquetT = UnderlyingT
@@ -310,8 +310,8 @@ object ParquetField {
 
   implicit def pfOption[T](implicit t: ParquetField[T]): ParquetField[Option[T]] =
     new ParquetField[Option[T]] {
-      override def buildSchema(cm: CaseMapper, groupArrayFields: Boolean): Type =
-        Schema.setRepetition(t.schema(cm, groupArrayFields), Repetition.OPTIONAL)
+      override def buildSchema(cm: CaseMapper, properties: MagnolifyParquetProperties): Type =
+        Schema.setRepetition(t.schema(cm, properties), Repetition.OPTIONAL)
       override protected def isEmpty(v: Option[T]): Boolean = v.forall(t.isEmpty)
 
       override def fieldDocs(cm: CaseMapper): Map[String, String] = t.fieldDocs(cm)
@@ -320,9 +320,9 @@ object ParquetField {
 
       override def write(c: RecordConsumer, v: Option[T])(
         cm: CaseMapper,
-        groupArrayFields: Boolean
+        properties: MagnolifyParquetProperties
       ): Unit =
-        v.foreach(t.writeGroup(c, _)(cm, groupArrayFields))
+        v.foreach(t.writeGroup(c, _)(cm, properties))
 
       override def newConverter(writerSchema: Type): TypeConverter[Option[T]] = {
         val buffered = t
@@ -351,10 +351,10 @@ object ParquetField {
         case ParquetArray.AvroCompat.avroCompat => true
       }
 
-      override def buildSchema(cm: CaseMapper, groupArrayFields: Boolean): Type = {
+      override def buildSchema(cm: CaseMapper, properties: MagnolifyParquetProperties): Type = {
         val repeatedSchema =
-          Schema.setRepetition(t.schema(cm, groupArrayFields), Repetition.REPEATED)
-        if (isGroup(groupArrayFields)) {
+          Schema.setRepetition(t.schema(cm, properties), Repetition.REPEATED)
+        if (isGroup(properties)) {
           Types
             .requiredGroup()
             .addField(Schema.rename(repeatedSchema, AvroArrayField))
@@ -365,21 +365,21 @@ object ParquetField {
         }
       }
 
-      override protected def isGroup(groupArrayFields: Boolean): Boolean =
-        avroCompatImported || groupArrayFields
+      override protected def isGroup(properties: MagnolifyParquetProperties): Boolean =
+        avroCompatImported || properties.writeGroupedArrays
 
       override protected def isEmpty(v: C[T]): Boolean = v.forall(t.isEmpty)
 
       override def write(
         c: RecordConsumer,
         v: C[T]
-      )(cm: CaseMapper, groupArrayFields: Boolean): Unit =
-        if (isGroup(groupArrayFields)) {
+      )(cm: CaseMapper, properties: MagnolifyParquetProperties): Unit =
+        if (isGroup(properties)) {
           c.startField(AvroArrayField, 0)
-          v.foreach(t.writeGroup(c, _)(cm, groupArrayFields))
+          v.foreach(t.writeGroup(c, _)(cm, properties))
           c.endField(AvroArrayField, 0)
         } else {
-          v.foreach(t.writeGroup(c, _)(cm, groupArrayFields))
+          v.foreach(t.writeGroup(c, _)(cm, properties))
         }
 
       override def newConverter(writerSchema: Type): TypeConverter[C[T]] = {
@@ -420,10 +420,10 @@ object ParquetField {
     pfValue: ParquetField[V]
   ): ParquetField[Map[K, V]] = {
     new ParquetField[Map[K, V]] {
-      override def buildSchema(cm: CaseMapper, groupArrayFields: Boolean): Type = {
-        val keySchema = Schema.rename(pfKey.schema(cm, groupArrayFields), KeyField)
+      override def buildSchema(cm: CaseMapper, properties: MagnolifyParquetProperties): Type = {
+        val keySchema = Schema.rename(pfKey.schema(cm, properties), KeyField)
         require(keySchema.isRepetition(Repetition.REQUIRED), "Map key must be required")
-        val valueSchema = Schema.rename(pfValue.schema(cm, groupArrayFields), ValueField)
+        val valueSchema = Schema.rename(pfValue.schema(cm, properties), ValueField)
         val keyValue = Types
           .repeatedGroup()
           .addField(keySchema)
@@ -444,7 +444,7 @@ object ParquetField {
 
       override def write(c: RecordConsumer, v: Map[K, V])(
         cm: CaseMapper,
-        groupArrayFields: Boolean
+        properties: MagnolifyParquetProperties
       ): Unit = {
         if (v.nonEmpty) {
           c.startGroup()
@@ -452,11 +452,11 @@ object ParquetField {
           v.foreach { case (k, v) =>
             c.startGroup()
             c.startField(KeyField, 0)
-            pfKey.writeGroup(c, k)(cm, groupArrayFields)
+            pfKey.writeGroup(c, k)(cm, properties)
             c.endField(KeyField, 0)
             if (pfValue.nonEmpty(v)) {
               c.startField(ValueField, 1)
-              pfValue.writeGroup(c, v)(cm, groupArrayFields)
+              pfValue.writeGroup(c, v)(cm, properties)
               c.endField(ValueField, 1)
             }
             c.endGroup()
@@ -509,10 +509,13 @@ object ParquetField {
 
   class LogicalTypeWord[T](lta: => LogicalTypeAnnotation) extends Serializable {
     def apply[U](f: T => U)(g: U => T)(implicit pf: Primitive[T]): Primitive[U] = new Primitive[U] {
-      override def buildSchema(cm: CaseMapper, groupArrayFields: Boolean): Type =
-        Schema.setLogicalType(pf.schema(cm, groupArrayFields), lta)
-      override def write(c: RecordConsumer, v: U)(cm: CaseMapper, groupArrayFields: Boolean): Unit =
-        pf.write(c, g(v))(cm, groupArrayFields)
+      override def buildSchema(cm: CaseMapper, properties: MagnolifyParquetProperties): Type =
+        Schema.setLogicalType(pf.schema(cm, properties), lta)
+      override def write(c: RecordConsumer, v: U)(
+        cm: CaseMapper,
+        properties: MagnolifyParquetProperties
+      ): Unit =
+        pf.write(c, g(v))(cm, properties)
       override def newConverter(writerSchema: Type): TypeConverter[U] =
         pf.newConverter(writerSchema).asInstanceOf[TypeConverter.Primitive[T]].map(f)
 
@@ -546,7 +549,7 @@ object ParquetField {
     )
 
     new Primitive[BigDecimal] {
-      override def buildSchema(cm: CaseMapper, groupArrayFields: Boolean): Type =
+      override def buildSchema(cm: CaseMapper, properties: MagnolifyParquetProperties): Type =
         Schema.primitive(
           PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY,
           LogicalTypeAnnotation.decimalType(scale, precision),
@@ -555,7 +558,7 @@ object ParquetField {
 
       override def write(c: RecordConsumer, v: BigDecimal)(
         cm: CaseMapper,
-        groupArrayFields: Boolean
+        properties: MagnolifyParquetProperties
       ): Unit =
         c.addBinary(Binary.fromConstantByteArray(Decimal.toFixed(v, precision, scale, length)))
 
@@ -580,13 +583,13 @@ object ParquetField {
     logicalType[String](LogicalTypeAnnotation.enumType())(et.from)(et.to)
 
   implicit val ptUuid: Primitive[UUID] = new Primitive[UUID] {
-    override def buildSchema(cm: CaseMapper, groupArrayFields: Boolean): Type =
+    override def buildSchema(cm: CaseMapper, properties: MagnolifyParquetProperties): Type =
       Schema.primitive(PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY, length = 16)
 
     override def write(
       c: RecordConsumer,
       v: UUID
-    )(cm: CaseMapper, groupArrayFields: Boolean): Unit =
+    )(cm: CaseMapper, properties: MagnolifyParquetProperties): Unit =
       c.addBinary(
         Binary.fromConstantByteArray(
           ByteBuffer

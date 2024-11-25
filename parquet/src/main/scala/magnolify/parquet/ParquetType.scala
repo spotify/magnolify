@@ -17,7 +17,6 @@
 package magnolify.parquet
 
 import magnolify.shared.{Converter => _, _}
-import magnolify.parquet.MagnolifyParquetProperties._
 import org.apache.avro.{Schema => AvroSchema}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.mapreduce.Job
@@ -81,7 +80,7 @@ sealed trait ParquetType[T] extends Serializable {
   def readBuilder(file: InputFile): ReadBuilder[T] = new ReadBuilder(file, readSupport)
   def writeBuilder(file: OutputFile): WriteBuilder[T] = new WriteBuilder(file, writeSupport)
 
-  protected def groupArrayFields: Boolean = MagnolifyParquetProperties.WriteGroupedArraysDefault
+  private[parquet] def properties: MagnolifyParquetProperties
 
   private[parquet] def write(c: RecordConsumer, v: T): Unit = ()
   private[parquet] def newConverter(writerSchema: Type): TypeConverter[T] = null
@@ -91,26 +90,46 @@ object ParquetType {
   private val logger = LoggerFactory.getLogger(this.getClass)
 
   implicit def apply[T](implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] =
-    ParquetType(CaseMapper.identity, new Configuration())
+    ParquetType(CaseMapper.identity, MagnolifyParquetProperties.Default)
 
   def apply[T](
     cm: CaseMapper
   )(implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] =
-    ParquetType[T](cm, new Configuration())(f, pa)
+    ParquetType[T](cm, MagnolifyParquetProperties.Default)(f, pa)
 
   def apply[T](
     conf: Configuration
   )(implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] =
-    ParquetType[T](CaseMapper.identity, conf)(f, pa)
+    ParquetType[T](
+      CaseMapper.identity, {
+        val writeGroupedArraysOpt =
+          Option(conf.get(MagnolifyParquetConfigurationCompat.WriteGroupedArrays)).map(_.toBoolean)
+        val writeMetadataOpt = Option(
+          conf.get(MagnolifyParquetConfigurationCompat.WriteAvroSchemaToMetadata)
+        ).map(_.toBoolean)
+
+        new MagnolifyParquetProperties {
+          override def writeGroupedArrays: Boolean =
+            writeGroupedArraysOpt.getOrElse(super.writeGroupedArrays)
+          override def writeAvroSchemaToMetadata: Boolean =
+            writeMetadataOpt.getOrElse(super.writeAvroSchemaToMetadata)
+        }
+      }
+    )(f, pa)
+
+  def apply[T](
+    properties: MagnolifyParquetProperties
+  )(implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] =
+    ParquetType[T](CaseMapper.identity, properties)(f, pa)
 
   def apply[T](
     cm: CaseMapper,
-    conf: Configuration
+    props: MagnolifyParquetProperties
   )(implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] = f match {
     case r: ParquetField.Record[_] =>
       new ParquetType[T] {
         @transient override def schema: MessageType =
-          Schema.message(r.schema(cm, groupArrayFields))
+          Schema.message(r.schema(cm, properties))
 
         @transient override def avroSchema: AvroSchema = {
           val s = new AvroSchemaConverter().convert(schema)
@@ -120,23 +139,18 @@ object ParquetType {
         }
 
         override def write(c: RecordConsumer, v: T): Unit =
-          r.write(c, v)(cm, groupArrayFields)
+          r.write(c, v)(cm, properties)
         override private[parquet] def newConverter(writerSchema: Type): TypeConverter[T] =
           r.newConverter(writerSchema)
 
-        @nowarn("cat=deprecation")
-        override protected val groupArrayFields: Boolean = pa match {
-          case ParquetArray.AvroCompat.avroCompat => true
-          case ParquetArray.default =>
-            conf.getBoolean(
-              MagnolifyParquetProperties.WriteGroupedArrays,
-              MagnolifyParquetProperties.WriteGroupedArraysDefault
-            )
-        }
+        override private[parquet] def properties: MagnolifyParquetProperties = props
       }
     case _ =>
       throw new IllegalArgumentException(s"ParquetType can only be created from Record. Got $f")
   }
+
+  val ReadTypeKey = "parquet.type.read.type"
+  val WriteTypeKey = "parquet.type.write.type"
 
   class ReadBuilder[T](file: InputFile, val readSupport: ReadSupport[T])
       extends ParquetReader.Builder[T](file) {
@@ -206,12 +220,7 @@ object ParquetType {
       val schema = Schema.message(parquetType.schema)
       val metadata = new java.util.HashMap[String, String]()
 
-      if (
-        configuration.getBoolean(
-          MagnolifyParquetProperties.WriteAvroSchemaToMetadata,
-          MagnolifyParquetProperties.WriteAvroSchemaToMetadataDefault
-        )
-      ) {
+      if (parquetType.properties.writeAvroSchemaToMetadata) {
         try {
           metadata.put(
             AVRO_SCHEMA_METADATA_KEY,
