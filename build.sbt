@@ -20,24 +20,24 @@ import com.github.sbt.git.SbtGit.GitKeys.gitRemoteRepo
 import com.typesafe.tools.mima.core._
 
 val magnoliaScala2Version = "1.1.10"
-val magnoliaScala3Version = "1.3.7"
+val magnoliaScala3Version = "1.3.8"
 
 val algebirdVersion = "0.13.10"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.3")
-val beamVersion = "2.60.0"
-val bigqueryVersion = "v2-rev20240229-2.0.0"
-val bigtableVersion = "2.44.1"
+val beamVersion = "2.61.0"
+val bigqueryVersion = "v2-rev20241013-2.0.0"
+val bigtableVersion = "2.49.0"
 val catsVersion = "2.12.0"
-val datastoreVersion = "2.23.0"
+val datastoreVersion = "2.24.3"
 val guavaVersion = "33.3.1-jre"
 val hadoopVersion = "3.4.1"
-val jacksonVersion = "2.18.0"
+val jacksonVersion = "2.18.2"
 val jodaTimeVersion = "2.13.0"
 val munitVersion = "1.0.2"
 val munitScalacheckVersion = "1.0.0"
-val neo4jDriverVersion = "4.4.18"
+val neo4jDriverVersion = "4.4.19"
 val paigesVersion = "0.4.4"
-val parquetVersion = "1.14.3"
+val parquetVersion = "1.15.0"
 val protobufVersion = "3.25.5"
 val refinedVersion = "0.11.2"
 val scalaCollectionCompatVersion = "2.12.0"
@@ -106,7 +106,7 @@ ThisBuild / developers := List(
 )
 
 // scala versions
-val scala3 = "3.3.3"
+val scala3 = "3.3.4"
 val scala213 = "2.13.15"
 val scala212 = "2.12.20"
 val scalaDefault = scala213
@@ -169,7 +169,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
           name = Some("Test coverage")
         ),
         WorkflowStep.Use(
-          UseRef.Public("codecov", "codecov-action", "v4"),
+          UseRef.Public("codecov", "codecov-action", "v5"),
           Map("token" -> "${{ secrets.CODECOV_TOKEN }}"),
           name = Some("Upload coverage report")
         )
@@ -413,7 +413,16 @@ lazy val test = project
       "org.scalameta" %% "munit" % munitVersion % Test,
       "org.scalameta" %% "munit-scalacheck" % munitScalacheckVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion % Test
-    )
+    ),
+    Test / scalacOptions := {
+      val opts = (Test / scalacOptions).value
+      // silence warning.
+      // cat & origin are not valid categories and filter yet
+      CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((3, _)) => opts.filter(_ != "-Wunused:imports")
+        case _            => opts
+      }
+    }
   )
 
 lazy val scalacheck = project
