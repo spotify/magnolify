@@ -20,8 +20,6 @@ import com.google.common.base.Charsets
 import com.google.common.hash.{Funnel, Funnels, PrimitiveSink}
 import magnolia1._
 
-import scala.annotation.nowarn
-
 object FunnelDerivation {
   type Typeclass[T] = Funnel[T]
 
@@ -31,7 +29,7 @@ object FunnelDerivation {
         val p = caseClass.parameters.head
         p.typeclass.funnel(p.dereference(from), into)
       } else if (caseClass.parameters.isEmpty) {
-        into.putString(caseClass.typeName.short, Charsets.UTF_8): @nowarn
+        val _ = into.putString(caseClass.typeName.short, Charsets.UTF_8)
       } else {
         caseClass.parameters.foreach { p =>
           // inject index to distinguish cases like `(Some(1), None)` and `(None, Some(1))`
@@ -54,17 +52,19 @@ object FunnelDerivation {
 }
 
 trait FunnelImplicits {
-  private def funnel[T](f: (PrimitiveSink, T) => Unit): Funnel[T] = new Funnel[T] {
-    override def funnel(from: T, into: PrimitiveSink): Unit = f(into, from)
+  private def funnel[T](f: (PrimitiveSink, T) => Any): Funnel[T] = new Funnel[T] {
+    override def funnel(from: T, into: PrimitiveSink): Unit = {
+      val _ = f(into, from)
+    }
   }
 
   implicit val intFunnel: Funnel[Int] = Funnels.integerFunnel().asInstanceOf[Funnel[Int]]
   implicit val longFunnel: Funnel[Long] = Funnels.longFunnel().asInstanceOf[Funnel[Long]]
   implicit val bytesFunnel: Funnel[Array[Byte]] = Funnels.byteArrayFunnel()
-  implicit val booleanFunnel: Funnel[Boolean] = funnel[Boolean](_.putBoolean(_): @nowarn)
-  implicit val byteFunnel: Funnel[Byte] = funnel[Byte](_.putByte(_): @nowarn)
-  implicit val charFunnel: Funnel[Char] = funnel[Char](_.putChar(_): @nowarn)
-  implicit val shortFunnel: Funnel[Short] = funnel[Short](_.putShort(_): @nowarn)
+  implicit val booleanFunnel: Funnel[Boolean] = funnel[Boolean](_.putBoolean(_))
+  implicit val byteFunnel: Funnel[Byte] = funnel[Byte](_.putByte(_))
+  implicit val charFunnel: Funnel[Char] = funnel[Char](_.putChar(_))
+  implicit val shortFunnel: Funnel[Short] = funnel[Short](_.putShort(_))
 
   implicit def charSequenceFunnel[T <: CharSequence]: Funnel[T] =
     Funnels.unencodedCharsFunnel().asInstanceOf[Funnel[T]]
@@ -81,6 +81,6 @@ trait FunnelImplicits {
         i += 1
       }
       // inject size to distinguish `None`, `Some("")`, and `List("", "", ...)`
-      sink.putInt(i): @nowarn
+      sink.putInt(i)
     }
 }
