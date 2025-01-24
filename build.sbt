@@ -54,56 +54,6 @@ ThisBuild / organizationName := "Spotify AB"
 ThisBuild / startYear := Some(2016)
 ThisBuild / licenses := Seq(License.Apache2)
 ThisBuild / sonatypeCredentialHost := Sonatype.sonatypeLegacy
-ThisBuild / developers := List(
-  Developer(
-    id = "sinisa_lyh",
-    name = "Neville Li",
-    email = "neville.lyh@gmail.com",
-    url = url("https://twitter.com/sinisa_lyh")
-  ),
-  Developer(
-    id = "andrewsmartin",
-    name = "Andrew Martin",
-    email = "andrewsmartin.mg@gmail.com",
-    url = url("https://twitter.com/andrew_martin92")
-  ),
-  Developer(
-    id = "daikeshi",
-    name = "Keshi Dai",
-    email = "keshi.dai@gmail.com",
-    url = url("https://twitter.com/daikeshi")
-  ),
-  Developer(
-    id = "clairemcginty",
-    name = "Claire McGinty",
-    email = "clairem@spotify.com",
-    url = url("http://github.com/clairemcginty")
-  ),
-  Developer(
-    id = "anne-decusatis",
-    name = "Anne DeCusatis",
-    email = "anned@spotify.com",
-    url = url("http://twitter.com/precisememory")
-  ),
-  Developer(
-    id = "stormy-ua",
-    name = "Kirill Panarin",
-    email = "kirill.panarin@gmail.com",
-    url = url("https://twitter.com/panarin_kirill")
-  ),
-  Developer(
-    id = "syodage",
-    name = "Shameera Rathnayaka Yodage",
-    email = "shameerayodage@gmail.com",
-    url = url("https://twitter.com/syodage")
-  ),
-  Developer(
-    id = "shnapz",
-    name = "Andrew Kabas",
-    email = "akabas@spotify.com",
-    url = url("https://github.com/shnapz")
-  )
-)
 
 // scala versions
 val scala3 = "3.3.4"
