@@ -48,7 +48,7 @@ val tensorflowMetadataVersion = "1.16.1"
 val tensorflowVersion = "0.5.0"
 
 // project
-ThisBuild / tlBaseVersion := "0.7"
+ThisBuild / tlBaseVersion := "0.8"
 ThisBuild / organization := "com.spotify"
 ThisBuild / organizationName := "Spotify AB"
 ThisBuild / startYear := Some(2016)
@@ -224,26 +224,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 )
 
 // mima
-ThisBuild / mimaBinaryIssueFilters ++= Seq(
-  // genFunnelMacro should not be available to users
-  ProblemFilters.exclude[DirectMissingMethodProblem]("magnolify.guava.auto.package.genFunnelMacro"),
-  // incorrectly named implicit
-  ProblemFilters.exclude[DirectMissingMethodProblem](
-    "magnolify.parquet.logical.package#micros.pfTimestampMillis"
-  ),
-  // incorrectly named implicit
-  ProblemFilters.exclude[DirectMissingMethodProblem](
-    "magnolify.parquet.logical.package#micros.pfLocalDateTimeMillis"
-  ),
-  // incorrectly named implicit
-  ProblemFilters.exclude[DirectMissingMethodProblem](
-    "magnolify.parquet.logical.package#nanos.pfTimestampMillis"
-  ),
-  // incorrectly named implicit
-  ProblemFilters.exclude[DirectMissingMethodProblem](
-    "magnolify.parquet.logical.package#nanos.pfLocalDateTimeMillis"
-  )
-)
+ThisBuild / mimaBinaryIssueFilters ++= Seq()
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.8.0")
 
 // protobuf
@@ -534,9 +515,7 @@ lazy val beam = project
     libraryDependencies ++= Seq(
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion % Provided,
       "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
-    ),
-    // TODO remove this line after release
-    tlMimaPreviousVersions := Set.empty
+    )
   )
 
 lazy val bigquery = project
