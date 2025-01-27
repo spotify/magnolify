@@ -24,21 +24,21 @@ val magnoliaScala3Version = "1.3.9"
 
 val algebirdVersion = "0.13.10"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.3")
-val beamVersion = "2.61.0"
+val beamVersion = "2.62.0"
 val bigqueryVersion = "v2-rev20241013-2.0.0"
 val bigtableVersion = "2.51.1"
-val catsVersion = "2.12.0"
-val datastoreVersion = "2.25.3"
+val catsVersion = "2.13.0"
+val datastoreVersion = "2.25.4"
 val guavaVersion = "33.4.0-jre"
 val hadoopVersion = "3.4.1"
 val jacksonVersion = "2.18.2"
 val jodaTimeVersion = "2.13.0"
-val munitVersion = "1.0.4"
-val munitScalacheckVersion = "1.0.0"
+val munitVersion = "1.1.0"
+val munitScalacheckVersion = "1.1.0"
 val neo4jDriverVersion = "4.4.19"
 val paigesVersion = "0.4.4"
 val parquetVersion = "1.15.0"
-val protobufVersion = "3.25.5"
+val protobufVersion = "3.25.6"
 val refinedVersion = "0.11.3"
 val scalaCollectionCompatVersion = "2.12.0"
 val scalacheckVersion = "1.18.1"
@@ -54,56 +54,6 @@ ThisBuild / organizationName := "Spotify AB"
 ThisBuild / startYear := Some(2016)
 ThisBuild / licenses := Seq(License.Apache2)
 ThisBuild / sonatypeCredentialHost := Sonatype.sonatypeLegacy
-ThisBuild / developers := List(
-  Developer(
-    id = "sinisa_lyh",
-    name = "Neville Li",
-    email = "neville.lyh@gmail.com",
-    url = url("https://twitter.com/sinisa_lyh")
-  ),
-  Developer(
-    id = "andrewsmartin",
-    name = "Andrew Martin",
-    email = "andrewsmartin.mg@gmail.com",
-    url = url("https://twitter.com/andrew_martin92")
-  ),
-  Developer(
-    id = "daikeshi",
-    name = "Keshi Dai",
-    email = "keshi.dai@gmail.com",
-    url = url("https://twitter.com/daikeshi")
-  ),
-  Developer(
-    id = "clairemcginty",
-    name = "Claire McGinty",
-    email = "clairem@spotify.com",
-    url = url("http://github.com/clairemcginty")
-  ),
-  Developer(
-    id = "anne-decusatis",
-    name = "Anne DeCusatis",
-    email = "anned@spotify.com",
-    url = url("http://twitter.com/precisememory")
-  ),
-  Developer(
-    id = "stormy-ua",
-    name = "Kirill Panarin",
-    email = "kirill.panarin@gmail.com",
-    url = url("https://twitter.com/panarin_kirill")
-  ),
-  Developer(
-    id = "syodage",
-    name = "Shameera Rathnayaka Yodage",
-    email = "shameerayodage@gmail.com",
-    url = url("https://twitter.com/syodage")
-  ),
-  Developer(
-    id = "shnapz",
-    name = "Andrew Kabas",
-    email = "akabas@spotify.com",
-    url = url("https://github.com/shnapz")
-  )
-)
 
 // scala versions
 val scala3 = "3.3.4"
