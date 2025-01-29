@@ -42,16 +42,16 @@ sealed trait ParquetField[T] extends Serializable {
   def schema(cm: CaseMapper): Type =
     schemaCache.getOrElseUpdate(cm.uuid, buildSchema(cm))
 
-  val hasAvroArray: Boolean = false
+  def hasAvroArray: Boolean = false
   def fieldDocs(cm: CaseMapper): Map[String, String]
   def typeDoc: Option[String]
 
-  protected val isGroup: Boolean = false
+  protected def isGroup: Boolean = false
   protected def isEmpty(v: T): Boolean
   protected final def nonEmpty(v: T): Boolean = !isEmpty(v)
 
   def write(c: RecordConsumer, v: T)(cm: CaseMapper): Unit
-  def newConverter: TypeConverter[T]
+  def newConverter(): TypeConverter[T]
 
   protected def writeGroup(c: RecordConsumer, v: T)(cm: CaseMapper): Unit = {
     if (isGroup) {
@@ -66,8 +66,7 @@ sealed trait ParquetField[T] extends Serializable {
 
 object ParquetField {
   sealed trait Record[T] extends ParquetField[T] {
-    override protected val isGroup: Boolean = true
-
+    override protected def isGroup: Boolean = true
     override protected def isEmpty(v: T): Boolean = false
   }
 
@@ -83,15 +82,15 @@ object ParquetField {
         override protected def isEmpty(v: T): Boolean = tc.isEmpty(p.dereference(v))
         override def write(c: RecordConsumer, v: T)(cm: CaseMapper): Unit =
           tc.writeGroup(c, p.dereference(v))(cm)
-        override def newConverter: TypeConverter[T] = {
-          val buffered = tc.newConverter
+        override def newConverter(): TypeConverter[T] = {
+          val buffered = tc.newConverter()
             .asInstanceOf[TypeConverter.Buffered[p.PType]]
           new TypeConverter.Delegate[p.PType, T](buffered) {
             override def get: T = inner.get(b => caseClass.construct(_ => b.head))
           }
         }
         override def fieldDocs(cm: CaseMapper): Map[String, String] = Map.empty
-        override val typeDoc: Option[String] = None
+        override def typeDoc: Option[String] = None
       }
     } else {
       new Record[T] {
@@ -139,9 +138,9 @@ object ParquetField {
           }
         }
 
-        override def newConverter: TypeConverter[T] =
+        override def newConverter(): TypeConverter[T] =
           new GroupConverter with TypeConverter.Buffered[T] {
-            private val fieldConverters = caseClass.parameters.map(_.typeclass.newConverter)
+            private val fieldConverters = caseClass.parameters.map(_.typeclass.newConverter())
 
             override def isPrimitive: Boolean = false
 
@@ -191,8 +190,8 @@ object ParquetField {
       new Primitive[U] {
         override def buildSchema(cm: CaseMapper): Type = pf.schema(cm)
         override def write(c: RecordConsumer, v: U)(cm: CaseMapper): Unit = pf.write(c, g(v))(cm)
-        override def newConverter: TypeConverter[U] =
-          pf.newConverter.asInstanceOf[TypeConverter.Primitive[T]].map(f)
+        override def newConverter(): TypeConverter[U] =
+          pf.newConverter().asInstanceOf[TypeConverter.Primitive[T]].map(f)
         override type ParquetT = pf.ParquetT
       }
   }
@@ -202,7 +201,7 @@ object ParquetField {
   sealed trait Primitive[T] extends ParquetField[T] {
     override protected def isEmpty(v: T): Boolean = false
     override def fieldDocs(cm: CaseMapper): Map[String, String] = Map.empty
-    override val typeDoc: Option[String] = None
+    override def typeDoc: Option[String] = None
     type ParquetT <: Comparable[ParquetT]
   }
 
@@ -215,7 +214,7 @@ object ParquetField {
     new Primitive[T] {
       override def buildSchema(cm: CaseMapper): Type = Schema.primitive(ptn, lta)
       override def write(c: RecordConsumer, v: T)(cm: CaseMapper): Unit = f(c)(v)
-      override def newConverter: TypeConverter[T] = g
+      override def newConverter(): TypeConverter[T] = g
       override type ParquetT = UnderlyingT
     }
 
@@ -286,13 +285,13 @@ object ParquetField {
 
       override def fieldDocs(cm: CaseMapper): Map[String, String] = t.fieldDocs(cm)
 
-      override val typeDoc: Option[String] = None
+      override def typeDoc: Option[String] = None
 
       override def write(c: RecordConsumer, v: Option[T])(cm: CaseMapper): Unit =
         v.foreach(t.writeGroup(c, _)(cm))
 
-      override def newConverter: TypeConverter[Option[T]] = {
-        val buffered = t.newConverter
+      override def newConverter(): TypeConverter[Option[T]] = {
+        val buffered = t.newConverter()
           .asInstanceOf[TypeConverter.Buffered[T]]
           .withRepetition(Repetition.OPTIONAL)
         new TypeConverter.Delegate[T, Option[T]](buffered) {
@@ -327,7 +326,7 @@ object ParquetField {
         }
       }
 
-      override protected val isGroup: Boolean = hasAvroArray
+      override protected def isGroup: Boolean = hasAvroArray
       override protected def isEmpty(v: C[T]): Boolean = v.forall(t.isEmpty)
 
       override def write(c: RecordConsumer, v: C[T])(cm: CaseMapper): Unit =
@@ -339,8 +338,8 @@ object ParquetField {
           v.foreach(t.writeGroup(c, _)(cm))
         }
 
-      override def newConverter: TypeConverter[C[T]] = {
-        val buffered = t.newConverter
+      override def newConverter(): TypeConverter[C[T]] = {
+        val buffered = t.newConverter()
           .asInstanceOf[TypeConverter.Buffered[T]]
           .withRepetition(Repetition.REPEATED)
         val arrayConverter = new TypeConverter.Delegate[T, C[T]](buffered) {
@@ -364,7 +363,7 @@ object ParquetField {
 
       override def fieldDocs(cm: CaseMapper): Map[String, String] = t.fieldDocs(cm)
 
-      override val typeDoc: Option[String] = None
+      override def typeDoc: Option[String] = None
     }
   }
 
@@ -421,10 +420,10 @@ object ParquetField {
         }
       }
 
-      override def newConverter: TypeConverter[Map[K, V]] = {
+      override def newConverter(): TypeConverter[Map[K, V]] = {
         val kvConverter = new GroupConverter with TypeConverter.Buffered[(K, V)] {
-          private val keyConverter = pfKey.newConverter
-          private val valueConverter = pfValue.newConverter
+          private val keyConverter = pfKey.newConverter()
+          private val valueConverter = pfValue.newConverter()
           private val fieldConverters = Array(keyConverter, valueConverter)
 
           override def isPrimitive: Boolean = false
@@ -466,8 +465,8 @@ object ParquetField {
     def apply[U](f: T => U)(g: U => T)(implicit pf: Primitive[T]): Primitive[U] = new Primitive[U] {
       override def buildSchema(cm: CaseMapper): Type = Schema.setLogicalType(pf.schema(cm), lta)
       override def write(c: RecordConsumer, v: U)(cm: CaseMapper): Unit = pf.write(c, g(v))(cm)
-      override def newConverter: TypeConverter[U] =
-        pf.newConverter.asInstanceOf[TypeConverter.Primitive[T]].map(f)
+      override def newConverter(): TypeConverter[U] =
+        pf.newConverter().asInstanceOf[TypeConverter.Primitive[T]].map(f)
 
       override type ParquetT = pf.ParquetT
     }
@@ -509,7 +508,7 @@ object ParquetField {
       override def write(c: RecordConsumer, v: BigDecimal)(cm: CaseMapper): Unit =
         c.addBinary(Binary.fromConstantByteArray(Decimal.toFixed(v, precision, scale, length)))
 
-      override def newConverter: TypeConverter[BigDecimal] = TypeConverter.newByteArray.map { ba =>
+      override def newConverter(): TypeConverter[BigDecimal] = TypeConverter.newByteArray.map { ba =>
         Decimal.fromBytes(ba, precision, scale)
       }
 
@@ -544,7 +543,7 @@ object ParquetField {
         )
       )
 
-    override def newConverter: TypeConverter[UUID] = TypeConverter.newByteArray.map { ba =>
+    override def newConverter(): TypeConverter[UUID] = TypeConverter.newByteArray.map { ba =>
       val bb = ByteBuffer.wrap(ba)
       val h = bb.getLong
       val l = bb.getLong

@@ -71,7 +71,7 @@ sealed trait ProtobufField[T] extends Serializable {
   type FromT
   type ToT
 
-  val default: Option[T]
+  def default: Option[T]
 
   def checkDefaults(descriptor: Descriptor)(cm: CaseMapper): Unit = ()
 
@@ -88,7 +88,7 @@ object ProtobufField {
   }
 
   sealed trait Record[T] extends Aux[T, Message, Message] {
-    override val default: Option[T] = None
+    override def default: Option[T] = None
   }
 
   // ////////////////////////////////////////////////
