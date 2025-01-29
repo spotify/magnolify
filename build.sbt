@@ -44,11 +44,11 @@ val scalaCollectionCompatVersion = "2.12.0"
 val scalacheckVersion = "1.18.1"
 val shapelessVersion = "2.3.12"
 val slf4jVersion = "2.0.16"
+val tensorflowVersion = "1.0.0"
 val tensorflowMetadataVersion = "1.16.1"
-val tensorflowVersion = "0.5.0"
 
 // project
-ThisBuild / tlBaseVersion := "0.7"
+ThisBuild / tlBaseVersion := "0.8"
 ThisBuild / organization := "com.spotify"
 ThisBuild / organizationName := "Spotify AB"
 ThisBuild / startYear := Some(2016)
@@ -79,7 +79,7 @@ ThisBuild / scalaVersion := scalaDefault
 ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
 ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
-ThisBuild / tlJdkRelease := Some(8)
+ThisBuild / tlJdkRelease := Some(11)
 ThisBuild / tlFatalWarnings := true
 ThisBuild / tlCiHeaderCheck := true
 ThisBuild / tlCiScalafmtCheck := true
@@ -174,27 +174,8 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 )
 
 // mima
-ThisBuild / mimaBinaryIssueFilters ++= Seq(
-  // genFunnelMacro should not be available to users
-  ProblemFilters.exclude[DirectMissingMethodProblem]("magnolify.guava.auto.package.genFunnelMacro"),
-  // incorrectly named implicit
-  ProblemFilters.exclude[DirectMissingMethodProblem](
-    "magnolify.parquet.logical.package#micros.pfTimestampMillis"
-  ),
-  // incorrectly named implicit
-  ProblemFilters.exclude[DirectMissingMethodProblem](
-    "magnolify.parquet.logical.package#micros.pfLocalDateTimeMillis"
-  ),
-  // incorrectly named implicit
-  ProblemFilters.exclude[DirectMissingMethodProblem](
-    "magnolify.parquet.logical.package#nanos.pfTimestampMillis"
-  ),
-  // incorrectly named implicit
-  ProblemFilters.exclude[DirectMissingMethodProblem](
-    "magnolify.parquet.logical.package#nanos.pfLocalDateTimeMillis"
-  )
-)
-ThisBuild / tlVersionIntroduced := Map("3" -> "0.8.0")
+ThisBuild / mimaBinaryIssueFilters ++= Seq()
+ThisBuild / tlVersionIntroduced := Map("3" -> "0.9.0")
 
 // protobuf
 val protocJavaSourceManaged =
@@ -484,9 +465,7 @@ lazy val beam = project
     libraryDependencies ++= Seq(
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion % Provided,
       "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
-    ),
-    // TODO remove this line after release
-    tlMimaPreviousVersions := Set.empty
+    )
   )
 
 lazy val bigquery = project
