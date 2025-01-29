@@ -175,7 +175,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 
 // mima
 ThisBuild / mimaBinaryIssueFilters ++= Seq()
-ThisBuild / tlVersionIntroduced := Map("3" -> "0.8.0")
+ThisBuild / tlVersionIntroduced := Map("3" -> "0.9.0")
 
 // protobuf
 val protocJavaSourceManaged =
