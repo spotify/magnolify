@@ -16,9 +16,10 @@
 
 package magnolify.guava.semiauto
 
-import com.google.common.base.Charsets
 import com.google.common.hash.{Funnel, Funnels, PrimitiveSink}
-import magnolia1._
+import magnolia1.*
+
+import java.nio.charset.StandardCharsets
 
 object FunnelDerivation {
   type Typeclass[T] = Funnel[T]
@@ -29,7 +30,7 @@ object FunnelDerivation {
         val p = caseClass.parameters.head
         p.typeclass.funnel(p.dereference(from), into)
       } else if (caseClass.parameters.isEmpty) {
-        val _ = into.putString(caseClass.typeName.short, Charsets.UTF_8)
+        val _ = into.putString(caseClass.typeName.short, StandardCharsets.UTF_8)
       } else {
         caseClass.parameters.foreach { p =>
           // inject index to distinguish cases like `(Some(1), None)` and `(None, Some(1))`
