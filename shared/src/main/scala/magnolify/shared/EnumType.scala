@@ -19,11 +19,11 @@ package magnolify.shared
 import scala.reflect.ClassTag
 
 sealed trait EnumType[T] extends Serializable { self =>
-  val name: String
-  val namespace: String
-  val values: List[String]
-  val valueSet: Set[String]
-  val annotations: List[Any]
+  def name: String
+  def namespace: String
+  def values: List[String]
+  def valueSet: Set[String]
+  def annotations: List[Any]
   def from(v: String): T
   def to(v: T): String
 

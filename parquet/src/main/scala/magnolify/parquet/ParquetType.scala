@@ -138,12 +138,11 @@ object ParquetType {
           SchemaUtil.deepCopy(s, f.typeDoc, fieldDocs.get)
         }
 
+        override private[parquet] def properties: MagnolifyParquetProperties = props
         override def write(c: RecordConsumer, v: T): Unit =
           r.write(c, v)(cm, properties)
         override private[parquet] def newConverter(writerSchema: Type): TypeConverter[T] =
           r.newConverter(writerSchema)
-
-        override private[parquet] def properties: MagnolifyParquetProperties = props
       }
     case _ =>
       throw new IllegalArgumentException(s"ParquetType can only be created from Record. Got $f")

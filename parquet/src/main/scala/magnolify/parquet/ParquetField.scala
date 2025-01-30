@@ -76,7 +76,6 @@ sealed trait ParquetField[T] extends Serializable {
 object ParquetField {
   sealed trait Record[T] extends ParquetField[T] {
     override protected def isGroup(properties: MagnolifyParquetProperties): Boolean = true
-
     override protected def isEmpty(v: T): Boolean = false
   }
 
@@ -108,7 +107,7 @@ object ParquetField {
           }
         }
         override def fieldDocs(cm: CaseMapper): Map[String, String] = Map.empty
-        override val typeDoc: Option[String] = None
+        override def typeDoc: Option[String] = None
       }
     } else {
       new Record[T] {
@@ -217,7 +216,6 @@ object ParquetField {
           pf.write(c, g(v))(cm, properties)
         override def newConverter(writerSchema: Type): TypeConverter[U] =
           pf.newConverter(writerSchema).asInstanceOf[TypeConverter.Primitive[T]].map(f)
-
         override type ParquetT = pf.ParquetT
       }
   }
@@ -227,7 +225,7 @@ object ParquetField {
   sealed trait Primitive[T] extends ParquetField[T] {
     override protected def isEmpty(v: T): Boolean = false
     override def fieldDocs(cm: CaseMapper): Map[String, String] = Map.empty
-    override val typeDoc: Option[String] = None
+    override def typeDoc: Option[String] = None
     type ParquetT <: Comparable[ParquetT]
   }
 
@@ -316,7 +314,7 @@ object ParquetField {
 
       override def fieldDocs(cm: CaseMapper): Map[String, String] = t.fieldDocs(cm)
 
-      override val typeDoc: Option[String] = None
+      override def typeDoc: Option[String] = None
 
       override def write(c: RecordConsumer, v: Option[T])(
         cm: CaseMapper,
@@ -408,7 +406,7 @@ object ParquetField {
 
       override def fieldDocs(cm: CaseMapper): Map[String, String] = t.fieldDocs(cm)
 
-      override val typeDoc: Option[String] = None
+      override def typeDoc: Option[String] = None
     }
   }
 

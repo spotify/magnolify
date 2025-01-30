@@ -20,94 +20,44 @@ import com.github.sbt.git.SbtGit.GitKeys.gitRemoteRepo
 import com.typesafe.tools.mima.core._
 
 val magnoliaScala2Version = "1.1.10"
-val magnoliaScala3Version = "1.3.8"
+val magnoliaScala3Version = "1.3.9"
 
 val algebirdVersion = "0.13.10"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.3")
-val beamVersion = "2.60.0"
+val beamVersion = "2.62.0"
 val bigqueryVersion = "v2-rev20241013-2.0.0"
-val bigtableVersion = "2.48.0"
-val catsVersion = "2.12.0"
-val datastoreVersion = "2.24.3"
-val guavaVersion = "33.3.1-jre"
+val bigtableVersion = "2.51.1"
+val catsVersion = "2.13.0"
+val datastoreVersion = "2.25.4"
+val guavaVersion = "33.4.0-jre"
 val hadoopVersion = "3.4.1"
-val jacksonVersion = "2.18.1"
+val jacksonVersion = "2.18.2"
 val jodaTimeVersion = "2.13.0"
-val munitVersion = "1.0.2"
-val munitScalacheckVersion = "1.0.0"
-val neo4jDriverVersion = "4.4.18"
+val munitVersion = "1.1.0"
+val munitScalacheckVersion = "1.1.0"
+val neo4jDriverVersion = "4.4.19"
 val paigesVersion = "0.4.4"
-val parquetVersion = "1.14.4"
-val protobufVersion = "3.25.5"
-val refinedVersion = "0.11.2"
+val parquetVersion = "1.15.0"
+val protobufVersion = "3.25.6"
+val refinedVersion = "0.11.3"
 val scalaCollectionCompatVersion = "2.12.0"
 val scalacheckVersion = "1.18.1"
 val shapelessVersion = "2.3.12"
 val slf4jVersion = "2.0.16"
-val tensorflowMetadataVersion = "1.15.0"
-val tensorflowVersion = "0.5.0"
+val tensorflowVersion = "1.0.0"
+val tensorflowMetadataVersion = "1.16.1"
 
 // project
-ThisBuild / tlBaseVersion := "0.7"
-ThisBuild / tlSonatypeUseLegacyHost := true
+ThisBuild / tlBaseVersion := "0.8"
 ThisBuild / organization := "com.spotify"
 ThisBuild / organizationName := "Spotify AB"
 ThisBuild / startYear := Some(2016)
 ThisBuild / licenses := Seq(License.Apache2)
-ThisBuild / developers := List(
-  Developer(
-    id = "sinisa_lyh",
-    name = "Neville Li",
-    email = "neville.lyh@gmail.com",
-    url = url("https://twitter.com/sinisa_lyh")
-  ),
-  Developer(
-    id = "andrewsmartin",
-    name = "Andrew Martin",
-    email = "andrewsmartin.mg@gmail.com",
-    url = url("https://twitter.com/andrew_martin92")
-  ),
-  Developer(
-    id = "daikeshi",
-    name = "Keshi Dai",
-    email = "keshi.dai@gmail.com",
-    url = url("https://twitter.com/daikeshi")
-  ),
-  Developer(
-    id = "clairemcginty",
-    name = "Claire McGinty",
-    email = "clairem@spotify.com",
-    url = url("http://github.com/clairemcginty")
-  ),
-  Developer(
-    id = "anne-decusatis",
-    name = "Anne DeCusatis",
-    email = "anned@spotify.com",
-    url = url("http://twitter.com/precisememory")
-  ),
-  Developer(
-    id = "stormy-ua",
-    name = "Kirill Panarin",
-    email = "kirill.panarin@gmail.com",
-    url = url("https://twitter.com/panarin_kirill")
-  ),
-  Developer(
-    id = "syodage",
-    name = "Shameera Rathnayaka Yodage",
-    email = "shameerayodage@gmail.com",
-    url = url("https://twitter.com/syodage")
-  ),
-  Developer(
-    id = "shnapz",
-    name = "Andrew Kabas",
-    email = "akabas@spotify.com",
-    url = url("https://github.com/shnapz")
-  )
-)
+ThisBuild / sonatypeCredentialHost := Sonatype.sonatypeLegacy
 
 // scala versions
 val scala3 = "3.3.4"
-val scala213 = "2.13.14"
+val scala213 = "2.13.16"
 val scala212 = "2.12.20"
 val scalaDefault = scala213
 val scala3Projects = List(
@@ -129,7 +79,7 @@ ThisBuild / scalaVersion := scalaDefault
 ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
 ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
-ThisBuild / tlJdkRelease := Some(8)
+ThisBuild / tlJdkRelease := Some(11)
 ThisBuild / tlFatalWarnings := true
 ThisBuild / tlCiHeaderCheck := true
 ThisBuild / tlCiScalafmtCheck := true
@@ -224,27 +174,8 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 )
 
 // mima
-ThisBuild / mimaBinaryIssueFilters ++= Seq(
-  // genFunnelMacro should not be available to users
-  ProblemFilters.exclude[DirectMissingMethodProblem]("magnolify.guava.auto.package.genFunnelMacro"),
-  // incorrectly named implicit
-  ProblemFilters.exclude[DirectMissingMethodProblem](
-    "magnolify.parquet.logical.package#micros.pfTimestampMillis"
-  ),
-  // incorrectly named implicit
-  ProblemFilters.exclude[DirectMissingMethodProblem](
-    "magnolify.parquet.logical.package#micros.pfLocalDateTimeMillis"
-  ),
-  // incorrectly named implicit
-  ProblemFilters.exclude[DirectMissingMethodProblem](
-    "magnolify.parquet.logical.package#nanos.pfTimestampMillis"
-  ),
-  // incorrectly named implicit
-  ProblemFilters.exclude[DirectMissingMethodProblem](
-    "magnolify.parquet.logical.package#nanos.pfLocalDateTimeMillis"
-  )
-)
-ThisBuild / tlVersionIntroduced := Map("3" -> "0.8.0")
+ThisBuild / mimaBinaryIssueFilters ++= Seq()
+ThisBuild / tlVersionIntroduced := Map("3" -> "0.9.0")
 
 // protobuf
 val protocJavaSourceManaged =
@@ -534,9 +465,7 @@ lazy val beam = project
     libraryDependencies ++= Seq(
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion % Provided,
       "com.google.protobuf" % "protobuf-java" % protobufVersion % Provided
-    ),
-    // TODO remove this line after release
-    tlMimaPreviousVersions := Set.empty
+    )
   )
 
 lazy val bigquery = project
