@@ -41,17 +41,22 @@ message NestedP2 {
     repeated RequiredP2 l = 6;
 }
 
-message CollectionP2 {
+message CollectionsP2 {
     repeated int32 a = 1;
     repeated int32 l = 2;
     repeated int32 v = 3;
     repeated int32 s = 4;
 }
 
-message MoreCollectionP2 {
+message MoreCollectionsP2 {
     repeated int32 i = 1;
     repeated int32 s = 2;
     repeated int32 is = 3;
+}
+
+message MapsP2 {
+  map<string, int32> mp = 1;
+  map<string, NestedP2> mn = 2;
 }
 
 message EnumsP2 {
