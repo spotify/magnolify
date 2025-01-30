@@ -16,13 +16,11 @@
 
 package magnolify.parquet
 
-import java.util.Objects
-
 trait MagnolifyParquetProperties extends Serializable {
   def writeGroupedArrays: Boolean = false
   def writeAvroSchemaToMetadata: Boolean = true
 
-  private[parquet] final def schemaUniquenessKey: Int = Objects.hash(writeGroupedArrays)
+  private[parquet] final def schemaUniquenessKey: Int = writeGroupedArrays.hashCode()
 }
 
 object MagnolifyParquetProperties {
