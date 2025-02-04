@@ -56,7 +56,7 @@ ThisBuild / licenses := Seq(License.Apache2)
 ThisBuild / sonatypeCredentialHost := Sonatype.sonatypeLegacy
 
 // scala versions
-val scala3 = "3.3.4"
+val scala3 = "3.3.5"
 val scala213 = "2.13.16"
 val scala212 = "2.12.20"
 val scalaDefault = scala213
