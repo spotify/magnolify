@@ -23,15 +23,13 @@ trait MagnolifyParquetProperties extends Serializable {
   private[parquet] final def schemaUniquenessKey: Int = writeGroupedArrays.hashCode()
 }
 
-object MagnolifyParquetProperties {
-  val Default: MagnolifyParquetProperties = new MagnolifyParquetProperties {}
-}
-
 /**
  * If set in your core-site.xml or an explicit Configruation object passed to ParquetType, will be
  * parsed into MagnolifyParquetProperties
  */
-object MagnolifyParquetConfigurationCompat {
+object MagnolifyParquetProperties {
+  val Default: MagnolifyParquetProperties = new MagnolifyParquetProperties {}
+
   val WriteGroupedArrays: String = "magnolify.parquet.write-grouped-arrays"
   val WriteAvroSchemaToMetadata: String = "magnolify.parquet.write-avro-schema"
 }
