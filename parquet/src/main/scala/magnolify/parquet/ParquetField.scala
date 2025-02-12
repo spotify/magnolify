@@ -364,7 +364,7 @@ object ParquetField {
       }
 
       override protected def isGroup(properties: MagnolifyParquetProperties): Boolean =
-        avroCompatImported || properties.writeGroupedArrays
+        avroCompatImported || properties.WriteAvroCompatibleArrays
 
       override protected def isEmpty(v: C[T]): Boolean = v.forall(t.isEmpty)
 

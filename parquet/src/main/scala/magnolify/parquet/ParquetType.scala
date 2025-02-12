@@ -102,15 +102,15 @@ object ParquetType {
   )(implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] =
     ParquetType[T](
       CaseMapper.identity, {
-        val writeGroupedArraysOpt =
-          Option(conf.get(MagnolifyParquetProperties.WriteGroupedArrays)).map(_.toBoolean)
+        val WriteAvroCompatibleArraysOpt =
+          Option(conf.get(MagnolifyParquetProperties.WriteAvroCompatibleArrays)).map(_.toBoolean)
         val writeMetadataOpt = Option(
           conf.get(MagnolifyParquetProperties.WriteAvroSchemaToMetadata)
         ).map(_.toBoolean)
 
         new MagnolifyParquetProperties {
-          override def writeGroupedArrays: Boolean =
-            writeGroupedArraysOpt.getOrElse(super.writeGroupedArrays)
+          override def WriteAvroCompatibleArrays: Boolean =
+            WriteAvroCompatibleArraysOpt.getOrElse(super.WriteAvroCompatibleArrays)
           override def writeAvroSchemaToMetadata: Boolean =
             writeMetadataOpt.getOrElse(super.writeAvroSchemaToMetadata)
         }

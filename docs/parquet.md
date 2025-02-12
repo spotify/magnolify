@@ -120,13 +120,26 @@ import magnolify.parquet._
 case class RecordWithList(listField: List[String])
 
 val conf = new Configuration()
-conf.setBoolean(MagnolifyParquetProperties.WriteGroupedArrays, true) // sets `magnolify.parquet.write-grouped-arrays`
+conf.setBoolean(MagnolifyParquetProperties.WriteAvroCompatibleArrays, true) // sets `magnolify.parquet.write-grouped-arrays`
 
 // Instantiate ParquetType with configuration
 val pt = ParquetType[RecordWithList](conf)
 
 // Check that the converted Avro schema uses 2-level encoding
 pt.schema
+```
+
+If you're a Scio user with `com.spotify:scio-parquet` on your classpath, you can instantiate a Configured `ParqueType` as a one-liner:
+
+```scala mdoc:fail
+import com.spotify.scio.parquet._
+import magnolify.parquet._
+
+case class RecordWithList(listField: List[String])
+
+val pt = ParquetType[RecordWithList](
+  ParquetConfiguration.of(MagnolifyParquetProperties.WriteAvroCompatibleArrays -> true)
+)
 ```
 
 You can combine a Configuration with a CaseMapper:
@@ -145,7 +158,7 @@ If you don't have Hadoop on your classpath, you can instantiate a `MagnolifyParq
 import magnolify.parquet._
 
 ParquetType[RecordWithList](new MagnolifyParquetProperties {
-    override def writeGroupedArrays: Boolean = true
+    override def WriteAvroCompatibleArrays: Boolean = true
   }
 )
 ```

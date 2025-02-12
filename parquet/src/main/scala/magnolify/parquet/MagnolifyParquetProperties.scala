@@ -17,10 +17,10 @@
 package magnolify.parquet
 
 trait MagnolifyParquetProperties extends Serializable {
-  def writeGroupedArrays: Boolean = false
+  def WriteAvroCompatibleArrays: Boolean = false
   def writeAvroSchemaToMetadata: Boolean = true
 
-  private[parquet] final def schemaUniquenessKey: Int = writeGroupedArrays.hashCode()
+  private[parquet] final def schemaUniquenessKey: Int = WriteAvroCompatibleArrays.hashCode()
 }
 
 /**
@@ -30,6 +30,6 @@ trait MagnolifyParquetProperties extends Serializable {
 object MagnolifyParquetProperties {
   val Default: MagnolifyParquetProperties = new MagnolifyParquetProperties {}
 
-  val WriteGroupedArrays: String = "magnolify.parquet.write-grouped-arrays"
+  val WriteAvroCompatibleArrays: String = "magnolify.parquet.write-grouped-arrays"
   val WriteAvroSchemaToMetadata: String = "magnolify.parquet.write-avro-schema"
 }

@@ -223,13 +223,13 @@ class ParquetTypeSuite extends MagnolifySuite {
   }
 
   test("AvroCompat") {
-    def conf(writeGroupedArrays: Boolean): Configuration = {
+    def conf(WriteAvroCompatibleArrays: Boolean): Configuration = {
       val c = new Configuration()
-      c.setBoolean(MagnolifyParquetProperties.WriteGroupedArrays, writeGroupedArrays)
+      c.setBoolean(MagnolifyParquetProperties.WriteAvroCompatibleArrays, WriteAvroCompatibleArrays)
       c
     }
 
-    val ptNonGroupedArrays = ParquetType[WithList](conf(writeGroupedArrays = false))
+    val ptNonGroupedArrays = ParquetType[WithList](conf(WriteAvroCompatibleArrays = false))
     // Assert that by default, Magnolify doesn't wrap repeated fields in group types
     val nonAvroCompliantSchema = """|message magnolify.parquet.WithList {
                                     |  required binary s (STRING);
@@ -269,7 +269,7 @@ class ParquetTypeSuite extends MagnolifySuite {
     assertEquals(ptNonGroupedArrays.schema, wc1.getSchema)
 
     // Assert that WriteSupport uses grouped schema when explicitly configured
-    val ptGroupedArrays = ParquetType[WithList](conf(writeGroupedArrays = true))
+    val ptGroupedArrays = ParquetType[WithList](conf(WriteAvroCompatibleArrays = true))
     val wc2 = ptGroupedArrays.writeSupport.init(new Configuration())
     assertEquals(avroCompliantSchema, wc2.getSchema.toString)
     assertEquals(ptGroupedArrays.schema, wc2.getSchema)
