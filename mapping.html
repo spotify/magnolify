@@ -139,6 +139,7 @@ spotify/magnolify
 </div>
 <ul>
   <li><a href="avro.html" class="page">Avro</a></li>
+  <li><a href="beam.html" class="page">Beam</a></li>
   <li><a href="bigquery.html" class="page">BigQuery</a></li>
   <li><a href="bigtable.html" class="page">Bigtable</a></li>
   <li><a href="cats.html" class="page">Cats</a></li>
@@ -161,7 +162,7 @@ spotify/magnolify
 <ul style="display: none">
 <li class="md-nav__item md-version" id="project.version">
 <label class="md-nav__link" for="__version">
-<i class="md-icon" title="Version">label_outline</i> 0.7.4
+<i class="md-icon" title="Version">label_outline</i> 0.8.0
 </label>
 </li>
 </ul>
@@ -177,6 +178,7 @@ spotify/magnolify
     <tr>
       <th>Scala </th>
       <th>Avro </th>
+      <th>Beam </th>
       <th>BigQuery </th>
       <th>Bigtable<sup>7</sup> </th>
       <th>Datastore </th>
@@ -191,6 +193,7 @@ spotify/magnolify
       <td><code>null</code> </td>
       <td>x </td>
       <td>x </td>
+      <td>x </td>
       <td><code>Null</code> </td>
       <td>x </td>
       <td>x </td>
@@ -199,6 +202,7 @@ spotify/magnolify
     <tr>
       <td><code>Boolean</code> </td>
       <td><code>boolean</code> </td>
+      <td><code>BOOLEAN</code> </td>
       <td><code>BOOL</code> </td>
       <td><code>Byte</code> </td>
       <td><code>Boolean</code> </td>
@@ -209,6 +213,7 @@ spotify/magnolify
     <tr>
       <td><code>Char</code> </td>
       <td><code>int</code><sup>3</sup> </td>
+      <td><code>BYTE</code> </td>
       <td><code>INT64</code><sup>3</sup2> </td>
       <td><code>Char</code> </td>
       <td><code>Integer</code><sup>3</sup> </td>
@@ -219,6 +224,7 @@ spotify/magnolify
     <tr>
       <td><code>Byte</code> </td>
       <td><code>int</code><sup>3</sup> </td>
+      <td><code>BYTE</code> </td>
       <td><code>INT64</code><sup>3</sup2> </td>
       <td><code>Byte</code> </td>
       <td><code>Integer</code><sup>3</sup> </td>
@@ -229,6 +235,7 @@ spotify/magnolify
     <tr>
       <td><code>Short</code> </td>
       <td><code>int</code><sup>3</sup> </td>
+      <td><code>INT16</code> </td>
       <td><code>INT64</code><sup>3</sup2> </td>
       <td><code>Short</code> </td>
       <td><code>Integer</code><sup>3</sup> </td>
@@ -239,6 +246,7 @@ spotify/magnolify
     <tr>
       <td><code>Int</code> </td>
       <td><code>int</code> </td>
+      <td><code>INT32</code> </td>
       <td><code>INT64</code><sup>3</sup2> </td>
       <td><code>Int</code> </td>
       <td><code>Integer</code><sup>3</sup> </td>
@@ -250,6 +258,7 @@ spotify/magnolify
       <td><code>Long</code> </td>
       <td><code>long</code> </td>
       <td><code>INT64</code> </td>
+      <td><code>INT64</code> </td>
       <td><code>Long</code> </td>
       <td><code>Integer</code> </td>
       <td><code>INT64</code><sup>9</sup> </td>
@@ -259,6 +268,7 @@ spotify/magnolify
     <tr>
       <td><code>Float</code> </td>
       <td><code>float</code> </td>
+      <td><code>FLOAT</code> </td>
       <td><code>FLOAT64</code><sup>3</sup2> </td>
       <td><code>Float</code> </td>
       <td><code>Double</code><sup>3</sup> </td>
@@ -269,6 +279,7 @@ spotify/magnolify
     <tr>
       <td><code>Double</code> </td>
       <td><code>double</code> </td>
+      <td><code>DOUBLE</code> </td>
       <td><code>FLOAT64</code> </td>
       <td><code>Double</code> </td>
       <td><code>Double</code> </td>
@@ -279,6 +290,7 @@ spotify/magnolify
     <tr>
       <td><code>CharSequence</code> </td>
       <td><code>string</code> </td>
+      <td><code>STRING</code> </td>
       <td>x </td>
       <td>x </td>
       <td>x </td>
@@ -290,6 +302,7 @@ spotify/magnolify
       <td><code>String</code> </td>
       <td><code>string</code> </td>
       <td><code>STRING</code> </td>
+      <td><code>STRING</code> </td>
       <td><code>String</code> </td>
       <td><code>String</code> </td>
       <td><code>BINARY</code> </td>
@@ -300,6 +313,7 @@ spotify/magnolify
       <td><code>Array[Byte]</code> </td>
       <td><code>bytes</code> </td>
       <td><code>BYTES</code> </td>
+      <td><code>BYTES</code> </td>
       <td><code>ByteString</code> </td>
       <td><code>Blob</code> </td>
       <td><code>BINARY</code> </td>
@@ -309,6 +323,7 @@ spotify/magnolify
     <tr>
       <td><code>ByteString</code> </td>
       <td>x </td>
+      <td><code>BYTES</code> </td>
       <td>x </td>
       <td><code>ByteString</code> </td>
       <td><code>Blob</code> </td>
@@ -319,6 +334,7 @@ spotify/magnolify
     <tr>
       <td><code>ByteBuffer</code> </td>
       <td><code>bytes</code> </td>
+      <td><code>BYTES</code> </td>
       <td>x </td>
       <td>x </td>
       <td> </td>
@@ -329,6 +345,7 @@ spotify/magnolify
     <tr>
       <td>Enum<sup>1</sup> </td>
       <td><code>enum</code> </td>
+      <td><code>STRING</code><sup>16</sup> </td>
       <td><code>STRING</code><sup>3</sup2> </td>
       <td><code>String</code> </td>
       <td><code>String</code><sup>3</sup> </td>
@@ -340,6 +357,7 @@ spotify/magnolify
       <td><code>BigInt</code> </td>
       <td>x </td>
       <td>x </td>
+      <td>x </td>
       <td><code>BigInt</code> </td>
       <td>x </td>
       <td>x </td>
@@ -349,6 +367,7 @@ spotify/magnolify
     <tr>
       <td><code>BigDecimal</code> </td>
       <td><code>bytes</code><sup>4</sup> </td>
+      <td><code>DECIMAL</code> </td>
       <td><code>NUMERIC</code><sup>6</sup2> </td>
       <td><code>Int</code> scale + unscaled <code>BigInt</code> </td>
       <td>x </td>
@@ -359,6 +378,7 @@ spotify/magnolify
     <tr>
       <td><code>Option[T]</code> </td>
       <td><code>union[null, T]</code><sup>5</sup> </td>
+      <td>Empty as <code>null</code> </td>
       <td><code>NULLABLE</code> </td>
       <td>Empty as <code>None</code> </td>
       <td>Absent as <code>None</code> </td>
@@ -369,6 +389,7 @@ spotify/magnolify
     <tr>
       <td><code>Iterable[T]</code><sup>2</sup> </td>
       <td><code>array[T]</code> </td>
+      <td><code>ITERABLE</code> </td>
       <td><code>REPEATED</code> </td>
       <td>x </td>
       <td><code>Array</code> </td>
@@ -379,6 +400,7 @@ spotify/magnolify
     <tr>
       <td>Nested </td>
       <td><code>record</code> </td>
+      <td><code>ROW</code> </td>
       <td><code>STRUCT</code> </td>
       <td>Flat<sup>8</sup> </td>
       <td><code>Entity</code> </td>
@@ -389,6 +411,7 @@ spotify/magnolify
     <tr>
       <td><code>Map[K, V]</code> </td>
       <td><code>map[V]</code><sup>15</sup> </td>
+      <td><code>MAP</code> </td>
       <td>x </td>
       <td>x </td>
       <td>x </td>
@@ -399,6 +422,7 @@ spotify/magnolify
     <tr>
       <td><code>java.time.Instant</code> </td>
       <td><code>long</code><sup>11</sup> </td>
+      <td><code>DATETIME</code>, <code>INT64</code>, <code>ROW</code><sup>17</sup> </td>
       <td><code>TIMESTAMP</code> </td>
       <td>x </td>
       <td><code>Timestamp</code> </td>
@@ -409,6 +433,7 @@ spotify/magnolify
     <tr>
       <td><code>java.time.LocalDateTime</code> </td>
       <td><code>long</code><sup>11</sup> </td>
+      <td><code>ROW</code>, <code>INT64</code><sup>17</sup> </td>
       <td><code>DATETIME</code> </td>
       <td>x </td>
       <td>x </td>
@@ -422,6 +447,7 @@ spotify/magnolify
       <td>x </td>
       <td>x </td>
       <td>x </td>
+      <td>x </td>
       <td><code>LOGICAL[TIME]</code><sup>9</sup> </td>
       <td>x </td>
       <td>x </td>
@@ -429,6 +455,7 @@ spotify/magnolify
     <tr>
       <td><code>java.time.LocalTime</code> </td>
       <td><code>long</code><sup>11</sup> </td>
+      <td><code>INT32</code>, <code>INT64</code><sup>17</sup> </td>
       <td><code>TIME</code> </td>
       <td>x </td>
       <td>x </td>
@@ -439,6 +466,7 @@ spotify/magnolify
     <tr>
       <td><code>java.time.LocalDate</code> </td>
       <td><code>int</code><sup>11</sup> </td>
+      <td><code>INT64</code><sup>17</sup> </td>
       <td><code>DATE</code> </td>
       <td>x </td>
       <td>x </td>
@@ -449,6 +477,7 @@ spotify/magnolify
     <tr>
       <td><code>org.joda.time.LocalDate</code> </td>
       <td><code>int</code><sup>11</sup> </td>
+      <td><code>INT64</code><sup>17</sup> </td>
       <td>x </td>
       <td>x </td>
       <td>x </td>
@@ -459,6 +488,7 @@ spotify/magnolify
     <tr>
       <td><code>org.joda.time.DateTime</code> </td>
       <td><code>int</code><sup>11</sup> </td>
+      <td><code>DATETIME</code>, <code>INT64</code>, <code>ROW</code><sup>17</sup> </td>
       <td>x </td>
       <td>x </td>
       <td>x </td>
@@ -469,6 +499,7 @@ spotify/magnolify
     <tr>
       <td><code>org.joda.time.LocalTime</code> </td>
       <td><code>int</code><sup>11</sup> </td>
+      <td><code>INT32</code>, <code>INT64</code><sup>17</sup> </td>
       <td>x </td>
       <td>x </td>
       <td>x </td>
@@ -479,6 +510,7 @@ spotify/magnolify
     <tr>
       <td><code>java.util.UUID</code> </td>
       <td><code>string</code><sup>4</sup> </td>
+      <td><code>ROW</code><sup>18</sup> </td>
       <td>x </td>
       <td>ByteString (16 bytes) </td>
       <td>x </td>
@@ -489,6 +521,7 @@ spotify/magnolify
     <tr>
       <td><code>(Long, Long, Long)</code><sup>12</sup> </td>
       <td><code>fixed[12]</code> </td>
+      <td>x </td>
       <td>x </td>
       <td>x </td>
       <td>x </td>
@@ -514,6 +547,9 @@ spotify/magnolify
   <li>If <code>magnolify.parquet.ParquetArray.AvroCompat._</code> is imported, array fields use the nested, Avro-compatible schema format: <code>required group $FIELDNAME (LIST) { repeated $FIELDTYPE array ($FIELDSCHEMA); }</code>.</li>
   <li>Parquet&rsquo;s Decimal logical format supports multiple representations, and are not implicitly scoped by default. Import one of: <code>magnolify.parquet.ParquetField.{decimal32, decimal64, decimalFixed, decimalBinary}</code>.</li>
   <li>Map key type in avro is fixed to string. Scala Map key type must be either <code>String</code> or <code>CharSequence</code>.</li>
+  <li>Beam logical <a href="https://beam.apache.org/documentation/programming-guide/#enumerationtype">Enumeration type</a></li>
+  <li>See <a href="https://github.com/spotify/magnolify/blob/master/docs/beam.md">beam.md</a> for details</li>
+  <li>Beam logical <a href="https://beam.apache.org/releases/javadoc/current/org/apache/beam/sdk/schemas/logicaltypes/UuidLogicalType.html">UUID type</a></li>
 </ol>
 </div>
 <div>
@@ -523,7 +559,7 @@ Edit this page
 </div>
 <div class="print-only">
 <span class="md-source-file md-version">
-0.7.4
+0.8.0
 </span>
 </div>
 </article>
@@ -565,7 +601,7 @@ Scaladoc
 <div class="md-footer-meta__inner md-grid">
 <div class="md-footer-copyright">
 <div class="md-footer-copyright__highlight">
-Copyright (C) 2024 Spotify AB
+Copyright (C) 2025 Spotify AB
 </div>
 Powered by
 <a href="https://github.com/lightbend/paradox">Paradox</a>
