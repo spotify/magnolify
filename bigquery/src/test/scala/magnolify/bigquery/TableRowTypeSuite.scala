@@ -91,8 +91,12 @@ class TableRowTypeSuite extends MagnolifySuite {
     assert(record.get("vc") == "String")
   }
 
-  test("BigDecimal") {
+  test("BigDecimal Numeric") {
+    import magnolify.bigquery.decimal.numeric._
+
     val at: TableRowType[BigDec] = TableRowType[BigDec]
+    test[BigDec]
+
     val msg1 = "requirement failed: " +
       "Cannot encode BigDecimal 1234567890123456789012345678901234567890: precision 40 > 38"
     interceptMessage[IllegalArgumentException](msg1) {
@@ -101,6 +105,24 @@ class TableRowTypeSuite extends MagnolifySuite {
     val msg2 = "requirement failed: Cannot encode BigDecimal 3.14159265358979323846: scale 20 > 9"
     interceptMessage[IllegalArgumentException](msg2) {
       at(BigDec(BigDecimal("3.14159265358979323846")))
+    }
+  }
+
+  test("BigDecimal BigNumeric") {
+    import magnolify.bigquery.decimal.bignumeric._
+
+    val at: TableRowType[BigDec] = TableRowType[BigDec]
+    test[BigDec]
+
+    val msg1 = "requirement failed: Cannot encode BigDecimal 1.0E-38: scale 39 > 38"
+    interceptMessage[IllegalArgumentException](msg1) {
+      at(BigDec(BigDecimal(10L, 39)))
+    }
+
+    val msg2 =
+      "requirement failed: Cannot encode BigDecimal 578960446186580977117854925043439539266.1: precision 40 > (scale[1] + 38)"
+    interceptMessage[IllegalArgumentException](msg2) {
+      at(BigDec(BigDecimal("578960446186580977117854925043439539266.1")))
     }
   }
 
@@ -170,7 +192,7 @@ class TableRowTypeSuite extends MagnolifySuite {
 }
 
 case class Unsafe(b: Byte, c: Char, s: Short, i: Int, _f: Float)
-case class BigQueryTypes(i: Instant, d: LocalDate, t: LocalTime, dt: LocalDateTime, bd: BigDecimal)
+case class BigQueryTypes(i: Instant, d: LocalDate, t: LocalTime, dt: LocalDateTime)
 case class BigDec(bd: BigDecimal)
 
 @description("TableRow with description")

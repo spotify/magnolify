@@ -194,20 +194,19 @@ object TableRowField {
 
   // ////////////////////////////////////////////////
 
-  private def at[T](tpe: String)(f: Any => T)(g: T => Any): TableRowField[T] = new Generic[T] {
-    override protected def buildSchema(cm: CaseMapper): TableFieldSchema =
-      new TableFieldSchema().setType(tpe).setMode("REQUIRED")
-    override def from(v: Any)(cm: CaseMapper): T = f(v)
-    override def to(v: T)(cm: CaseMapper): Any = g(v)
-  }
+  private[bigquery] def at[T](tpe: String)(f: Any => T)(g: T => Any): TableRowField[T] =
+    new Generic[T] {
+      override protected def buildSchema(cm: CaseMapper): TableFieldSchema =
+        new TableFieldSchema().setType(tpe).setMode("REQUIRED")
+      override def from(v: Any)(cm: CaseMapper): T = f(v)
+      override def to(v: T)(cm: CaseMapper): Any = g(v)
+    }
 
   implicit val trfBool: TableRowField[Boolean] = at[Boolean]("BOOL")(_.toString.toBoolean)(identity)
   implicit val trfLong: TableRowField[Long] = at[Long]("INT64")(_.toString.toLong)(identity)
   implicit val trfDouble: TableRowField[Double] =
     at[Double]("FLOAT64")(_.toString.toDouble)(identity)
   implicit val trfString: TableRowField[String] = at[String]("STRING")(_.toString)(identity)
-  implicit val trfNumeric: TableRowField[BigDecimal] =
-    at[BigDecimal]("NUMERIC")(NumericConverter.toBigDecimal)(NumericConverter.fromBigDecimal)
 
   implicit val trfByteArray: TableRowField[Array[Byte]] =
     at[Array[Byte]]("BYTES")(x => BaseEncoding.base64().decode(x.toString))(x =>
@@ -252,20 +251,4 @@ object TableRowField {
       override def to(v: C[T])(cm: CaseMapper): ju.List[f.ToT] =
         if (v.isEmpty) null else v.iterator.map(f.to(_)(cm)).toList.asJava
     }
-}
-
-private object NumericConverter {
-  // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
-  private val MaxPrecision = 38
-  private val MaxScale = 9
-
-  def toBigDecimal(v: Any): BigDecimal = BigDecimal(v.toString)
-  def fromBigDecimal(v: BigDecimal): Any = {
-    require(
-      v.precision <= MaxPrecision,
-      s"Cannot encode BigDecimal $v: precision ${v.precision} > $MaxPrecision"
-    )
-    require(v.scale <= MaxScale, s"Cannot encode BigDecimal $v: scale ${v.scale} > $MaxScale")
-    v.toString()
-  }
 }

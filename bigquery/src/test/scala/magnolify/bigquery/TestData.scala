@@ -21,6 +21,7 @@ import java.time._
 
 import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
 import magnolify.bigquery._
+import magnolify.bigquery.decimal.numeric._
 
 // Test BigQuery data types, to be used with scripts/bigquery-test.sh
 object TestData {
