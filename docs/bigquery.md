@@ -58,3 +58,39 @@ val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_UNDERSCORE
 val tableRowType = TableRowType[LowerCamel](CaseMapper(toSnakeCase))
 tableRowType.to(LowerCamel("John", "Doe"))
 ```
+
+## Numeric and BigNumeric types
+
+Magnolify < 0.8.1 only supports BigQuery's `NUMERIC` type, mapped from the Scala `BigDecimal`.
+
+As of Magnolify 0.8.1 and above, you can choose whether you'd like your `BigDecimal` fields to map to `NUMERIC` or `BIGNUMERIC`
+by importing either the `magnolify.bigquery.decimal.numeric._` or `magnolify.bigquery.decimal.bignumeric._` package objects, respectively.
+
+```scala mdoc:reset
+// Map BigDecimal fields to NUMERIC type
+import magnolify.bigquery._
+import magnolify.bigquery.decimal.numeric._
+
+import scala.math.BigDecimal
+
+case class RecordWithNumeric(bd: BigDecimal)
+val tableRowType = TableRowType[RecordWithNumeric]
+
+tableRowType.schema
+```
+
+```scala mdoc:reset
+// Map BigDecimal fields to BIGNUMERIC type
+import magnolify.bigquery._
+import magnolify.bigquery.decimal.bignumeric._
+
+import scala.math.BigDecimal
+
+case class RecordWithBigNumeric(bd: BigDecimal)
+val tableRowType = TableRowType[RecordWithBigNumeric]
+
+tableRowType.schema
+```
+
+
+https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type`
