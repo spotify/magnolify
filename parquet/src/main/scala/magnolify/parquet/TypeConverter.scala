@@ -53,6 +53,26 @@ private object TypeConverter {
     }
   }
 
+  trait Collection[T, C] extends GroupConverter with TypeConverter[C] {
+    private val buffer: mutable.Buffer[T] = mutable.Buffer.empty
+    def elementConverter: TypeConverter[T]
+    def toResult: IterableOnce[T] => C
+
+    override def start(): Unit = ()
+    override def end(): Unit = {
+      val value = elementConverter.get
+      buffer += value
+    }
+
+    override def get: C = {
+      val result = buffer.toList
+      buffer.clear()
+      toResult(result)
+    }
+
+    override def getConverter(fieldIndex: Int): Converter = elementConverter
+  }
+
   abstract class Delegate[V, U](val inner: Buffered[V]) extends TypeConverter[U] {
     override def isPrimitive: Boolean = inner.isPrimitive
     override def asPrimitiveConverter(): PrimitiveConverter = {

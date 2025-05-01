@@ -30,9 +30,10 @@ import org.apache.parquet.hadoop.{
 }
 import org.apache.parquet.io.api._
 import org.apache.parquet.io.{InputFile, OutputFile}
-import org.apache.parquet.schema.{MessageType, Type}
+import org.apache.parquet.schema.MessageType
 import org.slf4j.LoggerFactory
-import org.typelevel.scalaccompat.annotation.nowarn
+
+import scala.annotation.nowarn
 
 sealed trait ParquetArray
 
@@ -83,7 +84,7 @@ sealed trait ParquetType[T] extends Serializable {
   private[parquet] def properties: MagnolifyParquetProperties
 
   private[parquet] def write(c: RecordConsumer, v: T): Unit = ()
-  private[parquet] def newConverter(writerSchema: Type): TypeConverter[T] = null
+  private[parquet] def newConverter(): TypeConverter[T] = null
 }
 
 object ParquetType {
@@ -97,20 +98,29 @@ object ParquetType {
   )(implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] =
     ParquetType[T](cm, MagnolifyParquetProperties.Default)(f, pa)
 
+  @nowarn("cat=deprecation")
   def apply[T](
     conf: Configuration
   )(implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] =
     ParquetType[T](
       CaseMapper.identity, {
-        val WriteAvroCompatibleArraysOpt =
-          Option(conf.get(MagnolifyParquetProperties.WriteAvroCompatibleArrays)).map(_.toBoolean)
+        val writeArrayEncodingOpt =
+          if (
+            Option(conf.get(MagnolifyParquetProperties.WriteAvroCompatibleArrays))
+              .exists(_.toBoolean)
+          ) {
+            Some(ArrayEncoding.TwoLevel)
+          } else {
+            Option(conf.get(MagnolifyParquetProperties.WriteArrayFormat)).map(ArrayEncoding.parse)
+          }
+
         val writeMetadataOpt = Option(
           conf.get(MagnolifyParquetProperties.WriteAvroSchemaToMetadata)
         ).map(_.toBoolean)
 
         new MagnolifyParquetProperties {
-          override def WriteAvroCompatibleArrays: Boolean =
-            WriteAvroCompatibleArraysOpt.getOrElse(super.WriteAvroCompatibleArrays)
+          override def writeArrayEncoding: ArrayEncoding =
+            writeArrayEncodingOpt.getOrElse(super.writeArrayEncoding)
           override def writeAvroSchemaToMetadata: Boolean =
             writeMetadataOpt.getOrElse(super.writeAvroSchemaToMetadata)
         }
@@ -122,14 +132,31 @@ object ParquetType {
   )(implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] =
     ParquetType[T](CaseMapper.identity, properties)(f, pa)
 
+  @nowarn("cat=deprecation")
   def apply[T](
     cm: CaseMapper,
     props: MagnolifyParquetProperties
   )(implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] = f match {
     case r: ParquetField.Record[_] =>
       new ParquetType[T] {
+        // Maintain backwards compat with old AvroCompat import by overriding arrayEncoding property to use
+        // 2-level encoding if import is detected.
+        private val propertiesWithAvroImportCompat = (pa, props.writeArrayEncoding) match {
+          case (ParquetArray.default, _) => props
+          case (ParquetArray.AvroCompat.avroCompat, ArrayEncoding.ThreeLevel) =>
+            throw new IllegalStateException(
+              "AvroCompat is imported, which sets a 2-level list encoding, but MagnolifyParquetProperties#arrayEncoding is set to 3-level list encoding. Remove either the AvroCompat import or the arrayEncoding override."
+            )
+          case (ParquetArray.AvroCompat.avroCompat, _) =>
+            new MagnolifyParquetProperties {
+              override def writeArrayEncoding: ArrayEncoding =
+                ArrayEncoding.TwoLevel
+              override def writeAvroSchemaToMetadata: Boolean = props.writeAvroSchemaToMetadata
+            }
+        }
+
         @transient override def schema: MessageType =
-          Schema.message(r.schema(cm, properties))
+          Schema.message(r.schema(cm, propertiesWithAvroImportCompat))
 
         @transient override def avroSchema: AvroSchema = {
           val s = new AvroSchemaConverter().convert(schema)
@@ -138,11 +165,12 @@ object ParquetType {
           SchemaUtil.deepCopy(s, f.typeDoc, fieldDocs.get)
         }
 
-        override private[parquet] def properties: MagnolifyParquetProperties = props
+        override private[parquet] def properties: MagnolifyParquetProperties =
+          propertiesWithAvroImportCompat
         override def write(c: RecordConsumer, v: T): Unit =
-          r.write(c, v)(cm, properties)
-        override private[parquet] def newConverter(writerSchema: Type): TypeConverter[T] =
-          r.newConverter(writerSchema)
+          r.write(c, v)(cm, propertiesWithAvroImportCompat)
+        override private[parquet] def newConverter(): TypeConverter[T] =
+          r.newConverter(propertiesWithAvroImportCompat)
       }
     case _ =>
       throw new IllegalArgumentException(s"ParquetType can only be created from Record. Got $f")
@@ -176,19 +204,11 @@ object ParquetType {
         parquetType = SerializationUtils.fromBase64[ParquetType[T]](readKeyType)
       }
 
-      val requestedSchema = {
-        val s = Schema.message(parquetType.schema)
-        // If reading Avro, roundtrip schema using parquet-avro converter to ensure array compatibility;
-        // magnolify-parquet does not automatically wrap repeated fields into a group like parquet-avro does
-        if (Schema.hasGroupedArray(context.getFileSchema)) {
-          val converter = new AvroSchemaConverter()
-          converter.convert(converter.convert(s))
-        } else {
-          s
-        }
-      }
-      Schema.checkCompatibility(context.getFileSchema, requestedSchema)
-      new hadoop.ReadSupport.ReadContext(requestedSchema, java.util.Collections.emptyMap())
+      val writeSchema = context.getFileSchema
+      val readSchema = Schema.message(parquetType.schema)
+
+      Schema.checkCompatibility(writeSchema, readSchema)
+      new hadoop.ReadSupport.ReadContext(readSchema)
     }
 
     override def prepareForRead(
@@ -198,7 +218,7 @@ object ParquetType {
       readContext: hadoop.ReadSupport.ReadContext
     ): RecordMaterializer[T] =
       new RecordMaterializer[T] {
-        private val root = parquetType.newConverter(fileSchema)
+        private val root = parquetType.newConverter()
         override def getCurrentRecord: T = root.get
         override def getRootConverter: GroupConverter = root.asGroupConverter()
       }

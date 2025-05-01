@@ -16,6 +16,7 @@
 
 package magnolify.parquet
 
+import magnolify.parquet.ArrayEncoding._
 import magnolify.test.MagnolifySuite
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
@@ -29,7 +30,7 @@ import org.apache.parquet.schema.{MessageType, MessageTypeParser}
 
 import java.nio.file.Files
 import scala.annotation.nowarn
-import scala.jdk.CollectionConverters.*
+import scala.jdk.CollectionConverters._
 
 case class RecordWithListPrimitive(listField: List[Int])
 
@@ -69,39 +70,7 @@ class ListCompatibilitySuite extends MagnolifySuite {
     )(readTypeclass = ParquetType[RecordWithListPrimitive])
   }
 
-  test("2-level list encoding with primitive list type when AvroCompat mode is enabled on read") {
-    val schema = s"""
-      |message RecordWith2LevelListPrimitive {
-      |  required group $ListField (LIST) {
-      |    repeated int32 array (INTEGER(32,true));
-      |  }
-      |}
-      |""".stripMargin
-
-    roundtripParquet[RecordWithListPrimitive](
-      writeSchema = MessageTypeParser.parseMessageType(schema),
-      records = recordsWithListPrimitive,
-      writeFn = { case (record, rc) =>
-        rc.startMessage()
-
-        rc.startField(ListField, 0)
-        rc.startGroup()
-
-        rc.startField("array", 0)
-        record.listField.foreach(rc.addInteger)
-        rc.endField("array", 0)
-
-        rc.endGroup()
-        rc.endField(ListField, 0)
-
-        rc.endMessage()
-      }
-    )(readTypeclass = ParquetType[RecordWithListPrimitive](new MagnolifyParquetProperties {
-      override def WriteAvroCompatibleArrays: Boolean = true
-    }))
-  }
-
-  test("2-level list encoding with nested list type when AvroCompat mode is enabled on read") {
+  test("2-level list encoding with primitive list type") {
     val schema = s"""
                     |message RecordWith2LevelListNested {
                     |  required group $ListField (LIST) {
@@ -139,24 +108,81 @@ class ListCompatibilitySuite extends MagnolifySuite {
         rc.endMessage()
       }
     )(readTypeclass = ParquetType[RecordWithListNested](new MagnolifyParquetProperties {
-      override def WriteAvroCompatibleArrays: Boolean = true
+      override def writeArrayEncoding: ArrayEncoding = TwoLevel
     }))
   }
 
-  // Fails, lists are deserialized as Nil
-  test("3-Level list encoding with primitive list type when AvroCompat mode is enabled on read") {
-    val schema = s"""
-      |message RecordWith3LevelListPrimitive {
-      |  required group listField (LIST) {
-      |    repeated group list {
-      |      required int32 element;
-      |    }
-      |  }
-      |}
-      |""".stripMargin
+  test("3-Level list encoding with primitive list type") {
+    val typeClass = ParquetType[RecordWithListPrimitive](new MagnolifyParquetProperties {
+      override def writeArrayEncoding: ArrayEncoding = ThreeLevel
+    })
+
+    val schema =
+      s"""
+         |message magnolify.parquet.RecordWithListPrimitive {
+         |  required group listField (LIST) {
+         |    repeated group list {
+         |      required int32 element (INTEGER(32,true));
+         |    }
+         |  }
+         |}
+         |""".stripMargin
+
+    assertEquals(typeClass.schema, MessageTypeParser.parseMessageType(schema))
+
     roundtripParquet[RecordWithListPrimitive](
       writeSchema = MessageTypeParser.parseMessageType(schema),
       records = recordsWithListPrimitive,
+      writeFn = { case (record, rc) =>
+        rc.startMessage()
+
+        rc.startField(ListField, 0)
+        rc.startGroup()
+
+        /** Reference: [[org.apache.parquet.avro.AvroWriteSupport#ThreeLevelListWriter]] */
+        rc.startField("list", 0)
+        record.listField.foreach { elem =>
+          rc.startGroup()
+
+          rc.startField("element", 0)
+          rc.addInteger(elem)
+          rc.endField("element", 0)
+
+          rc.endGroup()
+        }
+
+        rc.endField("list", 0)
+        rc.endGroup()
+        rc.endField(ListField, 0)
+
+        rc.endMessage()
+      }
+    )(typeClass)
+  }
+
+  test("3-Level list encoding with nested list type") {
+    val typeClass = ParquetType[RecordWithListNested](new MagnolifyParquetProperties {
+      override def writeArrayEncoding: ArrayEncoding = ThreeLevel
+    })
+
+    val schema =
+      s"""
+         |message magnolify.parquet.RecordWithListNested {
+         |  required group listField (LIST) {
+         |    repeated group list {
+         |      required group element {
+         |        required int32 i (INTEGER(32,true));
+         |      }
+         |    }
+         |  }
+         |}
+         |""".stripMargin
+
+    assertEquals(typeClass.schema, MessageTypeParser.parseMessageType(schema))
+
+    roundtripParquet[RecordWithListNested](
+      writeSchema = MessageTypeParser.parseMessageType(schema),
+      records = recordsWithListNested,
       writeFn = { case (record, rc) =>
         rc.startMessage()
 
@@ -168,21 +194,25 @@ class ListCompatibilitySuite extends MagnolifySuite {
           rc.startGroup()
 
           rc.startField("element", 0)
-          rc.addInteger(elem)
+          rc.startGroup()
+
+          rc.startField("i", 0)
+          rc.addInteger(elem.i)
+          rc.endField("i", 0)
+
+          rc.endGroup()
           rc.endField("element", 0)
 
           rc.endGroup()
         }
-        rc.endField("list", 0)
 
+        rc.endField("list", 0)
         rc.endGroup()
         rc.endField(ListField, 0)
 
         rc.endMessage()
       }
-    )(readTypeclass = ParquetType[RecordWithListPrimitive](new MagnolifyParquetProperties {
-      override def WriteAvroCompatibleArrays: Boolean = true
-    }))
+    )(typeClass)
   }
 
   private def roundtripParquet[T](

@@ -95,21 +95,6 @@ private object Schema {
     builder.named(schema.getName)
   }
 
-  // Check if writer schema encodes arrays as a single repeated field inside of an optional or required group
-  private[parquet] def hasGroupedArray(writer: Type): Boolean =
-    !writer.isPrimitive && writer.asGroupType().getFields.asScala.exists {
-      case f if isGroupedArrayType(f) => true
-      case f if !f.isPrimitive        => f.asGroupType().getFields.asScala.exists(hasGroupedArray)
-      case _                          => false
-    }
-
-  private def isGroupedArrayType(f: Type): Boolean =
-    !f.isPrimitive &&
-      f.getLogicalTypeAnnotation == LogicalTypeAnnotation.listType() && {
-        val fields = f.asGroupType().getFields.asScala
-        fields.size == 1 && fields.head.isRepetition(Repetition.REPEATED)
-      }
-
   def checkCompatibility(writer: Type, reader: Type): Unit = {
     def listFields(gt: GroupType) =
       s"[${gt.getFields.asScala.map(f => s"${f.getName}: ${f.getRepetition}").mkString(",")}]"
