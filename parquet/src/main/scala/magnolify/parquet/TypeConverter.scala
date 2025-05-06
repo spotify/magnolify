@@ -56,7 +56,7 @@ private object TypeConverter {
   trait Collection[T, C] extends GroupConverter with TypeConverter[C] {
     private val buffer: mutable.Buffer[T] = mutable.Buffer.empty
     def elementConverter: TypeConverter[T]
-    def toResult: IterableOnce[T] => C
+    def toResult: Iterable[T] => C
 
     override def start(): Unit = ()
     override def end(): Unit = {
