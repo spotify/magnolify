@@ -29,9 +29,9 @@ object AvroSchemaComparer {
   ): List[String] = {
     compareBasicTypeInfo(schema1, schema2, path) ++ {
       (schema1, schema2) match {
-        case (null, null) => List()
-        case (null, _)    => List("schema2 is null")
-        case (_, null)    => List("schema1 is null")
+        case (null, null)                               => List()
+        case (null, _)                                  => List("schema2 is null")
+        case (_, null)                                  => List("schema1 is null")
         case (Union(nestedTypes1), Union(nestedTypes2)) =>
           if (nestedTypes1.size != nestedTypes2.size) {
             List(s"Size of union is different ${nestedTypes1.size} != ${nestedTypes2.size}")
