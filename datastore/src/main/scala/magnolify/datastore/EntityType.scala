@@ -127,7 +127,7 @@ object EntityField {
             s"More than one field with @key annotation: ${caseClass.typeName.full}#[${keys.map(_._1.label).mkString(", ")}]"
           )
           keys.headOption match {
-            case None => (-1, None)
+            case None         => (-1, None)
             case Some((p, k)) =>
               require(
                 !p.typeclass.keyField.isInstanceOf[KeyField.NotSupported[_]],
