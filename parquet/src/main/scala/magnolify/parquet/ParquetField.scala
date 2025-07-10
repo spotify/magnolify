@@ -27,9 +27,9 @@ import org.apache.parquet.io.ParquetDecodingException
 import org.apache.parquet.io.api._
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 import org.apache.parquet.schema.Type.Repetition
-import org.apache.parquet.schema.{LogicalTypeAnnotation, Type, Types}
+import org.apache.parquet.schema.{ConversionPatterns, LogicalTypeAnnotation, Type, Types}
 
-import scala.annotation.{implicitNotFound, nowarn}
+import scala.annotation.implicitNotFound
 import scala.collection.compat._
 import scala.collection.concurrent
 
@@ -56,7 +56,7 @@ sealed trait ParquetField[T] extends Serializable {
   protected final def nonEmpty(v: T): Boolean = !isEmpty(v)
 
   def write(c: RecordConsumer, v: T)(cm: CaseMapper, properties: MagnolifyParquetProperties): Unit
-  def newConverter(writerSchema: Type): TypeConverter[T]
+  def newConverter(properties: MagnolifyParquetProperties): TypeConverter[T]
 
   protected def writeGroup(
     c: RecordConsumer,
@@ -98,9 +98,9 @@ object ParquetField {
           properties: MagnolifyParquetProperties
         ): Unit =
           tc.writeGroup(c, p.dereference(v))(cm, properties)
-        override def newConverter(writerSchema: Type): TypeConverter[T] = {
+        override def newConverter(properties: MagnolifyParquetProperties): TypeConverter[T] = {
           val buffered = tc
-            .newConverter(writerSchema)
+            .newConverter(properties)
             .asInstanceOf[TypeConverter.Buffered[p.PType]]
           new TypeConverter.Delegate[p.PType, T](buffered) {
             override def get: T = inner.get(b => caseClass.construct(_ => b.head))
@@ -156,10 +156,10 @@ object ParquetField {
           }
         }
 
-        override def newConverter(writerSchema: Type): TypeConverter[T] =
+        override def newConverter(properties: MagnolifyParquetProperties): TypeConverter[T] =
           new GroupConverter with TypeConverter.Buffered[T] {
             private val fieldConverters =
-              caseClass.parameters.map(_.typeclass.newConverter(writerSchema))
+              caseClass.parameters.map(_.typeclass.newConverter(properties))
 
             override def isPrimitive: Boolean = false
 
@@ -214,8 +214,8 @@ object ParquetField {
           properties: MagnolifyParquetProperties
         ): Unit =
           pf.write(c, g(v))(cm, properties)
-        override def newConverter(writerSchema: Type): TypeConverter[U] =
-          pf.newConverter(writerSchema).asInstanceOf[TypeConverter.Primitive[T]].map(f)
+        override def newConverter(properties: MagnolifyParquetProperties): TypeConverter[U] =
+          pf.newConverter(properties).asInstanceOf[TypeConverter.Primitive[T]].map(f)
         override type ParquetT = pf.ParquetT
       }
   }
@@ -243,7 +243,7 @@ object ParquetField {
         properties: MagnolifyParquetProperties
       ): Unit =
         f(c)(v)
-      override def newConverter(writerSchema: Type): TypeConverter[T] = g
+      override def newConverter(properties: MagnolifyParquetProperties): TypeConverter[T] = g
       override type ParquetT = UnderlyingT
     }
 
@@ -322,9 +322,11 @@ object ParquetField {
       ): Unit =
         v.foreach(t.writeGroup(c, _)(cm, properties))
 
-      override def newConverter(writerSchema: Type): TypeConverter[Option[T]] = {
+      override def newConverter(
+        properties: MagnolifyParquetProperties
+      ): TypeConverter[Option[T]] = {
         val buffered = t
-          .newConverter(writerSchema)
+          .newConverter(properties)
           .asInstanceOf[TypeConverter.Buffered[T]]
           .withRepetition(Repetition.OPTIONAL)
         new TypeConverter.Delegate[T, Option[T]](buffered) {
@@ -334,73 +336,115 @@ object ParquetField {
     }
 
   private val AvroArrayField = "array"
+  private val AvroListField = "list"
+  private val AvroElementField = "element"
+
   implicit def ptIterable[T, C[T]](implicit
     t: ParquetField[T],
     ti: C[T] => Iterable[T],
-    fc: FactoryCompat[T, C[T]],
-    pa: ParquetArray
-  ): ParquetField[C[T]] = {
+    fc: FactoryCompat[T, C[T]]
+  ): ParquetField[C[T]] =
     new ParquetField[C[T]] {
-      // Legacy compat with Magnolify <= 0.7; future versions will remove AvroCompat in favor of
-      // Configuration-based approach
-      @nowarn("cat=deprecation")
-      val avroCompatImported: Boolean = pa match {
-        case ParquetArray.default               => false
-        case ParquetArray.AvroCompat.avroCompat => true
-      }
-
-      override def buildSchema(cm: CaseMapper, properties: MagnolifyParquetProperties): Type = {
-        val repeatedSchema =
-          Schema.setRepetition(t.schema(cm, properties), Repetition.REPEATED)
-        if (isGroup(properties)) {
-          Types
-            .requiredGroup()
-            .addField(Schema.rename(repeatedSchema, AvroArrayField))
-            .as(LogicalTypeAnnotation.listType())
-            .named("iterable")
-        } else {
-          repeatedSchema
+      override def buildSchema(cm: CaseMapper, properties: MagnolifyParquetProperties): Type =
+        properties.writeArrayEncoding match {
+          case ArrayEncoding.Ungrouped =>
+            Schema.setRepetition(t.schema(cm, properties), Repetition.REPEATED)
+          case ArrayEncoding.TwoLevel =>
+            Types
+              .requiredGroup()
+              .addField(
+                Schema.rename(
+                  Schema.setRepetition(t.schema(cm, properties), Repetition.REPEATED),
+                  AvroArrayField
+                )
+              )
+              .as(LogicalTypeAnnotation.listType())
+              .named("iterable")
+          case ArrayEncoding.ThreeLevel =>
+            ConversionPatterns.listOfElements(
+              Repetition.REQUIRED,
+              t.schema(cm, properties).getName,
+              Schema.rename(t.schema(cm, properties), AvroElementField)
+            )
         }
-      }
 
       override protected def isGroup(properties: MagnolifyParquetProperties): Boolean =
-        avroCompatImported || properties.WriteAvroCompatibleArrays
+        properties.writeArrayEncoding != ArrayEncoding.Ungrouped
 
       override protected def isEmpty(v: C[T]): Boolean = v.forall(t.isEmpty)
 
       override def write(
         c: RecordConsumer,
         v: C[T]
-      )(cm: CaseMapper, properties: MagnolifyParquetProperties): Unit =
-        if (isGroup(properties)) {
-          c.startField(AvroArrayField, 0)
-          v.foreach(t.writeGroup(c, _)(cm, properties))
-          c.endField(AvroArrayField, 0)
-        } else {
-          v.foreach(t.writeGroup(c, _)(cm, properties))
-        }
+      )(cm: CaseMapper, properties: MagnolifyParquetProperties): Unit = {
+        properties.writeArrayEncoding match {
+          case ArrayEncoding.Ungrouped =>
+            v.foreach(t.writeGroup(c, _)(cm, properties))
+          case ArrayEncoding.TwoLevel =>
+            c.startField(AvroArrayField, 0)
+            v.foreach(t.writeGroup(c, _)(cm, properties))
+            c.endField(AvroArrayField, 0)
+          case ArrayEncoding.ThreeLevel =>
+            c.startField(AvroListField, 0)
+            c.startGroup()
 
-      override def newConverter(writerSchema: Type): TypeConverter[C[T]] = {
-        val buffered = t
-          .newConverter(writerSchema)
-          .asInstanceOf[TypeConverter.Buffered[T]]
-          .withRepetition(Repetition.REPEATED)
-        val arrayConverter = new TypeConverter.Delegate[T, C[T]](buffered) {
-          override def get: C[T] = inner.get(fc.fromSpecific)
-        }
-
-        if (Schema.hasGroupedArray(writerSchema)) {
-          new GroupConverter with TypeConverter.Buffered[C[T]] {
-            override def getConverter(fieldIndex: Int): Converter = {
-              require(fieldIndex == 0, "Avro array field index != 0")
-              arrayConverter
+            v.foreach { elem =>
+              c.startField("element", 0)
+              t.write(c, elem)(cm, properties)
+              c.endField("element", 0)
             }
-            override def start(): Unit = ()
-            override def end(): Unit = addValue(arrayConverter.get)
-            override def get: C[T] = get(_.headOption.getOrElse(fc.newBuilder.result()))
-          }
-        } else {
-          arrayConverter
+            c.endGroup()
+            c.endField(AvroListField, 0)
+        }
+      }
+
+      override def newConverter(properties: MagnolifyParquetProperties): TypeConverter[C[T]] = {
+        val elemConverter = t
+          .newConverter(properties)
+          .asInstanceOf[TypeConverter.Buffered[T]]
+        properties.writeArrayEncoding match {
+          case ArrayEncoding.Ungrouped =>
+            new TypeConverter.Delegate[T, C[T]](elemConverter.withRepetition(Repetition.REPEATED)) {
+              override def get: C[T] = inner.get(fc.fromSpecific)
+            }
+          case ArrayEncoding.TwoLevel =>
+            new GroupConverter with TypeConverter.Buffered[C[T]] {
+              val arrayConverter = new TypeConverter.Delegate[T, C[T]](
+                elemConverter.withRepetition(Repetition.REPEATED)
+              ) {
+                override def get: C[T] =
+                  inner.get(fc.fromSpecific)
+              }
+
+              override def getConverter(fieldIndex: Int): Converter = {
+                require(fieldIndex == 0, "Avro array field index != 0")
+                arrayConverter
+              }
+              override def start(): Unit = ()
+              override def end(): Unit = addValue(arrayConverter.get)
+              override def get: C[T] = get(_.headOption.getOrElse(fc.newBuilder.result()))
+            }
+          case ArrayEncoding.ThreeLevel =>
+            new GroupConverter with TypeConverter.Buffered[C[T]] {
+              private val nestedListConverter: TypeConverter[C[T]] =
+                new TypeConverter.Collection[T, C[T]] {
+                  override val elementConverter: TypeConverter[T] =
+                    elemConverter.withRepetition(Repetition.REQUIRED)
+                  override def toResult: IterableOnce[T] => C[T] = fc.fromSpecific
+                }
+
+              override def isPrimitive: Boolean = false
+
+              override def getConverter(fieldIndex: Int): Converter = {
+                assert(fieldIndex == 0)
+                nestedListConverter
+              }
+
+              override def start(): Unit = ()
+
+              override def end(): Unit =
+                addValue(nestedListConverter.get)
+            }
         }
       }
 
@@ -408,7 +452,6 @@ object ParquetField {
 
       override def typeDoc: Option[String] = None
     }
-  }
 
   private val KeyField = "key"
   private val ValueField = "value"
@@ -464,10 +507,12 @@ object ParquetField {
         }
       }
 
-      override def newConverter(writerSchema: Type): TypeConverter[Map[K, V]] = {
+      override def newConverter(
+        properties: MagnolifyParquetProperties
+      ): TypeConverter[Map[K, V]] = {
         val kvConverter = new GroupConverter with TypeConverter.Buffered[(K, V)] {
-          private val keyConverter = pfKey.newConverter(writerSchema)
-          private val valueConverter = pfValue.newConverter(writerSchema)
+          private val keyConverter = pfKey.newConverter(properties)
+          private val valueConverter = pfValue.newConverter(properties)
           private val fieldConverters = Array(keyConverter, valueConverter)
 
           override def isPrimitive: Boolean = false
@@ -514,8 +559,8 @@ object ParquetField {
         properties: MagnolifyParquetProperties
       ): Unit =
         pf.write(c, g(v))(cm, properties)
-      override def newConverter(writerSchema: Type): TypeConverter[U] =
-        pf.newConverter(writerSchema).asInstanceOf[TypeConverter.Primitive[T]].map(f)
+      override def newConverter(properties: MagnolifyParquetProperties): TypeConverter[U] =
+        pf.newConverter(properties).asInstanceOf[TypeConverter.Primitive[T]].map(f)
 
       override type ParquetT = pf.ParquetT
     }
@@ -560,7 +605,7 @@ object ParquetField {
       ): Unit =
         c.addBinary(Binary.fromConstantByteArray(Decimal.toFixed(v, precision, scale, length)))
 
-      override def newConverter(writerSchema: Type): TypeConverter[BigDecimal] =
+      override def newConverter(properties: MagnolifyParquetProperties): TypeConverter[BigDecimal] =
         TypeConverter.newByteArray.map { ba =>
           Decimal.fromBytes(ba, precision, scale)
         }
@@ -599,7 +644,7 @@ object ParquetField {
         )
       )
 
-    override def newConverter(writerSchema: Type): TypeConverter[UUID] =
+    override def newConverter(properties: MagnolifyParquetProperties): TypeConverter[UUID] =
       TypeConverter.newByteArray.map { ba =>
         val bb = ByteBuffer.wrap(ba)
         val h = bb.getLong
