@@ -53,7 +53,6 @@ ThisBuild / organization := "com.spotify"
 ThisBuild / organizationName := "Spotify AB"
 ThisBuild / startYear := Some(2016)
 ThisBuild / licenses := Seq(License.Apache2)
-ThisBuild / sonatypeCredentialHost := Sonatype.sonatypeLegacy
 
 // scala versions
 val scala3 = "3.3.5"
