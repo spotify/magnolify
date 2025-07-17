@@ -386,14 +386,13 @@ object ParquetField {
             c.endField(AvroArrayField, 0)
           case ArrayEncoding.ThreeLevel =>
             c.startField(AvroListField, 0)
-            c.startGroup()
-
             v.foreach { elem =>
+              c.startGroup()
               c.startField("element", 0)
               t.write(c, elem)(cm, properties)
               c.endField("element", 0)
+              c.endGroup()
             }
-            c.endGroup()
             c.endField(AvroListField, 0)
         }
       }
