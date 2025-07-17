@@ -38,8 +38,8 @@ object MagnolifyParquetProperties {
   val ArrayFormatThreeLevel: String = "three-level"
 
   @deprecated(
-    since = "0.8",
-    message = "Use property `magnolify.parquet.write-array-format` instead"
+    message = "Use property `magnolify.parquet.write-array-format` instead",
+    since = "0.8"
   )
   val WriteAvroCompatibleArrays: String = "magnolify.parquet.write-grouped-arrays"
   val WriteAvroSchemaToMetadata: String = "magnolify.parquet.write-avro-schema"
