@@ -98,22 +98,13 @@ object ParquetType {
   )(implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] =
     ParquetType[T](cm, MagnolifyParquetProperties.Default)(f, pa)
 
-  @nowarn("cat=deprecation")
   def apply[T](
     conf: Configuration
   )(implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] =
     ParquetType[T](
       CaseMapper.identity, {
         val writeArrayEncodingOpt =
-          if (
-            Option(conf.get(MagnolifyParquetProperties.WriteAvroCompatibleArrays))
-              .exists(_.toBoolean)
-          ) {
-            Some(ArrayEncoding.TwoLevel)
-          } else {
-            Option(conf.get(MagnolifyParquetProperties.WriteArrayFormat)).map(ArrayEncoding.parse)
-          }
-
+          Option(conf.get(MagnolifyParquetProperties.WriteArrayEncoding)).map(ArrayEncoding.parse)
         val writeMetadataOpt = Option(
           conf.get(MagnolifyParquetProperties.WriteAvroSchemaToMetadata)
         ).map(_.toBoolean)
@@ -142,15 +133,15 @@ object ParquetType {
         // Maintain backwards compat with old AvroCompat import by overriding arrayEncoding property to use
         // 2-level encoding if import is detected.
         private val propertiesWithAvroImportCompat = (pa, props.writeArrayEncoding) match {
-          case (ParquetArray.default, _)                                      => props
-          case (ParquetArray.AvroCompat.avroCompat, ArrayEncoding.ThreeLevel) =>
+          case (ParquetArray.default, _)                                           => props
+          case (ParquetArray.AvroCompat.avroCompat, ArrayEncoding.NewListEncoding) =>
             throw new IllegalStateException(
               "AvroCompat is imported, which sets a 2-level list encoding, but MagnolifyParquetProperties#arrayEncoding is set to 3-level list encoding. Remove either the AvroCompat import or the arrayEncoding override."
             )
           case (ParquetArray.AvroCompat.avroCompat, _) =>
             new MagnolifyParquetProperties {
               override def writeArrayEncoding: ArrayEncoding =
-                ArrayEncoding.TwoLevel
+                ArrayEncoding.OldArrayEncoding
               override def writeAvroSchemaToMetadata: Boolean = props.writeAvroSchemaToMetadata
             }
         }

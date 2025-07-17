@@ -76,7 +76,7 @@ class AvroParquetSuite extends MagnolifySuite {
     val pt = ensureSerializable(tpe)
 
     // Two-level encoding should be picked up from the implicit AvroCompat import
-    assert(pt.properties.writeArrayEncoding == ArrayEncoding.TwoLevel)
+    assert(pt.properties.writeArrayEncoding == ArrayEncoding.OldArrayEncoding)
 
     property(s"$name.avro2parquet") {
       Prop.forAll { (t: T) =>

@@ -222,12 +222,12 @@ class ParquetTypeSuite extends MagnolifySuite {
   test("AvroCompat") {
     def conf(arrayEncodingProp: String): Configuration = {
       val c = new Configuration()
-      c.set(MagnolifyParquetProperties.WriteArrayFormat, arrayEncodingProp)
+      c.set(MagnolifyParquetProperties.WriteArrayEncoding, arrayEncodingProp)
       c
     }
 
     val ptNonGroupedArrays =
-      ParquetType[WithList](conf(MagnolifyParquetProperties.ArrayFormatUngrouped))
+      ParquetType[WithList](conf(MagnolifyParquetProperties.Ungrouped))
     // Assert that by default, Magnolify doesn't wrap repeated fields in group types
     val nonAvroCompliantSchema = """|message magnolify.parquet.WithList {
                                     |  required binary s (STRING);
@@ -238,7 +238,7 @@ class ParquetTypeSuite extends MagnolifySuite {
     // Assert that by default, ParquetType doesn't group list types
     assertEquals(nonAvroCompliantSchema, ptNonGroupedArrays.schema.toString)
 
-    val pt2LevelArrays = ParquetType[WithList](conf(MagnolifyParquetProperties.ArrayFormatTwoLevel))
+    val pt2LevelArrays = ParquetType[WithList](conf(MagnolifyParquetProperties.OldArrayEncoding))
     val avroCompliantSchema = """|message magnolify.parquet.WithList {
                                  |  required binary s (STRING);
                                  |  required group l (LIST) {
@@ -247,7 +247,7 @@ class ParquetTypeSuite extends MagnolifySuite {
                                  |}
                                  |""".stripMargin
 
-    // Asser that when configured, ParquetType uses 2-level list encoding
+    // Assert that when configured, ParquetType uses 2-level list encoding
     assertEquals(avroCompliantSchema, pt2LevelArrays.schema.toString)
   }
 }
