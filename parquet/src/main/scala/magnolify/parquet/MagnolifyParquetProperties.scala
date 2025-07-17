@@ -32,31 +32,26 @@ trait MagnolifyParquetProperties extends Serializable {
 object MagnolifyParquetProperties {
   val Default: MagnolifyParquetProperties = new MagnolifyParquetProperties {}
 
-  val WriteArrayFormat: String = "magnolify.parquet.write-array-format"
-  val ArrayFormatUngrouped: String = "ungrouped"
-  val ArrayFormatTwoLevel: String = "two-level"
-  val ArrayFormatThreeLevel: String = "three-level"
+  val WriteArrayEncoding: String = "magnolify.parquet.write-array-encoding"
+  val Ungrouped: String = "ungrouped"
+  val OldArrayEncoding: String = "old-array-encoding"
+  val NewListEncoding: String = "new-list-encoding"
 
-  @deprecated(
-    message = "Use property `magnolify.parquet.write-array-format` instead",
-    since = "0.8"
-  )
-  val WriteAvroCompatibleArrays: String = "magnolify.parquet.write-grouped-arrays"
   val WriteAvroSchemaToMetadata: String = "magnolify.parquet.write-avro-schema"
 }
 
-private[magnolify] sealed trait ArrayEncoding
+sealed trait ArrayEncoding
 
 object ArrayEncoding {
   case object Ungrouped extends ArrayEncoding
-  case object TwoLevel extends ArrayEncoding
-  case object ThreeLevel extends ArrayEncoding
+  case object OldArrayEncoding extends ArrayEncoding
+  case object NewListEncoding extends ArrayEncoding
 
   private[magnolify] def parse(str: String): ArrayEncoding = {
     str match {
-      case MagnolifyParquetProperties.ArrayFormatUngrouped  => Ungrouped
-      case MagnolifyParquetProperties.ArrayFormatTwoLevel   => TwoLevel
-      case MagnolifyParquetProperties.ArrayFormatThreeLevel => ThreeLevel
+      case MagnolifyParquetProperties.Ungrouped        => Ungrouped
+      case MagnolifyParquetProperties.OldArrayEncoding => OldArrayEncoding
+      case MagnolifyParquetProperties.NewListEncoding  => NewListEncoding
       case _ => throw new IllegalStateException(s"Unsupported array encoding $str")
     }
   }
