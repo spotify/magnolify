@@ -175,7 +175,9 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 // mima
 ThisBuild / mimaBinaryIssueFilters ++= Seq(
   ProblemFilters.exclude[Problem]("magnolify.parquet.ParquetField.*"),
-  ProblemFilters.exclude[DirectMissingMethodProblem]("magnolify.parquet.MagnolifyParquetProperties.WriteAvroCompatibleArrays")
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.parquet.MagnolifyParquetProperties.WriteAvroCompatibleArrays"
+  )
 )
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.9.0")
 
