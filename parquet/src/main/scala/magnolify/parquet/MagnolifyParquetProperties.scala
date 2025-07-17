@@ -16,10 +16,8 @@
 
 package magnolify.parquet
 
-import magnolify.parquet.ArrayEncoding.Ungrouped
-
 trait MagnolifyParquetProperties extends Serializable {
-  def writeArrayEncoding: ArrayEncoding = Ungrouped
+  def writeArrayEncoding: ArrayEncoding = ArrayEncoding.Ungrouped
   def writeAvroSchemaToMetadata: Boolean = true
 
   private[parquet] final def schemaUniquenessKey: Int = writeArrayEncoding.hashCode()
