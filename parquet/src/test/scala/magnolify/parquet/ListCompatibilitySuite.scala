@@ -16,7 +16,7 @@
 
 package magnolify.parquet
 
-import magnolify.parquet.ArrayEncoding._
+import magnolify.parquet.ArrayEncoding.*
 import magnolify.test.MagnolifySuite
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
@@ -24,13 +24,13 @@ import org.apache.parquet.conf.{HadoopParquetConfiguration, ParquetConfiguration
 import org.apache.parquet.hadoop.ParquetWriter
 import org.apache.parquet.hadoop.api.WriteSupport
 import org.apache.parquet.hadoop.api.WriteSupport.WriteContext
-import org.apache.parquet.io.LocalInputFile
+import org.apache.parquet.io.{LocalInputFile, LocalOutputFile}
 import org.apache.parquet.io.api.RecordConsumer
 import org.apache.parquet.schema.{MessageType, MessageTypeParser}
 
 import java.nio.file.Files
 import scala.annotation.nowarn
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 case class RecordWithListPrimitive(listField: List[Int])
 
@@ -67,7 +67,7 @@ class ListCompatibilitySuite extends MagnolifySuite {
 
         rc.endMessage()
       }
-    )(readTypeclass = ParquetType[RecordWithListPrimitive])
+    )(typeclass = ParquetType[RecordWithListPrimitive])
   }
 
   test("2-level list encoding with primitive list type") {
@@ -107,7 +107,7 @@ class ListCompatibilitySuite extends MagnolifySuite {
 
         rc.endMessage()
       }
-    )(readTypeclass = ParquetType[RecordWithListNested](new MagnolifyParquetProperties {
+    )(typeclass = ParquetType[RecordWithListNested](new MagnolifyParquetProperties {
       override def writeArrayEncoding: ArrayEncoding = TwoLevel
     }))
   }
@@ -219,42 +219,80 @@ class ListCompatibilitySuite extends MagnolifySuite {
     writeSchema: MessageType,
     records: Seq[T],
     writeFn: (T, RecordConsumer) => Unit
-  )(readTypeclass: ParquetType[T]): Unit = {
-    val tempFile =
-      Files.createTempFile(s"parquet-list-compat-${writeSchema.getName}", ".parquet").toFile
-    val path = new Path(tempFile.toString)
-    tempFile.delete() // creating a Path creates the file
-    tempFile.deleteOnExit()
+  )(typeclass: ParquetType[T]): Unit = {
+    // Write files manually using provided writer fn
+    val manuallyWrittenRecords =
+      Files.createTempFile(s"parquet-list-compat-manual-${writeSchema.getName}", ".parquet").toFile
 
-    // Write to temp file
-    val writer: ParquetWriter[T] = new ParquetWriter(
-      path,
-      new WriteSupport[T]() {
-        var rc: RecordConsumer = null
+    // Write to temp file using provided writer fn
+    {
+      manuallyWrittenRecords.delete() // creating a Path creates the file
+      manuallyWrittenRecords.deleteOnExit()
 
-        override def init(configuration: Configuration): WriteSupport.WriteContext =
-          init(new HadoopParquetConfiguration(configuration))
+      val writer: ParquetWriter[T] = new ParquetWriter(
+        new Path(manuallyWrittenRecords.toString),
+        new WriteSupport[T]() {
+          var rc: RecordConsumer = null
 
-        override def init(configuration: ParquetConfiguration): WriteSupport.WriteContext =
-          new WriteContext(writeSchema, Map[String, String]().asJava)
+          override def init(configuration: Configuration): WriteSupport.WriteContext =
+            init(new HadoopParquetConfiguration(configuration))
 
-        override def prepareForWrite(recordConsumer: RecordConsumer): Unit =
-          this.rc = recordConsumer
+          override def init(configuration: ParquetConfiguration): WriteSupport.WriteContext =
+            new WriteContext(writeSchema, Map[String, String]().asJava)
 
-        override def write(record: T): Unit = writeFn(record, rc)
-      }
-    )
-    records.foreach(writer.write)
-    writer.close()
+          override def prepareForWrite(recordConsumer: RecordConsumer): Unit =
+            this.rc = recordConsumer
+
+          override def write(record: T): Unit = writeFn(record, rc)
+        }
+      )
+      records.foreach(writer.write)
+      writer.close()
+    }
+
+    // Check that manually written records match Magnolify writer functionality
+    val magnolifyWrittenRecords =
+      Files
+        .createTempFile(s"parquet-list-compat-magnolify-${writeSchema.getName}", ".parquet")
+        .toFile
+
+    {
+      magnolifyWrittenRecords.delete() // creating a Path creates the file
+      magnolifyWrittenRecords.deleteOnExit()
+
+      val writer = typeclass
+        .writeBuilder(new LocalOutputFile(magnolifyWrittenRecords.toPath))
+        .build()
+
+      records.foreach(writer.write)
+      writer.close()
+    }
 
     // Read using typeclass
-    val reader = readTypeclass
-      .readBuilder(new LocalInputFile(tempFile.toPath))
-      .build()
+    val readManuallyWrittenRecords = {
+      val reader = typeclass
+        .readBuilder(new LocalInputFile(manuallyWrittenRecords.toPath))
+        .build()
 
-    val readRecords = (1 to 10).map(_ => reader.read())
-    reader.close()
+      val records = (1 to 10).map(_ => reader.read())
+      reader.close()
+      records
+    }
 
-    assertEquals(readRecords, records)
+    val readMagnolifyWrittenRecords = {
+      val reader = typeclass
+        .readBuilder(new LocalInputFile(magnolifyWrittenRecords.toPath))
+        .build()
+
+      val records = (1 to 10).map(_ => reader.read())
+      reader.close()
+      records
+    }
+
+    // Assert that records match expected
+    assertEquals(readManuallyWrittenRecords, records)
+
+    // Assert that magnolify writer matches expected record format
+    assertEquals(readMagnolifyWrittenRecords, readManuallyWrittenRecords)
   }
 }
