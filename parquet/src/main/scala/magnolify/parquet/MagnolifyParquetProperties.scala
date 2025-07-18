@@ -17,10 +17,10 @@
 package magnolify.parquet
 
 trait MagnolifyParquetProperties extends Serializable {
-  def WriteAvroCompatibleArrays: Boolean = false
+  def writeArrayEncoding: ArrayEncoding = ArrayEncoding.Ungrouped
   def writeAvroSchemaToMetadata: Boolean = true
 
-  private[parquet] final def schemaUniquenessKey: Int = WriteAvroCompatibleArrays.hashCode()
+  private[parquet] final def schemaUniquenessKey: Int = writeArrayEncoding.hashCode()
 }
 
 /**
@@ -30,6 +30,27 @@ trait MagnolifyParquetProperties extends Serializable {
 object MagnolifyParquetProperties {
   val Default: MagnolifyParquetProperties = new MagnolifyParquetProperties {}
 
-  val WriteAvroCompatibleArrays: String = "magnolify.parquet.write-grouped-arrays"
+  val WriteArrayEncoding: String = "magnolify.parquet.write-array-encoding"
+  val Ungrouped: String = "ungrouped"
+  val OldArrayEncoding: String = "old-array-encoding"
+  val NewListEncoding: String = "new-list-encoding"
+
   val WriteAvroSchemaToMetadata: String = "magnolify.parquet.write-avro-schema"
+}
+
+sealed trait ArrayEncoding
+
+object ArrayEncoding {
+  case object Ungrouped extends ArrayEncoding
+  case object OldArrayEncoding extends ArrayEncoding
+  case object NewListEncoding extends ArrayEncoding
+
+  private[magnolify] def parse(str: String): ArrayEncoding = {
+    str match {
+      case MagnolifyParquetProperties.Ungrouped        => Ungrouped
+      case MagnolifyParquetProperties.OldArrayEncoding => OldArrayEncoding
+      case MagnolifyParquetProperties.NewListEncoding  => NewListEncoding
+      case _ => throw new IllegalStateException(s"Unsupported array encoding $str")
+    }
+  }
 }
