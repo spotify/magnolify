@@ -238,7 +238,7 @@ class ParquetTypeSuite extends MagnolifySuite {
     // Assert that by default, ParquetType doesn't group list types
     assertEquals(nonAvroCompliantSchema, ptNonGroupedArrays.schema.toString)
 
-    val pt2LevelArrays = ParquetType[WithList](conf(MagnolifyParquetProperties.OldArrayEncoding))
+    val pt2LevelArrays = ParquetType[WithList](conf(MagnolifyParquetProperties.ThreeLevelArray))
     val avroCompliantSchema = """|message magnolify.parquet.WithList {
                                  |  required binary s (STRING);
                                  |  required group l (LIST) {

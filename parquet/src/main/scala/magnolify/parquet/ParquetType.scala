@@ -133,15 +133,15 @@ object ParquetType {
         // Maintain backwards compat with old AvroCompat import by overriding arrayEncoding property to use
         // 2-level encoding if import is detected.
         private val propertiesWithAvroImportCompat = (pa, props.writeArrayEncoding) match {
-          case (ParquetArray.default, _)                                           => props
-          case (ParquetArray.AvroCompat.avroCompat, ArrayEncoding.NewListEncoding) =>
+          case (ParquetArray.default, _)                                          => props
+          case (ParquetArray.AvroCompat.avroCompat, ArrayEncoding.ThreeLevelList) =>
             throw new IllegalStateException(
               "AvroCompat is imported, which sets a 2-level list encoding, but MagnolifyParquetProperties#arrayEncoding is set to 3-level list encoding. Remove either the AvroCompat import or the arrayEncoding override."
             )
           case (ParquetArray.AvroCompat.avroCompat, _) =>
             new MagnolifyParquetProperties {
               override def writeArrayEncoding: ArrayEncoding =
-                ArrayEncoding.OldArrayEncoding
+                ArrayEncoding.ThreeLevelArray
               override def writeAvroSchemaToMetadata: Boolean = props.writeAvroSchemaToMetadata
             }
         }
