@@ -32,8 +32,8 @@ object MagnolifyParquetProperties {
 
   val WriteArrayEncoding: String = "magnolify.parquet.write-array-encoding"
   val Ungrouped: String = "ungrouped"
-  val OldArrayEncoding: String = "old-array-encoding"
-  val NewListEncoding: String = "new-list-encoding"
+  val ThreeLevelArray: String = "three-level-array"
+  val ThreeLevelList: String = "three-level-list"
 
   val WriteAvroSchemaToMetadata: String = "magnolify.parquet.write-avro-schema"
 }
@@ -42,14 +42,14 @@ sealed trait ArrayEncoding
 
 object ArrayEncoding {
   case object Ungrouped extends ArrayEncoding
-  case object OldArrayEncoding extends ArrayEncoding
-  case object NewListEncoding extends ArrayEncoding
+  case object ThreeLevelArray extends ArrayEncoding
+  case object ThreeLevelList extends ArrayEncoding
 
   private[magnolify] def parse(str: String): ArrayEncoding = {
     str match {
-      case MagnolifyParquetProperties.Ungrouped        => Ungrouped
-      case MagnolifyParquetProperties.OldArrayEncoding => OldArrayEncoding
-      case MagnolifyParquetProperties.NewListEncoding  => NewListEncoding
+      case MagnolifyParquetProperties.Ungrouped       => Ungrouped
+      case MagnolifyParquetProperties.ThreeLevelArray => ThreeLevelArray
+      case MagnolifyParquetProperties.ThreeLevelList  => ThreeLevelList
       case _ => throw new IllegalStateException(s"Unsupported array encoding $str")
     }
   }

@@ -155,7 +155,7 @@ import magnolify.parquet._
 case class RecordWithList(listField: List[String])
 
 implicit val pt = ParquetType[RecordWithList](new MagnolifyParquetProperties {
-  override def writeArrayEncoding: ArrayEncoding = ArrayEncoding.NewListEncoding
+  override def writeArrayEncoding: ArrayEncoding = ArrayEncoding.ThreeLevelList
 })
 
 // Check that the converted Avro schema uses modern 3-level encoding
@@ -168,7 +168,7 @@ If your project includes a custom `core-site.xml` its in resources directory, yo
 <configuration>
   <property>
     <name>magnolify.parquet.write-array-encoding</name>
-    <value>new-list-encoding</value> # Also supported: `ungrouped`, `old-list-encoding`
+    <value>three-level-list</value> # Also supported: `ungrouped`, `three-level-array`
   </property>
 </configuration>
 ```

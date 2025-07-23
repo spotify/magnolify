@@ -108,13 +108,13 @@ class ListCompatibilitySuite extends MagnolifySuite {
         rc.endMessage()
       }
     )(typeclass = ParquetType[RecordWithListNested](new MagnolifyParquetProperties {
-      override def writeArrayEncoding: ArrayEncoding = OldArrayEncoding
+      override def writeArrayEncoding: ArrayEncoding = ThreeLevelArray
     }))
   }
 
   test("3-Level list encoding with primitive list type") {
     val typeClass = ParquetType[RecordWithListPrimitive](new MagnolifyParquetProperties {
-      override def writeArrayEncoding: ArrayEncoding = NewListEncoding
+      override def writeArrayEncoding: ArrayEncoding = ThreeLevelList
     })
 
     val schema =
@@ -162,7 +162,7 @@ class ListCompatibilitySuite extends MagnolifySuite {
 
   test("3-Level list encoding with nested list type") {
     val typeClass = ParquetType[RecordWithListNested](new MagnolifyParquetProperties {
-      override def writeArrayEncoding: ArrayEncoding = NewListEncoding
+      override def writeArrayEncoding: ArrayEncoding = ThreeLevelList
     })
 
     val schema =

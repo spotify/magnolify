@@ -349,7 +349,7 @@ object ParquetField {
         properties.writeArrayEncoding match {
           case ArrayEncoding.Ungrouped =>
             Schema.setRepetition(t.schema(cm, properties), Repetition.REPEATED)
-          case ArrayEncoding.OldArrayEncoding =>
+          case ArrayEncoding.ThreeLevelArray =>
             Types
               .requiredGroup()
               .addField(
@@ -360,7 +360,7 @@ object ParquetField {
               )
               .as(LogicalTypeAnnotation.listType())
               .named("iterable")
-          case ArrayEncoding.NewListEncoding =>
+          case ArrayEncoding.ThreeLevelList =>
             ConversionPatterns.listOfElements(
               Repetition.REQUIRED,
               t.schema(cm, properties).getName,
@@ -380,11 +380,11 @@ object ParquetField {
         properties.writeArrayEncoding match {
           case ArrayEncoding.Ungrouped =>
             v.foreach(t.writeGroup(c, _)(cm, properties))
-          case ArrayEncoding.OldArrayEncoding =>
+          case ArrayEncoding.ThreeLevelArray =>
             c.startField(AvroArrayField, 0)
             v.foreach(t.writeGroup(c, _)(cm, properties))
             c.endField(AvroArrayField, 0)
-          case ArrayEncoding.NewListEncoding =>
+          case ArrayEncoding.ThreeLevelList =>
             c.startField(AvroListField, 0)
             v.foreach { elem =>
               c.startGroup()
@@ -406,7 +406,7 @@ object ParquetField {
             new TypeConverter.Delegate[T, C[T]](elemConverter.withRepetition(Repetition.REPEATED)) {
               override def get: C[T] = inner.get(fc.fromSpecific)
             }
-          case ArrayEncoding.OldArrayEncoding =>
+          case ArrayEncoding.ThreeLevelArray =>
             new GroupConverter with TypeConverter.Buffered[C[T]] {
               val arrayConverter = new TypeConverter.Delegate[T, C[T]](
                 elemConverter.withRepetition(Repetition.REPEATED)
@@ -423,7 +423,7 @@ object ParquetField {
               override def end(): Unit = addValue(arrayConverter.get)
               override def get: C[T] = get(_.headOption.getOrElse(fc.newBuilder.result()))
             }
-          case ArrayEncoding.NewListEncoding =>
+          case ArrayEncoding.ThreeLevelList =>
             new GroupConverter with TypeConverter.Buffered[C[T]] {
               private val nestedListConverter: TypeConverter[C[T]] =
                 new TypeConverter.Collection[T, C[T]] {
