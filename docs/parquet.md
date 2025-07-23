@@ -67,19 +67,7 @@ Consider a list of required strings:
 case class RecordWithList(listField: List[String])
 ```
 
-When converting to Parquet, the most common legacy encoding is a repeated group named `array` containing a single element field:
-
-```
-message RecordWithList {
-    required group listField (LIST) {
-      repeated group array {
-        required binary s (STRING);
-      };
-    }
-}
-```
-
-However, the recommended format is a three-level list structure encoding a repeated group `list` and a required or optional `element`:
+When converting to Parquet, the recommended format is a three-level list structure encoding a repeated group `list` and a required or optional `element`:
 
 ```
 message RecordWithList {
@@ -87,6 +75,18 @@ message RecordWithList {
       repeated group list {
         required binary element (STRING);
       }
+    }
+}
+```
+
+However, the most common legacy encoding is a repeated group named `array` containing a single element field:
+
+```
+message RecordWithList {
+    required group listField (LIST) {
+      repeated group array {
+        required binary s (STRING);
+      };
     }
 }
 ```
@@ -101,11 +101,11 @@ message RecordWithList {
 
 Magnolify-parquet offers support for all three of these encodings:
 
-|                 | Ungrouped   | Old List Format | New List Format | Configuration                                                            |
-|-----------------|-------------|-----------------|-----------------|--------------------------------------------------------------------------|
-| Magnolify < 0.8 | x (Default) | x               |                 | AvroCompat import                                                        |
-| Magnolify 0.8   | x (Default) | x               |                 | AvroCompat import (Deprecated); `magnolify.parquet.write-grouped-arrays` |
-| Magnolify > 0.8 | x (Default) | x               | x               | AvroCompat import (Deprecated); `magnolify.parquet.write-array-encoding` |
+|                 | Ungrouped   | Three Level (Array) | Three Level (List) | Configuration                                                            |
+|-----------------|-------------|---------------------|--------------------|--------------------------------------------------------------------------|
+| Magnolify < 0.8 | x (Default) | x                   |                    | AvroCompat import                                                        |
+| Magnolify 0.8   | x (Default) | x                   |                    | AvroCompat import (Deprecated); `magnolify.parquet.write-grouped-arrays` |
+| Magnolify > 0.8 | x (Default) | x                   | x                  | AvroCompat import (Deprecated); `magnolify.parquet.write-array-encoding` |
 
 If left unspecified, magnolify-parquet will use ungrouped list encoding:
 
