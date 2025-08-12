@@ -24,7 +24,7 @@ val magnoliaScala3Version = "1.3.18"
 
 val algebirdVersion = "0.13.10"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.11.4")
-val beamVersion = "2.66.0"
+val beamVersion = "2.67.0"
 val bigqueryVersion = "v2-rev20250427-2.0.0"
 val bigtableVersion = "2.58.2"
 val catsVersion = "2.13.0"
