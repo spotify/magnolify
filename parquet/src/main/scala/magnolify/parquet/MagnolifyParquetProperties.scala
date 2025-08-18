@@ -16,11 +16,13 @@
 
 package magnolify.parquet
 
+import org.apache.hadoop.conf.Configuration
+
 trait MagnolifyParquetProperties extends Serializable {
-  def WriteAvroCompatibleArrays: Boolean = false
+  def writeArrayEncoding: ArrayEncoding = ArrayEncoding.Ungrouped
   def writeAvroSchemaToMetadata: Boolean = true
 
-  private[parquet] final def schemaUniquenessKey: Int = WriteAvroCompatibleArrays.hashCode()
+  private[parquet] final def schemaUniquenessKey: Int = writeArrayEncoding.hashCode()
 }
 
 /**
@@ -30,6 +32,26 @@ trait MagnolifyParquetProperties extends Serializable {
 object MagnolifyParquetProperties {
   val Default: MagnolifyParquetProperties = new MagnolifyParquetProperties {}
 
-  val WriteAvroCompatibleArrays: String = "magnolify.parquet.write-grouped-arrays"
+  val WriteArrayEncoding: String = "magnolify.parquet.write-array-encoding"
+  val Ungrouped: String = "ungrouped"
+  val ThreeLevelArray: String = "three-level-array"
+  val ThreeLevelList: String = "three-level-list"
+
   val WriteAvroSchemaToMetadata: String = "magnolify.parquet.write-avro-schema"
+}
+
+sealed trait ArrayEncoding
+
+object ArrayEncoding {
+  case object Ungrouped extends ArrayEncoding
+  case object ThreeLevelArray extends ArrayEncoding
+  case object ThreeLevelList extends ArrayEncoding
+
+  private[magnolify] def from(conf: Configuration): Option[ArrayEncoding] =
+    Option(conf.get(MagnolifyParquetProperties.WriteArrayEncoding)).map {
+      case MagnolifyParquetProperties.Ungrouped       => Ungrouped
+      case MagnolifyParquetProperties.ThreeLevelArray => ThreeLevelArray
+      case MagnolifyParquetProperties.ThreeLevelList  => ThreeLevelList
+      case str => throw new IllegalStateException(s"Unsupported array encoding: $str")
+    }
 }
