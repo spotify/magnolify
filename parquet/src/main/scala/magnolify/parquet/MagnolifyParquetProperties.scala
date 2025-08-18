@@ -16,6 +16,8 @@
 
 package magnolify.parquet
 
+import org.apache.hadoop.conf.Configuration
+
 trait MagnolifyParquetProperties extends Serializable {
   def writeArrayEncoding: ArrayEncoding = ArrayEncoding.Ungrouped
   def writeAvroSchemaToMetadata: Boolean = true
@@ -45,12 +47,11 @@ object ArrayEncoding {
   case object ThreeLevelArray extends ArrayEncoding
   case object ThreeLevelList extends ArrayEncoding
 
-  private[magnolify] def parse(str: String): ArrayEncoding = {
-    str match {
+  private[magnolify] def from(conf: Configuration): Option[ArrayEncoding] =
+    Option(conf.get(MagnolifyParquetProperties.WriteArrayEncoding)).map {
       case MagnolifyParquetProperties.Ungrouped       => Ungrouped
       case MagnolifyParquetProperties.ThreeLevelArray => ThreeLevelArray
       case MagnolifyParquetProperties.ThreeLevelList  => ThreeLevelList
-      case _ => throw new IllegalStateException(s"Unsupported array encoding $str")
+      case str => throw new IllegalStateException(s"Unsupported array encoding: $str")
     }
-  }
 }

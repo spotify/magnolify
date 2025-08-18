@@ -250,6 +250,27 @@ class ParquetTypeSuite extends MagnolifySuite {
     // Assert that when configured, ParquetType uses 2-level list encoding
     assertEquals(avroCompliantSchema, pt2LevelArrays.schema.toString)
   }
+
+  test("ArrayEncoding") {
+    def confWithEncoding(encoding: String): Configuration = {
+      val c = new Configuration()
+      c.set(MagnolifyParquetProperties.WriteArrayEncoding, encoding)
+      c
+    }
+
+    assertEquals(ArrayEncoding.from(confWithEncoding("ungrouped")), Some(ArrayEncoding.Ungrouped))
+    assertEquals(
+      ArrayEncoding.from(confWithEncoding("three-level-array")),
+      Some(ArrayEncoding.ThreeLevelArray)
+    )
+    assertEquals(
+      ArrayEncoding.from(confWithEncoding("three-level-list")),
+      Some(ArrayEncoding.ThreeLevelList)
+    )
+    interceptMessage[IllegalStateException]("Unsupported array encoding: foo") {
+      ArrayEncoding.from(confWithEncoding("foo"))
+    }
+  }
 }
 
 case class Unsafe(c: Char)

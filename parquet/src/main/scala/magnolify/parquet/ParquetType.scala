@@ -103,8 +103,7 @@ object ParquetType {
   )(implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] =
     ParquetType[T](
       CaseMapper.identity, {
-        val writeArrayEncodingOpt =
-          Option(conf.get(MagnolifyParquetProperties.WriteArrayEncoding)).map(ArrayEncoding.parse)
+        val writeArrayEncodingOpt = ArrayEncoding.from(conf)
         val writeMetadataOpt = Option(
           conf.get(MagnolifyParquetProperties.WriteAvroSchemaToMetadata)
         ).map(_.toBoolean)
