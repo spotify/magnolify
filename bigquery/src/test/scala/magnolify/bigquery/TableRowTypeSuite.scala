@@ -167,6 +167,17 @@ class TableRowTypeSuite extends MagnolifySuite {
       assert(record.get("INNERFIELD").asInstanceOf[TableRow].get("INNERFIRST") != null)
     }
   }
+
+  {
+    implicit val decoratedIntType: TableRowField[DecoratedInt] =
+      TableRowField.xmap[Int, DecoratedInt](DecoratedInt(_), _.i)
+    test[RecordWithDecoratedInt]
+
+    val trt = TableRowType[RecordWithDecoratedInt]
+    // Assert that schema uses the primitive int type, not the nested record type
+    assert(trt.schema.getFields.get(0).getType == "INT64")
+    assert(trt.schema.getFields.get(0).getName == "d")
+  }
 }
 
 case class Unsafe(b: Byte, c: Char, s: Short, i: Int, _f: Float)
@@ -202,3 +213,6 @@ case class DefaultOuter(
   i: DefaultInner = DefaultInner(2, Some(2), List(2, 2)),
   o: Option[DefaultInner] = Some(DefaultInner(2, Some(2), List(2, 2)))
 )
+
+case class DecoratedInt(i: Int)
+case class RecordWithDecoratedInt(d: DecoratedInt)
