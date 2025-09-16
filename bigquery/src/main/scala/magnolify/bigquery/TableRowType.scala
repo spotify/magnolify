@@ -178,8 +178,8 @@ object TableRowField {
   def apply[T](implicit f: TableRowField[T]): TableRowField[T] = f
 
   def xmap[U, T](f: U => T, t: T => U)(implicit trf: TableRowField[U]): TableRowField[T] =
-    new Aux[T, trf.FromT, Any] {
-      override def to(v: T)(cm: _root_.magnolify.shared.CaseMapper): Any = trf.to(t(v))(cm)
+    new Aux[T, trf.FromT, trf.ToT] {
+      override def to(v: T)(cm: _root_.magnolify.shared.CaseMapper): trf.ToT = trf.to(t(v))(cm)
       override def from(v: trf.FromT)(cm: _root_.magnolify.shared.CaseMapper): T = f(
         trf.from(v)(cm)
       )
