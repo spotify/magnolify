@@ -442,17 +442,21 @@ case class AvroDuration(months: Long, days: Long, millis: Long)
 case class Logical(u: UUID, ld: LocalDate, jld: joda.LocalDate, d: AvroDuration)
 case class LogicalMicros(
   i: Instant,
+  ji: joda.Instant,
   lt: LocalTime,
+  jlt: joda.LocalTime,
   ldt: LocalDateTime,
-  jdt: joda.DateTime,
-  jlt: joda.LocalTime
+  jldt: joda.LocalDateTime,
+  jdt: joda.DateTime
 )
 case class LogicalMillis(
   i: Instant,
+  ji: joda.Instant,
   lt: LocalTime,
+  jlt: joda.LocalTime,
   ldt: LocalDateTime,
-  jdt: joda.DateTime,
-  jlt: joda.LocalTime
+  jldt: joda.LocalDateTime,
+  jdt: joda.DateTime
 )
 case class LogicalBigQuery(
   bd: BigDecimal,

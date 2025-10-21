@@ -17,10 +17,58 @@
 package magnolify.shared
 
 import org.joda.time as joda
-import java.time.{Duration, Instant, LocalDateTime, LocalTime, ZoneOffset}
+import org.joda.time.chrono.ISOChronology
+
+import java.time.temporal.ChronoField
+import java.time.{Duration, Instant, LocalDate, LocalDateTime, LocalTime, ZoneOffset}
 import java.util.concurrent.TimeUnit
 
 object Time {
+  @transient lazy val EpochJodaDate = new joda.LocalDate(1970, 1, 1, ISOChronology.getInstanceUTC)
+
+  // conversions ////////////////////////////////////////////////
+  @inline def jodaInstantToInstant(jodaInstant: joda.Instant): Instant =
+    Instant.ofEpochMilli(jodaInstant.getMillis)
+  @inline def instantToJodaInstant(javaInstant: Instant): joda.Instant =
+    new joda.Instant(javaInstant.toEpochMilli)
+  @inline def jodaLocalDateToLocalDate(ld: joda.LocalDate): LocalDate =
+    LocalDate.ofEpochDay(joda.Days.daysBetween(EpochJodaDate, ld).getDays.toLong)
+  @inline def localDateToJodaLocalDate(ld: LocalDate): joda.LocalDate =
+    EpochJodaDate.plusDays(ld.getLong(ChronoField.EPOCH_DAY).toInt)
+  @inline def jodaLocalTimeToLocalTime(t: joda.LocalTime): LocalTime = {
+    val nanos = t.getMillisOfSecond * 1000000
+    LocalTime.of(t.getHourOfDay, t.getMinuteOfHour, t.getSecondOfMinute, nanos)
+  }
+  @inline def localTimeToJodaLocalTime(t: LocalTime): joda.LocalTime = {
+    val millis = t.getNano / 1000000
+    new joda.LocalTime(t.getHour, t.getMinute, t.getSecond, millis, ISOChronology.getInstanceUTC)
+  }
+  @inline def jodaLocalDateTimeToLocalDateTime(ldt: joda.LocalDateTime): LocalDateTime = {
+    val nanos = ldt.getMillisOfSecond * 1000000
+    LocalDateTime.of(
+      ldt.getYear,
+      ldt.getMonthOfYear,
+      ldt.getDayOfMonth,
+      ldt.getHourOfDay,
+      ldt.getMinuteOfHour,
+      ldt.getSecondOfMinute,
+      nanos
+    )
+  }
+  @inline def localDateTimeToJodaLocalDateTime(ldt: LocalDateTime): joda.LocalDateTime = {
+    val millis = ldt.getNano / 1000000
+    new joda.LocalDateTime(
+      ldt.getYear,
+      ldt.getMonthValue,
+      ldt.getDayOfMonth,
+      ldt.getHour,
+      ldt.getMinute,
+      ldt.getSecond,
+      millis,
+      ISOChronology.getInstanceUTC
+    )
+  }
+
   // millis /////////////////////////////////////////////////////
   @inline def millisToInstant(millisFromEpoch: Long): Instant =
     Instant.ofEpochMilli(millisFromEpoch)
@@ -34,7 +82,7 @@ object Time {
   @inline def millisFromLocalTime(lt: LocalTime): Int =
     TimeUnit.NANOSECONDS.toMillis(lt.toNanoOfDay).toInt
   @inline def millisToJodaLocalTime(millisFromMidnight: Int): joda.LocalTime =
-    joda.LocalTime.fromMillisOfDay(millisFromMidnight.toLong)
+    joda.LocalTime.fromMillisOfDay(millisFromMidnight.toLong, ISOChronology.getInstanceUTC)
   @inline def millisFromJodaLocalTime(lt: joda.LocalTime): Int = lt.millisOfDay().get()
 
   @inline def millisToJodaDateTime(millisFromEpoch: Long): joda.DateTime =
@@ -89,7 +137,10 @@ object Time {
   @inline def microsFromLocalTime(lt: LocalTime): Long =
     TimeUnit.NANOSECONDS.toMicros(lt.toNanoOfDay)
   @inline def microsToJodaLocalTime(microsFromMidnight: Long): joda.LocalTime =
-    joda.LocalTime.fromMillisOfDay(TimeUnit.MICROSECONDS.toMillis(microsFromMidnight))
+    joda.LocalTime.fromMillisOfDay(
+      TimeUnit.MICROSECONDS.toMillis(microsFromMidnight),
+      ISOChronology.getInstanceUTC
+    )
   @inline def microsFromJodaLocalTime(lt: joda.LocalTime): Long =
     TimeUnit.MILLISECONDS.toMicros(lt.millisOfDay().get().toLong)
 
@@ -131,7 +182,10 @@ object Time {
     LocalTime.ofNanoOfDay(nanosFromMidnight)
   @inline def nanosFromLocalTime(lt: LocalTime): Long = lt.toNanoOfDay
   @inline def nanosToJodaLocalTime(nanosFromMidnight: Long): joda.LocalTime =
-    joda.LocalTime.fromMillisOfDay(TimeUnit.NANOSECONDS.toMillis(nanosFromMidnight))
+    joda.LocalTime.fromMillisOfDay(
+      TimeUnit.NANOSECONDS.toMillis(nanosFromMidnight),
+      ISOChronology.getInstanceUTC
+    )
   @inline def nanosFromJodaLocalTime(lt: joda.LocalTime): Long =
     TimeUnit.MILLISECONDS.toNanos(lt.millisOfDay().get().toLong)
 
