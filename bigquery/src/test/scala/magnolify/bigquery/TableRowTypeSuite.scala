@@ -56,6 +56,9 @@ class TableRowTypeSuite extends MagnolifySuite {
 
   implicit val arbBigDecimal: Arbitrary[BigDecimal] =
     Arbitrary(Gen.chooseNum(0, Int.MaxValue).map(BigDecimal(_)))
+  implicit val arbBigNumeric: Arbitrary[BigNumeric] = Arbitrary(
+    arbBigDecimal.arbitrary.map(BigNumeric(_))
+  )
   // `TableRow` reserves field `f`
   implicit val trtFloats: TableRowType[Floats] =
     TableRowType[Floats](CaseMapper(s => if (s == "f") "float" else s))
@@ -101,6 +104,20 @@ class TableRowTypeSuite extends MagnolifySuite {
     val msg2 = "requirement failed: Cannot encode BigDecimal 3.14159265358979323846: scale 20 > 9"
     interceptMessage[IllegalArgumentException](msg2) {
       at(BigDec(BigDecimal("3.14159265358979323846")))
+    }
+  }
+
+  test("BigNumeric") {
+    val at: TableRowType[BigNum] = TableRowType[BigNum]
+    val largePrecision = "9" * 80
+    val msg1 = s"requirement failed: Cannot encode BigNumeric $largePrecision: precision 80 > 77"
+    interceptMessage[IllegalArgumentException](msg1) {
+      at(BigNum(BigNumeric(largePrecision)))
+    }
+    val largeScale = "1." + ("3" * 39)
+    val msg2 = s"requirement failed: Cannot encode BigNumeric $largeScale: scale 39 > 38"
+    interceptMessage[IllegalArgumentException](msg2) {
+      at(BigNum(BigNumeric(largeScale)))
     }
   }
 
@@ -181,8 +198,16 @@ class TableRowTypeSuite extends MagnolifySuite {
 }
 
 case class Unsafe(b: Byte, c: Char, s: Short, i: Int, _f: Float)
-case class BigQueryTypes(i: Instant, d: LocalDate, t: LocalTime, dt: LocalDateTime, bd: BigDecimal)
+case class BigQueryTypes(
+  i: Instant,
+  d: LocalDate,
+  t: LocalTime,
+  dt: LocalDateTime,
+  bd: BigDecimal,
+  bn: BigNumeric
+)
 case class BigDec(bd: BigDecimal)
+case class BigNum(bn: BigNumeric)
 
 @description("TableRow with description")
 case class TableRowDesc(@description("string") s: String, @description("integers") i: Integers)
