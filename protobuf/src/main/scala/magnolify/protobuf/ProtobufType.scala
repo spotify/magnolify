@@ -16,7 +16,7 @@
 
 package magnolify.protobuf
 
-//import java.lang.reflect.Method
+import java.lang.reflect.Method
 import java.util as ju
 import com.google.protobuf.Descriptors.{Descriptor, EnumValueDescriptor, FieldDescriptor}
 import com.google.protobuf.{ByteString, MapEntry, Message, ProtocolMessageEnum}
@@ -54,18 +54,13 @@ object ProtobufType {
           r.checkDefaults(descriptor)(cm)
         }
 
-//        @transient private lazy val _newBuilder: Method = ct.runtimeClass.getMethod("newBuilder")
-//        private def newBuilder(): Message.Builder =
-//          _newBuilder.invoke(null).asInstanceOf[Message.Builder]
+        @transient private lazy val _newBuilder: Method = ct.runtimeClass.getMethod("newBuilder")
+        private def newBuilder(): Message.Builder =
+          _newBuilder.invoke(null).asInstanceOf[Message.Builder]
 
         private val caseMapper: CaseMapper = cm
         override def from(v: MsgT): T = r.from(v)(caseMapper)
-        override def to(v: T): MsgT = r
-          .to(
-            v,
-            ct.runtimeClass.getMethod("newBuilder").invoke(null).asInstanceOf[Message.Builder]
-          )(caseMapper)
-          .asInstanceOf[MsgT]
+        override def to(v: T): MsgT = r.to(v, newBuilder())(caseMapper).asInstanceOf[MsgT]
       }
     case _ =>
       throw new IllegalArgumentException(s"ProtobufType can only be created from Record. Got $f")
