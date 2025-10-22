@@ -276,7 +276,16 @@ object ProtobufField {
       }
 
       override def to(v: C[T], b: Message.Builder)(cm: CaseMapper): ju.List[f.ToT] =
-        if (v.isEmpty) null else v.iterator.map(f.to(_, b)(cm)).toList.asJava
+        if (v.isEmpty) null
+        else {
+          v.iterator
+            .map { element =>
+              if (b != null) b.clear()
+              f.to(element, b)(cm)
+            }
+            .toList
+            .asJava
+        }
     }
 
   implicit def pfMap[K, V](implicit
