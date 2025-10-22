@@ -96,11 +96,18 @@ class MoreProtobufTypeSuite extends BaseProtobufTypeSuite {
   }
 
   {
+
+    /**
+     * Issue #1001: Re-use of the protobuf builder for iterables (Seq[Bug1001Nested]), where the
+     * items in the iterable had repeated or optional fields (Seq[Bug1001Metadata]) resulted in the
+     * values from previous items (Bug1001Nested) being carried over to subsequent ones where those
+     * fields were empty in the subsequent item.
+     */
     import magnolify.protobuf.Bug1001._
-    test[MultiEntity, MultiEntityPb]
+    test[Bug1001Scala, Bug1001Pb]
   }
 }
 
-final case class DataEntry(key: String, value: String)
-final case class Entity(entityId: String, metadata: Seq[DataEntry])
-final case class MultiEntity(multiEntityId: String, entities: Seq[Entity])
+final case class Bug1001Metadata(key: String, value: String)
+final case class Bug1001Nested(id: String, metadata: Seq[Bug1001Metadata])
+final case class Bug1001Scala(entities: Seq[Bug1001Nested])

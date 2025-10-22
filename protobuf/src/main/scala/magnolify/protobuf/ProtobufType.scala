@@ -280,9 +280,8 @@ object ProtobufField {
         else {
           v.iterator
             .map { element =>
-              val e = f.to(element, b)(cm)
-              if (b != null) b.clear() // issue #1001
-              e
+              if (b != null) b.clear()
+              f.to(element, b)(cm)
             }
             .toList
             .asJava
