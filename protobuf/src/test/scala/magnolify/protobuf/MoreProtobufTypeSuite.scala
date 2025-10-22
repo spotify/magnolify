@@ -1,0 +1,90 @@
+package magnolify.protobuf
+
+import java.net.URI
+import java.time.Duration
+import cats.*
+import com.google.protobuf.ByteString
+import magnolify.cats.auto.*
+import magnolify.scalacheck.auto.*
+import magnolify.protobuf.*
+import magnolify.protobuf.Proto2.*
+import magnolify.protobuf.Proto3.*
+import magnolify.protobuf.unsafe.*
+import magnolify.shared.*
+import magnolify.test.Simple.*
+import org.scalacheck.*
+import magnolify.scalacheck.TestArbitrary.*
+import magnolify.cats.TestEq.{eqEnums as _, eqNullable as _, *}
+
+// Workaround for "Method too large: magnolify/protobuf/test/ProtobufTypeSuite.<init> ()V"
+class MoreProtobufTypeSuite extends BaseProtobufTypeSuite {
+
+  implicit val arbByteString: Arbitrary[ByteString] =
+    Arbitrary(Gen.alphaNumStr.map(ByteString.copyFromUtf8))
+  implicit val eqByteString: Eq[ByteString] = Eq.instance(_ == _)
+  implicit val pfUri: ProtobufField[URI] = ProtobufField.from[String](URI.create)(_.toString)
+  implicit val pfDuration: ProtobufField[Duration] =
+    ProtobufField.from[Long](Duration.ofMillis)(_.toMillis)
+
+  test[BytesA, BytesP2]
+  test[BytesB, BytesP3]
+
+  {
+    import Proto2Enums._
+    test[Enums, EnumsP2]
+    test[UnsafeEnums, UnsafeEnumsP2]
+  }
+
+  {
+    import Proto3Enums._
+    test[Enums, EnumsP3]
+    test[UnsafeEnums, UnsafeEnumsP3]
+  }
+
+  test[Custom, CustomP2]
+  test[Custom, CustomP3]
+
+  {
+    implicit val pt: ProtobufType[LowerCamel, UpperCaseP3] =
+      ProtobufType[LowerCamel, UpperCaseP3](CaseMapper(_.toUpperCase))
+    test[LowerCamel, UpperCaseP3]
+  }
+
+  {
+    import Proto2Enums._
+    test[DefaultsRequired2, DefaultRequiredP2]
+    test[DefaultsNullable2, DefaultNullableP2]
+  }
+
+  {
+    import Proto3Enums._
+    test[DefaultIntegers3, IntegersP3]
+    test[DefaultFloats3, FloatsP3]
+    test[DefaultRequired3, RequiredP3]
+    test[DefaultEnums3, EnumsP3]
+  }
+
+  {
+    test[DefaultNullable3, NullableP3]
+  }
+
+  {
+    import Proto2Enums._
+    type F[T] = ProtobufType[T, _]
+    testFail[F, DefaultMismatch2](ProtobufType[DefaultMismatch2, DefaultRequiredP2])(
+      "Default mismatch magnolify.protobuf.DefaultMismatch2#i: 321 != 123"
+    )
+    testFail[F, DefaultMismatch3](ProtobufType[DefaultMismatch3, RequiredP3])(
+      "Default mismatch magnolify.protobuf.DefaultMismatch3#i: 321 != 0"
+    )
+  }
+
+  {
+    import magnolify.protobuf.Bug1001._
+    test[MultiEntity, MultiEntityPb]
+  }
+}
+
+final case class DataEntry(key: String, value: String)
+final case class Entity(entityId: String, metadata: Seq[DataEntry])
+final case class MultiEntity(multiEntityId: String, entities: Seq[Entity])
