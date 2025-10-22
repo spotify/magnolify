@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package magnolify.protobuf;
+
+message DataEntryPb {
+  string key = 1;
+  string value = 2;
+}
+
+message EntityPb {
+  string entityId = 1;
+  repeated DataEntryPb metadata = 2;
+}
+
+message MultiEntityPb {
+  string multiEntityId = 1;
+  repeated EntityPb entities = 2;
+}

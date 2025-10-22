@@ -18,23 +18,22 @@ package magnolify.protobuf
 
 import java.net.URI
 import java.time.Duration
-
-import cats._
+import cats.*
 import com.google.protobuf.{ByteString, Message}
-import magnolify.cats.auto._
-import magnolify.scalacheck.auto._
-import magnolify.protobuf._
-import magnolify.protobuf.Proto2._
-import magnolify.protobuf.Proto3._
-import magnolify.protobuf.unsafe._
-import magnolify.shared._
-import magnolify.test.Simple._
-import magnolify.test._
-import org.scalacheck._
-import magnolify.scalacheck.TestArbitrary._
-import magnolify.cats.TestEq.{eqEnums => _, eqNullable => _, _}
+import magnolify.cats.auto.*
+import magnolify.scalacheck.auto.*
+import magnolify.protobuf.*
+import magnolify.protobuf.Proto2.*
+import magnolify.protobuf.Proto3.*
+import magnolify.protobuf.unsafe.*
+import magnolify.shared.*
+import magnolify.test.Simple.*
+import magnolify.test.*
+import org.scalacheck.*
+import magnolify.scalacheck.TestArbitrary.*
+import magnolify.cats.TestEq.{eqEnums as _, eqNullable as _, *}
 
-import scala.reflect._
+import scala.reflect.*
 
 trait BaseProtobufTypeSuite extends MagnolifySuite {
   def test[T: ClassTag: Arbitrary, U <: Message: ClassTag](implicit
@@ -147,6 +146,34 @@ class MoreProtobufTypeSuite extends BaseProtobufTypeSuite {
     testFail[F, DefaultMismatch3](ProtobufType[DefaultMismatch3, RequiredP3])(
       "Default mismatch magnolify.protobuf.DefaultMismatch3#i: 321 != 0"
     )
+  }
+}
+
+class FoooProtobufTypeSuite extends BaseProtobufTypeSuite {
+  {
+    import magnolify.protobuf.Bug1001._
+    final case class DataEntry(key: String, value: String)
+    final case class Entity(entityId: String, metadata: Seq[DataEntry])
+    final case class MultiEntity(multiEntityId: String, entities: Seq[Entity])
+
+    val me = MultiEntity(
+      "me1",
+      Seq(
+        Entity("entity1", Seq(DataEntry("key1", "value1"))),
+        Entity("entity2", Seq.empty)
+      )
+    )
+    val result = ProtobufType[MultiEntity, MultiEntityPb].to(me)
+
+    import scala.jdk.CollectionConverters._
+    val entities = result.getEntitiesList.asScala
+    assertEquals(entities.size, 2)
+    val entity1 = entities.find(_.getEntityId == "entity1").get
+    assertEquals(entity1.getMetadataList.size(), 1)
+    val expected = DataEntryPb.newBuilder().setKey("key1").setValue("value1").build()
+    assertEquals(entity1.getMetadata(0), expected)
+    val entity2 = entities.find(_.getEntityId == "entity2").get
+    assertEquals(entity2.getMetadataList.asScala.toList, List.empty)
   }
 }
 
