@@ -267,8 +267,8 @@ object TableRowField {
 
 private object NumericConverter {
   // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
-  private val NumericMaxPrecision = 38
-  private val NumericMaxScale = 9
+  private val MaxNumericPrecision = 38
+  private val MaxNumericScale = 9
 
   def toBigDecimal(v: Any): BigDecimal = BigDecimal(v.toString)
   private def validate(name: String, v: BigDecimal, maxPrecision: Int, maxScale: Int): Unit = {
@@ -279,7 +279,7 @@ private object NumericConverter {
     require(v.scale <= maxScale, s"Cannot encode $name $v: scale ${v.scale} > $maxScale")
   }
   def fromBigDecimal(v: BigDecimal): Any = {
-    validate("BigDecimal", v, NumericMaxPrecision, NumericMaxScale)
+    validate("BigDecimal", v, MaxNumericPrecision, MaxNumericScale)
     v.toString()
   }
   def fromBigNumeric(v: BigNumeric): Any = {
