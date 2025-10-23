@@ -16,7 +16,7 @@
 
 package magnolify.bigquery
 
-case class BigNumeric private (wkt: BigDecimal)
+case class BigNumeric(value: BigDecimal)
 object BigNumeric {
   val MaxNumericPrecision = 77
   val MaxNumericScale = 38

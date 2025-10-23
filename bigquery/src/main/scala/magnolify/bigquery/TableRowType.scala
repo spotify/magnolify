@@ -283,7 +283,7 @@ private object NumericConverter {
     v.toString()
   }
   def fromBigNumeric(v: BigNumeric): Any = {
-    validate("BigNumeric", v.wkt, BigNumeric.MaxNumericPrecision, BigNumeric.MaxNumericScale)
-    v.wkt.toString()
+    validate("BigNumeric", v.value, BigNumeric.MaxNumericPrecision, BigNumeric.MaxNumericScale)
+    v.value.toString()
   }
 }
