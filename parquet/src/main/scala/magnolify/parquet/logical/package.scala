@@ -45,8 +45,8 @@ package object logical {
     // TIME
     implicit val pfOffsetTimeMillis: Primitive[OffsetTime] =
       ParquetField.logicalType[Int](time(true))(ms =>
-        LocalTime.ofNanoOfDay(ms * 1000000L).atOffset(ZoneOffset.UTC)
-      )(t => (t.toLocalTime.toNanoOfDay / 1000000).toInt)
+        millisToLocalTime(ms).atOffset(ZoneOffset.UTC)
+      )(t => millisFromLocalTime(t.toLocalTime))
     implicit val pfLocalTimeMillis: Primitive[LocalTime] =
       ParquetField.logicalType[Int](time(false))(millisToLocalTime)(millisFromLocalTime)
     implicit val pfJodaLocalTimeMillis: Primitive[joda.LocalTime] =
@@ -70,9 +70,9 @@ package object logical {
 
     // TIME
     implicit val pfOffsetTimeMicros: Primitive[OffsetTime] =
-      ParquetField.logicalType[Long](time(true))(us =>
-        LocalTime.ofNanoOfDay(us * 1000).atOffset(ZoneOffset.UTC)
-      )(_.toLocalTime.toNanoOfDay / 1000)
+      ParquetField.logicalType[Long](time(true))(micros =>
+        microsToLocalTime(micros).atOffset(ZoneOffset.UTC)
+      )(ot => microsFromLocalTime(ot.toLocalTime))
     implicit val pfLocalTimeMicros: Primitive[LocalTime] =
       ParquetField.logicalType[Long](time(false))(microsToLocalTime)(microsFromLocalTime)
     implicit val pfJodaLocalTimeMicros: Primitive[joda.LocalTime] =
@@ -97,8 +97,8 @@ package object logical {
     // TIME
     implicit val pfOffsetTimeNanos: Primitive[OffsetTime] =
       ParquetField.logicalType[Long](time(true))(ns =>
-        LocalTime.ofNanoOfDay(ns).atOffset(ZoneOffset.UTC)
-      )(_.toLocalTime.toNanoOfDay)
+        nanosToLocalTime(ns).atOffset(ZoneOffset.UTC)
+      )(ot => nanosFromLocalTime(ot.toLocalTime))
     implicit val pfLocalTimeNanos: Primitive[LocalTime] =
       ParquetField.logicalType[Long](time(false))(nanosToLocalTime)(nanosFromLocalTime)
     implicit val pfJodaLocalTimeNanos: Primitive[joda.LocalTime] =
