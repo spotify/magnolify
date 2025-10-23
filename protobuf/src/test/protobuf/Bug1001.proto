@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package magnolify.protobuf;
+
+message Bug1001Metadata {
+  string key = 1;
+  string value = 2;
+}
+
+message Bug1001Nested {
+  string id = 1;
+  repeated Bug1001Metadata metadata = 2;
+}
+
+message Bug1001Pb {
+  repeated Bug1001Nested entities = 2;
+}
