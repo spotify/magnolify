@@ -40,7 +40,7 @@ object TestData {
     val date = LocalDate.from(ts)
     val time = LocalTime.from(ts)
     val dt = LocalDateTime.from(ts)
-    val r = Record(BigDecimal(123.456), ts, date, time, dt)
+    val r = Record(BigDecimal(123.456), BigNumeric(BigDecimal(890.123)), ts, date, time, dt)
     write("tablerow1.json", t(r))
     // precision > 38
     // write("tablerow1.json", t(r.copy(BigDecimal("1234567890123456789012345678901234567890"))))
@@ -48,5 +48,12 @@ object TestData {
     // write("tablerow1.json", t(r.copy(BigDecimal("3.14159265358979323846"))))
   }
 
-  case class Record(bd: BigDecimal, ts: Instant, d: LocalDate, t: LocalTime, dt: LocalDateTime)
+  case class Record(
+    bd: BigDecimal,
+    bn: BigNumeric,
+    ts: Instant,
+    d: LocalDate,
+    t: LocalTime,
+    dt: LocalDateTime
+  )
 }
