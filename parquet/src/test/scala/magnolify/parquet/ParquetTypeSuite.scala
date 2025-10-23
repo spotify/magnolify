@@ -16,28 +16,29 @@
 
 package magnolify.parquet
 
-import cats._
-import magnolify.cats.auto._
-import magnolify.cats.TestEq._
-import magnolify.parquet.unsafe._
-import magnolify.scalacheck.auto._
-import magnolify.scalacheck.TestArbitrary._
+import cats.*
+import magnolify.cats.auto.*
+import magnolify.cats.TestEq.*
+import magnolify.parquet.unsafe.*
+import magnolify.scalacheck.auto.*
+import magnolify.scalacheck.TestArbitrary.*
 import magnolify.shared.CaseMapper
 import magnolify.shared.doc
-import magnolify.shared.TestEnumType._
-import magnolify.test.Simple._
-import magnolify.test._
+import magnolify.shared.TestEnumType.*
+import magnolify.test.Simple.*
+import magnolify.test.*
 import org.apache.hadoop.conf.Configuration
-import org.apache.parquet.io._
+import org.apache.parquet.io.*
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
-import org.scalacheck._
+import org.joda.time as joda
+import org.scalacheck.*
 
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.net.URI
-import java.time._
+import java.time.*
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.reflect.ClassTag
 
 class ParquetTypeSuite extends MagnolifySuite {
@@ -207,6 +208,21 @@ class ParquetTypeSuite extends MagnolifySuite {
   }
 
   {
+    import magnolify.parquet.logical.millis._
+    testNamed[JodaTime]("JodaTimeMillis")
+  }
+
+  {
+    import magnolify.parquet.logical.micros._
+    testNamed[JodaTime]("JodaTimeMicros")
+  }
+
+  {
+    import magnolify.parquet.logical.nanos._
+    testNamed[JodaTime]("JodaTimeNanos")
+  }
+
+  {
     implicit val pt: ParquetType[LowerCamel] = ParquetType[LowerCamel](CaseMapper(_.toUpperCase))
     test[LowerCamel]
 
@@ -291,6 +307,7 @@ case class MapNested(
 case class Decimal(bd: BigDecimal, bdo: Option[BigDecimal])
 case class Logical(u: UUID, d: LocalDate)
 case class Time(i: Instant, dt: LocalDateTime, ot: OffsetTime, t: LocalTime)
+case class JodaTime(i: joda.Instant, d: joda.LocalDate, t: joda.LocalTime, dt: joda.LocalDateTime)
 @doc("Parquet with doc")
 case class ParquetDoc(@doc("string") s: String, @doc("integers") i: Integers)
 

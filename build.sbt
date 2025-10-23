@@ -177,6 +177,43 @@ ThisBuild / mimaBinaryIssueFilters ++= Seq(
   ProblemFilters.exclude[Problem]("magnolify.parquet.ParquetField.*"),
   ProblemFilters.exclude[DirectMissingMethodProblem](
     "magnolify.parquet.MagnolifyParquetProperties.WriteAvroCompatibleArrays"
+  ),
+  // renamed these for clarity
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.avro.logical.package#micros.afTimeMicros"
+  ),
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.avro.logical.package#micros.afLocalTimestampMicros"
+  ),
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.avro.logical.package#micros.afJodaTimestampMicros"
+  ),
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.avro.logical.package#micros.afJodaTimeMicros"
+  ),
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.avro.logical.package#millis.afTimestampMillis"
+  ),
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.avro.logical.package#millis.afTimeMillis"
+  ),
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.avro.logical.package#millis.afLocalTimestampMillis"
+  ),
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.avro.logical.package#millis.afJodaTimestampMillis"
+  ),
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.avro.logical.package#millis.afJodaTimeMillis"
+  ),
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.parquet.logical.package#micros.pfTimestampMicros"
+  ),
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.parquet.logical.package#millis.pfTimestampMillis"
+  ),
+  ProblemFilters.exclude[DirectMissingMethodProblem](
+    "magnolify.parquet.logical.package#nanos.pfTimestampNanos"
   )
 )
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.9.0")

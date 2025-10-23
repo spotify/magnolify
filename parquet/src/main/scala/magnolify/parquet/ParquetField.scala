@@ -16,21 +16,22 @@
 
 package magnolify.parquet
 
-import magnolia1._
-import magnolify.shared.{Converter => _, _}
+import magnolia1.*
+import magnolify.shared.{Converter as _, *}
 import magnolify.shims.FactoryCompat
 
 import java.nio.{ByteBuffer, ByteOrder}
 import java.time.LocalDate
 import java.util.UUID
 import org.apache.parquet.io.ParquetDecodingException
-import org.apache.parquet.io.api._
+import org.apache.parquet.io.api.*
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 import org.apache.parquet.schema.Type.Repetition
 import org.apache.parquet.schema.{ConversionPatterns, LogicalTypeAnnotation, Type, Types}
+import org.joda.time as joda
 
 import scala.annotation.implicitNotFound
-import scala.collection.compat._
+import scala.collection.compat.*
 import scala.collection.concurrent
 
 sealed trait ParquetField[T] extends Serializable {
@@ -657,6 +658,12 @@ object ParquetField {
   implicit val ptDate: Primitive[LocalDate] =
     logicalType[Int](LogicalTypeAnnotation.dateType())(x => LocalDate.ofEpochDay(x.toLong))(
       _.toEpochDay.toInt
+    )
+
+  import magnolify.shared.Time.EpochJodaDate
+  implicit val ptJodaDate: Primitive[joda.LocalDate] =
+    logicalType[Int](LogicalTypeAnnotation.dateType())(x => EpochJodaDate.plusDays(x))(
+      joda.Days.daysBetween(EpochJodaDate, _).getDays
     )
 
 }

@@ -19,6 +19,7 @@ package magnolify.parquet
 import java.time._
 
 import magnolify.parquet.ParquetField.Primitive
+import org.joda.time as joda
 import org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit
 
 package object logical {
@@ -30,53 +31,77 @@ package object logical {
     protected val unit = TimeUnit.MILLIS
 
     // TIMESTAMP
-    implicit val pfTimestampMillis: Primitive[Instant] =
+    implicit val pfInstantMillis: Primitive[Instant] =
       ParquetField.logicalType[Long](ts(true))(millisToInstant)(millisFromInstant)
+    implicit val pfJodaInstantMillis: Primitive[joda.Instant] =
+      ParquetField.logicalType[Long](ts(true))(millisToJodaInstant)(millisFromJodaInstant)
     implicit val pfLocalDateTimeMillis: Primitive[LocalDateTime] =
       ParquetField.logicalType[Long](ts(false))(millisToLocalDateTime)(millisFromLocalDateTime)
+    implicit val pfJodaLocalDateTimeMillis: Primitive[joda.LocalDateTime] =
+      ParquetField.logicalType[Long](ts(false))(millisToJodaLocalDateTime)(
+        millisFromJodaLocalDateTime
+      )
 
     // TIME
     implicit val pfOffsetTimeMillis: Primitive[OffsetTime] =
       ParquetField.logicalType[Int](time(true))(ms =>
-        LocalTime.ofNanoOfDay(ms * 1000000L).atOffset(ZoneOffset.UTC)
-      )(t => (t.toLocalTime.toNanoOfDay / 1000000).toInt)
+        millisToLocalTime(ms).atOffset(ZoneOffset.UTC)
+      )(t => millisFromLocalTime(t.toLocalTime))
     implicit val pfLocalTimeMillis: Primitive[LocalTime] =
       ParquetField.logicalType[Int](time(false))(millisToLocalTime)(millisFromLocalTime)
+    implicit val pfJodaLocalTimeMillis: Primitive[joda.LocalTime] =
+      ParquetField.logicalType[Int](time(false))(millisToJodaLocalTime)(millisFromJodaLocalTime)
   }
 
   object micros extends TimeTypes {
     override protected val unit = TimeUnit.MICROS
 
     // TIMESTAMP
-    implicit val pfTimestampMicros: Primitive[Instant] =
+    implicit val pfInstantMicros: Primitive[Instant] =
       ParquetField.logicalType[Long](ts(true))(microsToInstant)(microsFromInstant)
+    implicit val pfJodaInstantMicros: Primitive[joda.Instant] =
+      ParquetField.logicalType[Long](ts(true))(microsToJodaInstant)(microsFromJodaInstant)
     implicit val pfLocalDateTimeMicros: Primitive[LocalDateTime] =
       ParquetField.logicalType[Long](ts(false))(microsToLocalDateTime)(microsFromLocalDateTime)
+    implicit val pfJodaLocalDateTimeMicros: Primitive[joda.LocalDateTime] =
+      ParquetField.logicalType[Long](ts(false))(microsToJodaLocalDateTime)(
+        microsFromJodaLocalDateTime
+      )
 
     // TIME
     implicit val pfOffsetTimeMicros: Primitive[OffsetTime] =
-      ParquetField.logicalType[Long](time(true))(us =>
-        LocalTime.ofNanoOfDay(us * 1000).atOffset(ZoneOffset.UTC)
-      )(_.toLocalTime.toNanoOfDay / 1000)
+      ParquetField.logicalType[Long](time(true))(micros =>
+        microsToLocalTime(micros).atOffset(ZoneOffset.UTC)
+      )(ot => microsFromLocalTime(ot.toLocalTime))
     implicit val pfLocalTimeMicros: Primitive[LocalTime] =
       ParquetField.logicalType[Long](time(false))(microsToLocalTime)(microsFromLocalTime)
+    implicit val pfJodaLocalTimeMicros: Primitive[joda.LocalTime] =
+      ParquetField.logicalType[Long](time(false))(microsToJodaLocalTime)(microsFromJodaLocalTime)
   }
 
   object nanos extends TimeTypes {
     override protected val unit = TimeUnit.NANOS
 
     // TIMESTAMP
-    implicit val pfTimestampNanos: Primitive[Instant] =
+    implicit val pfInstantNanos: Primitive[Instant] =
       ParquetField.logicalType[Long](ts(true))(nanosToInstant)(nanosFromInstant)
+    implicit val pfJodaInstantNanos: Primitive[joda.Instant] =
+      ParquetField.logicalType[Long](ts(true))(nanosToJodaInstant)(nanosFromJodaInstant)
     implicit val pfLocalDateTimeNanos: Primitive[LocalDateTime] =
       ParquetField.logicalType[Long](ts(false))(nanosToLocalDateTime)(nanosFromLocalDateTime)
+    implicit val pfJodaLocalDateTimeNanos: Primitive[joda.LocalDateTime] =
+      ParquetField.logicalType[Long](ts(false))(nanosToJodaLocalDateTime)(
+        nanosFromJodaLocalDateTime
+      )
 
     // TIME
     implicit val pfOffsetTimeNanos: Primitive[OffsetTime] =
       ParquetField.logicalType[Long](time(true))(ns =>
-        LocalTime.ofNanoOfDay(ns).atOffset(ZoneOffset.UTC)
-      )(_.toLocalTime.toNanoOfDay)
+        nanosToLocalTime(ns).atOffset(ZoneOffset.UTC)
+      )(ot => nanosFromLocalTime(ot.toLocalTime))
     implicit val pfLocalTimeNanos: Primitive[LocalTime] =
       ParquetField.logicalType[Long](time(false))(nanosToLocalTime)(nanosFromLocalTime)
+    implicit val pfJodaLocalTimeNanos: Primitive[joda.LocalTime] =
+      ParquetField.logicalType[Long](time(false))(nanosToJodaLocalTime)(nanosFromJodaLocalTime)
   }
 }

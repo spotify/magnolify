@@ -20,6 +20,7 @@ import magnolify.parquet._
 import magnolify.test._
 
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime, OffsetTime}
+import org.joda.time as joda
 import scala.annotation.nowarn
 import scala.reflect.ClassTag
 
@@ -88,6 +89,10 @@ class ParquetParserSuite extends MagnolifySuite {
     Record(Some("Date"), None, List(Record.Field("d", None, Primitive.LocalDate)))
   )
 
+  test[JodaDate](
+    Record(Some("JodaDate"), None, List(Record.Field("d", None, Primitive.LocalDate)))
+  )
+
   private val dateTimeSchema = Record(
     Some("DateTime"),
     None,
@@ -112,6 +117,27 @@ class ParquetParserSuite extends MagnolifySuite {
   {
     import magnolify.parquet.logical.nanos._
     test[DateTime]("nanos", dateTimeSchema)
+  }
+
+  private val jodaDateTimeSchema = dateTimeSchema.copy(
+    name = Some("JodaDateTime"),
+    // no joda OffsetTime
+    fields = dateTimeSchema.fields.filter(_.name != "ot")
+  )
+
+  {
+    import magnolify.parquet.logical.millis._
+    test[JodaDateTime]("millis", jodaDateTimeSchema)
+  }
+
+  {
+    import magnolify.parquet.logical.micros._
+    test[JodaDateTime]("micros", jodaDateTimeSchema)
+  }
+
+  {
+    import magnolify.parquet.logical.nanos._
+    test[JodaDateTime]("nanos", jodaDateTimeSchema)
   }
 
   private val compositeSchema = Record(
@@ -167,7 +193,9 @@ object ParquetParserSuite {
 
   case class Decimal(bd: BigDecimal)
   case class Date(d: LocalDate)
+  case class JodaDate(d: joda.LocalDate)
   case class DateTime(i: Instant, dt: LocalDateTime, ot: OffsetTime, t: LocalTime)
+  case class JodaDateTime(i: joda.Instant, dt: joda.LocalDateTime, t: joda.LocalTime)
   case class Composite(o: Option[Int], l: List[Int], m: Map[String, Int])
   case class Inner(i: Int)
   case class Outer(r: Inner, o: Option[Inner], l: List[Inner], m: Map[String, Inner])

@@ -20,6 +20,7 @@ import org.joda.time as joda
 import org.scalacheck.{Arbitrary, Gen}
 
 import java.time.{Duration, Instant, LocalDate, LocalDateTime, LocalTime, OffsetTime, ZoneOffset}
+import java.util.concurrent.TimeUnit
 
 trait TimeArbitrary {
   implicit lazy val arbInstant: Arbitrary[Instant] =
@@ -47,7 +48,7 @@ trait TimeArbitrary {
   }
   implicit val arbJodaLocalTime: Arbitrary[joda.LocalTime] = Arbitrary {
     Arbitrary.arbitrary[LocalTime].map { lt =>
-      joda.LocalTime.fromMillisOfDay(lt.toNanoOfDay / 1000)
+      joda.LocalTime.fromMillisOfDay(TimeUnit.NANOSECONDS.toMillis(lt.toNanoOfDay))
     }
   }
   implicit val arbJodaLocalDateTime: Arbitrary[joda.LocalDateTime] = Arbitrary {

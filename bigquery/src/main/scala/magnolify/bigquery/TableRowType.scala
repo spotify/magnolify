@@ -16,18 +16,20 @@
 
 package magnolify.bigquery
 
-import java.{util => ju}
+import java.util as ju
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.common.io.BaseEncoding
-import magnolia1._
+import magnolia1.*
 import magnolify.shared.{CaseMapper, Converter}
 import magnolify.shims.FactoryCompat
 
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
+import org.joda.time as joda
+
 import scala.collection.concurrent
 import scala.annotation.{implicitNotFound, StaticAnnotation}
-import scala.jdk.CollectionConverters._
-import scala.collection.compat._
+import scala.jdk.CollectionConverters.*
+import scala.collection.compat.*
 
 class description(description: String) extends StaticAnnotation with Serializable {
   override def toString: String = description
@@ -229,6 +231,19 @@ object TableRowField {
   implicit val trfTime: TableRowField[LocalTime] = at("TIME")(toLocalTime)(fromLocalTime)
   implicit val trfDateTime: TableRowField[LocalDateTime] =
     at("DATETIME")(toLocalDateTime)(fromLocalDateTime)
+
+  import magnolify.shared.Time._
+  implicit val trfJodaInstant: TableRowField[joda.Instant] =
+    xmap[Instant, joda.Instant](instantToJodaInstant, jodaInstantToInstant)
+  implicit val trfJodaLocalDate: TableRowField[joda.LocalDate] =
+    xmap[LocalDate, joda.LocalDate](localDateToJodaLocalDate, jodaLocalDateToLocalDate)
+  implicit val trfJodaLocalTime: TableRowField[joda.LocalTime] =
+    xmap[LocalTime, joda.LocalTime](localTimeToJodaLocalTime, jodaLocalTimeToLocalTime)
+  implicit val trfJodaLocalDateTime: TableRowField[joda.LocalDateTime] =
+    xmap[LocalDateTime, joda.LocalDateTime](
+      localDateTimeToJodaLocalDateTime,
+      jodaLocalDateTimeToLocalDateTime
+    )
 
   implicit def trfOption[T](implicit f: TableRowField[T]): TableRowField[Option[T]] =
     new Aux[Option[T], f.FromT, f.ToT] {

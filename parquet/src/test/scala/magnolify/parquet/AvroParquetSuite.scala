@@ -38,6 +38,7 @@ import org.apache.parquet.avro.{
   AvroSchemaConverter,
   GenericDataSupplier
 }
+import org.joda.time as joda
 import org.scalacheck._
 
 import scala.annotation.nowarn
@@ -194,6 +195,7 @@ class AvroParquetSuite extends MagnolifySuite {
   }
 
   test[AvroParquetLogical]()
+  test[AvroParquetLogicalJoda]()
 
   {
     import magnolify.avro.logical.millis._
@@ -205,6 +207,18 @@ class AvroParquetSuite extends MagnolifySuite {
     import magnolify.avro.logical.micros._
     import magnolify.parquet.logical.micros._
     test[AvroParquetTimeMicros]()
+  }
+
+  {
+    import magnolify.avro.logical.millis._
+    import magnolify.parquet.logical.millis._
+    test[AvroParquetJodaTimeMillis]()
+  }
+
+  {
+    import magnolify.avro.logical.micros._
+    import magnolify.parquet.logical.micros._
+    test[AvroParquetJodaTimeMicros]()
   }
 
   // nested record doc is lost
@@ -248,8 +262,11 @@ class AvroParquetSuite extends MagnolifySuite {
 }
 
 case class AvroParquetLogical(d: LocalDate)
+case class AvroParquetLogicalJoda(d: joda.LocalDate)
 case class AvroParquetTimeMillis(i: Instant, dt: LocalDateTime, t: LocalTime)
+case class AvroParquetJodaTimeMillis(i: joda.Instant, dt: joda.LocalDateTime, t: joda.LocalTime)
 case class AvroParquetTimeMicros(i: Instant, dt: LocalDateTime, t: LocalTime)
+case class AvroParquetJodaTimeMicros(i: joda.Instant, dt: joda.LocalDateTime, t: joda.LocalTime)
 @doc("Should be ignored")
 case class AvroParquetWithAnnotations(
   @doc("nested field policy") s: String,
