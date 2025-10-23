@@ -33,14 +33,14 @@ val guavaVersion = "33.4.0-jre"
 val hadoopVersion = "3.4.1"
 val jacksonVersion = "2.18.2"
 val jodaTimeVersion = "2.14.0"
-val munitVersion = "1.1.1"
+val munitVersion = "1.2.1"
 val munitScalacheckVersion = "1.2.0"
 val neo4jDriverVersion = "4.4.19"
 val paigesVersion = "0.4.4"
 val parquetVersion = "1.16.0"
 val protobufVersion = "3.25.8"
 val refinedVersion = "0.11.3"
-val scalaCollectionCompatVersion = "2.13.0"
+val scalaCollectionCompatVersion = "2.14.0"
 val scalacheckVersion = "1.19.0"
 val shapelessVersion = "2.3.13"
 val slf4jVersion = "2.0.17"
@@ -56,7 +56,7 @@ ThisBuild / licenses := Seq(License.Apache2)
 
 // scala versions
 val scala3 = "3.3.7"
-val scala213 = "2.13.16"
+val scala213 = "2.13.17"
 val scala212 = "2.12.20"
 val scalaDefault = scala213
 val scala3Projects = List(
