@@ -31,7 +31,8 @@ object Time {
     if (unit == MILLISECONDS) Instant.ofEpochMilli(unitsFromEpoch)
     else {
       val epochSeconds = unit.toSeconds(unitsFromEpoch)
-      val nanoAdjustment = unit.toNanos(unitsFromEpoch - unit.convert(epochSeconds, SECONDS))
+      val remainderUnits = unitsFromEpoch - unit.convert(epochSeconds, SECONDS)
+      val nanoAdjustment = unit.toNanos(remainderUnits)
       Instant.ofEpochSecond(epochSeconds, nanoAdjustment)
     }
   }
@@ -43,18 +44,24 @@ object Time {
     new joda.Instant(javaInstant.toEpochMilli)
   @inline def jodaLocalDateToLocalDate(ld: joda.LocalDate): LocalDate =
     LocalDate.ofEpochDay(joda.Days.daysBetween(EpochJodaDate, ld).getDays.toLong)
-  @inline def localDateToJodaLocalDate(ld: LocalDate): joda.LocalDate =
-    EpochJodaDate.plusDays(ld.getLong(ChronoField.EPOCH_DAY).toInt)
+  @inline def localDateToJodaLocalDate(ld: LocalDate): joda.LocalDate = {
+    val epochDay = ld.getLong(ChronoField.EPOCH_DAY)
+    val epochDayInt = Math.toIntExact(epochDay)
+    EpochJodaDate.plusDays(epochDayInt)
+  }
   @inline def jodaLocalTimeToLocalTime(t: joda.LocalTime): LocalTime = {
-    val nanos = MILLISECONDS.toNanos(t.getMillisOfSecond.toLong).toInt
+    val nanosLong = Math.multiplyExact(t.getMillisOfSecond.toLong, MILLISECONDS.toNanos(1L))
+    val nanos = Math.toIntExact(nanosLong)
     LocalTime.of(t.getHourOfDay, t.getMinuteOfHour, t.getSecondOfMinute, nanos)
   }
   @inline def localTimeToJodaLocalTime(t: LocalTime): joda.LocalTime = {
-    val millis = NANOSECONDS.toMillis(t.getNano.toLong).toInt
+    val millisLong = NANOSECONDS.toMillis(t.getNano.toLong)
+    val millis = Math.toIntExact(millisLong)
     new joda.LocalTime(t.getHour, t.getMinute, t.getSecond, millis, ISOChronology.getInstanceUTC)
   }
   @inline def jodaLocalDateTimeToLocalDateTime(ldt: joda.LocalDateTime): LocalDateTime = {
-    val nanos = MILLISECONDS.toNanos(ldt.getMillisOfSecond.toLong).toInt
+    val nanosLong = Math.multiplyExact(ldt.getMillisOfSecond.toLong, MILLISECONDS.toNanos(1L))
+    val nanos = Math.toIntExact(nanosLong)
     LocalDateTime.of(
       ldt.getYear,
       ldt.getMonthOfYear,
@@ -67,6 +74,7 @@ object Time {
   }
   @inline def localDateTimeToJodaLocalDateTime(ldt: LocalDateTime): joda.LocalDateTime = {
     val millis = NANOSECONDS.toMillis(ldt.getNano.toLong)
+    val millisInt = Math.toIntExact(millis)
     new joda.LocalDateTime(
       ldt.getYear,
       ldt.getMonthValue,
@@ -74,7 +82,7 @@ object Time {
       ldt.getHour,
       ldt.getMinute,
       ldt.getSecond,
-      millis.toInt,
+      millisInt,
       ISOChronology.getInstanceUTC
     )
   }
@@ -82,23 +90,31 @@ object Time {
   // millis /////////////////////////////////////////////////////
   @inline def millisToSecondsAndNanos(millis: Long): (Long, Long) = {
     val seconds = MILLISECONDS.toSeconds(millis)
-    val nanos = MILLISECONDS.toNanos(millis - SECONDS.toMillis(seconds))
+    val remainderMillis = millis - Math.multiplyExact(seconds, SECONDS.toMillis(1L))
+    val nanos = Math.multiplyExact(remainderMillis, MILLISECONDS.toNanos(1L))
     (seconds, nanos)
   }
-  @inline def millisFromSecondsAndNanos(seconds: Long, nanos: Long): Long =
-    SECONDS.toMillis(seconds) + NANOSECONDS.toMillis(nanos)
+  @inline def millisFromSecondsAndNanos(seconds: Long, nanos: Long): Long = {
+    val millisFromSeconds = Math.multiplyExact(seconds, SECONDS.toMillis(1L))
+    val millisFromNanos = NANOSECONDS.toMillis(nanos)
+    Math.addExact(millisFromSeconds, millisFromNanos)
+  }
 
   @inline def millisToInstant(millisFromEpoch: Long): Instant =
-    unitToInstant(MILLISECONDS, millisFromEpoch)
+    Instant.ofEpochMilli(millisFromEpoch)
   @inline def millisFromInstant(instant: Instant): Long = instant.toEpochMilli
   @inline def millisToJodaInstant(millisFromEpoch: Long): joda.Instant =
     joda.Instant.ofEpochMilli(millisFromEpoch)
   @inline def millisFromJodaInstant(instant: joda.Instant): Long = instant.getMillis
 
-  @inline def millisToLocalTime(millisFromMidnight: Int): LocalTime =
-    LocalTime.ofNanoOfDay(MILLISECONDS.toNanos(millisFromMidnight.toLong))
-  @inline def millisFromLocalTime(lt: LocalTime): Int =
-    NANOSECONDS.toMillis(lt.toNanoOfDay).toInt
+  @inline def millisToLocalTime(millisFromMidnight: Int): LocalTime = {
+    val nanos = Math.multiplyExact(millisFromMidnight.toLong, MILLISECONDS.toNanos(1L))
+    LocalTime.ofNanoOfDay(nanos)
+  }
+  @inline def millisFromLocalTime(lt: LocalTime): Int = {
+    val millisLong = NANOSECONDS.toMillis(lt.toNanoOfDay)
+    Math.toIntExact(millisLong)
+  }
   @inline def millisToJodaLocalTime(millisFromMidnight: Int): joda.LocalTime =
     joda.LocalTime.fromMillisOfDay(millisFromMidnight.toLong, ISOChronology.getInstanceUTC)
   @inline def millisFromJodaLocalTime(lt: joda.LocalTime): Int = lt.millisOfDay().get()
@@ -117,28 +133,36 @@ object Time {
     ldt.toDateTime(joda.DateTimeZone.UTC).getMillis
 
   @inline def millisToDuration(millis: Long): Duration = Duration.ofMillis(millis)
-  @inline def millisFromDuration(d: Duration): Long =
-    SECONDS.toMillis(d.getSeconds) + NANOSECONDS.toMillis(d.getNano.toLong)
+  @inline def millisFromDuration(d: Duration): Long = {
+    val millisFromSeconds = Math.multiplyExact(d.getSeconds, SECONDS.toMillis(1L))
+    val millisFromNanos = NANOSECONDS.toMillis(d.getNano.toLong)
+    Math.addExact(millisFromSeconds, millisFromNanos)
+  }
   @inline def millisToJodaDuration(millis: Long): joda.Duration = joda.Duration.millis(millis)
   @inline def millisFromJodaDuration(d: joda.Duration): Long = d.getMillis
 
   // micros /////////////////////////////////////////////////////
   @inline def microsToInstant(microsFromEpoch: Long): Instant =
     unitToInstant(MICROSECONDS, microsFromEpoch)
-  @inline def microsFromInstant(instant: Instant): Long =
-    SECONDS.toMicros(instant.getEpochSecond) + NANOSECONDS.toMicros(instant.getNano.toLong)
+  @inline def microsFromInstant(instant: Instant): Long = {
+    val microsFromSeconds = Math.multiplyExact(instant.getEpochSecond, SECONDS.toMicros(1L))
+    val microsFromNanos = NANOSECONDS.toMicros(instant.getNano.toLong)
+    Math.addExact(microsFromSeconds, microsFromNanos)
+  }
   @inline def microsToJodaInstant(microsFromEpoch: Long): joda.Instant =
     joda.Instant.ofEpochMilli(MICROSECONDS.toMillis(microsFromEpoch))
   @inline def microsFromJodaInstant(instant: joda.Instant): Long =
-    MILLISECONDS.toMicros(instant.getMillis)
+    Math.multiplyExact(instant.getMillis, MILLISECONDS.toMicros(1L))
 
   @inline def microsToJodaDateTime(microsFromEpoch: Long): joda.DateTime =
     new joda.DateTime(MICROSECONDS.toMillis(microsFromEpoch), joda.DateTimeZone.UTC)
   @inline def microsFromJodaDateTime(dt: joda.DateTime): Long =
-    MILLISECONDS.toMicros(dt.getMillis)
+    Math.multiplyExact(dt.getMillis, MILLISECONDS.toMicros(1L))
 
-  @inline def microsToLocalTime(microsFromMidnight: Long): LocalTime =
-    LocalTime.ofNanoOfDay(MICROSECONDS.toNanos(microsFromMidnight))
+  @inline def microsToLocalTime(microsFromMidnight: Long): LocalTime = {
+    val nanos = Math.multiplyExact(microsFromMidnight, MICROSECONDS.toNanos(1L))
+    LocalTime.ofNanoOfDay(nanos)
+  }
   @inline def microsFromLocalTime(lt: LocalTime): Long =
     NANOSECONDS.toMicros(lt.toNanoOfDay)
   @inline def microsToJodaLocalTime(microsFromMidnight: Long): joda.LocalTime =
@@ -147,7 +171,7 @@ object Time {
       ISOChronology.getInstanceUTC
     )
   @inline def microsFromJodaLocalTime(lt: joda.LocalTime): Long =
-    MILLISECONDS.toMicros(lt.millisOfDay().get().toLong)
+    Math.multiplyExact(lt.millisOfDay().get().toLong, MILLISECONDS.toMicros(1L))
 
   @inline def microsToLocalDateTime(microsFromEpoch: Long): LocalDateTime =
     LocalDateTime.ofInstant(microsToInstant(microsFromEpoch), ZoneOffset.UTC)
@@ -156,32 +180,39 @@ object Time {
   @inline def microsToJodaLocalDateTime(microsFromEpoch: Long): joda.LocalDateTime =
     new joda.LocalDateTime(MICROSECONDS.toMillis(microsFromEpoch), joda.DateTimeZone.UTC)
   @inline def microsFromJodaLocalDateTime(ldt: joda.LocalDateTime): Long =
-    MILLISECONDS.toMicros(ldt.toDateTime(joda.DateTimeZone.UTC).getMillis)
+    Math.multiplyExact(ldt.toDateTime(joda.DateTimeZone.UTC).getMillis, MILLISECONDS.toMicros(1L))
 
-  @inline def microsToDuration(micros: Long): Duration =
-    Duration.ofMillis(MICROSECONDS.toMillis(micros))
-  @inline def microsFromDuration(d: Duration): Long =
-    SECONDS.toMicros(d.getSeconds) + NANOSECONDS.toMicros(d.getNano.toLong)
+  @inline def microsToDuration(micros: Long): Duration = {
+    val nanos = Math.multiplyExact(micros, MICROSECONDS.toNanos(1L))
+    Duration.ofNanos(nanos)
+  }
+  @inline def microsFromDuration(d: Duration): Long = {
+    val microsFromSeconds = Math.multiplyExact(d.getSeconds, SECONDS.toMicros(1L))
+    val microsFromNanos = NANOSECONDS.toMicros(d.getNano.toLong)
+    Math.addExact(microsFromSeconds, microsFromNanos)
+  }
   @inline def microsToJodaDuration(micros: Long): joda.Duration =
     joda.Duration.millis(MICROSECONDS.toMillis(micros))
   @inline def microsFromJodaDuration(d: joda.Duration): Long =
-    MILLISECONDS.toMicros(d.getMillis)
+    Math.multiplyExact(d.getMillis, MILLISECONDS.toMicros(1L))
 
   // nanos /////////////////////////////////////////////////////
   // Long does not technically have enough range for Instant
   @inline def nanosToInstant(epochNanos: Long): Instant =
     unitToInstant(NANOSECONDS, epochNanos)
-  @inline def nanosFromInstant(instant: Instant): Long =
-    SECONDS.toNanos(instant.getEpochSecond) + instant.getNano
+  @inline def nanosFromInstant(instant: Instant): Long = {
+    val nanosFromSeconds = Math.multiplyExact(instant.getEpochSecond, SECONDS.toNanos(1L))
+    Math.addExact(nanosFromSeconds, instant.getNano.toLong)
+  }
   @inline def nanosToJodaInstant(nanosFromEpoch: Long): joda.Instant =
     joda.Instant.ofEpochMilli(NANOSECONDS.toMillis(nanosFromEpoch))
   @inline def nanosFromJodaInstant(instant: joda.Instant): Long =
-    MILLISECONDS.toNanos(instant.getMillis)
+    Math.multiplyExact(instant.getMillis, MILLISECONDS.toNanos(1L))
 
   @inline def nanosToJodaDateTime(nanosFromEpoch: Long): joda.DateTime =
     new joda.DateTime(NANOSECONDS.toMillis(nanosFromEpoch), joda.DateTimeZone.UTC)
   @inline def nanosFromJodaDateTime(dt: joda.DateTime): Long =
-    MILLISECONDS.toNanos(dt.getMillis)
+    Math.multiplyExact(dt.getMillis, MILLISECONDS.toNanos(1L))
 
   @inline def nanosToLocalTime(nanosFromMidnight: Long): LocalTime =
     LocalTime.ofNanoOfDay(nanosFromMidnight)
@@ -192,7 +223,7 @@ object Time {
       ISOChronology.getInstanceUTC
     )
   @inline def nanosFromJodaLocalTime(lt: joda.LocalTime): Long =
-    MILLISECONDS.toNanos(lt.millisOfDay().get().toLong)
+    Math.multiplyExact(lt.millisOfDay().get().toLong, MILLISECONDS.toNanos(1L))
 
   @inline def nanosToLocalDateTime(nanosFromEpoch: Long): LocalDateTime =
     LocalDateTime.ofInstant(nanosToInstant(nanosFromEpoch), ZoneOffset.UTC)
@@ -201,14 +232,16 @@ object Time {
   @inline def nanosToJodaLocalDateTime(nanosFromEpoch: Long): joda.LocalDateTime =
     new joda.LocalDateTime(NANOSECONDS.toMillis(nanosFromEpoch), joda.DateTimeZone.UTC)
   @inline def nanosFromJodaLocalDateTime(ldt: joda.LocalDateTime): Long =
-    MILLISECONDS.toNanos(ldt.toDateTime(joda.DateTimeZone.UTC).getMillis)
+    Math.multiplyExact(ldt.toDateTime(joda.DateTimeZone.UTC).getMillis, MILLISECONDS.toNanos(1L))
 
   @inline def nanosToDuration(nanos: Long): Duration =
     Duration.ofNanos(nanos)
-  @inline def nanosFromDuration(d: Duration): Long =
-    SECONDS.toNanos(d.getSeconds) + d.getNano
+  @inline def nanosFromDuration(d: Duration): Long = {
+    val nanosFromSeconds = Math.multiplyExact(d.getSeconds, SECONDS.toNanos(1L))
+    Math.addExact(nanosFromSeconds, d.getNano.toLong)
+  }
   @inline def nanosToJodaDuration(nanos: Long): joda.Duration =
     joda.Duration.millis(NANOSECONDS.toMillis(nanos))
   @inline def nanosFromJodaDuration(d: joda.Duration): Long =
-    MILLISECONDS.toNanos(d.getMillis)
+    Math.multiplyExact(d.getMillis, MILLISECONDS.toNanos(1L))
 }
