@@ -31,7 +31,7 @@ object Time {
     if (unit == MILLISECONDS) Instant.ofEpochMilli(unitsFromEpoch)
     else {
       val epochSeconds = unit.toSeconds(unitsFromEpoch)
-      val nanoAdjustment = unit.toNanos(unitsFromEpoch - SECONDS.toMicros(epochSeconds))
+      val nanoAdjustment = unit.toNanos(unitsFromEpoch - unit.convert(epochSeconds, SECONDS))
       Instant.ofEpochSecond(epochSeconds, nanoAdjustment)
     }
   }
