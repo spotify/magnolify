@@ -271,7 +271,12 @@ private object NumericConverter {
   private val MaxNumericScale = 9
 
   def toBigDecimal(v: Any): BigDecimal = BigDecimal(v.toString)
-  private def validate(name: String, v: BigDecimal, maxPrecision: Int, maxScale: Int): Unit = {
+  private[magnolify] def validate(
+    name: String,
+    v: BigDecimal,
+    maxPrecision: Int,
+    maxScale: Int
+  ): Unit = {
     require(
       v.precision <= maxPrecision,
       s"Cannot encode $name $v: precision ${v.precision} > $maxPrecision"

@@ -16,10 +16,15 @@
 
 package magnolify.bigquery
 
-case class BigNumeric(value: BigDecimal)
+case class BigNumeric private (value: BigDecimal)
+
 object BigNumeric {
   val MaxNumericPrecision = 77
   val MaxNumericScale = 38
 
-  def apply(value: String): BigNumeric = new BigNumeric(BigDecimal(value))
+  def apply(value: BigDecimal): BigNumeric = {
+    NumericConverter.validate("BigNumeric", value, MaxNumericPrecision, MaxNumericScale)
+    new BigNumeric(value)
+  }
+  def apply(value: String): BigNumeric = apply(BigDecimal(value))
 }
