@@ -30,6 +30,7 @@ import magnolify.shared.CaseMapper
 import magnolify.shared.TestEnumType._
 import magnolify.test.Simple._
 import magnolify.test._
+import org.joda.time as joda
 import org.scalacheck._
 
 import java.net.URI
@@ -83,6 +84,7 @@ class TableRowTypeSuite extends MagnolifySuite {
   test[Custom]
 
   test[BigQueryTypes]
+  test[BigQueryJoda]
 
   test("AnyVal") {
     implicit val trt: TableRowType[HasValueClass] = TableRowType[HasValueClass]
@@ -205,6 +207,12 @@ case class BigQueryTypes(
   dt: LocalDateTime,
   bd: BigDecimal,
   bn: BigNumeric
+)
+case class BigQueryJoda(
+  i: joda.Instant,
+  d: joda.LocalDate,
+  t: joda.LocalTime,
+  dt: joda.LocalDateTime
 )
 case class BigDec(bd: BigDecimal)
 case class BigNum(bn: BigNumeric)

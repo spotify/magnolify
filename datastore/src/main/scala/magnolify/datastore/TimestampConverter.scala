@@ -16,22 +16,19 @@
 
 package magnolify.datastore
 
-import java.time.{Duration, Instant}
-
+import java.time.Instant
 import com.google.datastore.v1.Value
 import com.google.protobuf.Timestamp
+import magnolify.shared.Time.{millisFromSecondsAndNanos, millisToSecondsAndNanos}
 
 object TimestampConverter {
-  private val millisPerSecond = Duration.ofSeconds(1).toMillis
   def toInstant(v: Value): Instant = {
     val t = v.getTimestampValue
-    Instant.ofEpochMilli(t.getSeconds * millisPerSecond + t.getNanos / 1000000)
+    Instant.ofEpochMilli(millisFromSecondsAndNanos(t.getSeconds, t.getNanos.toLong))
   }
   def fromInstant(i: Instant): Value.Builder = {
-    val t = Timestamp
-      .newBuilder()
-      .setSeconds(i.toEpochMilli / millisPerSecond)
-      .setNanos((i.toEpochMilli % 1000).toInt * 1000000)
+    val (seconds, nanos) = millisToSecondsAndNanos(i.toEpochMilli)
+    val t = Timestamp.newBuilder().setSeconds(seconds).setNanos(nanos.toInt)
     Value.newBuilder().setTimestampValue(t)
   }
 }

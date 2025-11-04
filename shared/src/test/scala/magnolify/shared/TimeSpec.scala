@@ -138,4 +138,26 @@ class TimeSpec extends Properties("Time") with TimeArbitrary {
     forAll((v: joda.DateTime) => (microsFromJodaDateTime _ andThen microsToJodaDateTime)(v) == v)
   property(s"nanos-datetime-joda") =
     forAll((v: joda.DateTime) => (nanosFromJodaDateTime _ andThen nanosToJodaDateTime)(v) == v)
+  property(s"joda-instant-joda") =
+    forAll((v: joda.Instant) => (jodaInstantToInstant _ andThen instantToJodaInstant)(v) == v)
+  property(s"instant-joda-instant") =
+    forAll((v: java.time.Instant) => (instantToJodaInstant _ andThen jodaInstantToInstant)(v) == v)
+  property(s"joda-localDate-joda") = forAll((v: joda.LocalDate) =>
+    (jodaLocalDateToLocalDate _ andThen localDateToJodaLocalDate)(v) == v
+  )
+  property(s"localDate-joda-localDate") = forAll((v: java.time.LocalDate) =>
+    (localDateToJodaLocalDate _ andThen jodaLocalDateToLocalDate)(v) == v
+  )
+  property(s"joda-localTime-joda") = forAll((v: joda.LocalTime) =>
+    (jodaLocalTimeToLocalTime _ andThen localTimeToJodaLocalTime)(v) == v
+  )
+  property(s"localTime-joda-localTime") = forAll((v: java.time.LocalTime) =>
+    (localTimeToJodaLocalTime _ andThen jodaLocalTimeToLocalTime)(v) == v
+  )
+  property(s"joda-localDateTime-joda") = forAll((v: joda.LocalDateTime) =>
+    (jodaLocalDateTimeToLocalDateTime _ andThen localDateTimeToJodaLocalDateTime)(v) == v
+  )
+  property(s"localDateTime-joda-localDateTime") = forAll((v: java.time.LocalDateTime) =>
+    (localDateTimeToJodaLocalDateTime _ andThen jodaLocalDateTimeToLocalDateTime)(v) == v
+  )
 }

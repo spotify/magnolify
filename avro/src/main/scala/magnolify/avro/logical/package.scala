@@ -32,52 +32,66 @@ package object logical {
       AvroField.logicalType[Long](LogicalTypes.timestampMicros())(microsToInstant)(
         microsFromInstant
       )
+    implicit val afJodaInstantMicros: AvroField[joda.Instant] =
+      AvroField.logicalType[Long](LogicalTypes.timestampMicros())(microsToJodaInstant)(
+        microsFromJodaInstant
+      )
 
-    implicit val afTimeMicros: AvroField[LocalTime] =
+    implicit val afLocalTimeMicros: AvroField[LocalTime] =
       AvroField.logicalType[Long](LogicalTypes.timeMicros())(microsToLocalTime)(microsFromLocalTime)
+    implicit val afJodaLocalTimeMicros: AvroField[joda.LocalTime] =
+      AvroField.logicalType[Long](LogicalTypes.timeMicros())(microsToJodaLocalTime)(
+        microsFromJodaLocalTime
+      )
 
     // `LogicalTypes.localTimestampMicros()` is Avro 1.10
-    implicit val afLocalTimestampMicros: AvroField[LocalDateTime] =
+    implicit val afLocalDateTimeMicros: AvroField[LocalDateTime] =
       AvroField.logicalType[Long](new LogicalType("local-timestamp-micros"))(microsToLocalDateTime)(
         microsFromLocalDateTime
       )
+    implicit val afJodaLocalDateTimeMicros: AvroField[joda.LocalDateTime] =
+      AvroField.logicalType[Long](new LogicalType("local-timestamp-micros"))(
+        microsToJodaLocalDateTime
+      )(microsFromJodaLocalDateTime)
 
     // avro 1.8 uses joda-time
-    implicit val afJodaTimestampMicros: AvroField[joda.DateTime] =
+    implicit val afJodaDateTimeMicros: AvroField[joda.DateTime] =
       AvroField.logicalType[Long](LogicalTypes.timestampMicros())(microsToJodaDateTime)(
         microsFromJodaDateTime
-      )
-
-    implicit val afJodaTimeMicros: AvroField[joda.LocalTime] =
-      AvroField.logicalType[Long](LogicalTypes.timeMicros())(microsToJodaLocalTime)(
-        microsFromJodaLocalTime
       )
   }
 
   object millis {
-    implicit val afTimestampMillis: AvroField[Instant] =
+    implicit val afInstantMillis: AvroField[Instant] =
       AvroField.logicalType[Long](LogicalTypes.timestampMillis())(millisToInstant)(
         millisFromInstant
       )
+    implicit val afJodaInstantMillis: AvroField[joda.Instant] =
+      AvroField.logicalType[Long](LogicalTypes.timestampMillis())(millisToJodaInstant)(
+        millisFromJodaInstant
+      )
 
-    implicit val afTimeMillis: AvroField[LocalTime] =
+    implicit val afLocalTimeMillis: AvroField[LocalTime] =
       AvroField.logicalType[Int](LogicalTypes.timeMillis())(millisToLocalTime)(millisFromLocalTime)
+    implicit val afJodaLocalTimeMillis: AvroField[joda.LocalTime] =
+      AvroField.logicalType[Int](LogicalTypes.timeMillis())(millisToJodaLocalTime)(
+        millisFromJodaLocalTime
+      )
 
     // `LogicalTypes.localTimestampMillis` is Avro 1.10.0+
-    implicit val afLocalTimestampMillis: AvroField[LocalDateTime] =
+    implicit val afLocalDateTimeMillis: AvroField[LocalDateTime] =
       AvroField.logicalType[Long](new LogicalType("local-timestamp-millis"))(millisToLocalDateTime)(
         millisFromLocalDateTime
       )
+    implicit val afJodaLocalDateTimeMillis: AvroField[joda.LocalDateTime] =
+      AvroField.logicalType[Long](new LogicalType("local-timestamp-millis"))(
+        millisToJodaLocalDateTime
+      )(millisFromJodaLocalDateTime)
 
     // avro 1.8 uses joda-time
-    implicit val afJodaTimestampMillis: AvroField[joda.DateTime] =
+    implicit val afJodaDateTimeMillis: AvroField[joda.DateTime] =
       AvroField.logicalType[Long](LogicalTypes.timestampMillis())(millisToJodaDateTime)(
         millisFromJodaDateTime
-      )
-
-    implicit val afJodaTimeMillis: AvroField[joda.LocalTime] =
-      AvroField.logicalType[Int](LogicalTypes.timeMillis())(millisToJodaLocalTime)(
-        millisFromJodaLocalTime
       )
   }
 
@@ -148,13 +162,13 @@ package object logical {
     // TIMESTAMP
     implicit val afBigQueryTimestamp: AvroField[Instant] = micros.afTimestampMicros
     implicit val afBigQueryJodaTimestamp: AvroField[joda.DateTime] =
-      micros.afJodaTimestampMicros
+      micros.afJodaDateTimeMicros
 
     // DATE: `AvroField.afDate`
 
     // TIME
-    implicit val afBigQueryTime: AvroField[LocalTime] = micros.afTimeMicros
-    implicit val afBigQueryJodaTime: AvroField[joda.LocalTime] = micros.afJodaTimeMicros
+    implicit val afBigQueryTime: AvroField[LocalTime] = micros.afLocalTimeMicros
+    implicit val afBigQueryJodaTime: AvroField[joda.LocalTime] = micros.afJodaLocalTimeMicros
 
     // DATETIME -> sqlType: DATETIME
     implicit val afBigQueryDatetime: AvroField[LocalDateTime] =

@@ -23,7 +23,6 @@ import org.joda.time as joda
 import org.joda.time.chrono.ISOChronology
 
 import java.time as jt
-import java.time.temporal.ChronoField
 
 package object logical {
   import magnolify.shared.Time._
@@ -31,11 +30,8 @@ package object logical {
   object date {
     implicit val rfLocalDate: RowField[jt.LocalDate] =
       RowField.id[jt.LocalDate](_ => FieldType.logicalType(new logicaltypes.Date))
-    private lazy val EpochJodaDate = new joda.LocalDate(1970, 1, 1)
     implicit val rfJodaLocalDate: RowField[joda.LocalDate] =
-      RowField.from[jt.LocalDate](jtld =>
-        EpochJodaDate.plusDays(jtld.getLong(ChronoField.EPOCH_DAY).toInt)
-      )(d => jt.LocalDate.ofEpochDay(joda.Days.daysBetween(EpochJodaDate, d).getDays.toLong))
+      RowField.from[jt.LocalDate](localDateToJodaLocalDate)(jodaLocalDateToLocalDate)
   }
 
   object millis {
