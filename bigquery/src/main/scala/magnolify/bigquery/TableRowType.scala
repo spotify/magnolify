@@ -219,6 +219,8 @@ object TableRowField {
   implicit val trfString: TableRowField[String] = at[String]("STRING")(_.toString)(identity)
   implicit val trfNumeric: TableRowField[BigDecimal] =
     at[BigDecimal]("NUMERIC")(NumericConverter.toBigDecimal)(NumericConverter.fromBigDecimal)
+  implicit val trfBigNumeric: TableRowField[BigNumeric] =
+    at[BigNumeric]("BIGNUMERIC")(v => BigNumeric(v.toString))(NumericConverter.fromBigNumeric)
 
   implicit val trfByteArray: TableRowField[Array[Byte]] =
     at[Array[Byte]]("BYTES")(x => BaseEncoding.base64().decode(x.toString))(x =>
@@ -280,16 +282,28 @@ object TableRowField {
 
 private object NumericConverter {
   // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
-  private val MaxPrecision = 38
-  private val MaxScale = 9
+  private val MaxNumericPrecision = 38
+  private val MaxNumericScale = 9
 
   def toBigDecimal(v: Any): BigDecimal = BigDecimal(v.toString)
-  def fromBigDecimal(v: BigDecimal): Any = {
+  private[magnolify] def validate(
+    name: String,
+    v: BigDecimal,
+    maxPrecision: Int,
+    maxScale: Int
+  ): Unit = {
     require(
-      v.precision <= MaxPrecision,
-      s"Cannot encode BigDecimal $v: precision ${v.precision} > $MaxPrecision"
+      v.precision <= maxPrecision,
+      s"Cannot encode $name $v: precision ${v.precision} > $maxPrecision"
     )
-    require(v.scale <= MaxScale, s"Cannot encode BigDecimal $v: scale ${v.scale} > $MaxScale")
+    require(v.scale <= maxScale, s"Cannot encode $name $v: scale ${v.scale} > $maxScale")
+  }
+  def fromBigDecimal(v: BigDecimal): Any = {
+    validate("BigDecimal", v, MaxNumericPrecision, MaxNumericScale)
     v.toString()
+  }
+  def fromBigNumeric(v: BigNumeric): Any = {
+    validate("BigNumeric", v.value, BigNumeric.MaxNumericPrecision, BigNumeric.MaxNumericScale)
+    v.value.toString()
   }
 }
