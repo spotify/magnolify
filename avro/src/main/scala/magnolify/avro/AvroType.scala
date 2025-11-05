@@ -32,6 +32,7 @@ import scala.collection.concurrent
 import scala.collection.compat._
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
+import java.nio.charset.StandardCharsets
 
 sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
   def schema: Schema
@@ -199,8 +200,10 @@ object AvroField {
   implicit val afDouble: AvroField[Double] = id[Double](Schema.Type.DOUBLE)
   implicit val afByteBuffer: AvroField[ByteBuffer] = new Aux[ByteBuffer, ByteBuffer, ByteBuffer] {
     override protected def buildSchema(cm: CaseMapper): Schema = Schema.create(Schema.Type.BYTES)
-    // `JacksonUtils.toJson` expects `Array[Byte]` for `BYTES` defaults
-    override def makeDefault(d: ByteBuffer)(cm: CaseMapper): Array[Byte] = d.array()
+    // `JacksonUtils.toJson` changed with avro 1.12, breaking default values provided as
+    // `Array[Byte]`, encoding to string replicates pre-1.12 default behavior
+    override def makeDefault(d: ByteBuffer)(cm: CaseMapper): String =
+      new String(d.array(), StandardCharsets.ISO_8859_1)
     // copy to avoid issue in case original buffer is reused
     override def from(v: ByteBuffer)(cm: CaseMapper): ByteBuffer = {
       val ptr = v.asReadOnlyBuffer()

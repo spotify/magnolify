@@ -383,6 +383,11 @@ class AvroTypeSuite extends MagnolifySuite {
     implicit val afBigDecimal: AvroField[BigDecimal] = AvroField.bigDecimal(38, 9)
     val at: AvroType[BigDec] = AvroType[BigDec]
 
+    val ok1 = BigDec(BigDecimal("1234"))
+    assertEquals(at.from(at.to(ok1)), ok1)
+    val ok2 = BigDec(BigDecimal("111.111111111"))
+    assertEquals(at.from(at.to(ok2)), ok2)
+
     val bigInt = "1234567890123456789012345678901234567890"
     val msg1 = "requirement failed: " +
       s"Cannot encode BigDecimal $bigInt: precision 49 > 38 after set scale from 0 to 9"
