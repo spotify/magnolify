@@ -226,7 +226,6 @@ object AvroField {
         case ArrayIsTextNode   => d.array()
         case ArrayIsBinaryNode => new String(d.array(), StandardCharsets.ISO_8859_1)
       }
-
     }
     // copy to avoid issue in case original buffer is reused
     override def from(v: ByteBuffer)(cm: CaseMapper): ByteBuffer = {
