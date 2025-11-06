@@ -16,11 +16,13 @@
 
 package magnolify.avro
 
+import com.fasterxml.jackson.databind.node.{BinaryNode, TextNode}
 import magnolia1._
 import magnolify.shared.{doc => _, _}
 import magnolify.shims.FactoryCompat
 import org.apache.avro.generic.GenericData.EnumSymbol
 import org.apache.avro.generic._
+import org.apache.avro.util.internal.JacksonUtils
 import org.apache.avro.{JsonProperties, LogicalType, LogicalTypes, Schema}
 import org.joda.{time => joda}
 
@@ -52,14 +54,13 @@ object AvroType {
     // avro check.
     JacksonUtils.toJsonNode(Array[Byte](1, 2, 3)) match {
       case _: BinaryNode => ArrayIsBinaryNode // avro 1.12 and later
-      case _: TextNode => ArrayIsTextNode     // avro 1.11 and previous
-      case _ =>
+      case _: TextNode   => ArrayIsTextNode // avro 1.11 and previous
+      case _             =>
         throw new IllegalArgumentException(
           "Jackson is converting arrays to something other than TextNode or BinaryNode."
         )
     }
   }
-
 
   implicit def apply[T: AvroField]: AvroType[T] = AvroType(CaseMapper.identity)
 
@@ -222,7 +223,7 @@ object AvroField {
     override protected def buildSchema(cm: CaseMapper): Schema = Schema.create(Schema.Type.BYTES)
     override def makeDefault(d: ByteBuffer)(cm: CaseMapper): Any = {
       AvroType.JacksonBehavior match {
-        case ArrayIsTextNode => d.array()
+        case ArrayIsTextNode   => d.array()
         case ArrayIsBinaryNode => new String(d.array(), StandardCharsets.ISO_8859_1)
       }
 
