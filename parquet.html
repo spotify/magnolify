@@ -163,7 +163,7 @@ spotify/magnolify
     <li><a href="parquet.html#case-mapping" class="header">Case Mapping</a></li>
     <li><a href="parquet.html#enums" class="header">Enums</a></li>
     <li><a href="parquet.html#logical-types" class="header">Logical Types</a></li>
-    <li><a href="parquet.html#parquet-avro-compatibility" class="header">Parquet-Avro Compatibility</a></li>
+    <li><a href="parquet.html#list-encodings" class="header">List Encodings</a></li>
     <li><a href="parquet.html#field-descriptions" class="header">Field Descriptions</a></li>
   </ul></li>
 </ul>
@@ -173,7 +173,7 @@ spotify/magnolify
 <ul style="display: none">
 <li class="md-nav__item md-version" id="project.version">
 <label class="md-nav__link" for="__version">
-<i class="md-icon" title="Version">label_outline</i> 0.8.0
+<i class="md-icon" title="Version">label_outline</i> 0.9.0
 </label>
 </li>
 </ul>
@@ -191,7 +191,7 @@ spotify/magnolify
     <li><a href="parquet.html#case-mapping" class="header">Case Mapping</a></li>
     <li><a href="parquet.html#enums" class="header">Enums</a></li>
     <li><a href="parquet.html#logical-types" class="header">Logical Types</a></li>
-    <li><a href="parquet.html#parquet-avro-compatibility" class="header">Parquet-Avro Compatibility</a></li>
+    <li><a href="parquet.html#list-encodings" class="header">List Encodings</a></li>
     <li><a href="parquet.html#field-descriptions" class="header">Field Descriptions</a></li>
   </ul></li>
 </ul>
@@ -244,113 +244,153 @@ val pfDecimalFixed = ParquetField.decimalFixed(8, 18, 0)
 val pfDecimalBinary = ParquetField.decimalBinary(20, 0)
 </code></pre>
 <p>For a full specification of Date/Time mappings in Parquet, see <a href="mapping.html">Type Mappings</a>.</p>
-<h2><a href="#parquet-avro-compatibility" name="parquet-avro-compatibility" class="anchor"><span class="anchor-link"></span></a>Parquet-Avro Compatibility</h2>
-<p>The official Parquet format specification supports <a href="https://github.com/apache/parquet-format/blob/master/LogicalTypes.md#lists">multiple valid schema representations of LIST types</a>. Historically, magnolify-parquet has supported the simplest representation: simply marking the list element field as <code>REPEATED</code>, which per the spec defaults to a <em>required list field with required elements</em>. For example:</p>
+<h2><a href="#list-encodings" name="list-encodings" class="anchor"><span class="anchor-link"></span></a>List Encodings</h2>
+<p>The official Parquet format supports <a href="https://github.com/apache/parquet-format/blob/master/LogicalTypes.md#lists">multiple valid list encodings</a>.</p>
+<p>However, not all format implementations are guaranteed to support all valid list encodings interchangeably. Therefore, Magnolify supports multiple list encoding options.</p>
+<p>Consider a list of required strings:</p>
+<pre class="prettyprint"><code class="language-scala">case class RecordWithList(listField: List[String])
+</code></pre>
+<p>When converting to Parquet, the recommended format is a three-level list structure encoding a repeated group <code>list</code> and a required or optional <code>element</code>:</p>
+<pre><code>message RecordWithList {
+    required group listField (LIST) {
+      repeated group list {
+        required binary element (STRING);
+      }
+    }
+}
+</code></pre>
+<p>However, the most common legacy encoding is a repeated group named <code>array</code> containing a single element field:</p>
+<pre><code>message RecordWithList {
+    required group listField (LIST) {
+      repeated group array {
+        required binary s (STRING);
+      };
+    }
+}
+</code></pre>
+<p>Finally, an ungrouped <code>repeated</code> field will be interpeted as a required list with non-null elements:</p>
+<pre><code>message RecordWithList {
+    repeated binary listField (STRING);
+}
+</code></pre>
+<p>Magnolify-parquet offers support for all three of these encodings:</p>
+<table>
+  <thead>
+    <tr>
+      <th> </th>
+      <th>Ungrouped </th>
+      <th>Three Level (Array) </th>
+      <th>Three Level (List) </th>
+      <th>Configuration </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Magnolify &lt; 0.8 </td>
+      <td>x (Default) </td>
+      <td>x </td>
+      <td> </td>
+      <td>AvroCompat import </td>
+    </tr>
+    <tr>
+      <td>Magnolify 0.8 </td>
+      <td>x (Default) </td>
+      <td>x </td>
+      <td> </td>
+      <td>AvroCompat import (Deprecated); <code>magnolify.parquet.write-grouped-arrays</code> </td>
+    </tr>
+    <tr>
+      <td>Magnolify &gt; 0.8 </td>
+      <td>x (Default) </td>
+      <td>x </td>
+      <td>x </td>
+      <td>AvroCompat import (Deprecated); <code>magnolify.parquet.write-array-encoding</code> </td>
+    </tr>
+  </tbody>
+</table>
+<p>If left unspecified, magnolify-parquet will use ungrouped list encoding:</p>
 <pre class="prettyprint"><code class="language-scala">import magnolify.parquet._
 
-case class RecordWithList(listField: List[Int])
+case class RecordWithList(listField: List[String])
+
 ParquetType[RecordWithList].schema
-// res3: org.apache.parquet.schema.MessageType = message repl.MdocSession.MdocApp.RecordWithList {
-//   repeated int32 listField (INTEGER(32,true));
+// res5: org.apache.parquet.schema.MessageType = message repl.MdocSession.MdocApp4.RecordWithList {
+//   repeated binary listField (STRING);
 // }
 //
 </code></pre>
-<p>Unfortunately, this schema isn&rsquo;t interoperable out-of-the-box with Parquet files produced by <a href="https://github.com/apache/parquet-java/tree/master/parquet-avro">parquet-avro</a>, which defaults to Parquet&rsquo;s 2-level list encoding (with a configurable option to use 3-level list encoding).</p>
-<pre class="prettyprint"><code class="language-scala">import org.apache.avro.Schema
-
-// Avro schema matches `RecordWithList`
-val avroSchema = new Schema.Parser().parse(s&quot;&quot;&quot;{
-  &quot;type&quot;: &quot;record&quot;,
-  &quot;name&quot;: &quot;RecordWithList&quot;,
-  &quot;fields&quot;: [
-    {&quot;name&quot;: &quot;listField&quot;, &quot;type&quot;: {&quot;type&quot;: &quot;array&quot;, &quot;items&quot;: &quot;int&quot;}}
-  ]
-}&quot;&quot;&quot;)
-// avroSchema: Schema = {&quot;type&quot;:&quot;record&quot;,&quot;name&quot;:&quot;RecordWithList&quot;,&quot;fields&quot;:[{&quot;name&quot;:&quot;listField&quot;,&quot;type&quot;:{&quot;type&quot;:&quot;array&quot;,&quot;items&quot;:&quot;int&quot;}}]}
-
-// Used by parquet-avro to convert Avro to Parquet schemas
-import org.apache.parquet.avro.AvroSchemaConverter
-
-// 2-level list encoding -- compare to schema generated for `RecordWithList` above
-val convertedParquetSchema = new AvroSchemaConverter().convert(avroSchema)
-// convertedParquetSchema: org.apache.parquet.schema.MessageType = message RecordWithList {
-//   required group listField (LIST) {
-//     repeated int32 array;
-//   }
-// }
-//
-</code></pre>
-<p>Parquet-avro doesn&rsquo;t fully support the spec magnolify-parquet adheres to and can&rsquo;t interpret the Magnolify list schema. As a result, by default, if your schema contains a repeated type, <strong>records produced by parquet-avro can&rsquo;t be consumed by magnolify-parquet, and vice versa</strong>, unless you&rsquo;re using <strong>Parquet-Avro Compatibility Mode</strong>.</p>
-<h3><a href="#parquet-avro-compatibility-mode" name="parquet-avro-compatibility-mode" class="anchor"><span class="anchor-link"></span></a>Parquet-Avro Compatibility Mode</h3>
-<p>When Parquet-Avro Compatibility Mode is enabled, magnolify-parquet will interpret repeated fields using the same 2-level list structure that parquet-avro uses. In addition, Parquet file writes will include an extra metadata key, <code>parquet.avro.schema</code>, to the file footer, containing the converted, String-serialized Avro schema.</p>
-<h4><a href="#enabling-compatibility-mode-on-magnolify-0-8" name="enabling-compatibility-mode-on-magnolify-0-8" class="anchor"><span class="anchor-link"></span></a>Enabling Compatibility Mode on Magnolify &lt; 0.8</h4>
-<p>You can enable this mode by importing <code>magnolify.parquet.ParquetArray.AvroCompat._</code> at the site where your <code>ParquetType[T]</code> is derived. Note that you&rsquo;ll need to add this import for both writes (to produce 2-level encoded lists) <em>and</em> reads (to consume 2-level encoded lists).</p>
-<pre class="prettyprint"><code class="language-scala">import magnolify.parquet.ParquetArray.AvroCompat._
+<h3><a href="#avrocompat-import" name="avrocompat-import" class="anchor"><span class="anchor-link"></span></a>AvroCompat import</h3>
+<p>AvroCompat is a now-deprecated import used to enable the old list format:</p>
+<pre class="prettyprint"><code class="language-scala">import magnolify.parquet._
+import magnolify.parquet.ParquetArray.AvroCompat._
 
 case class RecordWithList(listField: List[String])
 
+@scala.annotation.nowarn(&quot;cat=deprecation&quot;)
 val pt = ParquetType[RecordWithList]
-// error: parquetType is already defined as value parquetType
-// error: RecordWithList is already defined as case class RecordWithList
-</code></pre>
-<h4><a href="#enabling-compatibility-mode-on-magnolify-0-8" name="enabling-compatibility-mode-on-magnolify-0-8" class="anchor"><span class="anchor-link"></span></a>Enabling Compatibility Mode on Magnolify &gt;= 0.8</h4>
-<p>The <code>magnolify.parquet.ParquetArray.AvroCompat._</code> import is <strong>deprecated</strong> in Magnolify 0.8 and is expected to be removed in future versions.</p>
-<p>Instead, in Magnolify 0.8 and above, this mode should be enabled on the <em>writer</em> by setting a Hadoop <code>Configuration</code> option, <code>magnolify.parquet.write-grouped-arrays</code>.</p>
-<pre class="prettyprint"><code class="language-scala">import org.apache.hadoop.conf.Configuration
-import magnolify.parquet._
+// pt: ParquetType[RecordWithList] = magnolify.parquet.ParquetType$$anon$2@281335ce
 
-case class RecordWithList(listField: List[String])
-
-val conf = new Configuration()
-// conf: Configuration = Configuration: core-default.xml, core-site.xml, mapred-default.xml, mapred-site.xml, yarn-default.xml, yarn-site.xml, hdfs-default.xml, hdfs-rbf-default.xml, hdfs-site.xml, hdfs-rbf-site.xml
-conf.setBoolean(MagnolifyParquetProperties.WriteAvroCompatibleArrays, true) // sets `magnolify.parquet.write-grouped-arrays`
-
-// Instantiate ParquetType with configuration
-val pt = ParquetType[RecordWithList](conf)
-// pt: ParquetType[RecordWithList] = magnolify.parquet.ParquetType$$anon$2@29fac605
-
-// Check that the converted Avro schema uses 2-level encoding
+// Schema uses old list encoding
 pt.schema
-// res7: org.apache.parquet.schema.MessageType = message repl.MdocSession.MdocApp5.RecordWithList {
+// res7: org.apache.parquet.schema.MessageType = message repl.MdocSession.MdocApp6.RecordWithList {
 //   required group listField (LIST) {
 //     repeated binary array (STRING);
 //   }
 // }
 //
 </code></pre>
-<p>If you&rsquo;re a Scio user with <code>com.spotify:scio-parquet</code> on your classpath, you can instantiate a Configured <code>ParqueType</code> as a one-liner:</p>
-<pre class="prettyprint"><code class="language-scala">import com.spotify.scio.parquet._
-import magnolify.parquet._
+<h3><a href="#property-based-configuration" name="property-based-configuration" class="anchor"><span class="anchor-link"></span></a>Property-based configuration</h3>
+<p>As of Magnolify 0.8, the <code>AvroCompat</code> import is deprecated; it will default to old list format.</p>
+<p>In Magnolify 0.8, list encoding should be configured via a <code>MagnolifyParquetProperties</code> instance, specifically:</p>
+<pre class="prettyprint"><code class="language-scala">ParquetType[RecordWithList](new MagnolifyParquetProperties {
+  // Overriding writeAvroCompatibleArrays to true enables old list format
+  override def writeAvroCompatibleArrays: ArrayEncoding = true
+})
+</code></pre>
+<p>In Magnolify &gt; 0.8, list encoding should be configured via a <code>MagnolifyParquetProperties</code> instance, specifically:</p>
+<pre class="prettyprint"><code class="language-scala">import magnolify.parquet._
 
 case class RecordWithList(listField: List[String])
 
-val pt = ParquetType[RecordWithList](
-  ParquetConfiguration.of(MagnolifyParquetProperties.WriteAvroCompatibleArrays -&gt; true)
-)
-// error: parquetType is already defined as value parquetType
-// error: RecordWithList is already defined as case class RecordWithList
-// error: pt is already defined as value pt
-// error: object spotify is not a member of package com
-// error: not found: value ParquetConfiguration
-//   ParquetConfiguration.of(MagnolifyParquetProperties.WriteAvroCompatibleArrays -&gt; true)
-//   ^^^^^^^^^^^^^^^^^^^^
-</code></pre>
-<p>You can combine a Configuration with a CaseMapper:</p>
-<pre class="prettyprint"><code class="language-scala mdcoc:compile-only">import magnolify.shared._
+implicit val pt = ParquetType[RecordWithList](new MagnolifyParquetProperties {
+  override def writeArrayEncoding: ArrayEncoding = ArrayEncoding.ThreeLevelList
+})
+// pt: ParquetType[RecordWithList] = magnolify.parquet.ParquetType$$anon$2@4311bc98
 
-// Can be combined with a CaseMapper
-val cm: CaseMapper = ???
-ParquetType[RecordWithList](cm, conf)
+// Check that the converted Avro schema uses modern 3-level encoding
+pt.schema
+// res9: org.apache.parquet.schema.MessageType = message repl.MdocSession.MdocApp8.RecordWithList {
+//   required group listField (LIST) {
+//     repeated group list {
+//       required binary element (STRING);
+//     }
+//   }
+// }
+//
 </code></pre>
-<p>If you don&rsquo;t have Hadoop on your classpath, you can instantiate a <code>MagnolifyParquetProperties</code> instance directly:</p>
-<pre class="prettyprint"><code class="language-scala">import magnolify.parquet._
+<p>If your project includes a custom <code>core-site.xml</code> its in resources directory, you can also set Parquet list encoding through a Hadoop configuration property:</p>
+<pre class="prettyprint"><code class="language-xml">&lt;configuration&gt;
+  &lt;property&gt;
+    &lt;name&gt;magnolify.parquet.write-array-encoding&lt;/name&gt;
+    &lt;value&gt;three-level-list&lt;/value&gt; # Also supported: `ungrouped`, `three-level-array`
+  &lt;/property&gt;
+&lt;/configuration&gt;
+</code></pre>
+<pre class="prettyprint"><code class="language-scala">import org.apache.hadoop.conf.Configuration
+import magnolify.parquet._
 
-ParquetType[RecordWithList](new MagnolifyParquetProperties {
-    override def WriteAvroCompatibleArrays: Boolean = true
-  }
+// Default Configuration constructor picks up core-site value
+ParquetType[RecordWithList](new Configuration())
+</code></pre>
+<p>Or, if you&rsquo;re using scio-parquet, you can use Scio&rsquo;s <code>ParquetConfiguration</code> API:</p>
+<pre class="prettyprint"><code class="language-scala">import com.spotify.scio.parquet._
+import magnolify.parquet._
+
+ParquetType[RecordWithList](
+  ParquetConfiguration.of(MagnolifyParquetProperties.WriteArrayFormat -&gt; MagnolifyParquetProperties.NewListEncoding)
 )
 </code></pre>
-<p>On the <em>reader</em> side, 2-level arrays will be detected automatically based on the input file schema, so <strong>no imports or extra Configurations are needed</strong>.</p>
+<p>Ungrouped is the default array encoding; any other encoding option must be configured on both the reader and writer typeclasses.</p>
 <h2><a href="#field-descriptions" name="field-descriptions" class="anchor"><span class="anchor-link"></span></a>Field Descriptions</h2>
 <p>The top level class and all fields (including nested class fields) can be annotated with <code>@doc</code> annotation. Note that nested classes annotations are ignored.</p>
 <pre class="prettyprint"><code class="language-scala">import magnolify.shared._
@@ -373,16 +413,16 @@ case class MyRecord(@doc(&quot;field annotation&quot;) listField: List[Int])
 val writer = ParquetType[MyRecord]
   .writeBuilder(HadoopOutputFile.fromPath(path, new Configuration()))
   .build()
-// writer: org.apache.parquet.hadoop.ParquetWriter[MyRecord] = org.apache.parquet.hadoop.ParquetWriter@60a12960
+// writer: org.apache.parquet.hadoop.ParquetWriter[MyRecord] = org.apache.parquet.hadoop.ParquetWriter@bfee86e
 writer.write(MyRecord(List(1,2,3)))
 writer.close()
 
 // Note that Parquet MessageType schema doesn&#39;t contain descriptor, but serialized Avro schema does
 ParquetFileReader.open(HadoopInputFile.fromPath(path, new Configuration())).getFileMetaData
-// res14: org.apache.parquet.hadoop.metadata.FileMetaData = FileMetaData{schema: message repl.MdocSession.MdocApp11.MyRecord {
+// res16: org.apache.parquet.hadoop.metadata.FileMetaData = FileMetaData{schema: message repl.MdocSession.MdocApp13.MyRecord {
 //   repeated int32 listField (INTEGER(32,true));
 // }
-// , metadata: {parquet.avro.schema={&quot;type&quot;:&quot;record&quot;,&quot;name&quot;:&quot;MyRecord&quot;,&quot;namespace&quot;:&quot;repl.MdocSession.MdocApp11&quot;,&quot;doc&quot;:&quot;Top level annotation&quot;,&quot;fields&quot;:[{&quot;name&quot;:&quot;listField&quot;,&quot;type&quot;:{&quot;type&quot;:&quot;array&quot;,&quot;items&quot;:&quot;int&quot;},&quot;doc&quot;:&quot;field annotation&quot;,&quot;default&quot;:[]}]}, writer.model.name=magnolify}}
+// , metadata: {parquet.avro.schema={&quot;type&quot;:&quot;record&quot;,&quot;name&quot;:&quot;MyRecord&quot;,&quot;namespace&quot;:&quot;repl.MdocSession.MdocApp13&quot;,&quot;doc&quot;:&quot;Top level annotation&quot;,&quot;fields&quot;:[{&quot;name&quot;:&quot;listField&quot;,&quot;type&quot;:{&quot;type&quot;:&quot;array&quot;,&quot;items&quot;:&quot;int&quot;},&quot;doc&quot;:&quot;field annotation&quot;,&quot;default&quot;:[]}]}, writer.model.name=magnolify}}
 </code></pre>
 <p>Note: On Magnolify &lt; 0.8, you must enable <a href="#parquet-avro-compatibility-mode">Avro compatibility mode</a> via the <code>AvroCompat</code> import if you&rsquo;re using the <code>@doc</code> annotation with ParquetType, which triggers magnolify-parquet to write a translated Avro schema to the file footer metadata key <code>parquet.avro.schema</code>. Otherwise, your annotations will be essentially thrown out. On Magnolify &gt;= 0.8, this key is written by default.</p>
 </div>
@@ -393,7 +433,7 @@ Edit this page
 </div>
 <div class="print-only">
 <span class="md-source-file md-version">
-0.8.0
+0.9.0
 </span>
 </div>
 </article>
