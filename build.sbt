@@ -129,7 +129,7 @@ ThisBuild / githubWorkflowAddedJobs +=
   )
 ThisBuild / githubWorkflowAddedJobs ++= legacyAvroVersions.map { legacyAvroVersion =>
   WorkflowJob(
-    s"avro-legacy-$legacyAvroVersion",
+    s"avro-legacy-${legacyAvroVersion.replace('.', '-')}",
     s"Test with legacy avro version $legacyAvroVersion",
     WorkflowStep.CheckoutFull ::
       WorkflowStep.SetupJava(List(javaDefault)) :::
