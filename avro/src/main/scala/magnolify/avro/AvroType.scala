@@ -16,7 +16,6 @@
 
 package magnolify.avro
 
-import com.fasterxml.jackson.databind.node.{BinaryNode, TextNode}
 import magnolia1._
 import magnolify.shared.{doc => _, _}
 import magnolify.shims.FactoryCompat
@@ -52,14 +51,13 @@ object AvroType {
     // that values have specific node types; prior to avro 1.12, `Array[Byte]` was encoded to a
     // `TextNode`, after to avro 1.12 arrays are encoded to `BinaryNode`, breaking the internal
     // avro check.
-    JacksonUtils.toJsonNode(Array[Byte](1, 2, 3)) match {
-      case _: BinaryNode => ArrayIsBinaryNode // avro 1.12 and later
-      case _: TextNode   => ArrayIsTextNode // avro 1.11 and previous
-      case _             =>
-        throw new IllegalArgumentException(
-          "Jackson is converting arrays to something other than TextNode or BinaryNode."
-        )
-    }
+    val arrayConversion = JacksonUtils.toJsonNode(Array[Byte](1, 2, 3))
+    if (arrayConversion.isBinary) ArrayIsBinaryNode // avro 1.12 and later
+    else if (arrayConversion.isTextual) ArrayIsTextNode // avro 1.11 and previous
+    else
+      throw new IllegalArgumentException(
+        "Jackson is converting arrays to something other than TextNode or BinaryNode."
+      )
   }
 
   implicit def apply[T: AvroField]: AvroType[T] = AvroType(CaseMapper.identity)

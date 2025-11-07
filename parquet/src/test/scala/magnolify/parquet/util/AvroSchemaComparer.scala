@@ -79,21 +79,25 @@ object AvroSchemaComparer {
   }
 
   private def compareBasicTypeInfo(s1: Schema, s2: Schema, path: String): List[String] = {
-    if (s1 != null && s2 != null) {
-      require(
-        s1.getName == s2.getName,
-        s"$path 'name' are different '${s1.getName}' != '${s2.getName}'"
-      ) ++ require(
-        s1.getType == s2.getType,
-        s"$path 'type' are different '${s1.getType}' != '${s2.getType}'"
-      ) ++ require(
-        s1.getDoc == s2.getDoc,
-        s"$path 'doc' are different '${s1.getDoc}' != '${s2.getDoc}'"
-      ) ++ require(
-        Try(s1.getNamespace == s2.getNamespace).getOrElse(true),
-        s"$path 'namespace' are different '${s1.getNamespace}' != '${s2.getNamespace}'"
-      )
-    }.toList
-    else List.empty
+    (s1, s2) match {
+      case (null, null)         => List.empty
+      case (Union(_), Union(_)) => List.empty
+      case _                    =>
+        {
+          require(
+            s1.getName == s2.getName,
+            s"$path 'name' are different '${s1.getName}' != '${s2.getName}'"
+          ) ++ require(
+            s1.getType == s2.getType,
+            s"$path 'type' are different '${s1.getType}' != '${s2.getType}'"
+          ) ++ require(
+            s1.getDoc == s2.getDoc,
+            s"$path 'doc' are different '${s1.getDoc}' != '${s2.getDoc}'"
+          ) ++ require(
+            Try(s1.getNamespace == s2.getNamespace).getOrElse(true),
+            s"$path 'namespace' are different '${s1.getNamespace}' != '${s2.getNamespace}'"
+          )
+        }.toList
+    }
   }
 }
