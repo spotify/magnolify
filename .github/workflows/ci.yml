@@ -318,7 +318,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  avro-legacy-1.8.2:
+  avro-legacy-1-8-2:
     name: Test with legacy avro version 1.8.2
     strategy:
       matrix:
@@ -350,7 +350,7 @@ jobs:
           JAVA_OPTS: '-Davro.version=1.8.2'
         run: sbt '++ ${{ matrix.scala }}' avro/test
 
-  avro-legacy-1.11.4:
+  avro-legacy-1-11-4:
     name: Test with legacy avro version 1.11.4
     strategy:
       matrix:
