@@ -24,6 +24,7 @@ val magnoliaScala3Version = "1.3.18"
 
 val algebirdVersion = "0.13.10"
 val avroVersion = Option(sys.props("avro.version")).getOrElse("1.12.0")
+val legacyAvroVersions = Seq("1.8.2", "1.11.4")
 val beamVersion = "2.69.0"
 val bigqueryVersion = "v2-rev20250706-2.0.0"
 val bigtableVersion = "2.63.0"
@@ -106,7 +107,7 @@ ThisBuild / githubWorkflowBuild ~= { steps: Seq[WorkflowStep] =>
       }
   }
 }
-ThisBuild / githubWorkflowAddedJobs ++= Seq(
+ThisBuild / githubWorkflowAddedJobs +=
   WorkflowJob(
     "coverage",
     "Test coverage",
@@ -125,22 +126,25 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
       ),
     scalas = List(CrossVersion.binaryScalaVersion(scalaDefault)),
     javas = List(javaDefault)
-  ),
+  )
+ThisBuild / githubWorkflowAddedJobs ++= legacyAvroVersions.map { legacyAvroVersion =>
   WorkflowJob(
-    "avro-legacy",
-    "Test with legacy avro",
+    s"avro-legacy-$legacyAvroVersion",
+    s"Test with legacy avro version $legacyAvroVersion",
     WorkflowStep.CheckoutFull ::
       WorkflowStep.SetupJava(List(javaDefault)) :::
       List(
         WorkflowStep.Sbt(
           List("avro/test"),
-          env = Map("JAVA_OPTS" -> "-Davro.version=1.8.2"),
+          env = Map("JAVA_OPTS" -> s"-Davro.version=$legacyAvroVersion"),
           name = Some("Test")
         )
       ),
     scalas = List(CrossVersion.binaryScalaVersion(scalaDefault)),
     javas = List(javaDefault)
-  ),
+  )
+}
+ThisBuild / githubWorkflowAddedJobs +=
   WorkflowJob(
     "site",
     "Generate Site",
@@ -170,7 +174,6 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
     scalas = List(CrossVersion.binaryScalaVersion(scalaDefault)),
     javas = List(javaDefault)
   )
-)
 
 // mima
 ThisBuild / mimaBinaryIssueFilters ++= Seq(
