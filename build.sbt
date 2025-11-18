@@ -260,6 +260,7 @@ val commonSettings = Seq(
   // skip scala 3 publishing until ready
   publish / skip := (publish / skip).value || (scalaVersion.value == scala3),
   scalaVersion := scalaDefault,
+  javacOptions += "-Xlint:-options",
   scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((3, _)) =>
       Seq(
