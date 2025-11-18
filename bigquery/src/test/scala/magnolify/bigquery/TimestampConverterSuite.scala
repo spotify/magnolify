@@ -16,6 +16,8 @@
 
 package magnolify.bigquery
 
+import java.time.{LocalDateTime, LocalTime}
+import java.time.temporal.ChronoUnit
 import scala.util.control.NonFatal
 
 class TimestampConverterSuite extends munit.ScalaCheckSuite {
@@ -53,9 +55,20 @@ class TimestampConverterSuite extends munit.ScalaCheckSuite {
       }
     }
     // formatter uses ISO
-    val javaInstant = TimestampConverter.toInstant("2023-01-01 10:11:12.123456 UTC")
+    val javaInstant = TimestampConverter.toInstant("2023-01-01 09:01:02.123456 UTC")
     val actual = TimestampConverter.fromInstant(javaInstant)
-    assertEquals(actual, "2023-01-01T10:11:12.123456Z")
+    assertEquals(actual, "2023-01-01T09:01:02.123456Z")
+    // round-trips WITH TRUNCATION
+    val nanosInstant = java.time.Instant.parse("2023-01-01T10:01:02.123456789Z")
+    val nanosTs = TimestampConverter.fromInstant(nanosInstant)
+    val nanosInstantRoundTrip = TimestampConverter.toInstant(nanosTs)
+    assertEquals(nanosInstantRoundTrip, nanosInstant.truncatedTo(ChronoUnit.MICROS))
+    // round-trips
+    val nanosInstantShort = java.time.Instant.parse("2023-01-01T10:01:02.123Z")
+    val nanosTsShort = TimestampConverter.fromInstant(nanosInstantShort)
+    assertEquals(nanosTsShort.toString, "2023-01-01T10:01:02.123Z")
+    val nanosInstantRoundTripShort = TimestampConverter.toInstant(nanosTsShort)
+    assertEquals(nanosInstantRoundTripShort, nanosInstantShort)
   }
 
   test("DATE") {
@@ -91,9 +104,21 @@ class TimestampConverterSuite extends munit.ScalaCheckSuite {
       }
     }
     // formatter uses ISO
-    val javaLocalTime = TimestampConverter.toLocalTime("16:03:57.029881")
+    val javaLocalTime: LocalTime = TimestampConverter.toLocalTime("16:03:57.029881")
     val actual = TimestampConverter.fromLocalTime(javaLocalTime)
     assertEquals(actual, "16:03:57.029881")
+    // round-trips WITH TRUNCATION
+    val timeNanos = LocalTime.parse("01:02:03.123456789")
+    val timeTs = TimestampConverter.fromLocalTime(timeNanos)
+    assertEquals(timeTs.toString, "01:02:03.123456")
+    val timeNanosRoundtrip = TimestampConverter.toLocalTime(timeTs)
+    assertEquals(timeNanosRoundtrip, timeNanos.truncatedTo(ChronoUnit.MICROS))
+    // round-trips
+    val timeNanosShort = LocalTime.parse("01:02:03.123")
+    val timeShortTs = TimestampConverter.fromLocalTime(timeNanosShort)
+    assertEquals(timeShortTs.toString, "01:02:03.123")
+    val timeShortRoundtrip = TimestampConverter.toLocalTime(timeShortTs)
+    assertEquals(timeShortRoundtrip, timeNanosShort)
   }
 
   test("DATETIME") {
@@ -118,5 +143,17 @@ class TimestampConverterSuite extends munit.ScalaCheckSuite {
     val javaLocalDateTime = TimestampConverter.toLocalDateTime("2023-01-01 10:11:12.123456")
     val actual = TimestampConverter.fromLocalDateTime(javaLocalDateTime)
     assertEquals(actual, "2023-01-01T10:11:12.123456")
+    // round-trips WITH TRUNCATION
+    val nanosDT = LocalDateTime.parse("2023-01-01T10:11:12.123456789")
+    val dt = TimestampConverter.fromLocalDateTime(nanosDT)
+    assertEquals(dt.toString, "2023-01-01T10:11:12.123456")
+    val dtRoundtrip = TimestampConverter.toLocalDateTime(dt)
+    assertEquals(dtRoundtrip, nanosDT.truncatedTo(ChronoUnit.MICROS))
+    // round-trips
+    val nanosShortDT = LocalDateTime.parse("2023-01-01T10:11:12.123")
+    val dtShort = TimestampConverter.fromLocalDateTime(nanosShortDT)
+    assertEquals(dtShort.toString, "2023-01-01T10:11:12.123")
+    val dtShortRoundtrip = TimestampConverter.toLocalDateTime(dtShort)
+    assertEquals(dtShortRoundtrip, nanosShortDT)
   }
 }

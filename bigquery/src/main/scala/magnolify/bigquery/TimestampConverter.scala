@@ -36,6 +36,15 @@ private object TimestampConverter {
     .optionalStart()
     .toFormatter()
 
+  private val toTimeFormatter = new DateTimeFormatterBuilder()
+    .appendValue(ChronoField.HOUR_OF_DAY, 2, 2, SignStyle.NEVER)
+    .appendLiteral(':')
+    .appendValue(ChronoField.MINUTE_OF_HOUR, 2, 2, SignStyle.NEVER)
+    .appendLiteral(':')
+    .appendValue(ChronoField.SECOND_OF_MINUTE, 2, 2, SignStyle.NEVER)
+    .appendFraction(ChronoField.NANO_OF_SECOND, 0, 6, true)
+    .toFormatter()
+
   // DATE
   // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#date_type
   // YYYY-[M]M-[D]D
@@ -45,6 +54,14 @@ private object TimestampConverter {
     .appendValue(ChronoField.MONTH_OF_YEAR, 1, 2, SignStyle.NEVER)
     .appendLiteral('-')
     .appendValue(ChronoField.DAY_OF_MONTH, 1, 2, SignStyle.NEVER)
+    .toFormatter()
+
+  private val toDateFormatter = new DateTimeFormatterBuilder()
+    .appendValue(ChronoField.YEAR, 4)
+    .appendLiteral('-')
+    .appendValue(ChronoField.MONTH_OF_YEAR, 2, 2, SignStyle.NEVER)
+    .appendLiteral('-')
+    .appendValue(ChronoField.DAY_OF_MONTH, 2, 2, SignStyle.NEVER)
     .toFormatter()
 
   // TIMESTAMP
@@ -98,6 +115,15 @@ private object TimestampConverter {
       .toFormatter
       .withZone(ZoneOffset.UTC)
 
+  private val toTimestampFormatter: DateTimeFormatter =
+    new DateTimeFormatterBuilder()
+      .append(toDateFormatter)
+      .appendLiteral('T')
+      .append(toTimeFormatter)
+      .appendZoneId()
+      .toFormatter
+      .withZone(ZoneOffset.UTC)
+
   // DATETIME
   // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#datetime_type
   // civil_date_part[time_part]
@@ -106,16 +132,24 @@ private object TimestampConverter {
     .appendOptional(timePartFormatter)
     .toFormatter
 
+  private val toDatetimeFormatter = new DateTimeFormatterBuilder()
+    .append(toDateFormatter)
+    .appendLiteral('T')
+    .append(toTimeFormatter)
+    .toFormatter
+
   def toInstant(v: Any): Instant = Instant.from(timestampFormatter.parse(v.toString))
-  def fromInstant(i: Instant): Any = DateTimeFormatter.ISO_INSTANT.format(i)
+  // can't use DateTimeFormatter.ISO_INSTANT; it outputs a variable number of fractional digits
+  def fromInstant(i: Instant): Any = toTimestampFormatter.format(i)
 
   def toLocalDate(v: Any): LocalDate = LocalDate.from(dateFormatter.parse(v.toString))
   def fromLocalDate(d: LocalDate): Any = DateTimeFormatter.ISO_LOCAL_DATE.format(d)
 
   def toLocalTime(v: Any): LocalTime = LocalTime.from(timeFormatter.parse(v.toString))
-  def fromLocalTime(t: LocalTime): Any = DateTimeFormatter.ISO_LOCAL_TIME.format(t)
+  // can't use DateTimeFormatter.ISO_LOCAL_TIME; outputs a variable number of fractional digits
+  def fromLocalTime(t: LocalTime): Any = toTimeFormatter.format(t)
 
   def toLocalDateTime(v: Any): LocalDateTime =
     LocalDateTime.from(datetimeFormatter.parse(v.toString))
-  def fromLocalDateTime(dt: LocalDateTime): Any = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(dt)
+  def fromLocalDateTime(dt: LocalDateTime): Any = toDatetimeFormatter.format(dt)
 }
