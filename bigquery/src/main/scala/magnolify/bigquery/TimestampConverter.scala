@@ -35,6 +35,7 @@ private object TimestampConverter {
     .appendFraction(ChronoField.NANO_OF_SECOND, 0, 6, true)
     .optionalStart()
     .toFormatter()
+
   private val toTimeFormatter = new DateTimeFormatterBuilder()
     .appendValue(ChronoField.HOUR_OF_DAY, 2, 2, SignStyle.NEVER)
     .appendLiteral(':')
@@ -54,6 +55,7 @@ private object TimestampConverter {
     .appendLiteral('-')
     .appendValue(ChronoField.DAY_OF_MONTH, 1, 2, SignStyle.NEVER)
     .toFormatter()
+
   private val toDateFormatter = new DateTimeFormatterBuilder()
     .appendValue(ChronoField.YEAR, 4)
     .appendLiteral('-')
@@ -129,7 +131,8 @@ private object TimestampConverter {
     .append(civilDatePartFormatter)
     .appendOptional(timePartFormatter)
     .toFormatter
-  val toDatetimeFormatter = new DateTimeFormatterBuilder()
+
+  private val toDatetimeFormatter = new DateTimeFormatterBuilder()
     .append(toDateFormatter)
     .appendLiteral('T')
     .append(toTimeFormatter)
