@@ -127,6 +127,7 @@ ThisBuild / scalaVersion := scalaDefault
 ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
 ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
+ThisBuild / githubWorkflowBuildMatrixAdditions := Map("project" -> List("rootJVM"))
 ThisBuild / githubWorkflowGeneratedCI ~= { workflows =>
   val setupSbt = WorkflowStep.Use(
     UseRef.Public("sbt", "setup-sbt", "v1"),
@@ -183,17 +184,26 @@ ThisBuild / githubWorkflowGeneratedCI ~= { workflows =>
   workflows.map {
     case job: WorkflowJob =>
       WorkflowJob(
-        job.id,
-        job.name,
-        reorderSteps(job.steps),
-        scalas = job.scalas,
-        javas = job.javas,
-        needs = job.needs,
+        id = job.id,
+        name = job.name,
+        steps = reorderSteps(job.steps),
+        sbtStepPreamble = job.sbtStepPreamble,
         cond = job.cond,
         permissions = job.permissions,
-        env = job.env,
+        scalas = job.scalas,
+        javas = job.javas,
         oses = job.oses,
-        sbtStepPreamble = job.sbtStepPreamble
+        needs = job.needs,
+        matrixFailFast = job.matrixFailFast,
+        matrixAdds = job.matrixAdds,
+        matrixIncs = job.matrixIncs,
+        matrixExcs = job.matrixExcs,
+        runsOnExtraLabels = job.runsOnExtraLabels,
+        container = job.container,
+        environment = job.environment,
+        concurrency = job.concurrency,
+        timeoutMinutes = job.timeoutMinutes,
+        env = job.env
       )
     case other => other
   }

@@ -30,7 +30,14 @@ jobs:
         os: [ubuntu-latest]
         scala: [3, 2.13, 2.12]
         java: [corretto@17, corretto@11]
+        project: [rootJVM]
+        exclude:
+          - scala: 3
+            java: corretto@11
+          - scala: 2.12
+            java: corretto@11
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     steps:
       - name: Checkout current branch (full)
         uses: actions/checkout@v4
