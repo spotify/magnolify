@@ -315,7 +315,7 @@ case class MyRecord(@doc(&quot;field annotation&quot;) listField: List[Int])
 val writer = ParquetType[MyRecord]
   .writeBuilder(HadoopOutputFile.fromPath(path, new Configuration()))
   .build()
-// writer: org.apache.parquet.hadoop.ParquetWriter[MyRecord] = org.apache.parquet.hadoop.ParquetWriter@43770095
+// writer: org.apache.parquet.hadoop.ParquetWriter[MyRecord] = org.apache.parquet.hadoop.ParquetWriter@7e0261a1
 writer.write(MyRecord(List(1,2,3)))
 writer.close()
 
