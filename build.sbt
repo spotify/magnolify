@@ -502,9 +502,8 @@ lazy val bom = project
       neo4j,
       tools
     ),
-    // only releases after 0.7.4
-    tlMimaPreviousVersions := tlMimaPreviousVersions.value
-      .filter(v => VersionNumber(v).numbers.last >= 4)
+    // BOM has no classfiles, so disable MiMa
+    mimaPreviousArtifacts := Set.empty
   )
 
 lazy val shared = project
