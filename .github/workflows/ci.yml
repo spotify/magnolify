@@ -55,6 +55,8 @@ jobs:
 
       - name: Setup sbt
         uses: coursier/setup-action@v1
+        with:
+          apps: sbt
 
       - name: sbt update
         if: matrix.java == 'corretto@17' && steps.setup-java-corretto-17.outputs.cache-hit == 'false'
@@ -68,6 +70,11 @@ jobs:
           distribution: corretto
           java-version: 11
           cache: sbt
+
+      - name: Setup sbt
+        uses: coursier/setup-action@v1
+        with:
+          apps: sbt
 
       - name: sbt update
         if: matrix.java == 'corretto@11' && steps.setup-java-corretto-11.outputs.cache-hit == 'false'
@@ -135,6 +142,11 @@ jobs:
           java-version: 17
           cache: sbt
 
+      - name: Setup sbt
+        uses: coursier/setup-action@v1
+        with:
+          apps: sbt
+
       - name: sbt update
         if: matrix.java == 'corretto@17' && steps.setup-java-corretto-17.outputs.cache-hit == 'false'
         run: sbt +update
@@ -147,6 +159,11 @@ jobs:
           distribution: corretto
           java-version: 11
           cache: sbt
+
+      - name: Setup sbt
+        uses: coursier/setup-action@v1
+        with:
+          apps: sbt
 
       - name: sbt update
         if: matrix.java == 'corretto@11' && steps.setup-java-corretto-11.outputs.cache-hit == 'false'
@@ -229,6 +246,11 @@ jobs:
           java-version: 17
           cache: sbt
 
+      - name: Setup sbt
+        uses: coursier/setup-action@v1
+        with:
+          apps: sbt
+
       - name: sbt update
         if: matrix.java == 'corretto@17' && steps.setup-java-corretto-17.outputs.cache-hit == 'false'
         run: sbt +update
@@ -241,6 +263,11 @@ jobs:
           distribution: corretto
           java-version: 11
           cache: sbt
+
+      - name: Setup sbt
+        uses: coursier/setup-action@v1
+        with:
+          apps: sbt
 
       - name: sbt update
         if: matrix.java == 'corretto@11' && steps.setup-java-corretto-11.outputs.cache-hit == 'false'
@@ -300,6 +327,11 @@ jobs:
           java-version: 17
           cache: sbt
 
+      - name: Setup sbt
+        uses: coursier/setup-action@v1
+        with:
+          apps: sbt
+
       - name: sbt update
         if: matrix.java == 'corretto@17' && steps.setup-java-corretto-17.outputs.cache-hit == 'false'
         run: sbt +update
@@ -335,6 +367,11 @@ jobs:
           java-version: 17
           cache: sbt
 
+      - name: Setup sbt
+        uses: coursier/setup-action@v1
+        with:
+          apps: sbt
+
       - name: sbt update
         if: matrix.java == 'corretto@17' && steps.setup-java-corretto-17.outputs.cache-hit == 'false'
         run: sbt +update
@@ -366,6 +403,11 @@ jobs:
           distribution: corretto
           java-version: 17
           cache: sbt
+
+      - name: Setup sbt
+        uses: coursier/setup-action@v1
+        with:
+          apps: sbt
 
       - name: sbt update
         if: matrix.java == 'corretto@17' && steps.setup-java-corretto-17.outputs.cache-hit == 'false'
