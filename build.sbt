@@ -127,6 +127,75 @@ ThisBuild / scalaVersion := scalaDefault
 ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
 ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
+ThisBuild / githubWorkflowGeneratedCI ~= { workflows =>
+  val setupSbt = WorkflowStep.Use(
+    UseRef.Public("sbt", "setup-sbt", "v1"),
+    name = Some("Setup sbt")
+  )
+
+  def isJavaSetup(step: WorkflowStep): Boolean = step match {
+    case use: WorkflowStep.Use => use.ref match {
+      case UseRef.Public("actions", "setup-java", _) => true
+      case _ => false
+    }
+    case _ => false
+  }
+
+  def isSbtUpdate(step: WorkflowStep): Boolean = step match {
+    case run: WorkflowStep.Run =>
+      run.commands.exists(cmd => cmd.contains("sbt") && cmd.contains("update"))
+    case sbt: WorkflowStep.Sbt =>
+      sbt.commands.contains("+update")
+    case _ => false
+  }
+
+  def isSetupSbt(step: WorkflowStep): Boolean = step match {
+    case use: WorkflowStep.Use => use.ref match {
+      case UseRef.Public("sbt", "setup-sbt", _) => true
+      case _ => false
+    }
+    case _ => false
+  }
+
+  def reorderSteps(steps: List[WorkflowStep]): List[WorkflowStep] = {
+    val firstJavaIdx = steps.indexWhere(isJavaSetup)
+    val lastSbtUpdateIdx = steps.lastIndexWhere(isSbtUpdate)
+    val hasSetupSbt = steps.exists(isSetupSbt)
+
+    if (firstJavaIdx < 0 || lastSbtUpdateIdx < 0 || hasSetupSbt) {
+      // Skip if no Java setups, no sbt updates, or setup-sbt already exists
+      steps
+    } else {
+      val beforeJava = steps.take(firstJavaIdx)
+      val javaAndUpdates = steps.slice(firstJavaIdx, lastSbtUpdateIdx + 1)
+      val afterUpdates = steps.drop(lastSbtUpdateIdx + 1)
+
+      val justJava = javaAndUpdates.filter(isJavaSetup)
+      val justUpdates = javaAndUpdates.filter(isSbtUpdate)
+      val middleOthers = javaAndUpdates.filterNot(s => isJavaSetup(s) || isSbtUpdate(s))
+
+      beforeJava ++ justJava ++ List(setupSbt) ++ justUpdates ++ middleOthers ++ afterUpdates
+    }
+  }
+
+  workflows.map {
+    case job: WorkflowJob =>
+      WorkflowJob(
+        job.id,
+        job.name,
+        reorderSteps(job.steps),
+        scalas = job.scalas,
+        javas = job.javas,
+        needs = job.needs,
+        cond = job.cond,
+        permissions = job.permissions,
+        env = job.env,
+        oses = job.oses,
+        sbtStepPreamble = job.sbtStepPreamble
+      )
+    case other => other
+  }
+}
 ThisBuild / tlJdkRelease := Some(8)
 ThisBuild / tlFatalWarnings := true
 ThisBuild / tlCiHeaderCheck := true
@@ -159,75 +228,120 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
     "coverage",
     "Test coverage",
-    WorkflowStep.CheckoutFull ::
-      WorkflowStep.SetupJava(List(javaDefault)) :::
-      List(
-        WorkflowStep.Use(
-          UseRef.Public("sbt", "setup-sbt", "v1"),
-          name = Some("Setup sbt")
+    List(
+      WorkflowStep.CheckoutFull,
+      WorkflowStep.Use(
+        UseRef.Public("actions", "setup-java", "v4"),
+        Map(
+          "distribution" -> "corretto",
+          "java-version" -> "17",
+          "cache" -> "sbt"
         ),
-        WorkflowStep.Sbt(
-          List("coverage", "test", "coverageAggregate"),
-          name = Some("Test coverage")
-        ),
-        WorkflowStep.Use(
-          UseRef.Public("codecov", "codecov-action", "v4"),
-          Map("token" -> "${{ secrets.CODECOV_TOKEN }}"),
-          name = Some("Upload coverage report")
-        )
+        name = Some("Setup Java (corretto@17)"),
+        id = Some("setup-java-corretto-17"),
+        cond = Some("matrix.java == 'corretto@17'")
       ),
+      WorkflowStep.Use(
+        UseRef.Public("sbt", "setup-sbt", "v1"),
+        name = Some("Setup sbt")
+      ),
+      WorkflowStep.Run(
+        List("sbt +update"),
+        name = Some("sbt update"),
+        cond = Some("matrix.java == 'corretto@17' && steps.setup-java-corretto-17.outputs.cache-hit == 'false'")
+      ),
+      WorkflowStep.Sbt(
+        List("coverage", "test", "coverageAggregate"),
+        name = Some("Test coverage")
+      ),
+      WorkflowStep.Use(
+        UseRef.Public("codecov", "codecov-action", "v4"),
+        Map("token" -> "${{ secrets.CODECOV_TOKEN }}"),
+        name = Some("Upload coverage report")
+      )
+    ),
     scalas = List(CrossVersion.binaryScalaVersion(scalaDefault)),
     javas = List(javaDefault)
   ),
   WorkflowJob(
     "avro-legacy",
     "Test with legacy avro",
-    WorkflowStep.CheckoutFull ::
-      WorkflowStep.SetupJava(List(javaDefault)) :::
-      List(
-        WorkflowStep.Use(
-          UseRef.Public("sbt", "setup-sbt", "v1"),
-          name = Some("Setup sbt")
+    List(
+      WorkflowStep.CheckoutFull,
+      WorkflowStep.Use(
+        UseRef.Public("actions", "setup-java", "v4"),
+        Map(
+          "distribution" -> "corretto",
+          "java-version" -> "17",
+          "cache" -> "sbt"
         ),
-        WorkflowStep.Sbt(
-          List("avro/test"),
-          env = Map("JAVA_OPTS" -> "-Davro.version=1.8.2"),
-          name = Some("Test")
-        )
+        name = Some("Setup Java (corretto@17)"),
+        id = Some("setup-java-corretto-17"),
+        cond = Some("matrix.java == 'corretto@17'")
       ),
+      WorkflowStep.Use(
+        UseRef.Public("sbt", "setup-sbt", "v1"),
+        name = Some("Setup sbt")
+      ),
+      WorkflowStep.Run(
+        List("sbt +update"),
+        name = Some("sbt update"),
+        cond = Some("matrix.java == 'corretto@17' && steps.setup-java-corretto-17.outputs.cache-hit == 'false'")
+      ),
+      WorkflowStep.Sbt(
+        List("avro/test"),
+        env = Map("JAVA_OPTS" -> "-Davro.version=1.8.2"),
+        name = Some("Test")
+      )
+    ),
     scalas = List(CrossVersion.binaryScalaVersion(scalaDefault)),
     javas = List(javaDefault)
   ),
   WorkflowJob(
     "site",
     "Generate Site",
-    WorkflowStep.CheckoutFull ::
-      WorkflowStep.SetupJava(List(javaDefault)) :::
-      List(
-        WorkflowStep.Use(
-          UseRef.Public("sbt", "setup-sbt", "v1"),
-          name = Some("Setup sbt")
+    List(
+      WorkflowStep.CheckoutFull,
+      WorkflowStep.Use(
+        UseRef.Public("actions", "setup-java", "v4"),
+        Map(
+          "distribution" -> "corretto",
+          "java-version" -> "17",
+          "cache" -> "sbt"
         ),
-        WorkflowStep.Sbt(
-          List("site/makeSite"),
-          name = Some("Generate site")
-        ),
-        WorkflowStep.Use(
-          UseRef.Public("peaceiris", "actions-gh-pages", "v3.9.3"),
-          params = Map(
-            "github_token" -> "${{ secrets.GITHUB_TOKEN }}",
-            "publish_dir" -> {
-              val path = (ThisBuild / baseDirectory).value.toPath.toAbsolutePath
-                .relativize((site / makeSite / target).value.toPath)
-              // os-independent path rendering ...
-              (0 until path.getNameCount).map(path.getName).mkString("/")
-            },
-            "keep_files" -> "true"
-          ),
-          name = Some("Publish site"),
-          cond = Some(condIsTag)
-        )
+        name = Some("Setup Java (corretto@17)"),
+        id = Some("setup-java-corretto-17"),
+        cond = Some("matrix.java == 'corretto@17'")
       ),
+      WorkflowStep.Use(
+        UseRef.Public("sbt", "setup-sbt", "v1"),
+        name = Some("Setup sbt")
+      ),
+      WorkflowStep.Run(
+        List("sbt +update"),
+        name = Some("sbt update"),
+        cond = Some("matrix.java == 'corretto@17' && steps.setup-java-corretto-17.outputs.cache-hit == 'false'")
+      ),
+      WorkflowStep.Sbt(
+        List("site/makeSite"),
+        name = Some("Generate site")
+      ),
+      WorkflowStep.Use(
+        UseRef.Public("peaceiris", "actions-gh-pages", "v3.9.3"),
+        params = Map(
+          "github_token" -> "${{ secrets.GITHUB_TOKEN }}",
+          "publish_dir" -> {
+            val path = (ThisBuild / baseDirectory).value.toPath.toAbsolutePath
+              .relativize((site / makeSite / target).value.toPath)
+            // os-independent path rendering ...
+            (0 until path.getNameCount).map(path.getName).mkString("/")
+          },
+          "keep_files" -> "true"
+        ),
+        name = Some("Publish site"),
+        cond = Some(condIsTag)
+      )
+    ),
     scalas = List(CrossVersion.binaryScalaVersion(scalaDefault)),
     javas = List(javaDefault)
   )
