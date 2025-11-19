@@ -162,6 +162,10 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
     WorkflowStep.CheckoutFull ::
       WorkflowStep.SetupJava(List(javaDefault)) :::
       List(
+        WorkflowStep.Use(
+          UseRef.Public("sbt", "setup-sbt", "v1"),
+          name = Some("Setup sbt")
+        ),
         WorkflowStep.Sbt(
           List("coverage", "test", "coverageAggregate"),
           name = Some("Test coverage")
@@ -181,6 +185,10 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
     WorkflowStep.CheckoutFull ::
       WorkflowStep.SetupJava(List(javaDefault)) :::
       List(
+        WorkflowStep.Use(
+          UseRef.Public("sbt", "setup-sbt", "v1"),
+          name = Some("Setup sbt")
+        ),
         WorkflowStep.Sbt(
           List("avro/test"),
           env = Map("JAVA_OPTS" -> "-Davro.version=1.8.2"),
@@ -196,6 +204,10 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
     WorkflowStep.CheckoutFull ::
       WorkflowStep.SetupJava(List(javaDefault)) :::
       List(
+        WorkflowStep.Use(
+          UseRef.Public("sbt", "setup-sbt", "v1"),
+          name = Some("Setup sbt")
+        ),
         WorkflowStep.Sbt(
           List("site/makeSite"),
           name = Some("Generate site")
