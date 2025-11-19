@@ -127,16 +127,6 @@ ThisBuild / scalaVersion := scalaDefault
 ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
 ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
-ThisBuild / githubWorkflowPublish := Seq(
-  WorkflowStep.Sbt(
-    List("tlCiRelease"),
-    name = Some("Publish"),
-    env = Map(
-      "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}",
-      "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}"
-    )
-  )
-)
 ThisBuild / githubWorkflowBuildMatrixAdditions := Map("project" -> List("rootJVM"))
 ThisBuild / githubWorkflowGeneratedCI ~= { workflows =>
   val setupSbt = WorkflowStep.Use(
