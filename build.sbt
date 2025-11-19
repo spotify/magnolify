@@ -134,10 +134,11 @@ ThisBuild / githubWorkflowGeneratedCI ~= { workflows =>
   )
 
   def isJavaSetup(step: WorkflowStep): Boolean = step match {
-    case use: WorkflowStep.Use => use.ref match {
-      case UseRef.Public("actions", "setup-java", _) => true
-      case _ => false
-    }
+    case use: WorkflowStep.Use =>
+      use.ref match {
+        case UseRef.Public("actions", "setup-java", _) => true
+        case _                                         => false
+      }
     case _ => false
   }
 
@@ -150,10 +151,11 @@ ThisBuild / githubWorkflowGeneratedCI ~= { workflows =>
   }
 
   def isSetupSbt(step: WorkflowStep): Boolean = step match {
-    case use: WorkflowStep.Use => use.ref match {
-      case UseRef.Public("sbt", "setup-sbt", _) => true
-      case _ => false
-    }
+    case use: WorkflowStep.Use =>
+      use.ref match {
+        case UseRef.Public("sbt", "setup-sbt", _) => true
+        case _                                    => false
+      }
     case _ => false
   }
 
@@ -248,7 +250,9 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
       WorkflowStep.Run(
         List("sbt +update"),
         name = Some("sbt update"),
-        cond = Some("matrix.java == 'corretto@17' && steps.setup-java-corretto-17.outputs.cache-hit == 'false'")
+        cond = Some(
+          "matrix.java == 'corretto@17' && steps.setup-java-corretto-17.outputs.cache-hit == 'false'"
+        )
       ),
       WorkflowStep.Sbt(
         List("coverage", "test", "coverageAggregate"),
@@ -286,7 +290,9 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
       WorkflowStep.Run(
         List("sbt +update"),
         name = Some("sbt update"),
-        cond = Some("matrix.java == 'corretto@17' && steps.setup-java-corretto-17.outputs.cache-hit == 'false'")
+        cond = Some(
+          "matrix.java == 'corretto@17' && steps.setup-java-corretto-17.outputs.cache-hit == 'false'"
+        )
       ),
       WorkflowStep.Sbt(
         List("avro/test"),
@@ -320,7 +326,9 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
       WorkflowStep.Run(
         List("sbt +update"),
         name = Some("sbt update"),
-        cond = Some("matrix.java == 'corretto@17' && steps.setup-java-corretto-17.outputs.cache-hit == 'false'")
+        cond = Some(
+          "matrix.java == 'corretto@17' && steps.setup-java-corretto-17.outputs.cache-hit == 'false'"
+        )
       ),
       WorkflowStep.Sbt(
         List("site/makeSite"),
