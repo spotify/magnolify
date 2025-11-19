@@ -48,6 +48,12 @@ val tensorflowVersion = "0.5.0"
 // project
 ThisBuild / tlBaseVersion := "0.7"
 ThisBuild / tlSonatypeUseLegacyHost := true
+ThisBuild / credentials += Credentials(
+  "Sonatype Nexus Repository Manager",
+  "oss.sonatype.org",
+  sys.env.getOrElse("SONATYPE_USERNAME", ""),
+  sys.env.getOrElse("SONATYPE_PASSWORD", "")
+)
 ThisBuild / organization := "com.spotify"
 ThisBuild / organizationName := "Spotify AB"
 ThisBuild / startYear := Some(2016)
