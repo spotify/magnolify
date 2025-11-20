@@ -47,13 +47,6 @@ val tensorflowVersion = "0.5.0"
 
 // project
 ThisBuild / tlBaseVersion := "0.7"
-ThisBuild / tlSonatypeUseLegacyHost := true
-ThisBuild / credentials += Credentials(
-  "Sonatype Nexus Repository Manager",
-  "oss.sonatype.org",
-  sys.env.getOrElse("SONATYPE_USERNAME", ""),
-  sys.env.getOrElse("SONATYPE_PASSWORD", "")
-)
 ThisBuild / organization := "com.spotify"
 ThisBuild / organizationName := "Spotify AB"
 ThisBuild / startYear := Some(2016)
@@ -133,87 +126,87 @@ ThisBuild / scalaVersion := scalaDefault
 ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
 ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
-ThisBuild / githubWorkflowBuildMatrixAdditions := Map("project" -> List("rootJVM"))
-ThisBuild / githubWorkflowGeneratedCI ~= { workflows =>
-  val setupSbt = WorkflowStep.Use(
-    UseRef.Public("sbt", "setup-sbt", "v1"),
-    name = Some("Setup sbt")
-  )
-
-  def isJavaSetup(step: WorkflowStep): Boolean = step match {
-    case use: WorkflowStep.Use =>
-      use.ref match {
-        case UseRef.Public("actions", "setup-java", _) => true
-        case _                                         => false
-      }
-    case _ => false
-  }
-
-  def isSbtUpdate(step: WorkflowStep): Boolean = step match {
-    case run: WorkflowStep.Run =>
-      run.commands.exists(cmd => cmd.contains("sbt") && cmd.contains("update"))
-    case sbt: WorkflowStep.Sbt =>
-      sbt.commands.contains("+update")
-    case _ => false
-  }
-
-  def isSetupSbt(step: WorkflowStep): Boolean = step match {
-    case use: WorkflowStep.Use =>
-      use.ref match {
-        case UseRef.Public("sbt", "setup-sbt", _) => true
-        case _                                    => false
-      }
-    case _ => false
-  }
-
-  def reorderSteps(steps: List[WorkflowStep]): List[WorkflowStep] = {
-    val firstJavaIdx = steps.indexWhere(isJavaSetup)
-    val lastSbtUpdateIdx = steps.lastIndexWhere(isSbtUpdate)
-    val hasSetupSbt = steps.exists(isSetupSbt)
-
-    if (firstJavaIdx < 0 || lastSbtUpdateIdx < 0 || hasSetupSbt) {
-      // Skip if no Java setups, no sbt updates, or setup-sbt already exists
-      steps
-    } else {
-      val beforeJava = steps.take(firstJavaIdx)
-      val javaAndUpdates = steps.slice(firstJavaIdx, lastSbtUpdateIdx + 1)
-      val afterUpdates = steps.drop(lastSbtUpdateIdx + 1)
-
-      val justJava = javaAndUpdates.filter(isJavaSetup)
-      val justUpdates = javaAndUpdates.filter(isSbtUpdate)
-      val middleOthers = javaAndUpdates.filterNot(s => isJavaSetup(s) || isSbtUpdate(s))
-
-      beforeJava ++ justJava ++ List(setupSbt) ++ justUpdates ++ middleOthers ++ afterUpdates
-    }
-  }
-
-  workflows.map {
-    case job: WorkflowJob =>
-      WorkflowJob(
-        id = job.id,
-        name = job.name,
-        steps = reorderSteps(job.steps),
-        sbtStepPreamble = job.sbtStepPreamble,
-        cond = job.cond,
-        permissions = job.permissions,
-        scalas = job.scalas,
-        javas = job.javas,
-        oses = job.oses,
-        needs = job.needs,
-        matrixFailFast = job.matrixFailFast,
-        matrixAdds = job.matrixAdds,
-        matrixIncs = job.matrixIncs,
-        matrixExcs = job.matrixExcs,
-        runsOnExtraLabels = job.runsOnExtraLabels,
-        container = job.container,
-        environment = job.environment,
-        concurrency = job.concurrency,
-        timeoutMinutes = job.timeoutMinutes,
-        env = job.env
-      )
-    case other => other
-  }
-}
+//ThisBuild / githubWorkflowBuildMatrixAdditions := Map("project" -> List("rootJVM"))
+//ThisBuild / githubWorkflowGeneratedCI ~= { workflows =>
+//  val setupSbt = WorkflowStep.Use(
+//    UseRef.Public("sbt", "setup-sbt", "v1"),
+//    name = Some("Setup sbt")
+//  )
+//
+//  def isJavaSetup(step: WorkflowStep): Boolean = step match {
+//    case use: WorkflowStep.Use =>
+//      use.ref match {
+//        case UseRef.Public("actions", "setup-java", _) => true
+//        case _                                         => false
+//      }
+//    case _ => false
+//  }
+//
+//  def isSbtUpdate(step: WorkflowStep): Boolean = step match {
+//    case run: WorkflowStep.Run =>
+//      run.commands.exists(cmd => cmd.contains("sbt") && cmd.contains("update"))
+//    case sbt: WorkflowStep.Sbt =>
+//      sbt.commands.contains("+update")
+//    case _ => false
+//  }
+//
+//  def isSetupSbt(step: WorkflowStep): Boolean = step match {
+//    case use: WorkflowStep.Use =>
+//      use.ref match {
+//        case UseRef.Public("sbt", "setup-sbt", _) => true
+//        case _                                    => false
+//      }
+//    case _ => false
+//  }
+//
+//  def reorderSteps(steps: List[WorkflowStep]): List[WorkflowStep] = {
+//    val firstJavaIdx = steps.indexWhere(isJavaSetup)
+//    val lastSbtUpdateIdx = steps.lastIndexWhere(isSbtUpdate)
+//    val hasSetupSbt = steps.exists(isSetupSbt)
+//
+//    if (firstJavaIdx < 0 || lastSbtUpdateIdx < 0 || hasSetupSbt) {
+//      // Skip if no Java setups, no sbt updates, or setup-sbt already exists
+//      steps
+//    } else {
+//      val beforeJava = steps.take(firstJavaIdx)
+//      val javaAndUpdates = steps.slice(firstJavaIdx, lastSbtUpdateIdx + 1)
+//      val afterUpdates = steps.drop(lastSbtUpdateIdx + 1)
+//
+//      val justJava = javaAndUpdates.filter(isJavaSetup)
+//      val justUpdates = javaAndUpdates.filter(isSbtUpdate)
+//      val middleOthers = javaAndUpdates.filterNot(s => isJavaSetup(s) || isSbtUpdate(s))
+//
+//      beforeJava ++ justJava ++ List(setupSbt) ++ justUpdates ++ middleOthers ++ afterUpdates
+//    }
+//  }
+//
+//  workflows.map {
+//    case job: WorkflowJob =>
+//      WorkflowJob(
+//        id = job.id,
+//        name = job.name,
+//        steps = reorderSteps(job.steps),
+//        sbtStepPreamble = job.sbtStepPreamble,
+//        cond = job.cond,
+//        permissions = job.permissions,
+//        scalas = job.scalas,
+//        javas = job.javas,
+//        oses = job.oses,
+//        needs = job.needs,
+//        matrixFailFast = job.matrixFailFast,
+//        matrixAdds = job.matrixAdds,
+//        matrixIncs = job.matrixIncs,
+//        matrixExcs = job.matrixExcs,
+//        runsOnExtraLabels = job.runsOnExtraLabels,
+//        container = job.container,
+//        environment = job.environment,
+//        concurrency = job.concurrency,
+//        timeoutMinutes = job.timeoutMinutes,
+//        env = job.env
+//      )
+//    case other => other
+//  }
+//}
 ThisBuild / tlJdkRelease := Some(8)
 ThisBuild / tlFatalWarnings := true
 ThisBuild / tlCiHeaderCheck := true
@@ -519,7 +512,7 @@ lazy val bom = project
       tools
     ),
     // BOM has no classfiles, so disable MiMa
-    mimaPreviousArtifacts := Set.empty
+    tlMimaPreviousVersions := Set.empty
   )
 
 lazy val shared = project
