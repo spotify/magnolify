@@ -219,7 +219,7 @@ ThisBuild / mimaBinaryIssueFilters ++= Seq(
     "magnolify.parquet.logical.package#nanos.pfTimestampNanos"
   )
 )
-ThisBuild / tlVersionIntroduced := Map("3" -> "0.9.0")
+ThisBuild / tlVersionIntroduced := Map("3" -> "0.10.0")
 
 // protobuf
 val protocJavaSourceManaged =
@@ -252,7 +252,24 @@ val commonSettings = Seq(
   // So far most projects do no support scala 3
   crossScalaVersions := Seq(scala213, scala212),
   // skip scala 3 publishing until ready
-  publish / skip := (publish / skip).value || (scalaVersion.value == scala3),
+  publish / skip := {
+    lazy val magnolifySupportsScala3 = {
+      // abuse partialVersion to get major, minor
+      val (magMajor, magMinor) = CrossVersion.partialVersion(version.value).get
+      val (s3Major, s3Minor) = CrossVersion.partialVersion(tlVersionIntroduced.value("3")).get
+      magMajor >= s3Major && magMinor >= s3Minor
+    }
+    lazy val moduleSupportsScala3 = scala3Projects
+      .contains(moduleName.value.stripPrefix("magnolify-"))
+    lazy val isScala3Build = scalaVersion.value == scala3
+
+    // use project-defined value, if it exists
+    (publish / skip).value ||
+    // skip if we have still not officially introduced scala 3
+    (isScala3Build && !magnolifySupportsScala3) ||
+    // or skip when using scala3 but the current module does not support 3
+    (isScala3Build && !moduleSupportsScala3)
+  },
   scalaVersion := scalaDefault,
   scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((3, _)) =>
