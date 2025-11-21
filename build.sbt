@@ -253,14 +253,15 @@ val commonSettings = Seq(
   crossScalaVersions := Seq(scala213, scala212),
   // skip scala 3 publishing until ready
   publish / skip := {
-    val magnolifySupportsScala3 = {
+    lazy val magnolifySupportsScala3 = {
       // abuse partialVersion to get major, minor
       val (magMajor, magMinor) = CrossVersion.partialVersion(version.value).get
       val (s3Major, s3Minor) = CrossVersion.partialVersion(tlVersionIntroduced.value("3")).get
       magMajor >= s3Major && magMinor >= s3Minor
     }
-    val moduleSupportsScala3 = scala3Projects.contains(moduleName.value.stripPrefix("magnolify-"))
-    val isScala3Build = scalaVersion.value == scala3
+    lazy val moduleSupportsScala3 = scala3Projects
+      .contains(moduleName.value.stripPrefix("magnolify-"))
+    lazy val isScala3Build = scalaVersion.value == scala3
 
     // use project-defined value, if it exists
     (publish / skip).value ||
