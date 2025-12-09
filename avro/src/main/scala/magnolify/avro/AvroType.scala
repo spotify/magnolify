@@ -21,7 +21,6 @@ import magnolify.shared.{doc => _, _}
 import magnolify.shims.FactoryCompat
 import org.apache.avro.generic.GenericData.EnumSymbol
 import org.apache.avro.generic._
-import org.apache.avro.util.internal.JacksonUtils
 import org.apache.avro.{JsonProperties, LogicalType, LogicalTypes, Schema}
 import org.joda.{time => joda}
 
@@ -34,6 +33,7 @@ import scala.collection.compat._
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 import java.nio.charset.StandardCharsets
+import scala.util.Try
 
 sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
   def schema: Schema
@@ -42,22 +42,22 @@ sealed trait AvroType[T] extends Converter[T, GenericRecord, GenericRecord] {
 }
 
 private[magnolify] sealed trait JacksonArrayBehavior
-case object ArrayIsTextNode extends JacksonArrayBehavior
-case object ArrayIsBinaryNode extends JacksonArrayBehavior
+case object ByteArrayDefaultSupported extends JacksonArrayBehavior
+case object ByteArrayDefaultUnsupported extends JacksonArrayBehavior
 
 object AvroType {
   private[magnolify] val JacksonBehavior = {
     // Avro uses `JacksonUtils.toJson` to serialize default values into the schema and validates
     // that values have specific node types; prior to avro 1.12, `Array[Byte]` was encoded to a
     // `TextNode`, after to avro 1.12 arrays are encoded to `BinaryNode`, breaking the internal
-    // avro check.
-    val arrayConversion = JacksonUtils.toJsonNode(Array[Byte](1, 2, 3))
-    if (arrayConversion.isBinary) ArrayIsBinaryNode // avro 1.12 and later
-    else if (arrayConversion.isTextual) ArrayIsTextNode // avro 1.11 and previous
-    else
-      throw new IllegalArgumentException(
-        "Jackson is converting arrays to something other than TextNode or BinaryNode."
-      )
+    // avro check. Directly checking the behavior of `JacksonUtils` breaks bincompat due to
+    // jackson's migration from codehaus to fasterxml, so we instead rely on avro throwing an
+    // exception or not to detect this bug.
+    val failsOnByteArrayDefault = Try {
+      val bf = new Schema.Field("bf", Schema.create(Schema.Type.BYTES), "bf", Array[Byte](1, 2, 3))
+      Schema.createRecord("rec", "rec", "rec", false, java.util.List.of(bf))
+    }.isFailure
+    if (failsOnByteArrayDefault) ByteArrayDefaultUnsupported else ByteArrayDefaultSupported
   }
 
   implicit def apply[T: AvroField]: AvroType[T] = AvroType(CaseMapper.identity)
@@ -221,8 +221,8 @@ object AvroField {
     override protected def buildSchema(cm: CaseMapper): Schema = Schema.create(Schema.Type.BYTES)
     override def makeDefault(d: ByteBuffer)(cm: CaseMapper): Any = {
       AvroType.JacksonBehavior match {
-        case ArrayIsTextNode   => d.array()
-        case ArrayIsBinaryNode => new String(d.array(), StandardCharsets.ISO_8859_1)
+        case ByteArrayDefaultSupported   => d.array()
+        case ByteArrayDefaultUnsupported => new String(d.array(), StandardCharsets.ISO_8859_1)
       }
     }
     // copy to avoid issue in case original buffer is reused
