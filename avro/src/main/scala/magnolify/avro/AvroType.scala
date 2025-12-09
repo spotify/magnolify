@@ -55,7 +55,7 @@ object AvroType {
     // exception or not to detect this bug.
     val failsOnByteArrayDefault = Try {
       val bf = new Schema.Field("bf", Schema.create(Schema.Type.BYTES), "bf", Array[Byte](1, 2, 3))
-      Schema.createRecord("rec", "rec", "rec", false, java.util.List.of(bf))
+      Schema.createRecord("rec", "rec", "rec", false, List(bf).asJava)
     }.isFailure
     if (failsOnByteArrayDefault) ByteArrayDefaultUnsupported else ByteArrayDefaultSupported
   }
