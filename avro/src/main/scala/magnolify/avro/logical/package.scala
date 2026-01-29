@@ -64,6 +64,9 @@ package object logical {
     @deprecated("Use afLocalTimeMicros instead", "0.9.0")
     val afTimeMicros: AvroField[LocalTime] = afLocalTimeMicros
 
+    @deprecated("Use afJodaLocalTimeMicros instead", "0.9.0")
+    val afJodaTimeMicros: AvroField[joda.LocalTime] = afJodaLocalTimeMicros
+
     @deprecated("Use afLocalDateTimeMicros instead", "0.9.0")
     val afLocalTimestampMicros: AvroField[LocalDateTime] = afLocalDateTimeMicros
 
@@ -110,6 +113,9 @@ package object logical {
 
     @deprecated("Use afLocalTimeMillis instead", "0.9.0")
     val afTimeMillis: AvroField[LocalTime] = afLocalTimeMillis
+
+    @deprecated("Use afJodaLocalTimeMillis instead", "0.9.0")
+    val afJodaTimeMillis: AvroField[joda.LocalTime] = afJodaLocalTimeMillis
 
     @deprecated("Use afLocalDateTimeMillis instead", "0.9.0")
     val afLocalTimestampMillis: AvroField[LocalDateTime] = afLocalDateTimeMillis
