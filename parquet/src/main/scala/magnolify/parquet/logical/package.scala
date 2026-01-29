@@ -51,6 +51,10 @@ package object logical {
       ParquetField.logicalType[Int](time(false))(millisToLocalTime)(millisFromLocalTime)
     implicit val pfJodaLocalTimeMillis: Primitive[joda.LocalTime] =
       ParquetField.logicalType[Int](time(false))(millisToJodaLocalTime)(millisFromJodaLocalTime)
+
+    // Deprecated alias for backward compatibility
+    @deprecated("Use pfInstantMillis instead", "0.9.0")
+    val pfTimestampMillis: Primitive[Instant] = pfInstantMillis
   }
 
   object micros extends TimeTypes {
@@ -77,6 +81,10 @@ package object logical {
       ParquetField.logicalType[Long](time(false))(microsToLocalTime)(microsFromLocalTime)
     implicit val pfJodaLocalTimeMicros: Primitive[joda.LocalTime] =
       ParquetField.logicalType[Long](time(false))(microsToJodaLocalTime)(microsFromJodaLocalTime)
+
+    // Deprecated alias for backward compatibility
+    @deprecated("Use pfInstantMicros instead", "0.9.0")
+    val pfTimestampMicros: Primitive[Instant] = pfInstantMicros
   }
 
   object nanos extends TimeTypes {
@@ -103,5 +111,9 @@ package object logical {
       ParquetField.logicalType[Long](time(false))(nanosToLocalTime)(nanosFromLocalTime)
     implicit val pfJodaLocalTimeNanos: Primitive[joda.LocalTime] =
       ParquetField.logicalType[Long](time(false))(nanosToJodaLocalTime)(nanosFromJodaLocalTime)
+
+    // Deprecated alias for backward compatibility
+    @deprecated("Use pfInstantNanos instead", "0.9.0")
+    val pfTimestampNanos: Primitive[Instant] = pfInstantNanos
   }
 }

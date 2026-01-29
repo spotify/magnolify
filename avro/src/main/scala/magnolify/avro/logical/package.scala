@@ -59,6 +59,16 @@ package object logical {
       AvroField.logicalType[Long](LogicalTypes.timestampMicros())(microsToJodaDateTime)(
         microsFromJodaDateTime
       )
+
+    // Deprecated aliases for backward compatibility
+    @deprecated("Use afLocalTimeMicros instead", "0.9.0")
+    val afTimeMicros: AvroField[LocalTime] = afLocalTimeMicros
+
+    @deprecated("Use afLocalDateTimeMicros instead", "0.9.0")
+    val afLocalTimestampMicros: AvroField[LocalDateTime] = afLocalDateTimeMicros
+
+    @deprecated("Use afJodaDateTimeMicros instead", "0.9.0")
+    val afJodaTimestampMicros: AvroField[joda.DateTime] = afJodaDateTimeMicros
   }
 
   object millis {
@@ -93,6 +103,19 @@ package object logical {
       AvroField.logicalType[Long](LogicalTypes.timestampMillis())(millisToJodaDateTime)(
         millisFromJodaDateTime
       )
+
+    // Deprecated aliases for backward compatibility
+    @deprecated("Use afInstantMillis instead", "0.9.0")
+    val afTimestampMillis: AvroField[Instant] = afInstantMillis
+
+    @deprecated("Use afLocalTimeMillis instead", "0.9.0")
+    val afTimeMillis: AvroField[LocalTime] = afLocalTimeMillis
+
+    @deprecated("Use afLocalDateTimeMillis instead", "0.9.0")
+    val afLocalTimestampMillis: AvroField[LocalDateTime] = afLocalDateTimeMillis
+
+    @deprecated("Use afJodaDateTimeMillis instead", "0.9.0")
+    val afJodaTimestampMillis: AvroField[joda.DateTime] = afJodaDateTimeMillis
   }
 
   object bigquery {
