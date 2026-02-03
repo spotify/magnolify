@@ -350,8 +350,8 @@ jobs:
           JAVA_OPTS: '-Davro.version=1.8.2'
         run: sbt '++ ${{ matrix.scala }}' avro/test
 
-  avro-legacy-1-11-4:
-    name: Test with legacy avro version 1.11.4
+  avro-legacy-1-11-5:
+    name: Test with legacy avro version 1.11.5
     strategy:
       matrix:
         os: [ubuntu-22.04]
@@ -379,7 +379,7 @@ jobs:
 
       - name: Test
         env:
-          JAVA_OPTS: '-Davro.version=1.11.4'
+          JAVA_OPTS: '-Davro.version=1.11.5'
         run: sbt '++ ${{ matrix.scala }}' avro/test
 
   site:
