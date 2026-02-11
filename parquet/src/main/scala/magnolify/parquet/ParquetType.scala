@@ -19,7 +19,7 @@ package magnolify.parquet
 import magnolify.shared.{Converter => _, _}
 import org.apache.avro.{Schema => AvroSchema}
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.mapreduce.Job
+import org.apache.hadoop.mapreduce.{InputFormat, Job, OutputFormat}
 import org.apache.parquet.avro.AvroSchemaConverter
 import org.apache.parquet.hadoop.{
   api => hadoop,
@@ -63,16 +63,26 @@ sealed trait ParquetType[T] extends Serializable {
   def schema: MessageType
   def avroSchema: AvroSchema
 
-  def setupInput(job: Job): Unit = {
-    job.setInputFormatClass(classOf[ParquetInputFormat[T]])
-    ParquetInputFormat.setReadSupportClass(job, classOf[ReadSupport[T]])
-    job.getConfiguration.set(ReadTypeKey, SerializationUtils.toBase64(this))
+  def setupInput(job: Job): Unit = setupInput(job.getConfiguration)
+  def setupInput(conf: Configuration): Unit = {
+    conf.setClass(
+      "mapreduce.job.inputformat.class",
+      classOf[ParquetInputFormat[T]],
+      classOf[InputFormat[_, T]]
+    )
+    conf.set(ParquetInputFormat.READ_SUPPORT_CLASS, classOf[ReadSupport[T]].getName)
+    conf.set(ReadTypeKey, SerializationUtils.toBase64(this))
   }
 
-  def setupOutput(job: Job): Unit = {
-    job.setOutputFormatClass(classOf[ParquetOutputFormat[T]])
-    ParquetOutputFormat.setWriteSupportClass(job, classOf[WriteSupport[T]])
-    job.getConfiguration.set(WriteTypeKey, SerializationUtils.toBase64(this))
+  def setupOutput(job: Job): Unit = setupOutput(job.getConfiguration)
+  def setupOutput(conf: Configuration): Unit = {
+    conf.setClass(
+      "mapreduce.job.outputformat.class",
+      classOf[ParquetOutputFormat[T]],
+      classOf[OutputFormat[_, T]]
+    )
+    conf.set(ParquetOutputFormat.WRITE_SUPPORT_CLASS, classOf[WriteSupport[T]].getName)
+    conf.set(WriteTypeKey, SerializationUtils.toBase64(this))
   }
 
   def readSupport: ReadSupport[T] = new ReadSupport[T](this)
