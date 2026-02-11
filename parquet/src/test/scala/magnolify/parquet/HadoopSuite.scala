@@ -29,6 +29,11 @@ import org.scalacheck.{Arbitrary, Gen}
 
 class HadoopSuite extends FunSuite {
   test("Hadoop") {
+    assume(
+      System.getProperty("java.version").stripPrefix("1.").takeWhile(_.isDigit).toInt < 22,
+      "Skip on Java 22+ until Hadoop 3.4.3 is released"
+    )
+
     val job = Job.getInstance()
     val fs = FileSystem.getLocal(job.getConfiguration)
     val ts = System.currentTimeMillis()

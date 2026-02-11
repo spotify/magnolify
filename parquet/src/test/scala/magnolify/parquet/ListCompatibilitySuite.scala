@@ -19,7 +19,6 @@ package magnolify.parquet
 import magnolify.parquet.ArrayEncoding.*
 import magnolify.test.MagnolifySuite
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.Path
 import org.apache.parquet.conf.{HadoopParquetConfiguration, ParquetConfiguration}
 import org.apache.parquet.hadoop.ParquetWriter
 import org.apache.parquet.hadoop.api.WriteSupport
@@ -28,8 +27,7 @@ import org.apache.parquet.io.{LocalInputFile, LocalOutputFile}
 import org.apache.parquet.io.api.RecordConsumer
 import org.apache.parquet.schema.{MessageType, MessageTypeParser}
 
-import java.nio.file.Files
-import scala.annotation.nowarn
+import java.nio.file.{Files, Paths}
 import scala.jdk.CollectionConverters.*
 
 case class RecordWithListPrimitive(listField: List[Int])
@@ -39,7 +37,6 @@ case class RecordWithListNested(listField: List[Element])
 
 // Test compatibility with all the valid list encodings from:
 // https://github.com/apache/parquet-format/blob/master/LogicalTypes.md#lists
-@nowarn("cat=deprecation")
 class ListCompatibilitySuite extends MagnolifySuite {
 
   val ListField = "listField"
@@ -215,6 +212,12 @@ class ListCompatibilitySuite extends MagnolifySuite {
     )(typeClass)
   }
 
+  class LocalWriteBuilder[T](file: LocalOutputFile, writeSupport: WriteSupport[T])
+      extends ParquetWriter.Builder[T, LocalWriteBuilder[T]](file) {
+    override def self(): LocalWriteBuilder[T] = this
+    override def getWriteSupport(conf: Configuration): WriteSupport[T] = writeSupport
+  }
+
   private def roundtripParquet[T](
     writeSchema: MessageType,
     records: Seq[T],
@@ -229,15 +232,16 @@ class ListCompatibilitySuite extends MagnolifySuite {
       manuallyWrittenRecords.delete() // creating a Path creates the file
       manuallyWrittenRecords.deleteOnExit()
 
-      val writer: ParquetWriter[T] = new ParquetWriter(
-        new Path(manuallyWrittenRecords.toString),
+      val writePath = new LocalOutputFile(Paths.get(manuallyWrittenRecords.toString))
+      val writer: ParquetWriter[T] = new LocalWriteBuilder[T](
+        writePath,
         new WriteSupport[T]() {
           var rc: RecordConsumer = null
 
-          override def init(configuration: Configuration): WriteSupport.WriteContext =
+          override def init(configuration: Configuration): WriteContext =
             init(new HadoopParquetConfiguration(configuration))
 
-          override def init(configuration: ParquetConfiguration): WriteSupport.WriteContext =
+          override def init(configuration: ParquetConfiguration): WriteContext =
             new WriteContext(writeSchema, Map[String, String]().asJava)
 
           override def prepareForWrite(recordConsumer: RecordConsumer): Unit =
@@ -245,7 +249,8 @@ class ListCompatibilitySuite extends MagnolifySuite {
 
           override def write(record: T): Unit = writeFn(record, rc)
         }
-      )
+      ).build()
+
       records.foreach(writer.write)
       writer.close()
     }
