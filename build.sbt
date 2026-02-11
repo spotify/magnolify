@@ -66,8 +66,8 @@ val scala3Projects = List(
 )
 
 // github actions
+val java25 = JavaSpec.corretto("25")
 val java17 = JavaSpec.corretto("17")
-val java11 = JavaSpec.corretto("11")
 val javaDefault = java17
 
 val condIsScala3 = "matrix.scala == '3'"
@@ -78,7 +78,7 @@ val condIsTag = "startsWith(github.ref, 'refs/tags/v')"
 ThisBuild / scalaVersion := scalaDefault
 ThisBuild / crossScalaVersions := Seq(scala3, scala213, scala212)
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
-ThisBuild / githubWorkflowJavaVersions := Seq(java17, java11)
+ThisBuild / githubWorkflowJavaVersions := Seq(java17, java25)
 ThisBuild / tlJdkRelease := Some(11)
 ThisBuild / tlFatalWarnings := true
 ThisBuild / tlCiHeaderCheck := true
