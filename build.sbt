@@ -44,7 +44,7 @@ val refinedVersion = "0.11.3"
 val scalaCollectionCompatVersion = "2.14.0"
 val scalacheckVersion = "1.19.0"
 val shapelessVersion = "2.3.13"
-val slf4jVersion = "2.0.17"
+val slf4jVersion = "2.0.18"
 val tensorflowVersion = "1.1.0"
 val tensorflowMetadataVersion = "1.16.1"
 
