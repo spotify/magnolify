@@ -43,10 +43,34 @@ class SchemaSuite extends MagnolifySuite {
       |}""".stripMargin
   )
 
+  private val threeLevelOptionalListSchema = MessageTypeParser.parseMessageType(
+    """message Record {
+      |  required group nestedGroup {
+      |    optional group listField (LIST) {
+      |      repeated group list {
+      |        required int32 element (INTEGER(32,true));
+      |      }
+      |    }
+      |  }
+      |}""".stripMargin
+  )
+
   private val threeLevelArraySchema = MessageTypeParser.parseMessageType(
     """message Record {
       |  required group nestedGroup {
       |    required group listField (LIST) {
+      |      repeated group array {
+      |        required int32 element (INTEGER(32,true));
+      |      }
+      |    }
+      |  }
+      |}""".stripMargin
+  )
+
+  private val threeLevelOptionalArraySchema = MessageTypeParser.parseMessageType(
+    """message Record {
+      |  required group nestedGroup {
+      |    optional group listField (LIST) {
       |      repeated group array {
       |        required int32 element (INTEGER(32,true));
       |      }
@@ -128,6 +152,14 @@ class SchemaSuite extends MagnolifySuite {
       Schema.checkCompatibility(schemaNoListFields, threeLevelArraySchema)
     }
     assert(e.getMessage.contains("is not present in written file schema"))
+  }
+
+  test("checkCompatibility: reader with 3 level optional list field not in writer is compatible") {
+    Schema.checkCompatibility(schemaNoListFields, threeLevelOptionalListSchema)
+  }
+
+  test("checkCompatibility: reader with 3 level optional array field not in writer is compatible") {
+    Schema.checkCompatibility(schemaNoListFields, threeLevelOptionalArraySchema)
   }
 
   test("checkCompatibility: reader with map field not in writer is not compatible") {
