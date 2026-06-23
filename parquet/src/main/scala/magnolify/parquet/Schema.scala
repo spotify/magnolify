@@ -122,21 +122,17 @@ private object Schema {
             val wf = wg.getType(rf.getName)
             checkCompatibility(wf, rf)
           } else {
-            (
-              rf.getLogicalTypeAnnotation != LogicalTypeAnnotation.listType(),
-              rf.getRepetition
-            ) match {
-              case (true, Repetition.REQUIRED) =>
-                throw new InvalidRecordException(
-                  s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema. " +
-                    s"Available fields are: ${listFields(wg)}"
-                )
-              case (true, Repetition.OPTIONAL) =>
+            rf.getRepetition match {
+              case Repetition.OPTIONAL =>
                 logger.warn(
                   s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema " +
                     s"and will be evaluated as `Option.empty`. Available fields are: ${listFields(wg)}"
                 )
               case _ =>
+                throw new InvalidRecordException(
+                  s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema. " +
+                    s"Available fields are: ${listFields(wg)}"
+                )
             }
           }
         }
