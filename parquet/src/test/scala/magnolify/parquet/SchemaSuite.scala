@@ -191,6 +191,91 @@ class SchemaSuite extends MagnolifySuite {
     Schema.checkCompatibility(writer, reader)
   }
 
+  // detectArrayEncoding tests
+
+  test("detectArrayEncoding: schema with no list fields returns None") {
+    assertEquals(Schema.detectArrayEncoding(schemaNoListFields), None)
+  }
+
+  test("detectArrayEncoding: primitive-only schema returns None") {
+    assertEquals(Schema.detectArrayEncoding(primitiveSchema), None)
+  }
+
+  test("detectArrayEncoding: map schema returns None") {
+    assertEquals(Schema.detectArrayEncoding(mapSchema), None)
+  }
+
+  test("detectArrayEncoding: 3-level list schema returns ThreeLevelList") {
+    assertEquals(
+      Schema.detectArrayEncoding(threeLevelListSchema),
+      Some(ArrayEncoding.ThreeLevelList)
+    )
+  }
+
+  test("detectArrayEncoding: optional 3-level list schema returns ThreeLevelList") {
+    assertEquals(
+      Schema.detectArrayEncoding(threeLevelOptionalListSchema),
+      Some(ArrayEncoding.ThreeLevelList)
+    )
+  }
+
+  test("detectArrayEncoding: 3-level array schema returns ThreeLevelArray") {
+    assertEquals(
+      Schema.detectArrayEncoding(threeLevelArraySchema),
+      Some(ArrayEncoding.ThreeLevelArray)
+    )
+  }
+
+  test("detectArrayEncoding: optional 3-level array schema returns ThreeLevelArray") {
+    assertEquals(
+      Schema.detectArrayEncoding(threeLevelOptionalArraySchema),
+      Some(ArrayEncoding.ThreeLevelArray)
+    )
+  }
+
+  test("detectArrayEncoding: ungrouped schema returns Ungrouped") {
+    assertEquals(Schema.detectArrayEncoding(ungroupedSchema), Some(ArrayEncoding.Ungrouped))
+  }
+
+  test("detectArrayEncoding: mixed list encodings throws") {
+    val mixedSchema = MessageTypeParser.parseMessageType(
+      """message Record {
+        |  required group nestedGroup {
+        |    required group listA (LIST) {
+        |      repeated group list {
+        |        required int32 element (INTEGER(32,true));
+        |      }
+        |    }
+        |    required group listB (LIST) {
+        |      repeated group array {
+        |        required int32 element (INTEGER(32,true));
+        |      }
+        |    }
+        |  }
+        |}""".stripMargin
+    )
+    val e = intercept[InvalidRecordException] {
+      Schema.detectArrayEncoding(mixedSchema)
+    }
+    assert(e.getMessage.contains("Multiple list encodings"))
+  }
+
+  test("detectArrayEncoding: unsupported list inner group name throws") {
+    val unsupportedSchema = MessageTypeParser.parseMessageType(
+      """message Record {
+        |  required group listField (LIST) {
+        |    repeated group foobar {
+        |      required int32 element (INTEGER(32,true));
+        |    }
+        |  }
+        |}""".stripMargin
+    )
+    val e = intercept[InvalidRecordException] {
+      Schema.detectArrayEncoding(unsupportedSchema)
+    }
+    assert(e.getMessage.contains("unsupported list encoding"))
+  }
+
   test("checkCompatibility: reader with required field not in writer fails") {
     val writer = MessageTypeParser.parseMessageType(
       """message Record {

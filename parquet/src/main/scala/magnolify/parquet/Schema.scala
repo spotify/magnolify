@@ -95,6 +95,46 @@ private object Schema {
     builder.named(schema.getName)
   }
 
+  def detectArrayEncoding(schema: Type): Option[ArrayEncoding] = {
+    val encodings = scala.collection.mutable.Set.empty[ArrayEncoding]
+
+    def visit(t: Type): Unit = t match {
+      case g: GroupType if g.getLogicalTypeAnnotation == LogicalTypeAnnotation.listType() =>
+        g.getFields.asScala.headOption match {
+          case Some(child) if child.getName == "list" =>
+            encodings += ArrayEncoding.ThreeLevelList
+          case Some(child) if child.getName == "array" =>
+            encodings += ArrayEncoding.ThreeLevelArray
+          case Some(_) =>
+            throw new InvalidRecordException(
+              s"Schema contained unsupported list encoding ```$t```;" +
+                s" child element of LIST annotation must be one of: [list, array]`"
+            )
+          case None =>
+        }
+        g.getFields.asScala.foreach(visit)
+      case g: GroupType =>
+        g.getFields.asScala.foreach(visit)
+      case t: PrimitiveType if t.getRepetition == Repetition.REPEATED =>
+        encodings += ArrayEncoding.Ungrouped
+      case _ =>
+    }
+
+    schema match {
+      case g: GroupType => g.getFields.asScala.foreach(visit)
+      case _            =>
+    }
+
+    if (encodings.size > 1) {
+      throw new InvalidRecordException(
+        s"Multiple list encodings detected in writer schema: ${encodings.mkString(", ")}. " +
+          "Cannot auto-detect list encoding."
+      )
+    }
+
+    encodings.headOption
+  }
+
   def checkCompatibility(writer: Type, reader: Type): Unit = {
     def listFields(gt: GroupType) =
       s"[${gt.getFields.asScala.map(f => s"${f.getName}: ${f.getRepetition}").mkString(",")}]"
