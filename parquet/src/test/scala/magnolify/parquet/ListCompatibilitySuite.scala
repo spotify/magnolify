@@ -261,6 +261,90 @@ class ListCompatibilitySuite extends MagnolifySuite {
     }
   }
 
+  private val autoDetectConf = {
+    val conf = new Configuration()
+    conf.setBoolean(ParquetType.AutoDetectListEncoding, true)
+    conf
+  }
+
+  test("3-Level writer schema auto-detected by 2-level reader schema") {
+    val typeClassList = ParquetType[RecordWithListPrimitive](new MagnolifyParquetProperties {
+      override def writeArrayEncoding: ArrayEncoding = ThreeLevelList
+    })
+
+    val typeClassArray = ParquetType[RecordWithListPrimitive](new MagnolifyParquetProperties {
+      override def writeArrayEncoding: ArrayEncoding = ThreeLevelArray
+    })
+
+    roundtripParquet[RecordWithListPrimitive](
+      writeSchema = typeClassList.schema,
+      records = recordsWithListPrimitive,
+      writeFn = { case (record, rc) =>
+        rc.startMessage()
+
+        rc.startField(ListField, 0)
+        rc.startGroup()
+
+        rc.startField("list", 0)
+        record.listField.foreach { elem =>
+          rc.startGroup()
+
+          rc.startField("element", 0)
+          rc.addInteger(elem)
+          rc.endField("element", 0)
+
+          rc.endGroup()
+        }
+
+        rc.endField("list", 0)
+        rc.endGroup()
+        rc.endField(ListField, 0)
+
+        rc.endMessage()
+      },
+      readerConf = autoDetectConf
+    )(typeClassList, typeClassArray)
+  }
+
+  test("2-Level writer schema auto-detected by 3-level reader schema") {
+    val typeClassList = ParquetType[RecordWithListNested](new MagnolifyParquetProperties {
+      override def writeArrayEncoding: ArrayEncoding = ThreeLevelList
+    })
+
+    val typeClassArray = ParquetType[RecordWithListNested](new MagnolifyParquetProperties {
+      override def writeArrayEncoding: ArrayEncoding = ThreeLevelArray
+    })
+
+    roundtripParquet[RecordWithListNested](
+      writeSchema = typeClassArray.schema,
+      records = recordsWithListNested,
+      writeFn = { case (record, rc) =>
+        rc.startMessage()
+
+        rc.startField(ListField, 0)
+        rc.startGroup()
+
+        rc.startField("array", 0)
+        record.listField.foreach { elem =>
+          rc.startGroup()
+
+          rc.startField("i", 0)
+          rc.addInteger(elem.i)
+          rc.endField("i", 0)
+
+          rc.endGroup()
+        }
+        rc.endField("array", 0)
+
+        rc.endGroup()
+        rc.endField(ListField, 0)
+
+        rc.endMessage()
+      },
+      readerConf = autoDetectConf
+    )(typeClassArray, typeClassList)
+  }
+
   test("3-Level list encoding with nested list type") {
     implicit val typeClass = ParquetType[RecordWithListNested](new MagnolifyParquetProperties {
       override def writeArrayEncoding: ArrayEncoding = ThreeLevelList
@@ -325,7 +409,8 @@ class ListCompatibilitySuite extends MagnolifySuite {
   private def roundtripParquet[T](
     writeSchema: MessageType,
     records: Seq[T],
-    writeFn: (T, RecordConsumer) => Unit
+    writeFn: (T, RecordConsumer) => Unit,
+    readerConf: Configuration = new Configuration()
   )(implicit writerTypeclass: ParquetType[T], readerTypeclass: ParquetType[T]): Unit = {
     // Write files manually using provided writer fn
     val manuallyWrittenRecords =
@@ -381,6 +466,7 @@ class ListCompatibilitySuite extends MagnolifySuite {
     val readManuallyWrittenRecords = {
       val reader = readerTypeclass
         .readBuilder(new LocalInputFile(manuallyWrittenRecords.toPath))
+        .withConf(readerConf)
         .build()
 
       val records = (1 to 10).map(_ => reader.read())
@@ -391,6 +477,7 @@ class ListCompatibilitySuite extends MagnolifySuite {
     val readMagnolifyWrittenRecords = {
       val reader = readerTypeclass
         .readBuilder(new LocalInputFile(magnolifyWrittenRecords.toPath))
+        .withConf(readerConf)
         .build()
 
       val records = (1 to 10).map(_ => reader.read())

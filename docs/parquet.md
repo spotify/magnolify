@@ -117,6 +117,35 @@ case class RecordWithList(listField: List[String])
 ParquetType[RecordWithList].schema
 ```
 
+### Auto-detecting list encodings
+
+As of Magnolify 0.9.5, passing in the Hadoop configuration option `parquet.type.read.auto-detect-list-encoding: true` at read time will instruct `ParquetType` to automatically infer list encoding from the writer schema,
+obviating the need to specify an encoding manually.
+
+```diff
+val pt = ParquetType[RecordWithList](
+-  new MagnolifyParquetProperties {
+-    override def writeArrayEncoding: ArrayEncoding = ArrayEncoding.ThreeLevelList
+-  }
+)
+
+val reader = pt
+  .readBuilder(...)
++ .withConf(ParquetConfiguration.of("parquet.type.read.auto-detect-list-encoding" -> true)
+  .build()
+```
+
+You can also set this property in a `core-site.xml` file in `src/main/resources/` to be automatically applied to every read in your project:
+
+```xml
+<configuration>
+  <property>
+    <name>parquet.type.read.auto-detect-list-encoding</name>
+    <value>true</value>
+  </property>
+</configuration>
+```
+
 ### AvroCompat import
 
 AvroCompat is a now-deprecated import used to enable the old list format:
