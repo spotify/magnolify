@@ -16,11 +16,32 @@
 
 package magnolify.parquet
 
+import magnolify.parquet.ArrayEncoding._
 import magnolify.test.MagnolifySuite
 import org.apache.parquet.io.InvalidRecordException
 import org.apache.parquet.schema.MessageTypeParser
 
+object SchemaSuite {
+  case class RecordWithPrimitiveList(l: List[Int])
+
+  case class Nested(i: Int)
+  case class RecordWithNestedList(n: Nested)
+
+  val PtUngroupedList = ParquetType[RecordWithListPrimitive](new MagnolifyParquetProperties {
+    override def writeArrayEncoding: ArrayEncoding = Ungrouped
+  })
+
+  val PtThreeLevelListEnc = ParquetType[RecordWithListPrimitive](new MagnolifyParquetProperties {
+    override def writeArrayEncoding: ArrayEncoding = ThreeLevelList
+  })
+
+  val PtThreeLevelArrayEnc = ParquetType[RecordWithListPrimitive](new MagnolifyParquetProperties {
+    override def writeArrayEncoding: ArrayEncoding = ThreeLevelArray
+  })
+}
+
 class SchemaSuite extends MagnolifySuite {
+  import SchemaSuite._
 
   private val schemaNoListFields = MessageTypeParser.parseMessageType(
     """message Record {
@@ -31,149 +52,80 @@ class SchemaSuite extends MagnolifySuite {
       |}""".stripMargin
   )
 
-  private val threeLevelListSchema = MessageTypeParser.parseMessageType(
-    """message Record {
-      |  required group nestedGroup {
-      |    required group listField (LIST) {
-      |      repeated group list {
-      |        required int32 element (INTEGER(32,true));
-      |      }
-      |    }
-      |  }
-      |}""".stripMargin
-  )
-
-  private val threeLevelOptionalListSchema = MessageTypeParser.parseMessageType(
-    """message Record {
-      |  required group nestedGroup {
-      |    optional group listField (LIST) {
-      |      repeated group list {
-      |        required int32 element (INTEGER(32,true));
-      |      }
-      |    }
-      |  }
-      |}""".stripMargin
-  )
-
-  private val threeLevelArraySchema = MessageTypeParser.parseMessageType(
-    """message Record {
-      |  required group nestedGroup {
-      |    required group listField (LIST) {
-      |      repeated group array {
-      |        required int32 element (INTEGER(32,true));
-      |      }
-      |    }
-      |  }
-      |}""".stripMargin
-  )
-
-  private val threeLevelOptionalArraySchema = MessageTypeParser.parseMessageType(
-    """message Record {
-      |  required group nestedGroup {
-      |    optional group listField (LIST) {
-      |      repeated group array {
-      |        required int32 element (INTEGER(32,true));
-      |      }
-      |    }
-      |  }
-      |}""".stripMargin
-  )
-
-  private val ungroupedSchema = MessageTypeParser.parseMessageType(
-    """message Record {
-      |  required group nestedGroup {
-      |    repeated int32 listField (INTEGER(32,true));
-      |  }
-      |}""".stripMargin
-  )
-
-  private val primitiveSchema = MessageTypeParser.parseMessageType(
-    """message Record {
-      |  required int32 listField (INTEGER(32,true));
-      |}""".stripMargin
-  )
-
-  private val mapSchema = MessageTypeParser.parseMessageType(
-    """message Record {
-      |  required group my_map (MAP) {
-      |    repeated group key_value {
-      |      required binary key (STRING);
-      |      optional int32 value;
-      |    }
-      |  }
-      |}""".stripMargin
-  )
-
   test("checkCompatibility: 3-level list writer compatible with 3-level list reader") {
-    Schema.checkCompatibility(threeLevelListSchema, threeLevelListSchema)
+    Schema.checkCompatibility(PtThreeLevelListEnc.schema, PtThreeLevelListEnc.schema)
   }
 
   test("checkCompatibility: 3-level array writer compatible with 3-level array reader") {
-    Schema.checkCompatibility(threeLevelArraySchema, threeLevelArraySchema)
+    Schema.checkCompatibility(PtThreeLevelArrayEnc.schema, PtThreeLevelArrayEnc.schema)
   }
 
   test("checkCompatibility: 3-level list writer incompatible with 3-level array reader") {
     intercept[InvalidRecordException] {
-      Schema.checkCompatibility(threeLevelListSchema, threeLevelArraySchema)
+      Schema.checkCompatibility(PtThreeLevelListEnc.schema, PtThreeLevelArrayEnc.schema)
+    }
+  }
+
+  test("checkCompatibility: 3-level list writer incompatible with ungrouped reader") {
+    intercept[InvalidRecordException] {
+      Schema.checkCompatibility(PtThreeLevelListEnc.schema, PtUngroupedList.schema)
     }
   }
 
   test("checkCompatibility: 3-level array writer incompatible with 3-level list reader") {
     intercept[InvalidRecordException] {
-      Schema.checkCompatibility(threeLevelArraySchema, threeLevelListSchema)
+      Schema.checkCompatibility(PtThreeLevelArrayEnc.schema, PtThreeLevelListEnc.schema)
+    }
+  }
+
+  test("checkCompatibility: 3-level array writer incompatible with 3-level list reader") {
+    intercept[InvalidRecordException] {
+      Schema.checkCompatibility(PtThreeLevelArrayEnc.schema, PtUngroupedList.schema)
     }
   }
 
   test("checkCompatibility: ungrouped writer incompatible with 3-level list reader") {
     intercept[InvalidRecordException] {
-      Schema.checkCompatibility(ungroupedSchema, threeLevelListSchema)
+      Schema.checkCompatibility(PtUngroupedList.schema, PtThreeLevelListEnc.schema)
     }
   }
 
   test("checkCompatibility: ungrouped writer incompatible with 3-level array reader") {
     intercept[InvalidRecordException] {
-      Schema.checkCompatibility(ungroupedSchema, threeLevelArraySchema)
+      Schema.checkCompatibility(PtUngroupedList.schema, PtThreeLevelArrayEnc.schema)
     }
   }
 
   test("checkCompatibility: primitive schemas are compatible") {
-    Schema.checkCompatibility(primitiveSchema, primitiveSchema)
+    Schema.checkCompatibility(PtUngroupedList.schema, PtUngroupedList.schema)
   }
 
-  test("checkCompatibility: reader with 3 level list field not in writer is not compatible") {
-    val e = intercept[InvalidRecordException] {
-      Schema.checkCompatibility(schemaNoListFields, threeLevelListSchema)
-    }
-    assert(e.getMessage.contains("is not present in written file schema"))
+  test("checkCompatibility: reader with 3 level list field not in writer is compatible") {
+    Schema.checkCompatibility(schemaNoListFields, PtThreeLevelListEnc.schema)
   }
 
-  test("checkCompatibility: reader with 3 level array field not in writer is not compatible") {
-    val e = intercept[InvalidRecordException] {
-      Schema.checkCompatibility(schemaNoListFields, threeLevelArraySchema)
-    }
-    assert(e.getMessage.contains("is not present in written file schema"))
+  test("checkCompatibility: reader with 3 level array field not in writer is compatible") {
+    Schema.checkCompatibility(schemaNoListFields, PtThreeLevelArrayEnc.schema)
   }
 
-  test("checkCompatibility: reader with 3 level optional list field not in writer is compatible") {
-    Schema.checkCompatibility(schemaNoListFields, threeLevelOptionalListSchema)
+  test("checkCompatibility: reader with ungrouped list field not in writer is compatible") {
+    Schema.checkCompatibility(schemaNoListFields, PtUngroupedList.schema)
   }
 
-  test("checkCompatibility: reader with 3 level optional array field not in writer is compatible") {
-    Schema.checkCompatibility(schemaNoListFields, threeLevelOptionalArraySchema)
-  }
-
-  test("checkCompatibility: reader with map field not in writer is not compatible") {
-    val e = intercept[InvalidRecordException] {
-      Schema.checkCompatibility(schemaNoListFields, mapSchema)
-    }
-    assert(e.getMessage.contains("is not present in written file schema"))
-  }
-
-  test("checkCompatibility: reader with ungrouped list field not in writer is not compatible") {
-    val e = intercept[InvalidRecordException] {
-      Schema.checkCompatibility(schemaNoListFields, ungroupedSchema)
-    }
-    assert(e.getMessage.contains("is not present in written file schema"))
+  test("checkCompatibility: reader with map field not in writer is compatible") {
+    Schema.checkCompatibility(
+      schemaNoListFields,
+      MessageTypeParser.parseMessageType(
+        """message Record {
+        |  required group my_map (MAP) {
+        |    repeated group key_value {
+        |      required binary key (STRING);
+        |      optional int32 value;
+        |    }
+        |  }
+        |}""".stripMargin
+      )
+    )
   }
 
   test("checkCompatibility: reader with optional field not in writer is compatible") {

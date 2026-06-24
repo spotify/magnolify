@@ -99,6 +99,9 @@ private object Schema {
     def listFields(gt: GroupType) =
       s"[${gt.getFields.asScala.map(f => s"${f.getName}: ${f.getRepetition}").mkString(",")}]"
 
+    def isRepeatedType(lta: LogicalTypeAnnotation): Boolean =
+      lta == LogicalTypeAnnotation.listType() || lta == LogicalTypeAnnotation.mapType()
+
     def isRepetitionBackwardCompatible(w: Type, r: Type) =
       (w.getRepetition, r.getRepetition) match {
         case (Repetition.REQUIRED, Repetition.OPTIONAL) => true
@@ -122,17 +125,27 @@ private object Schema {
             val wf = wg.getType(rf.getName)
             checkCompatibility(wf, rf)
           } else {
-            rf.getRepetition match {
-              case Repetition.OPTIONAL =>
-                logger.warn(
-                  s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema " +
-                    s"and will be evaluated as `Option.empty`. Available fields are: ${listFields(wg)}"
-                )
-              case _ =>
-                throw new InvalidRecordException(
-                  s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema. " +
-                    s"Available fields are: ${listFields(wg)}"
-                )
+            // Check if parent is a grouped list type; the child elements must match exactly,
+            // otherwise reader and writer schema are using different list encodings
+            if (Option(rg.getLogicalTypeAnnotation).exists(isRepeatedType)) {
+              throw new InvalidRecordException(
+                s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema. " +
+                  s"Writer schema may be using a different list encoding; see https://spotify.github.io/magnolify/parquet.html#list-encodings."
+              )
+            } else if (
+              rf.getRepetition == Repetition.OPTIONAL ||
+              (rf.isPrimitive && rf.getRepetition == Repetition.REPEATED) ||
+              (!rf.isPrimitive && Option(rf.getLogicalTypeAnnotation).exists(isRepeatedType))
+            ) {
+              logger.warn(
+                s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema " +
+                  s"and will be evaluated as empty. Available fields are: ${listFields(wg)}"
+              )
+            } else {
+              throw new InvalidRecordException(
+                s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema. " +
+                  s"Available fields are: ${listFields(wg)}"
+              )
             }
           }
         }
