@@ -34,6 +34,7 @@ import org.apache.parquet.schema.MessageType
 import org.slf4j.LoggerFactory
 
 import scala.annotation.nowarn
+import scala.util.{Failure, Success, Try}
 
 sealed trait ParquetArray
 
@@ -92,6 +93,7 @@ sealed trait ParquetType[T] extends Serializable {
   def writeBuilder(file: OutputFile): WriteBuilder[T] = new WriteBuilder(file, writeSupport)
 
   private[parquet] def properties: MagnolifyParquetProperties
+  private[parquet] def updateProperties(newProps: MagnolifyParquetProperties): ParquetType[T]
 
   private[parquet] def write(c: RecordConsumer, v: T): Unit = ()
   private[parquet] def newConverter(): TypeConverter[T] = null
@@ -167,6 +169,9 @@ object ParquetType {
 
         override private[parquet] def properties: MagnolifyParquetProperties =
           propertiesWithAvroImportCompat
+        override private[parquet] def updateProperties(
+          newProps: MagnolifyParquetProperties
+        ): ParquetType[T] = ParquetType[T](cm, newProps)(f, pa)
         override def write(c: RecordConsumer, v: T): Unit =
           r.write(c, v)(cm, propertiesWithAvroImportCompat)
         override private[parquet] def newConverter(): TypeConverter[T] =
@@ -178,6 +183,8 @@ object ParquetType {
 
   val ReadTypeKey = "parquet.type.read.type"
   val WriteTypeKey = "parquet.type.write.type"
+
+  val AutoDetectListEncoding = "parquet.type.read.auto-detect-list-encoding"
 
   class ReadBuilder[T](file: InputFile, val readSupport: ReadSupport[T])
       extends ParquetReader.Builder[T](file) {
@@ -205,9 +212,34 @@ object ParquetType {
       }
 
       val writeSchema = context.getFileSchema
-      val readSchema = Schema.message(parquetType.schema)
 
-      Schema.checkCompatibility(writeSchema, readSchema)
+      val readSchema = {
+        val typeclassSchema = Schema.message(parquetType.schema)
+
+        Try(Schema.checkCompatibility(writeSchema, typeclassSchema)) match {
+          case Success(_) => typeclassSchema
+          // Try to auto-infer list encoding if configuration option is set
+          case Failure(_)
+              if context.getParquetConfiguration.getBoolean(AutoDetectListEncoding, false) =>
+            Schema.detectArrayEncoding(writeSchema).foreach { encoding =>
+              val currentProps = parquetType.properties
+              if (encoding != currentProps.writeArrayEncoding) {
+                this.parquetType = parquetType.updateProperties(new MagnolifyParquetProperties {
+                  override def writeArrayEncoding: ArrayEncoding = encoding
+
+                  override def writeAvroSchemaToMetadata: Boolean =
+                    currentProps.writeAvroSchemaToMetadata
+                })
+              }
+            }
+
+            val schemaWithListInference = Schema.message(parquetType.schema)
+            Schema.checkCompatibility(writeSchema, schemaWithListInference)
+            schemaWithListInference
+          case Failure(e) => throw e
+        }
+      }
+
       new hadoop.ReadSupport.ReadContext(readSchema)
     }
 
