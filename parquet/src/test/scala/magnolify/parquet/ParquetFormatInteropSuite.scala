@@ -18,7 +18,6 @@ package magnolify.parquet
 
 import cats.Eq
 import magnolify.test.MagnolifySuite
-import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.apache.hadoop.conf.Configuration
 import org.apache.parquet.avro.{
@@ -39,11 +38,11 @@ import java.io.File
 import java.nio.file.Files
 import scala.jdk.CollectionConverters.*
 
-case class Nested(i: String)
-case class TestRecordCompat(a: Int, b: List[String], c: List[Nested], d: Map[String, String])
+case class NestedElement(i: String)
+case class TestRecordCompat(a: Int, b: List[String], c: List[NestedElement], d: Map[String, String])
 
 class ParquetFormatInteropSuite extends MagnolifySuite {
-  val AvroSchema = new Schema.Parser().parse(s"""|{
+  val AvroSchema = new org.apache.avro.Schema.Parser().parse(s"""|{
                                                  |  "type":"record",
                                                  |  "name":"TestRecordCompat",
                                                  |  "namespace":"magnolify.parquet",
@@ -62,7 +61,7 @@ class ParquetFormatInteropSuite extends MagnolifySuite {
     TestRecordCompat(
       i,
       List(i, i * 2).map(_.toString),
-      List(Nested(i.toString)),
+      List(NestedElement(i.toString)),
       Map("x" -> i.toString)
     )
   }
