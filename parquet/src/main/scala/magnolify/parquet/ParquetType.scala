@@ -159,7 +159,25 @@ object ParquetType {
           Schema.message(r.schema(cm, propertiesWithAvroImportCompat))
 
         @transient override def avroSchema: AvroSchema = {
-          val s = new AvroSchemaConverter().convert(schema)
+          // `parquet.avro.schema` string should not contain the `element` wrapper schemas that
+          // `ArrayEncoding.ThreeLevelList` adds to native Parquet schema
+          val avroCompatSchema =
+            if (
+              propertiesWithAvroImportCompat.writeArrayEncoding == ArrayEncoding.ThreeLevelArray
+            ) {
+              schema
+            } else {
+              Schema.message(
+                r.schema(
+                  cm,
+                  new MagnolifyParquetProperties {
+                    override def writeArrayEncoding: ArrayEncoding = ArrayEncoding.ThreeLevelArray
+                  }
+                )
+              )
+            }
+
+          val s = new AvroSchemaConverter().convert(avroCompatSchema)
           // add doc to avro schema
           val fieldDocs = f.fieldDocs(cm)
           SchemaUtil.deepCopy(s, f.typeDoc, fieldDocs.get)
