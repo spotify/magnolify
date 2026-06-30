@@ -173,7 +173,7 @@ spotify/magnolify
 <ul style="display: none">
 <li class="md-nav__item md-version" id="project.version">
 <label class="md-nav__link" for="__version">
-<i class="md-icon" title="Version">label_outline</i> 0.9.4
+<i class="md-icon" title="Version">label_outline</i> 0.9.5
 </label>
 </li>
 </ul>
@@ -328,7 +328,7 @@ case class RecordWithList(listField: List[String])
 
 @scala.annotation.nowarn(&quot;cat=deprecation&quot;)
 val pt = ParquetType[RecordWithList]
-// pt: ParquetType[RecordWithList] = magnolify.parquet.ParquetType$$anon$2@26da77a0
+// pt: ParquetType[RecordWithList] = magnolify.parquet.ParquetType$$anon$2@23e5a1aa
 
 // Schema uses old list encoding
 pt.schema
@@ -355,7 +355,7 @@ case class RecordWithList(listField: List[String])
 implicit val pt = ParquetType[RecordWithList](new MagnolifyParquetProperties {
   override def writeArrayEncoding: ArrayEncoding = ArrayEncoding.ThreeLevelList
 })
-// pt: ParquetType[RecordWithList] = magnolify.parquet.ParquetType$$anon$2@1e828ce0
+// pt: ParquetType[RecordWithList] = magnolify.parquet.ParquetType$$anon$2@486eb744
 
 // Check that the converted Avro schema uses modern 3-level encoding
 pt.schema
@@ -413,7 +413,7 @@ case class MyRecord(@doc(&quot;field annotation&quot;) listField: List[Int])
 val writer = ParquetType[MyRecord]
   .writeBuilder(HadoopOutputFile.fromPath(path, new Configuration()))
   .build()
-// writer: org.apache.parquet.hadoop.ParquetWriter[MyRecord] = org.apache.parquet.hadoop.ParquetWriter@7937d5bf
+// writer: org.apache.parquet.hadoop.ParquetWriter[MyRecord] = org.apache.parquet.hadoop.ParquetWriter@68315a28
 writer.write(MyRecord(List(1,2,3)))
 writer.close()
 
@@ -422,7 +422,7 @@ ParquetFileReader.open(HadoopInputFile.fromPath(path, new Configuration())).getF
 // res16: org.apache.parquet.hadoop.metadata.FileMetaData = FileMetaData{schema: message repl.MdocSession.MdocApp13.MyRecord {
 //   repeated int32 listField (INTEGER(32,true));
 // }
-// , metadata: {parquet.avro.schema={&quot;type&quot;:&quot;record&quot;,&quot;name&quot;:&quot;MyRecord&quot;,&quot;namespace&quot;:&quot;repl.MdocSession.MdocApp13&quot;,&quot;doc&quot;:&quot;Top level annotation&quot;,&quot;fields&quot;:[{&quot;name&quot;:&quot;listField&quot;,&quot;type&quot;:{&quot;type&quot;:&quot;array&quot;,&quot;items&quot;:&quot;int&quot;},&quot;doc&quot;:&quot;field annotation&quot;,&quot;default&quot;:[]}]}, writer.model.name=magnolify}}
+// , metadata: {parquet.avro.schema={&quot;type&quot;:&quot;record&quot;,&quot;name&quot;:&quot;MyRecord&quot;,&quot;namespace&quot;:&quot;repl.MdocSession.MdocApp13&quot;,&quot;doc&quot;:&quot;Top level annotation&quot;,&quot;fields&quot;:[{&quot;name&quot;:&quot;listField&quot;,&quot;type&quot;:{&quot;type&quot;:&quot;array&quot;,&quot;items&quot;:&quot;int&quot;},&quot;doc&quot;:&quot;field annotation&quot;}]}, writer.model.name=magnolify}}
 </code></pre>
 <p>Note: On Magnolify &lt; 0.8, you must enable <a href="#parquet-avro-compatibility-mode">Avro compatibility mode</a> via the <code>AvroCompat</code> import if you&rsquo;re using the <code>@doc</code> annotation with ParquetType, which triggers magnolify-parquet to write a translated Avro schema to the file footer metadata key <code>parquet.avro.schema</code>. Otherwise, your annotations will be essentially thrown out. On Magnolify &gt;= 0.8, this key is written by default.</p>
 </div>
@@ -433,7 +433,7 @@ Edit this page
 </div>
 <div class="print-only">
 <span class="md-source-file md-version">
-0.9.4
+0.9.5
 </span>
 </div>
 </article>
