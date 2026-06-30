@@ -328,7 +328,7 @@ case class RecordWithList(listField: List[String])
 
 @scala.annotation.nowarn(&quot;cat=deprecation&quot;)
 val pt = ParquetType[RecordWithList]
-// pt: ParquetType[RecordWithList] = magnolify.parquet.ParquetType$$anon$2@23e5a1aa
+// pt: ParquetType[RecordWithList] = magnolify.parquet.ParquetType$$anon$2@67cb7d3
 
 // Schema uses old list encoding
 pt.schema
@@ -355,7 +355,7 @@ case class RecordWithList(listField: List[String])
 implicit val pt = ParquetType[RecordWithList](new MagnolifyParquetProperties {
   override def writeArrayEncoding: ArrayEncoding = ArrayEncoding.ThreeLevelList
 })
-// pt: ParquetType[RecordWithList] = magnolify.parquet.ParquetType$$anon$2@486eb744
+// pt: ParquetType[RecordWithList] = magnolify.parquet.ParquetType$$anon$2@359a3622
 
 // Check that the converted Avro schema uses modern 3-level encoding
 pt.schema
@@ -413,7 +413,7 @@ case class MyRecord(@doc(&quot;field annotation&quot;) listField: List[Int])
 val writer = ParquetType[MyRecord]
   .writeBuilder(HadoopOutputFile.fromPath(path, new Configuration()))
   .build()
-// writer: org.apache.parquet.hadoop.ParquetWriter[MyRecord] = org.apache.parquet.hadoop.ParquetWriter@68315a28
+// writer: org.apache.parquet.hadoop.ParquetWriter[MyRecord] = org.apache.parquet.hadoop.ParquetWriter@aec2520
 writer.write(MyRecord(List(1,2,3)))
 writer.close()
 
