@@ -171,7 +171,9 @@ object RowField {
             .build()
 
         override def from(v: Row)(cm: CaseMapper): T =
-          caseClass.construct(p => p.typeclass.fromAny(v.getValue[Any](p.index))(cm))
+          caseClass.construct { p =>
+            p.typeclass.fromAny(v.getValue[Any](cm.map(p.label)))(cm)
+          }
 
         override def to(v: T)(cm: CaseMapper): Row = {
           val values = caseClass.parameters.map { p =>
