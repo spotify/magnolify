@@ -166,7 +166,7 @@ class RowTypeSuite extends MagnolifySuite {
 
     val row = Row
       .withSchema(reorderedSchema)
-      .addValues("foo", 3, true)
+      .addValues("foo", Int.box(3), Boolean.box(true))
       .build()
 
     assertEquals(rt.from(row), Required(b = true, i = 3, s = "foo"))
@@ -200,12 +200,12 @@ class RowTypeSuite extends MagnolifySuite {
 
     val innerRow = Row
       .withSchema(innerSchema)
-      .addValues("inner", 1, false)
+      .addValues("inner", Int.box(1), Boolean.box(false))
       .build()
 
     val row = Row
       .withSchema(outerSchema)
-      .addValues(innerRow, "outer", List[Row]().asJava, true, null, 2)
+      .addValues(innerRow, "outer", List[Row]().asJava, Boolean.box(true), null, Int.box(2))
       .build()
 
     val result = rt.from(row)
