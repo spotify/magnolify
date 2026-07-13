@@ -16,6 +16,8 @@
 
 package magnolify.jmh
 
+import magnolify.parquet.ArrayEncoding.ThreeLevelArray
+
 import java.util.concurrent.TimeUnit
 import magnolify.scalacheck.auto._
 import magnolify.test.Simple._
@@ -107,6 +109,19 @@ class TableRowBench {
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @State(Scope.Thread)
+class RowBench {
+  import magnolify.beam._
+  import org.apache.beam.sdk.values.Row
+  import MagnolifyBench._
+  private val rowType = RowType[Nested]
+  private val row = rowType(nested)
+  @Benchmark def rowTo: Row = rowType(nested)
+  @Benchmark def rowFrom: Nested = rowType(row)
+}
+
+@BenchmarkMode(Array(Mode.AverageTime))
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
+@State(Scope.Thread)
 class BigtableBench {
   import com.google.bigtable.v2.Mutation
   import com.google.protobuf.ByteString
@@ -153,7 +168,7 @@ class ProtobufBench {
 class ExampleBench {
   import magnolify.tensorflow._
   import magnolify.tensorflow.unsafe._
-  import org.tensorflow.proto.example.Example
+  import org.tensorflow.proto.Example
   import MagnolifyBench._
   private val exampleType = ExampleType[ExampleNested]
   private val exampleNested = implicitly[Arbitrary[ExampleNested]].arbitrary(prms, seed).get
@@ -188,7 +203,6 @@ object ParquetStates {
   import MagnolifyBench._
   import magnolify.avro._
   import magnolify.parquet._
-  import magnolify.parquet.ParquetArray.AvroCompat._
   import org.apache.avro.generic.{GenericData, GenericRecord}
   import org.apache.hadoop.conf.Configuration
   import org.apache.parquet.conf.PlainParquetConfiguration
@@ -269,7 +283,9 @@ object ParquetStates {
   }
 
   // R/W support for Group <-> Case Class Conversion (magnolify-parquet)
-  private val parquetType = ParquetType[Nested]
+  private val parquetType = ParquetType[Nested](new MagnolifyParquetProperties {
+    override def writeArrayEncoding: ArrayEncoding = ThreeLevelArray
+  })
   class ParquetCaseClassReadState
       extends ParquetStates.ReadState[Nested](
         parquetType.schema,

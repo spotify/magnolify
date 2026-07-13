@@ -705,6 +705,7 @@ lazy val jmh: Project = project
   .enablePlugins(JmhPlugin)
   .dependsOn(
     avro % Test,
+    beam % Test,
     bigquery % Test,
     bigtable % Test,
     cats % Test,
@@ -726,6 +727,7 @@ lazy val jmh: Project = project
     Jmh / compile := (Jmh / compile).dependsOn(Test / compile).value,
     Jmh / run := (Jmh / run).dependsOn(Jmh / compile).evaluated,
     libraryDependencies ++= Seq(
+      "org.apache.beam" % "beam-sdks-java-core" % beamVersion % Test,
       "com.google.api.grpc" % "proto-google-cloud-bigtable-v2" % bigtableVersion % Test,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
       "com.google.cloud.datastore" % "datastore-v1-proto-client" % datastoreVersion % Test,
