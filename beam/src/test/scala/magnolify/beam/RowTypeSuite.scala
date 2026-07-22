@@ -27,6 +27,7 @@ import magnolify.test.ADT
 import magnolify.test.MagnolifySuite
 import magnolify.test.Simple.*
 import org.apache.beam.sdk.schemas.Schema
+import org.apache.beam.sdk.values.Row
 import org.joda.time as joda
 import org.scalacheck.{Arbitrary, Gen, Prop}
 
@@ -149,6 +150,71 @@ class RowTypeSuite extends MagnolifySuite {
   {
     import magnolify.beam.logical.sql.*
     test[Sql]
+  }
+
+  test("RowType#from handles Row when writer and reader schema fields are in a different order") {
+    val rt = RowType[Required]
+
+    // Required case class field order: b (BOOLEAN), i (INT32), s (STRING)
+    // Build a Row with fields in a different order: s, i, b
+    val reorderedSchema = Schema
+      .builder()
+      .addField("s", Schema.FieldType.STRING)
+      .addField("i", Schema.FieldType.INT32)
+      .addField("b", Schema.FieldType.BOOLEAN)
+      .build()
+
+    val row = Row
+      .withSchema(reorderedSchema)
+      .addValues("foo", Int.box(3), Boolean.box(true))
+      .build()
+
+    assertEquals(rt.from(row), Required(b = true, i = 3, s = "foo"))
+  }
+
+  test(
+    "RowType#from handles Row when nested writer and reader schema fields are in a different order"
+  ) {
+    val rt = RowType[Nested]
+
+    // Build inner Required schema in reverse order: s, i, b
+    val innerSchema = Schema
+      .builder()
+      .addField("s", Schema.FieldType.STRING)
+      .addField("i", Schema.FieldType.INT32)
+      .addField("b", Schema.FieldType.BOOLEAN)
+      .build()
+
+    // Build outer Nested schema in a different order than the case class
+    // Case class order: b, i, s, r, o, l
+    // Reordered:        r, s, l, b, o, i
+    val outerSchema = Schema
+      .builder()
+      .addField("r", Schema.FieldType.row(innerSchema))
+      .addField("s", Schema.FieldType.STRING)
+      .addField("l", Schema.FieldType.iterable(Schema.FieldType.row(innerSchema)))
+      .addField("b", Schema.FieldType.BOOLEAN)
+      .addField("o", Schema.FieldType.row(innerSchema).withNullable(true))
+      .addField("i", Schema.FieldType.INT32)
+      .build()
+
+    val innerRow = Row
+      .withSchema(innerSchema)
+      .addValues("inner", Int.box(1), Boolean.box(false))
+      .build()
+
+    val row = Row
+      .withSchema(outerSchema)
+      .addValues(innerRow, "outer", List[Row]().asJava, Boolean.box(true), null, Int.box(2))
+      .build()
+
+    val result = rt.from(row)
+    assertEquals(result.b, true)
+    assertEquals(result.i, 2)
+    assertEquals(result.s, "outer")
+    assertEquals(result.r, Required(b = false, i = 1, s = "inner"))
+    assertEquals(result.o, None)
+    assertEquals(result.l, List.empty[Required])
   }
 }
 

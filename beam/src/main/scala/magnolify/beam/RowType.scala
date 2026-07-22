@@ -161,6 +161,8 @@ object RowField {
       }
     } else {
       new Record[T] {
+        @transient @volatile private var cachedFieldIndices: (ju.UUID, Array[Int]) = _
+
         override def fieldType(cm: CaseMapper): FieldType = FieldType.row(schema(cm))
 
         override protected def buildSchema(cm: CaseMapper): Schema =
@@ -170,8 +172,20 @@ object RowField {
             }
             .build()
 
-        override def from(v: Row)(cm: CaseMapper): T =
-          caseClass.construct(p => p.typeclass.fromAny(v.getValue[Any](p.index))(cm))
+        override def from(v: Row)(cm: CaseMapper): T = {
+          val cached = cachedFieldIndices
+          val indices =
+            if (cached != null && cached._1 == cm.uuid) cached._2
+            else {
+              val arr =
+                caseClass.parameters.map(p => v.getSchema.indexOf(cm.map(p.label))).toArray
+              cachedFieldIndices = (cm.uuid, arr)
+              arr
+            }
+          caseClass.construct { p =>
+            p.typeclass.fromAny(v.getValue[Any](indices(p.index)))(cm)
+          }
+        }
 
         override def to(v: T)(cm: CaseMapper): Row = {
           val values = caseClass.parameters.map { p =>
