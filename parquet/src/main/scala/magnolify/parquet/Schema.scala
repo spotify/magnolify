@@ -164,7 +164,7 @@ private object Schema {
                 r: LogicalTypeAnnotation.TimestampLogicalTypeAnnotation
               ) if w.getUnit != r.getUnit =>
             throw new InvalidRecordException(
-              s"Writer and reader timestamp types do not match for field `${reader.getName}`: " +
+              s"Writer and reader Timestamp schemas do not match for field `${reader.getName}`: " +
                 s"writer is `$w` but reader is `$r`"
             )
           case (
@@ -172,7 +172,7 @@ private object Schema {
                 r: LogicalTypeAnnotation.TimeLogicalTypeAnnotation
               ) if w.getUnit != r.getUnit =>
             throw new InvalidRecordException(
-              s"Writer and reader Time types do not match for field `${reader.getName}`: " +
+              s"Writer and reader Time schemas do not match for field `${reader.getName}`: " +
                 s"writer is `$w` but reader is `$r`"
             )
           case _ =>
