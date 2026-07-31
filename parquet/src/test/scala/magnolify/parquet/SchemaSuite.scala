@@ -160,4 +160,107 @@ class SchemaSuite extends MagnolifySuite {
     }
     assert(e.getMessage.contains("not present"))
   }
+
+  test("checkCompatibility: timestamp millis writer incompatible with micros reader") {
+    val writer = MessageTypeParser.parseMessageType(
+      """message Record {
+        |  required int64 ts (TIMESTAMP(MILLIS,true));
+        |}""".stripMargin
+    )
+    val reader = MessageTypeParser.parseMessageType(
+      """message Record {
+        |  required int64 ts (TIMESTAMP(MICROS,true));
+        |}""".stripMargin
+    )
+    val e = intercept[InvalidRecordException] {
+      Schema.checkCompatibility(writer, reader)
+    }
+    assert(e.getMessage.contains("timestamp types do not match"))
+  }
+
+  test("checkCompatibility: timestamp micros writer incompatible with millis reader") {
+    val writer = MessageTypeParser.parseMessageType(
+      """message Record {
+        |  required int64 ts (TIMESTAMP(MICROS,true));
+        |}""".stripMargin
+    )
+    val reader = MessageTypeParser.parseMessageType(
+      """message Record {
+        |  required int64 ts (TIMESTAMP(MILLIS,true));
+        |}""".stripMargin
+    )
+    val e = intercept[InvalidRecordException] {
+      Schema.checkCompatibility(writer, reader)
+    }
+    assert(e.getMessage.contains("timestamp types do not match"))
+  }
+
+  test("checkCompatibility: timestamp micros writer incompatible with nanos reader") {
+    val writer = MessageTypeParser.parseMessageType(
+      """message Record {
+        |  required int64 ts (TIMESTAMP(MICROS,true));
+        |}""".stripMargin
+    )
+    val reader = MessageTypeParser.parseMessageType(
+      """message Record {
+        |  required int64 ts (TIMESTAMP(NANOS,true));
+        |}""".stripMargin
+    )
+    val e = intercept[InvalidRecordException] {
+      Schema.checkCompatibility(writer, reader)
+    }
+    assert(e.getMessage.contains("timestamp types do not match"))
+  }
+
+  test("checkCompatibility: timestamp with matching logical types is compatible") {
+    val writer = MessageTypeParser.parseMessageType(
+      """message Record {
+        |  required int64 ts (TIMESTAMP(MICROS,true));
+        |}""".stripMargin
+    )
+    val reader = MessageTypeParser.parseMessageType(
+      """message Record {
+        |  required int64 ts (TIMESTAMP(MICROS,true));
+        |}""".stripMargin
+    )
+    Schema.checkCompatibility(writer, reader)
+  }
+
+  test("checkCompatibility: time micros writer incompatible with nanos reader") {
+    val writer = MessageTypeParser.parseMessageType(
+      """message Record {
+        |  required int64 t (TIME(MICROS,false));
+        |}""".stripMargin
+    )
+    val reader = MessageTypeParser.parseMessageType(
+      """message Record {
+        |  required int64 t (TIME(NANOS,false));
+        |}""".stripMargin
+    )
+    val e = intercept[InvalidRecordException] {
+      Schema.checkCompatibility(writer, reader)
+    }
+    assert(e.getMessage.contains("Time types do not match"))
+  }
+
+  test("checkCompatibility: nested timestamp millis writer incompatible with micros reader") {
+    val writer = MessageTypeParser.parseMessageType(
+      """message Record {
+        |  required group inner {
+        |    required int64 ts (TIMESTAMP(MILLIS,true));
+        |  }
+        |}""".stripMargin
+    )
+    val reader = MessageTypeParser.parseMessageType(
+      """message Record {
+        |  required group inner {
+        |    required int64 ts (TIMESTAMP(MICROS,true));
+        |  }
+        |}""".stripMargin
+    )
+    val e = intercept[InvalidRecordException] {
+      Schema.checkCompatibility(writer, reader)
+    }
+    assert(e.getMessage.contains("timestamp types do not match"))
+  }
 }
