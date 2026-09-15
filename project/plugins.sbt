@@ -1,5 +1,5 @@
 addSbtPlugin("com.github.sbt" % "sbt-ghpages" % "0.9.0")
-addSbtPlugin("com.github.sbt" % "sbt-site-paradox" % "1.7.0")
+addSbtPlugin("com.github.sbt" % "sbt-site-paradox" % "1.8.0")
 addSbtPlugin("com.github.sbt" % "sbt-unidoc" % "0.6.1")
 addSbtPlugin("com.lightbend.sbt" % "sbt-bill-of-materials" % "1.0.2")
 addSbtPlugin("com.lightbend.paradox" % "sbt-paradox" % "0.10.7")
