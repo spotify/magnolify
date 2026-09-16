@@ -81,8 +81,9 @@ package object logical {
    * making it the right choice for Iceberg — unless the pipeline pins
    * `--updateCompatibilityVersion` below 2.76.0, in which case see [[legacy.millis]].
    *
-   * Not writable to BigQuery or via the Avro extension, which require precision 9; use [[nanos]]
-   * there. No single precision object satisfies both Iceberg and BigQuery — see [[legacy]].
+   * Not writable via Beam's BigQueryIO or Avro extension, which require precision 9; use [[nanos]]
+   * there. No single precision object satisfies both — see [[legacy]]. (This concerns Beam's own
+   * BigQueryIO on `Row`; magnolify's `bigquery` module converts to `TableRow` and is unaffected.)
    *
    * Prior to 0.10 this mapped to a raw `INT64` of microseconds since epoch; see [[legacy.micros]].
    */

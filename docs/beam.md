@@ -42,20 +42,24 @@ Where possible, Beam logical types are used and joda types defer to the java.tim
 
 Beam's `MicrosInstant` should not be used as it throws exceptions when presented with greater-than-microsecond precision data. `Timestamp.MICROS` is the safe equivalent.
 
-### Choosing a precision: which IOs accept which
+### Choosing a precision: which Beam IOs accept which
 
-Beam IOs that validate `Timestamp` precision do not agree on one, so the precision you import determines which IOs you can write to. As of Beam 2.76.0:
+**Scope:** this section is about **Beam's own IOs consuming a `PCollection<Row>`** — that is, where the output of `RowType[T]` ends up. It says nothing about the IOs of frameworks built on Beam, which may share a name but not a code path. In Scio, for instance, only `IcebergIO`/`ManagedIO` take Beam `Row`s; its `BigQueryIO` and `AvroIO` route through magnolify's `bigquery` and `avro` modules, which target `TableRow` and `GenericRecord` directly, never a Beam `Schema`, and are unaffected by anything below.
 
-| | IcebergIO | BigQueryIO | Avro extension |
+Beam IOs that validate `Timestamp` precision do not agree on one, so the precision you import determines which of them you can write to. As of Beam 2.76.0:
+
+| | Beam `IcebergIO` | Beam `BigQueryIO` | Beam Avro extension |
 |---|---|---|---|
 | `millis` (`Timestamp.MILLIS`, precision 3) | ✗ | ✗ | ✗ |
 | `micros` (`Timestamp.MICROS`, precision 6) | **✓** | ✗ | ✗ |
 | `nanos` (`Timestamp.NANOS`, precision 9) | ✗ | **✓** | **✓** |
 | `legacy.*` (`DATETIME`) | ✓ | ✓ | ✓ |
 
-IcebergIO requires precision 6 and throws `UnsupportedOperationException` otherwise; BigQueryIO and Beam's Avro extension require precision 9 and throw `IllegalArgumentException`/`RuntimeException` otherwise.
+`IcebergIO` requires precision 6 and throws `UnsupportedOperationException` otherwise (`IcebergUtils.java:227-234`); `BigQueryIO` and the Avro extension require precision 9 and throw `IllegalArgumentException`/`RuntimeException` otherwise (`BigQueryUtils.java:593-596`, `BeamRowToStorageApiProto.java:257-260`, `AvroUtils.java:1229-1232`).
 
-Note the consequence: **no single precision object is writable to both Iceberg and BigQuery.** Before 0.10, `millis` mapped `Instant` to `DATETIME`, which all of them accept, so one import served every destination. If you need one record type to reach both, either keep `legacy.*` or define per-destination `RowType`s.
+Note the consequence: **no single precision object is writable to both Beam's `IcebergIO` and its `BigQueryIO`.** Before 0.10, `millis` mapped `Instant` to `DATETIME`, which all of them accept, so one import served every destination. If you need one record type to reach both, either keep `legacy.*` or define per-destination `RowType`s.
+
+The Avro row is about `beam-sdks-java-extensions-avro` converting a Beam `Schema` to an Avro `Schema`. If you want Avro output from a case class, use magnolify's `avro` module instead — it has no Beam dependency and none of these constraints.
 
 ### Reading
 
