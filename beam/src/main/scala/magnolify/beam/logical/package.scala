@@ -18,11 +18,12 @@ package magnolify.beam
 
 import org.apache.beam.sdk.schemas.logicaltypes
 import org.apache.beam.sdk.schemas.Schema.FieldType
-import org.apache.beam.sdk.schemas.logicaltypes.SqlTypes
+import org.apache.beam.sdk.schemas.logicaltypes.{SqlTypes, Timestamp}
 import org.joda.time as joda
 import org.joda.time.chrono.ISOChronology
 
 import java.time as jt
+import java.time.temporal.ChronoUnit
 
 package object logical {
   import magnolify.shared.Time._
@@ -34,104 +35,132 @@ package object logical {
       RowField.from[jt.LocalDate](localDateToJodaLocalDate)(jodaLocalDateToLocalDate)
   }
 
-  object millis {
-    implicit lazy val rfInstantMillis: RowField[jt.Instant] =
-      RowField.from[joda.Instant](i => millisToInstant(millisFromJodaInstant(i)))(i =>
-        millisToJodaInstant(millisFromInstant(i))
-      )
-    implicit val rfJodaInstantMillis: RowField[joda.Instant] =
-      RowField.id[joda.Instant](_ => FieldType.DATETIME)
-    implicit val rfJodaDateTimeMillis: RowField[joda.DateTime] =
-      RowField.from[joda.Instant](_.toDateTime(ISOChronology.getInstanceUTC))(_.toInstant)
-
-    implicit val rfLocalTimeMillis: RowField[jt.LocalTime] =
-      RowField.from[Int](millisToLocalTime)(millisFromLocalTime)
-    implicit val rfJodaLocalTimeMillis: RowField[joda.LocalTime] =
-      RowField.from[Int](millisToJodaLocalTime)(millisFromJodaLocalTime)
-
-    implicit val rfLocalDateTimeMillis: RowField[jt.LocalDateTime] =
-      RowField.id[jt.LocalDateTime](_ => FieldType.logicalType(new logicaltypes.DateTime()))
-    implicit val rfJodaLocalDateTimeMillis: RowField[joda.LocalDateTime] =
-      RowField.from[jt.LocalDateTime](ldt =>
-        millisToJodaLocalDateTime(millisFromLocalDateTime(ldt))
-      )(ldt => millisToLocalDateTime(millisFromJodaLocalDateTime(ldt)))
-
-    implicit val rfDurationMillis: RowField[jt.Duration] =
-      RowField.from[Long](millisToDuration)(millisFromDuration)
-    implicit val rfJodaDurationMillis: RowField[joda.Duration] =
-      RowField.from[Long](millisToJodaDuration)(millisFromJodaDuration)
+  // Timestamp#toBaseType throws when an instant carries finer precision than the type
+  // declares, so writes truncate instead. Excess precision is discarded, matching the
+  // behavior of the non-instant mappings at each precision.
+  private def tsInstant(ts: Timestamp, unit: ChronoUnit): RowField[jt.Instant] = {
+    implicit val base: RowField[jt.Instant] =
+      RowField.id[jt.Instant](_ => FieldType.logicalType(ts))
+    RowField.from[jt.Instant](identity)(_.truncatedTo(unit))
   }
 
-  object micros {
-    // NOTE: logicaltypes.MicrosInstant() cannot be used as it throws assertion
-    // errors when greater-than-microsecond precision data is used
-    implicit val rfInstantMicros: RowField[jt.Instant] =
-      RowField.from[Long](microsToInstant)(microsFromInstant)
+  /**
+   * Millisecond-precision temporal mappings.
+   *
+   * `Instant` maps to Beam's portable `Timestamp.MILLIS` logical type. Prior to 0.10 it mapped to
+   * `FieldType.DATETIME`, which is backed by `org.joda.time.Instant`; see [[legacy.millis]].
+   */
+  object millis extends MillisNonInstant {
+    implicit lazy val rfInstantMillis: RowField[jt.Instant] =
+      tsInstant(Timestamp.MILLIS, ChronoUnit.MILLIS)
+    implicit val rfJodaInstantMillis: RowField[joda.Instant] =
+      RowField.from[jt.Instant](i => millisToJodaInstant(millisFromInstant(i)))(i =>
+        millisToInstant(millisFromJodaInstant(i))
+      )(rfInstantMillis)
+    implicit val rfJodaDateTimeMillis: RowField[joda.DateTime] =
+      RowField.from[joda.Instant](_.toDateTime(ISOChronology.getInstanceUTC))(_.toInstant)(
+        rfJodaInstantMillis
+      )
+  }
+
+  /**
+   * Microsecond-precision temporal mappings.
+   *
+   * `Instant` maps to Beam's portable `Timestamp.MICROS` logical type. This is the encoding
+   * IcebergIO produces for `timestamptz` as of Beam 2.76.0. Prior to 0.10 it mapped to a raw
+   * `INT64` of microseconds since epoch; see [[legacy.micros]].
+   */
+  object micros extends MicrosNonInstant {
+    implicit lazy val rfInstantMicros: RowField[jt.Instant] =
+      tsInstant(Timestamp.MICROS, ChronoUnit.MICROS)
     // joda.Instant has millisecond precision, excess precision discarded
     implicit val rfJodaInstantMicros: RowField[joda.Instant] =
-      RowField.from[Long](microsToJodaInstant)(microsFromJodaInstant)
+      RowField.from[jt.Instant](i => microsToJodaInstant(microsFromInstant(i)))(i =>
+        microsToInstant(microsFromJodaInstant(i))
+      )(rfInstantMicros)
     // joda.DateTime only has millisecond resolution, so excess precision is discarded
     implicit val rfJodaDateTimeMicros: RowField[joda.DateTime] =
-      RowField.from[Long](microsToJodaDateTime)(microsFromJodaDateTime)
-
-    implicit val rfLocalTimeMicros: RowField[jt.LocalTime] =
-      RowField.from[Long](microsToLocalTime)(microsFromLocalTime)
-    // joda.LocalTime only has millisecond resolution, so excess precision is discarded
-    implicit val rfJodaLocalTimeMicros: RowField[joda.LocalTime] =
-      RowField.from[Long](microsToJodaLocalTime)(microsFromJodaLocalTime)
-
-    implicit val rfLocalDateTimeMicros: RowField[jt.LocalDateTime] =
-      RowField.from[Long](microsToLocalDateTime)(microsFromLocalDateTime)
-    // joda.LocalDateTime has millisecond precision, excess precision discarded
-    implicit val rfJodaLocalDateTimeMicros: RowField[joda.LocalDateTime] =
-      RowField.from[Long](microsToJodaLocalDateTime)(microsFromJodaLocalDateTime)
-
-    implicit val rfDurationMicros: RowField[jt.Duration] =
-      RowField.from[Long](microsToDuration)(microsFromDuration)
-    // joda.Duration has millisecond precision, excess precision discarded
-    implicit val rfJodaDurationMicros: RowField[joda.Duration] =
-      RowField.from[Long](microsToJodaDuration)(microsFromJodaDuration)
+      RowField.from[jt.Instant](i => microsToJodaDateTime(microsFromInstant(i)))(dt =>
+        microsToInstant(microsFromJodaDateTime(dt))
+      )(rfInstantMicros)
   }
 
-  object nanos {
-    implicit val rfInstantNanos: RowField[jt.Instant] =
-      RowField.id[jt.Instant](_ => FieldType.logicalType(new logicaltypes.NanosInstant()))
+  /**
+   * Nanosecond-precision temporal mappings.
+   *
+   * `Instant` maps to Beam's portable `Timestamp.NANOS` logical type. Prior to 0.10 it mapped to
+   * the SDK-local `NanosInstant` logical type; see [[legacy.nanos]].
+   */
+  object nanos extends NanosNonInstant {
+    implicit lazy val rfInstantNanos: RowField[jt.Instant] =
+      tsInstant(Timestamp.NANOS, ChronoUnit.NANOS)
     // joda.Instant has millisecond precision, excess precision discarded
     implicit val rfJodaInstantNanos: RowField[joda.Instant] =
       RowField.from[jt.Instant](i => nanosToJodaInstant(nanosFromInstant(i)))(i =>
         nanosToInstant(nanosFromJodaInstant(i))
-      )
+      )(rfInstantNanos)
     // joda.DateTime only has millisecond resolution
     implicit val rfJodaDateTimeNanos: RowField[joda.DateTime] =
       RowField.from[jt.Instant](i => nanosToJodaDateTime(nanosFromInstant(i)))(i =>
         nanosToInstant(nanosFromJodaDateTime(i))
-      )
-
-    implicit val rfLocalTimeNanos: RowField[jt.LocalTime] =
-      RowField.id[jt.LocalTime](_ => FieldType.logicalType(new logicaltypes.Time()))
-    // joda.LocalTime only has millisecond resolution, so excess precision is discarded
-    implicit val rfJodaLocalTimeNanos: RowField[joda.LocalTime] =
-      RowField.from[jt.LocalTime](lt => nanosToJodaLocalTime(nanosFromLocalTime(lt)))(lt =>
-        nanosToLocalTime(nanosFromJodaLocalTime(lt))
-      )
-
-    implicit val rfLocalDateTimeNanos: RowField[jt.LocalDateTime] =
-      RowField.from[Long](nanosToLocalDateTime)(nanosFromLocalDateTime)
-    // joda.LocalDateTime has millisecond precision, excess precision discarded
-    implicit val rfJodaLocalDateTimeMicros: RowField[joda.LocalDateTime] =
-      RowField.from[jt.LocalDateTime](ldt => nanosToJodaLocalDateTime(nanosFromLocalDateTime(ldt)))(
-        ldt => nanosToLocalDateTime(nanosFromJodaLocalDateTime(ldt))
-      )
-
-    implicit val rfDurationNanos: RowField[jt.Duration] =
-      RowField.id[jt.Duration](_ => FieldType.logicalType(new logicaltypes.NanosDuration()))
-    // joda.Duration has millisecond precision, excess precision discarded
-    implicit val rfJodaDurationNanos: RowField[joda.Duration] =
-      RowField.from[jt.Duration](d => nanosToJodaDuration(nanosFromDuration(d)))(d =>
-        nanosToDuration(nanosFromJodaDuration(d))
-      )
+      )(rfInstantNanos)
   }
 
+  /**
+   * Instant encodings used before 0.10.
+   *
+   * Use these to read Rows produced by Beam IO connectors that still emit `FieldType.DATETIME` (as
+   * of 2.76.0: amazon-web-services2, clickhouse, csv, delta, google-cloud-platform, hcatalog,
+   * iceberg, jdbc, kafka, singlestore), or by a pipeline pinned via `--updateCompatibilityVersion`.
+   * Non-instant mappings are identical to the defaults.
+   */
+  object legacy {
+    object millis extends MillisNonInstant {
+      implicit lazy val rfInstantMillis: RowField[jt.Instant] =
+        RowField.from[joda.Instant](i => millisToInstant(millisFromJodaInstant(i)))(i =>
+          millisToJodaInstant(millisFromInstant(i))
+        )
+      implicit val rfJodaInstantMillis: RowField[joda.Instant] =
+        RowField.id[joda.Instant](_ => FieldType.DATETIME)
+      implicit val rfJodaDateTimeMillis: RowField[joda.DateTime] =
+        RowField.from[joda.Instant](_.toDateTime(ISOChronology.getInstanceUTC))(_.toInstant)
+    }
+
+    object micros extends MicrosNonInstant {
+      // NOTE: logicaltypes.MicrosInstant() cannot be used as it throws assertion
+      // errors when greater-than-microsecond precision data is used
+      implicit val rfInstantMicros: RowField[jt.Instant] =
+        RowField.from[Long](microsToInstant)(microsFromInstant)
+      // joda.Instant has millisecond precision, excess precision discarded
+      implicit val rfJodaInstantMicros: RowField[joda.Instant] =
+        RowField.from[Long](microsToJodaInstant)(microsFromJodaInstant)
+      // joda.DateTime only has millisecond resolution, so excess precision is discarded
+      implicit val rfJodaDateTimeMicros: RowField[joda.DateTime] =
+        RowField.from[Long](microsToJodaDateTime)(microsFromJodaDateTime)
+    }
+
+    object nanos extends NanosNonInstant {
+      implicit val rfInstantNanos: RowField[jt.Instant] =
+        RowField.id[jt.Instant](_ => FieldType.logicalType(new logicaltypes.NanosInstant()))
+      // joda.Instant has millisecond precision, excess precision discarded
+      implicit val rfJodaInstantNanos: RowField[joda.Instant] =
+        RowField.from[jt.Instant](i => nanosToJodaInstant(nanosFromInstant(i)))(i =>
+          nanosToInstant(nanosFromJodaInstant(i))
+        )
+      // joda.DateTime only has millisecond resolution
+      implicit val rfJodaDateTimeNanos: RowField[joda.DateTime] =
+        RowField.from[jt.Instant](i => nanosToJodaDateTime(nanosFromInstant(i)))(i =>
+          nanosToInstant(nanosFromJodaDateTime(i))
+        )
+    }
+  }
+
+  @deprecated(
+    "SqlTypes.DATE/TIME/DATETIME duplicate `date` and the precision objects, and " +
+      "SqlTypes.TIMESTAMP is MicrosInstant, which throws on sub-microsecond instants. " +
+      "Use `date` plus one of millis/micros/nanos instead.",
+    "0.10.0"
+  )
   object sql {
     implicit val rfSqlLocalTime: RowField[jt.LocalTime] =
       RowField.id(_ => FieldType.logicalType(SqlTypes.TIME))

@@ -27,6 +27,7 @@ import magnolify.test.ADT
 import magnolify.test.MagnolifySuite
 import magnolify.test.Simple.*
 import org.apache.beam.sdk.schemas.Schema
+import org.apache.beam.sdk.schemas.logicaltypes.Timestamp
 import org.apache.beam.sdk.values.Row
 import org.joda.time as joda
 import org.scalacheck.{Arbitrary, Gen, Prop}
@@ -34,6 +35,7 @@ import org.scalacheck.{Arbitrary, Gen, Prop}
 import java.nio.ByteBuffer
 import java.time.{Duration, Instant, LocalDate, LocalDateTime, LocalTime}
 import java.util.UUID
+import scala.annotation.nowarn
 import scala.reflect.ClassTag
 import scala.jdk.CollectionConverters.*
 
@@ -118,6 +120,91 @@ class RowTypeSuite extends MagnolifySuite {
   }
 
   {
+    import magnolify.beam.logical.legacy.millis.*
+    testNamed[JavaTime]("JavaLegacyMillis")
+    testNamed[JodaTime]("JodaLegacyMillis")
+  }
+
+  {
+    import magnolify.beam.logical.legacy.micros.*
+    testNamed[JavaTime]("JavaLegacyMicros")
+    testNamed[JodaTime]("JodaLegacyMicros")
+  }
+
+  {
+    import magnolify.beam.logical.legacy.nanos.*
+    testNamed[JavaTime]("JavaLegacyNanos")
+    testNamed[JodaTime]("JodaLegacyNanos")
+  }
+
+  // The shared arbInstant only generates millisecond precision, so the roundtrip properties
+  // above cannot observe how each precision handles a finer-grained Instant. Pin that here:
+  // Timestamp#toBaseType throws rather than silently truncating, so these mappings must
+  // truncate on write themselves.
+  private val subMicro = Instant.ofEpochSecond(1000L, 123456789L)
+  private def instantField(rt: RowType[JavaInstant]): Schema.FieldType =
+    rt.schema.getField("i").getType
+  private def roundtrip(rt: RowType[JavaInstant]): Instant =
+    rt.from(rt.to(JavaInstant(subMicro))).i
+
+  {
+    import magnolify.beam.logical.millis.*
+    val rt = RowType[JavaInstant]
+    test("millis truncates sub-millisecond instants rather than throwing") {
+      assertEquals(roundtrip(rt), Instant.ofEpochSecond(1000L, 123000000L))
+    }
+    test("millis maps Instant to the portable Timestamp logical type") {
+      assertEquals(instantField(rt).getLogicalType.getIdentifier, Timestamp.IDENTIFIER)
+    }
+  }
+
+  {
+    import magnolify.beam.logical.micros.*
+    val rt = RowType[JavaInstant]
+    test("micros truncates sub-microsecond instants rather than throwing") {
+      assertEquals(roundtrip(rt), Instant.ofEpochSecond(1000L, 123456000L))
+    }
+    test("micros maps Instant to the portable Timestamp logical type") {
+      assertEquals(instantField(rt).getLogicalType.getIdentifier, Timestamp.IDENTIFIER)
+    }
+  }
+
+  {
+    import magnolify.beam.logical.nanos.*
+    val rt = RowType[JavaInstant]
+    test("nanos preserves full instant precision") {
+      assertEquals(roundtrip(rt), subMicro)
+    }
+  }
+
+  {
+    import magnolify.beam.logical.legacy.millis.*
+    test("legacy millis keeps the joda-backed DATETIME primitive") {
+      assertEquals(instantField(RowType[JavaInstant]), Schema.FieldType.DATETIME)
+    }
+  }
+
+  {
+    import magnolify.beam.logical.legacy.micros.*
+    test("legacy micros keeps the raw INT64 encoding") {
+      assertEquals(instantField(RowType[JavaInstant]), Schema.FieldType.INT64)
+    }
+  }
+
+  // Documents why `sql` is deprecated: SqlTypes.TIMESTAMP is MicrosInstant, whose
+  // toBaseType throws on sub-microsecond precision.
+  {
+    @nowarn("cat=deprecation")
+    val rt = {
+      import magnolify.beam.logical.sql.*
+      RowType[JavaInstant]
+    }
+    test("deprecated sql mapping throws on sub-microsecond instants") {
+      intercept[AssertionError](rt.to(JavaInstant(subMicro)))
+    }
+  }
+
+  {
     implicit val bst: RowType[LowerCamel] =
       RowType[LowerCamel](CaseMapper(_.toUpperCase))
     test[LowerCamel]
@@ -148,7 +235,11 @@ class RowTypeSuite extends MagnolifySuite {
   }
 
   {
-    import magnolify.beam.logical.sql.*
+    @nowarn("cat=deprecation")
+    implicit val bst: RowType[Sql] = {
+      import magnolify.beam.logical.sql.*
+      RowType[Sql]
+    }
     test[Sql]
   }
 
@@ -236,6 +327,7 @@ case class Sql(
 )
 case class JavaDate(d: LocalDate)
 case class JodaDate(jd: joda.LocalDate)
+case class JavaInstant(i: Instant)
 case class JavaTime(
   i: Instant,
   dt: LocalDateTime,
