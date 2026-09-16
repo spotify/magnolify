@@ -50,9 +50,10 @@ package object logical {
    * `Instant` maps to Beam's portable `Timestamp.MILLIS` logical type. Instants carrying finer
    * precision are truncated on write, because `Timestamp` rejects them rather than rounding.
    *
-   * Not writable to Iceberg: its schema conversion accepts only `Timestamp.MICROS` (precision 6)
-   * and throws `UnsupportedOperationException` otherwise. For Iceberg use [[micros]], or
-   * [[legacy.millis]] when the pipeline pins `--updateCompatibilityVersion` below 2.76.0.
+   * Not writable by any Beam IO that validates `Timestamp` precision: IcebergIO requires precision
+   * 6 and BigQueryIO and the Avro extension require 9, so precision 3 is rejected by all three. Use
+   * [[micros]] for Iceberg, [[nanos]] for BigQuery or Avro, or [[legacy.millis]] when the pipeline
+   * pins `--updateCompatibilityVersion` below 2.76.0. See [[legacy]] for the portability trade-off.
    *
    * Prior to 0.10 this mapped to `FieldType.DATETIME`, backed by `org.joda.time.Instant`; see
    * [[legacy.millis]].
@@ -80,6 +81,9 @@ package object logical {
    * making it the right choice for Iceberg — unless the pipeline pins
    * `--updateCompatibilityVersion` below 2.76.0, in which case see [[legacy.millis]].
    *
+   * Not writable to BigQuery or via the Avro extension, which require precision 9; use [[nanos]]
+   * there. No single precision object satisfies both Iceberg and BigQuery — see [[legacy]].
+   *
    * Prior to 0.10 this mapped to a raw `INT64` of microseconds since epoch; see [[legacy.micros]].
    */
   object micros extends MicrosNonInstant {
@@ -101,7 +105,8 @@ package object logical {
    * Nanosecond-precision temporal mappings.
    *
    * `Instant` maps to Beam's portable `Timestamp.NANOS` logical type, which holds the full
-   * precision of `java.time.Instant`, so nothing is truncated.
+   * precision of `java.time.Instant`, so nothing is truncated. This is the precision BigQueryIO and
+   * the Avro extension require.
    *
    * Not writable to Iceberg, which accepts only `Timestamp.MICROS`; use [[micros]] instead. The
    * pre-0.10 `NanosInstant` encoding was not Iceberg-writable either, so this is not a regression.
@@ -133,10 +138,18 @@ package object logical {
    * not match. Pair the flag with `legacy`, or omit both — mixing them is the one broken
    * combination.
    *
-   * Also needed for connectors that emit `FieldType.DATETIME` irrespective of the flag. As of Beam
-   * 2.76.0, within `sdks/java/io` that is amazon-web-services2, clickhouse, csv, delta,
+   * Also needed for connectors that hardcode `FieldType.DATETIME` irrespective of the flag. As of
+   * Beam 2.76.0, within `sdks/java/io` that is amazon-web-services2, clickhouse, delta,
    * google-cloud-platform, hcatalog, iceberg, jdbc and singlestore; `DATETIME` is additionally
-   * produced by core and by the arrow, avro, protobuf and sql-datacatalog extensions.
+   * hardcoded by core and by the arrow, avro, sql and sql-datacatalog extensions. Beyond those,
+   * schema inference maps any joda `Instant` field to `DATETIME` (`FieldTypeDescriptors`), so a
+   * connector whose element type has joda fields produces it without naming the type — KafkaIO's
+   * `KafkaSourceDescriptor` is one.
+   *
+   * `legacy` is also the only option that keeps a single `Instant` mapping writable across IOs. The
+   * default objects each satisfy exactly one validating write path — Iceberg requires `Timestamp`
+   * precision 6, BigQueryIO and the Avro extension require 9 — whereas `DATETIME` is accepted by
+   * all of them. Choosing a precision now means choosing a destination.
    *
    * Non-instant mappings are identical to the defaults.
    */
