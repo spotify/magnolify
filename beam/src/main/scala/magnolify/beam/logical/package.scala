@@ -47,11 +47,18 @@ package object logical {
   /**
    * Millisecond-precision temporal mappings.
    *
-   * `Instant` maps to Beam's portable `Timestamp.MILLIS` logical type. Prior to 0.10 it mapped to
-   * `FieldType.DATETIME`, which is backed by `org.joda.time.Instant`; see [[legacy.millis]].
+   * `Instant` maps to Beam's portable `Timestamp.MILLIS` logical type. Instants carrying finer
+   * precision are truncated on write, because `Timestamp` rejects them rather than rounding.
+   *
+   * Not writable to Iceberg: its schema conversion accepts only `Timestamp.MICROS` (precision 6)
+   * and throws `UnsupportedOperationException` otherwise. For Iceberg use [[micros]], or
+   * [[legacy.millis]] when the pipeline pins `--updateCompatibilityVersion` below 2.76.0.
+   *
+   * Prior to 0.10 this mapped to `FieldType.DATETIME`, backed by `org.joda.time.Instant`; see
+   * [[legacy.millis]].
    */
   object millis extends MillisNonInstant {
-    implicit lazy val rfInstantMillis: RowField[jt.Instant] =
+    implicit val rfInstantMillis: RowField[jt.Instant] =
       tsInstant(Timestamp.MILLIS, ChronoUnit.MILLIS)
     implicit val rfJodaInstantMillis: RowField[joda.Instant] =
       RowField.from[jt.Instant](i => millisToJodaInstant(millisFromInstant(i)))(i =>
@@ -66,12 +73,17 @@ package object logical {
   /**
    * Microsecond-precision temporal mappings.
    *
-   * `Instant` maps to Beam's portable `Timestamp.MICROS` logical type. This is the encoding
-   * IcebergIO produces for `timestamptz` as of Beam 2.76.0. Prior to 0.10 it mapped to a raw
-   * `INT64` of microseconds since epoch; see [[legacy.micros]].
+   * `Instant` maps to Beam's portable `Timestamp.MICROS` logical type. Instants carrying finer
+   * precision are truncated on write, because `Timestamp` rejects them rather than rounding.
+   *
+   * This is the encoding IcebergIO both produces and accepts for `timestamptz` as of Beam 2.76.0,
+   * making it the right choice for Iceberg — unless the pipeline pins
+   * `--updateCompatibilityVersion` below 2.76.0, in which case see [[legacy.millis]].
+   *
+   * Prior to 0.10 this mapped to a raw `INT64` of microseconds since epoch; see [[legacy.micros]].
    */
   object micros extends MicrosNonInstant {
-    implicit lazy val rfInstantMicros: RowField[jt.Instant] =
+    implicit val rfInstantMicros: RowField[jt.Instant] =
       tsInstant(Timestamp.MICROS, ChronoUnit.MICROS)
     // joda.Instant has millisecond precision, excess precision discarded
     implicit val rfJodaInstantMicros: RowField[joda.Instant] =
@@ -88,11 +100,16 @@ package object logical {
   /**
    * Nanosecond-precision temporal mappings.
    *
-   * `Instant` maps to Beam's portable `Timestamp.NANOS` logical type. Prior to 0.10 it mapped to
-   * the SDK-local `NanosInstant` logical type; see [[legacy.nanos]].
+   * `Instant` maps to Beam's portable `Timestamp.NANOS` logical type, which holds the full
+   * precision of `java.time.Instant`, so nothing is truncated.
+   *
+   * Not writable to Iceberg, which accepts only `Timestamp.MICROS`; use [[micros]] instead. The
+   * pre-0.10 `NanosInstant` encoding was not Iceberg-writable either, so this is not a regression.
+   *
+   * Prior to 0.10 this mapped to the SDK-local `NanosInstant` logical type; see [[legacy.nanos]].
    */
   object nanos extends NanosNonInstant {
-    implicit lazy val rfInstantNanos: RowField[jt.Instant] =
+    implicit val rfInstantNanos: RowField[jt.Instant] =
       tsInstant(Timestamp.NANOS, ChronoUnit.NANOS)
     // joda.Instant has millisecond precision, excess precision discarded
     implicit val rfJodaInstantNanos: RowField[joda.Instant] =
@@ -107,11 +124,20 @@ package object logical {
   }
 
   /**
-   * Instant encodings used before 0.10.
+   * Instant encodings used before 0.10: joda-backed `FieldType.DATETIME` at millis, a raw `INT64`
+   * of microseconds at micros, and the SDK-local `NanosInstant` at nanos.
    *
-   * Use these to read Rows produced by Beam IO connectors that still emit `FieldType.DATETIME` (as
-   * of 2.76.0: amazon-web-services2, clickhouse, csv, delta, google-cloud-platform, hcatalog,
-   * iceberg, jdbc, kafka, singlestore), or by a pipeline pinned via `--updateCompatibilityVersion`.
+   * These are the magnolify-side counterpart to Beam's `--updateCompatibilityVersion` flag. A
+   * pipeline pinned below 2.76.0 gets `FieldType.DATETIME` back from IcebergIO, which only
+   * [[legacy.millis]] can read; the default objects expect the portable `Timestamp` type and will
+   * not match. Pair the flag with `legacy`, or omit both — mixing them is the one broken
+   * combination.
+   *
+   * Also needed for connectors that emit `FieldType.DATETIME` irrespective of the flag. As of Beam
+   * 2.76.0, within `sdks/java/io` that is amazon-web-services2, clickhouse, csv, delta,
+   * google-cloud-platform, hcatalog, iceberg, jdbc and singlestore; `DATETIME` is additionally
+   * produced by core and by the arrow, avro, protobuf and sql-datacatalog extensions.
+   *
    * Non-instant mappings are identical to the defaults.
    */
   object legacy {

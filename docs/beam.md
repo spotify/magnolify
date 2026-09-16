@@ -31,19 +31,30 @@ Java and joda `LocalDate` types are available via `import magnolify.beam.logical
 For date-time, instants, and durations, use `import magnolify.beam.logical.millis.*`, `import magnolify.beam.logical.micros.*` or `import magnolify.beam.logical.nanos.*` as appropriate for your use-case.
 Note that joda types have only millisecond resolution, so excess precision will be discarded when used with `micros` or `nanos`.
 
-Where possible, Beam logical types are used and joda types defer to these implementations:
+Where possible, Beam logical types are used and joda types defer to the java.time implementations:
 
-* Beam's `DATETIME` primitive type maps to the millisecond-precision java and joda `Instant`s and the joda `DateTime`.
+* Beam's portable `Timestamp` logical type is used for java and joda `Instant` and the joda `DateTime`, at the precision of the object you import: `Timestamp.MILLIS`, `Timestamp.MICROS` or `Timestamp.NANOS`.
 * The `DateTime` logical type is used for millisecond-precision java and joda `LocalDateTime`
-* The `NanosInstant` logical type is used for nanosecond-precision java and joda `Instant`
 * The `Time` logical type is used for nanosecond-precision java and joda `LocalTime`
 * The `NanosDuration` logical type is used for java and joda `Duration`
 
-Beam's `MicrosInstant` should not be used as it throws exceptions when presented with greater-than-microsecond precision data.
+`Timestamp` rejects instants carrying finer precision than it declares rather than rounding them, so `millis` and `micros` truncate on write. An `Instant` with nanosecond precision written via `micros` reads back truncated to microseconds. Use `nanos` to preserve it.
+
+Beam's `MicrosInstant` should not be used as it throws exceptions when presented with greater-than-microsecond precision data. `Timestamp.MICROS` is the safe equivalent.
+
+### Pre-0.10 encodings
+
+Before 0.10, `Instant` mapped to Beam's joda-backed `DATETIME` primitive under `millis`, a raw `INT64` of microseconds under `micros`, and the `NanosInstant` logical type under `nanos`. Those encodings are still available via `import magnolify.beam.logical.legacy.millis.*` (or `legacy.micros`, `legacy.nanos`). Non-instant mappings are identical to the defaults.
+
+Use `legacy` when reading Rows that are still `DATETIME`-encoded — either because the connector emits them (as of Beam 2.76.0 that includes jdbc, google-cloud-platform, clickhouse, csv, delta, hcatalog, iceberg, singlestore and amazon-web-services2), or because the pipeline pins Beam's `--updateCompatibilityVersion` below 2.76.0. `legacy` is the counterpart to that flag: pair them, or omit both. Setting the flag while using the default objects is the one combination that will not work.
+
+### Iceberg
+
+Beam 2.76.0 changed IcebergIO's `timestamptz` mapping from `DATETIME` to `Timestamp.MICROS` in order to stop truncating microseconds. Use `micros` — it is the only precision IcebergIO accepts on write, and what it produces on read. `millis` and `nanos` are not Iceberg-writable and will fail schema conversion with `UnsupportedOperationException`. If the pipeline pins `--updateCompatibilityVersion` below 2.76.0, use `legacy.millis` instead.
 
 ## SQL types
 
-SQL-compatible logical types are supported via `import magnolify.beam.logical.sql.*`
+**Deprecated since 0.10.** `magnolify.beam.logical.sql`'s `DATE`, `TIME` and `DATETIME` members duplicate those in `logical.date` and the precision objects, and its `TIMESTAMP` member is Beam's `MicrosInstant`, which throws on sub-microsecond instants. Use `logical.date` plus one of `millis`/`micros`/`nanos` instead.
 
 ## Case mapping
 

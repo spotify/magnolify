@@ -27,6 +27,7 @@ import magnolify.test.ADT
 import magnolify.test.MagnolifySuite
 import magnolify.test.Simple.*
 import org.apache.beam.sdk.schemas.Schema
+import org.apache.beam.sdk.schemas.logicaltypes
 import org.apache.beam.sdk.schemas.logicaltypes.Timestamp
 import org.apache.beam.sdk.values.Row
 import org.joda.time as joda
@@ -146,6 +147,13 @@ class RowTypeSuite extends MagnolifySuite {
     rt.schema.getField("i").getType
   private def roundtrip(rt: RowType[JavaInstant]): Instant =
     rt.from(rt.to(JavaInstant(subMicro))).i
+  // Timestamp.IDENTIFIER is one shared constant across MILLIS/MICROS/NANOS, so asserting it
+  // alone cannot distinguish precisions. getArgument carries the precision.
+  private def timestampPrecision(rt: RowType[JavaInstant]): Int = {
+    val lt = instantField(rt).getLogicalType
+    assertEquals(lt.getIdentifier, Timestamp.IDENTIFIER)
+    lt.getArgument[Integer].intValue
+  }
 
   {
     import magnolify.beam.logical.millis.*
@@ -153,8 +161,8 @@ class RowTypeSuite extends MagnolifySuite {
     test("millis truncates sub-millisecond instants rather than throwing") {
       assertEquals(roundtrip(rt), Instant.ofEpochSecond(1000L, 123000000L))
     }
-    test("millis maps Instant to the portable Timestamp logical type") {
-      assertEquals(instantField(rt).getLogicalType.getIdentifier, Timestamp.IDENTIFIER)
+    test("millis maps Instant to Timestamp at precision 3") {
+      assertEquals(timestampPrecision(rt), 3)
     }
   }
 
@@ -164,8 +172,8 @@ class RowTypeSuite extends MagnolifySuite {
     test("micros truncates sub-microsecond instants rather than throwing") {
       assertEquals(roundtrip(rt), Instant.ofEpochSecond(1000L, 123456000L))
     }
-    test("micros maps Instant to the portable Timestamp logical type") {
-      assertEquals(instantField(rt).getLogicalType.getIdentifier, Timestamp.IDENTIFIER)
+    test("micros maps Instant to Timestamp at precision 6") {
+      assertEquals(timestampPrecision(rt), 6)
     }
   }
 
@@ -174,6 +182,9 @@ class RowTypeSuite extends MagnolifySuite {
     val rt = RowType[JavaInstant]
     test("nanos preserves full instant precision") {
       assertEquals(roundtrip(rt), subMicro)
+    }
+    test("nanos maps Instant to Timestamp at precision 9") {
+      assertEquals(timestampPrecision(rt), 9)
     }
   }
 
@@ -188,6 +199,16 @@ class RowTypeSuite extends MagnolifySuite {
     import magnolify.beam.logical.legacy.micros.*
     test("legacy micros keeps the raw INT64 encoding") {
       assertEquals(instantField(RowType[JavaInstant]), Schema.FieldType.INT64)
+    }
+  }
+
+  {
+    import magnolify.beam.logical.legacy.nanos.*
+    test("legacy nanos keeps the SDK-local NanosInstant logical type") {
+      assertEquals(
+        instantField(RowType[JavaInstant]).getLogicalType.getIdentifier,
+        new logicaltypes.NanosInstant().getIdentifier
+      )
     }
   }
 
