@@ -95,7 +95,7 @@ object ValueField {
     }
   }
 
-  @implicitNotFound("Cannot derive AvroField for sealed trait")
+  @implicitNotFound("Cannot derive ValueField for sealed trait")
   private sealed trait Dispatchable[T]
 
   def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): ValueField[T] = ???

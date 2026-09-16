@@ -24,7 +24,7 @@ import org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit
 
 package object logical {
   import magnolify.shared.Time._
-  // TIME (millis i32, micros i64, nanos, i64), UTC true/false
+  // TIME (millis i32, micros i64, nanos i64), UTC true/false
   // TIMESTAMP (millis, micros, nanos), UTC true/false
 
   object millis extends TimeTypes {
