@@ -34,6 +34,7 @@ import org.joda.time as joda
 import org.scalacheck.{Arbitrary, Gen, Prop}
 
 import java.nio.ByteBuffer
+import java.time.temporal.ChronoUnit
 import java.time.{Duration, Instant, LocalDate, LocalDateTime, LocalTime}
 import java.util.UUID
 import scala.annotation.nowarn
@@ -138,10 +139,9 @@ class RowTypeSuite extends MagnolifySuite {
     testNamed[JodaTime]("JodaLegacyNanos")
   }
 
-  // The shared arbInstant only generates millisecond precision, so the roundtrip properties
-  // above cannot observe how each precision handles a finer-grained Instant. Pin that here:
   // Timestamp#toBaseType throws rather than silently truncating, so these mappings must
-  // truncate on write themselves.
+  // truncate on write themselves. `subMicro` pins the exact boundary values; `preciseInstants`
+  // below generalizes it.
   private val subMicro = Instant.ofEpochSecond(1000L, 123456789L)
   private def instantField(rt: RowType[JavaInstant]): Schema.FieldType =
     rt.schema.getField("i").getType
@@ -155,6 +155,22 @@ class RowTypeSuite extends MagnolifySuite {
     lt.getArgument[Integer].intValue
   }
 
+  // The shared `arbInstant` generates only millisecond precision and only positive epochs, so the
+  // roundtrip properties above hold vacuously: nothing is ever truncated and the epoch boundary is
+  // never crossed. These cover both. Note the contract asserted is *not* `roundtrip(i) == i` --
+  // each precision discards excess, so the real invariant is truncation to the declared unit.
+  // `Instant.truncatedTo` floors, which matters pre-epoch and matches `Timestamp`'s
+  // non-negative-subseconds representation.
+  private val preciseInstants: Gen[Instant] = for {
+    seconds <- Gen.chooseNum(-2208988800L, 4102444800L) // 1900-01-01 .. 2100-01-01
+    nanos <- Gen.chooseNum(0, 999999999)
+  } yield Instant.ofEpochSecond(seconds, nanos.toLong)
+
+  private def truncatesTo(rt: RowType[JavaInstant], unit: ChronoUnit): Prop =
+    Prop.forAll(preciseInstants) { i =>
+      rt.from(rt.to(JavaInstant(i))).i == i.truncatedTo(unit)
+    }
+
   {
     import magnolify.beam.logical.millis.*
     val rt = RowType[JavaInstant]
@@ -164,6 +180,7 @@ class RowTypeSuite extends MagnolifySuite {
     test("millis maps Instant to Timestamp at precision 3") {
       assertEquals(timestampPrecision(rt), 3)
     }
+    property("millis truncates to millis across the epoch")(truncatesTo(rt, ChronoUnit.MILLIS))
   }
 
   {
@@ -175,6 +192,7 @@ class RowTypeSuite extends MagnolifySuite {
     test("micros maps Instant to Timestamp at precision 6") {
       assertEquals(timestampPrecision(rt), 6)
     }
+    property("micros truncates to micros across the epoch")(truncatesTo(rt, ChronoUnit.MICROS))
   }
 
   {
@@ -186,30 +204,41 @@ class RowTypeSuite extends MagnolifySuite {
     test("nanos maps Instant to Timestamp at precision 9") {
       assertEquals(timestampPrecision(rt), 9)
     }
+    property("nanos preserves nanos across the epoch")(truncatesTo(rt, ChronoUnit.NANOS))
   }
 
   {
     import magnolify.beam.logical.legacy.millis.*
+    val rt = RowType[JavaInstant]
     test("legacy millis keeps the joda-backed DATETIME primitive") {
-      assertEquals(instantField(RowType[JavaInstant]), Schema.FieldType.DATETIME)
+      assertEquals(instantField(rt), Schema.FieldType.DATETIME)
     }
+    property("legacy millis truncates to millis across the epoch")(
+      truncatesTo(rt, ChronoUnit.MILLIS)
+    )
   }
 
   {
     import magnolify.beam.logical.legacy.micros.*
+    val rt = RowType[JavaInstant]
     test("legacy micros keeps the raw INT64 encoding") {
-      assertEquals(instantField(RowType[JavaInstant]), Schema.FieldType.INT64)
+      assertEquals(instantField(rt), Schema.FieldType.INT64)
     }
+    property("legacy micros truncates to micros across the epoch")(
+      truncatesTo(rt, ChronoUnit.MICROS)
+    )
   }
 
   {
     import magnolify.beam.logical.legacy.nanos.*
+    val rt = RowType[JavaInstant]
     test("legacy nanos keeps the SDK-local NanosInstant logical type") {
       assertEquals(
-        instantField(RowType[JavaInstant]).getLogicalType.getIdentifier,
+        instantField(rt).getLogicalType.getIdentifier,
         new logicaltypes.NanosInstant().getIdentifier
       )
     }
+    property("legacy nanos preserves nanos across the epoch")(truncatesTo(rt, ChronoUnit.NANOS))
   }
 
   // Documents why `sql` is deprecated: SqlTypes.TIMESTAMP is MicrosInstant, whose
