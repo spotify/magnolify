@@ -24,8 +24,10 @@ import org.joda.time as joda
 
 import java.time as jt
 
-// Mappings that Beam represents identically regardless of the instant encoding, shared
-// between the default precision objects and their `legacy` counterparts.
+// Mappings that Beam represents identically regardless of the instant encoding, shared by
+// `timestamp.*`, `compat.*` and the deprecated bare `millis`/`micros`/`nanos` objects.
+// "NonInstant" means invariant across those groupings at a given precision -- all six of
+// these mappings do still vary by precision.
 
 private[logical] trait MillisNonInstant {
   implicit val rfLocalTimeMillis: RowField[jt.LocalTime] =

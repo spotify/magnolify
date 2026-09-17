@@ -104,39 +104,39 @@ class RowTypeSuite extends MagnolifySuite {
   }
 
   {
-    import magnolify.beam.logical.millis.*
-    testNamed[JavaTime]("JavaMillis")
-    testNamed[JodaTime]("JodaMillis")
+    import magnolify.beam.logical.timestamp.millis.*
+    testNamed[JavaTime]("JavaTimestampMillis")
+    testNamed[JodaTime]("JodaTimestampMillis")
   }
 
   {
-    import magnolify.beam.logical.micros.*
-    testNamed[JavaTime]("JavaMicros")
-    testNamed[JodaTime]("JodaMicros")
+    import magnolify.beam.logical.timestamp.micros.*
+    testNamed[JavaTime]("JavaTimestampMicros")
+    testNamed[JodaTime]("JodaTimestampMicros")
   }
 
   {
-    import magnolify.beam.logical.nanos.*
-    testNamed[JavaTime]("JavaNanos")
-    testNamed[JodaTime]("JodaNanos")
+    import magnolify.beam.logical.timestamp.nanos.*
+    testNamed[JavaTime]("JavaTimestampNanos")
+    testNamed[JodaTime]("JodaTimestampNanos")
   }
 
   {
-    import magnolify.beam.logical.legacy.millis.*
-    testNamed[JavaTime]("JavaLegacyMillis")
-    testNamed[JodaTime]("JodaLegacyMillis")
+    import magnolify.beam.logical.compat.millis.*
+    testNamed[JavaTime]("JavaCompatMillis")
+    testNamed[JodaTime]("JodaCompatMillis")
   }
 
   {
-    import magnolify.beam.logical.legacy.micros.*
-    testNamed[JavaTime]("JavaLegacyMicros")
-    testNamed[JodaTime]("JodaLegacyMicros")
+    import magnolify.beam.logical.compat.micros.*
+    testNamed[JavaTime]("JavaCompatMicros")
+    testNamed[JodaTime]("JodaCompatMicros")
   }
 
   {
-    import magnolify.beam.logical.legacy.nanos.*
-    testNamed[JavaTime]("JavaLegacyNanos")
-    testNamed[JodaTime]("JodaLegacyNanos")
+    import magnolify.beam.logical.compat.nanos.*
+    testNamed[JavaTime]("JavaCompatNanos")
+    testNamed[JodaTime]("JodaCompatNanos")
   }
 
   // Timestamp#toBaseType throws rather than silently truncating, so these mappings must
@@ -172,73 +172,132 @@ class RowTypeSuite extends MagnolifySuite {
     }
 
   {
-    import magnolify.beam.logical.millis.*
+    import magnolify.beam.logical.timestamp.millis.*
     val rt = RowType[JavaInstant]
-    test("millis truncates sub-millisecond instants rather than throwing") {
+    test("timestamp.millis truncates sub-millisecond instants rather than throwing") {
       assertEquals(roundtrip(rt), Instant.ofEpochSecond(1000L, 123000000L))
     }
-    test("millis maps Instant to Timestamp at precision 3") {
+    test("timestamp.millis maps Instant to Timestamp at precision 3") {
       assertEquals(timestampPrecision(rt), 3)
     }
-    property("millis truncates to millis across the epoch")(truncatesTo(rt, ChronoUnit.MILLIS))
-  }
-
-  {
-    import magnolify.beam.logical.micros.*
-    val rt = RowType[JavaInstant]
-    test("micros truncates sub-microsecond instants rather than throwing") {
-      assertEquals(roundtrip(rt), Instant.ofEpochSecond(1000L, 123456000L))
-    }
-    test("micros maps Instant to Timestamp at precision 6") {
-      assertEquals(timestampPrecision(rt), 6)
-    }
-    property("micros truncates to micros across the epoch")(truncatesTo(rt, ChronoUnit.MICROS))
-  }
-
-  {
-    import magnolify.beam.logical.nanos.*
-    val rt = RowType[JavaInstant]
-    test("nanos preserves full instant precision") {
-      assertEquals(roundtrip(rt), subMicro)
-    }
-    test("nanos maps Instant to Timestamp at precision 9") {
-      assertEquals(timestampPrecision(rt), 9)
-    }
-    property("nanos preserves nanos across the epoch")(truncatesTo(rt, ChronoUnit.NANOS))
-  }
-
-  {
-    import magnolify.beam.logical.legacy.millis.*
-    val rt = RowType[JavaInstant]
-    test("legacy millis keeps the joda-backed DATETIME primitive") {
-      assertEquals(instantField(rt), Schema.FieldType.DATETIME)
-    }
-    property("legacy millis truncates to millis across the epoch")(
+    property("timestamp.millis truncates to millis across the epoch")(
       truncatesTo(rt, ChronoUnit.MILLIS)
     )
   }
 
   {
-    import magnolify.beam.logical.legacy.micros.*
+    import magnolify.beam.logical.timestamp.micros.*
     val rt = RowType[JavaInstant]
-    test("legacy micros keeps the raw INT64 encoding") {
-      assertEquals(instantField(rt), Schema.FieldType.INT64)
+    test("timestamp.micros truncates sub-microsecond instants rather than throwing") {
+      assertEquals(roundtrip(rt), Instant.ofEpochSecond(1000L, 123456000L))
     }
-    property("legacy micros truncates to micros across the epoch")(
+    test("timestamp.micros maps Instant to Timestamp at precision 6") {
+      assertEquals(timestampPrecision(rt), 6)
+    }
+    property("timestamp.micros truncates to micros across the epoch")(
       truncatesTo(rt, ChronoUnit.MICROS)
     )
   }
 
   {
-    import magnolify.beam.logical.legacy.nanos.*
+    import magnolify.beam.logical.timestamp.nanos.*
     val rt = RowType[JavaInstant]
-    test("legacy nanos keeps the SDK-local NanosInstant logical type") {
+    test("timestamp.nanos preserves full instant precision") {
+      assertEquals(roundtrip(rt), subMicro)
+    }
+    test("timestamp.nanos maps Instant to Timestamp at precision 9") {
+      assertEquals(timestampPrecision(rt), 9)
+    }
+    property("timestamp.nanos preserves nanos across the epoch")(truncatesTo(rt, ChronoUnit.NANOS))
+  }
+
+  {
+    import magnolify.beam.logical.compat.millis.*
+    val rt = RowType[JavaInstant]
+    test("compat.millis keeps the joda-backed DATETIME primitive") {
+      assertEquals(instantField(rt), Schema.FieldType.DATETIME)
+    }
+    property("compat.millis truncates to millis across the epoch")(
+      truncatesTo(rt, ChronoUnit.MILLIS)
+    )
+  }
+
+  {
+    import magnolify.beam.logical.compat.micros.*
+    val rt = RowType[JavaInstant]
+    test("compat.micros keeps the raw INT64 encoding") {
+      assertEquals(instantField(rt), Schema.FieldType.INT64)
+    }
+    property("compat.micros truncates to micros across the epoch")(
+      truncatesTo(rt, ChronoUnit.MICROS)
+    )
+  }
+
+  {
+    import magnolify.beam.logical.compat.nanos.*
+    val rt = RowType[JavaInstant]
+    test("compat.nanos keeps the SDK-local NanosInstant logical type") {
       assertEquals(
         instantField(rt).getLogicalType.getIdentifier,
         new logicaltypes.NanosInstant().getIdentifier
       )
     }
-    property("legacy nanos preserves nanos across the epoch")(truncatesTo(rt, ChronoUnit.NANOS))
+    property("compat.nanos preserves nanos across the epoch")(truncatesTo(rt, ChronoUnit.NANOS))
+  }
+
+  // The whole point of deprecating rather than repurposing the bare objects: upgrading to 0.10
+  // must not silently change the schema of code that still compiles. These pin the bare objects
+  // to the 0.9 encodings, field-for-field identical to their `compat` counterparts above.
+  {
+    @nowarn("cat=deprecation")
+    val bareMillis = {
+      import magnolify.beam.logical.millis.*
+      RowType[JavaInstant]
+    }
+    @nowarn("cat=deprecation")
+    val bareMicros = {
+      import magnolify.beam.logical.micros.*
+      RowType[JavaInstant]
+    }
+    @nowarn("cat=deprecation")
+    val bareNanos = {
+      import magnolify.beam.logical.nanos.*
+      RowType[JavaInstant]
+    }
+
+    test("deprecated millis still produces the 0.9 DATETIME encoding") {
+      assertEquals(instantField(bareMillis), Schema.FieldType.DATETIME)
+    }
+    test("deprecated micros still produces the 0.9 raw INT64 encoding") {
+      assertEquals(instantField(bareMicros), Schema.FieldType.INT64)
+    }
+    test("deprecated nanos still produces the 0.9 NanosInstant encoding") {
+      assertEquals(
+        instantField(bareNanos).getLogicalType.getIdentifier,
+        new logicaltypes.NanosInstant().getIdentifier
+      )
+    }
+
+    // Not merely "not a Timestamp" -- assert the schema matches `compat`, so a future edit that
+    // touches one grouping and not the other fails here.
+    val compatMillis = {
+      import magnolify.beam.logical.compat.millis.*
+      RowType[JavaInstant]
+    }
+    val compatMicros = {
+      import magnolify.beam.logical.compat.micros.*
+      RowType[JavaInstant]
+    }
+    val compatNanos = {
+      import magnolify.beam.logical.compat.nanos.*
+      RowType[JavaInstant]
+    }
+
+    test("deprecated objects are schema-identical to their compat counterparts") {
+      assertEquals(bareMillis.schema, compatMillis.schema)
+      assertEquals(bareMicros.schema, compatMicros.schema)
+      assertEquals(bareNanos.schema, compatNanos.schema)
+    }
   }
 
   // Documents why `sql` is deprecated: SqlTypes.TIMESTAMP is MicrosInstant, whose
