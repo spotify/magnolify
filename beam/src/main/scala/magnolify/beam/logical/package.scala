@@ -119,7 +119,7 @@ package object logical {
      * so nothing is truncated. This is the precision Beam's BigQueryIO and Avro extension require.
      *
      * Not writable to Iceberg, which accepts only `Timestamp.MICROS`; use [[timestamp.micros]]
-     * instead. The pre-0.10 `NanosInstant` encoding was not Iceberg-writable either, so this is no
+     * instead. The pre-0.9.8 `NanosInstant` encoding was not Iceberg-writable either, so this is no
      * regression.
      */
     object nanos extends NanosNonInstant {
@@ -139,7 +139,7 @@ package object logical {
   }
 
   /**
-   * The `Instant` encodings magnolify produced before 0.10: the joda-backed `FieldType.DATETIME`
+   * The `Instant` encodings magnolify produced through 0.9.7: the joda-backed `FieldType.DATETIME`
    * primitive at [[compat.millis]], a raw `INT64` of microseconds at [[compat.micros]], and the
    * SDK-local `NanosInstant` logical type at [[compat.nanos]].
    *
@@ -176,7 +176,7 @@ package object logical {
       "unchanged: `Instant` still maps to the joda-backed `FieldType.DATETIME` primitive. " +
       "Use `timestamp.micros` for IcebergIO on Beam 2.76.0+, or `compat.millis` to keep this " +
       "encoding.",
-    "0.10.0"
+    "0.9.8"
   )
   object millis extends MillisCompat
 
@@ -185,7 +185,7 @@ package object logical {
       "unchanged: `Instant` still maps to a raw `INT64` of microseconds since epoch. " +
       "Use `timestamp.micros` for Beam's portable `Timestamp` logical type, or `compat.micros` " +
       "to keep this encoding.",
-    "0.10.0"
+    "0.9.8"
   )
   object micros extends MicrosCompat
 
@@ -194,7 +194,7 @@ package object logical {
       "unchanged: `Instant` still maps to the SDK-local `NanosInstant` logical type. " +
       "Use `timestamp.nanos` for Beam's portable `Timestamp` logical type, or `compat.nanos` " +
       "to keep this encoding.",
-    "0.10.0"
+    "0.9.8"
   )
   object nanos extends NanosCompat
 
@@ -203,7 +203,7 @@ package object logical {
       "SqlTypes.TIMESTAMP is MicrosInstant, which throws on sub-microsecond instants. " +
       "Use `date` plus one of timestamp.{millis,micros,nanos} or compat.{millis,micros,nanos} " +
       "instead.",
-    "0.10.0"
+    "0.9.8"
   )
   object sql {
     implicit val rfSqlLocalTime: RowField[jt.LocalTime] =

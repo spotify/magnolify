@@ -31,9 +31,9 @@ Java and joda `LocalDate` types are available via `import magnolify.beam.logical
 For date-time, instants, and durations, choose a **grouping** — which decides how `Instant` is encoded — and a **precision**:
 
 * `import magnolify.beam.logical.timestamp.millis.*` (or `.micros`, `.nanos`) maps `Instant` to Beam's portable `Timestamp` logical type. This is what IcebergIO requires as of Beam 2.76.0.
-* `import magnolify.beam.logical.compat.millis.*` (or `.micros`, `.nanos`) keeps the encodings magnolify produced before 0.10: the joda-backed `DATETIME` primitive at `millis`, a raw `INT64` of microseconds at `micros`, and the SDK-local `NanosInstant` logical type at `nanos`.
+* `import magnolify.beam.logical.compat.millis.*` (or `.micros`, `.nanos`) keeps the encodings magnolify produced through 0.9.7: the joda-backed `DATETIME` primitive at `millis`, a raw `INT64` of microseconds at `micros`, and the SDK-local `NanosInstant` logical type at `nanos`.
 
-The bare `magnolify.beam.logical.millis.*`/`.micros`/`.nanos` objects still exist and still produce exactly what they produced in 0.9. They are deprecated aliases for the matching `compat` object, so **upgrading to 0.10 changes no schema until you change an import** — you get a deprecation warning telling you to pick a grouping explicitly.
+The bare `magnolify.beam.logical.millis.*`/`.micros`/`.nanos` objects still exist and still produce exactly what they produced in 0.9.7. They are deprecated aliases for the matching `compat` object, so **upgrading to 0.9.8 changes no schema until you change an import** — you get a deprecation warning telling you to pick a grouping explicitly.
 
 Note that joda types have only millisecond resolution, so excess precision will be discarded when used with `micros` or `nanos`.
 
@@ -92,9 +92,9 @@ Reading is also where the groupings are least interchangeable, because most IOs 
 
 ### The `compat` encodings
 
-`compat.millis`, `compat.micros` and `compat.nanos` hold the `Instant` encodings magnolify produced before 0.10 — the joda-backed `DATETIME` primitive, a raw `INT64` of microseconds, and the `NanosInstant` logical type respectively. Non-instant mappings are identical to `timestamp.*`.
+`compat.millis`, `compat.micros` and `compat.nanos` hold the `Instant` encodings magnolify produced through 0.9.7 — the joda-backed `DATETIME` primitive, a raw `INT64` of microseconds, and the `NanosInstant` logical type respectively. Non-instant mappings are identical to `timestamp.*`.
 
-The name is deliberately about compatibility rather than representation: those three share no encoding, only the fact that this is what 0.9 emitted. `compat` is also not a deprecated holding pen — `compat.millis` is the correct and often the *only* choice for the destinations listed above, and stays correct as long as those IOs emit and accept `DATETIME`.
+The name is deliberately about compatibility rather than representation: those three share no encoding, only the fact that this is what 0.9.7 emitted. `compat` is also not a deprecated holding pen — `compat.millis` is the correct and often the *only* choice for the destinations listed above, and stays correct as long as those IOs emit and accept `DATETIME`.
 
 Use `compat.millis` when reading Rows that are still `DATETIME`-encoded — either because the connector hardcodes it (as of Beam 2.76.0 that includes jdbc, google-cloud-platform, clickhouse, delta, hcatalog, iceberg, singlestore and amazon-web-services2, plus core and the arrow, avro, sql and sql-datacatalog extensions), or because the pipeline pins Beam's `--updateCompatibilityVersion` below 2.76.0. `compat.millis` is the counterpart to that flag: pair them, or omit both. Setting the flag while using `timestamp.*` is the one combination that will not work.
 
@@ -108,7 +108,7 @@ Note the change was to the **read** path only; IcebergIO still accepts `DATETIME
 
 ## SQL types
 
-**Deprecated since 0.10.** `magnolify.beam.logical.sql`'s `DATE`, `TIME` and `DATETIME` members duplicate those in `logical.date` and the precision objects, and its `TIMESTAMP` member is Beam's `MicrosInstant`, which throws on sub-microsecond instants. Use `logical.date` plus one of `timestamp.{millis,micros,nanos}` or `compat.{millis,micros,nanos}` instead.
+**Deprecated since 0.9.8.** `magnolify.beam.logical.sql`'s `DATE`, `TIME` and `DATETIME` members duplicate those in `logical.date` and the precision objects, and its `TIMESTAMP` member is Beam's `MicrosInstant`, which throws on sub-microsecond instants. Use `logical.date` plus one of `timestamp.{millis,micros,nanos}` or `compat.{millis,micros,nanos}` instead.
 
 ## Case mapping
 

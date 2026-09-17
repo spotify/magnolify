@@ -25,12 +25,12 @@ import org.joda.time.chrono.ISOChronology
 
 import java.time as jt
 
-// The pre-0.10 `Instant` encodings, shared by `compat.*` and by the deprecated bare
+// The pre-0.9.8 `Instant` encodings, shared by `compat.*` and by the deprecated bare
 // `millis`/`micros`/`nanos` objects so that the two cannot drift apart.
 //
 // Note these three do not share a representation -- millis is the joda-backed `DATETIME`
 // primitive, micros is a raw `INT64` and nanos is the SDK-local `NanosInstant` logical type.
-// What they have in common is only that this is what 0.9 produced, which is why the grouping
+// What they have in common is only that this is what 0.9.7 produced, which is why the grouping
 // is named for its history rather than for an encoding.
 
 private[logical] trait MillisCompat extends MillisNonInstant {

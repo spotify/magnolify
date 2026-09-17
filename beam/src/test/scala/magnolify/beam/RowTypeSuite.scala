@@ -245,9 +245,9 @@ class RowTypeSuite extends MagnolifySuite {
     property("compat.nanos preserves nanos across the epoch")(truncatesTo(rt, ChronoUnit.NANOS))
   }
 
-  // The whole point of deprecating rather than repurposing the bare objects: upgrading to 0.10
+  // The whole point of deprecating rather than repurposing the bare objects: upgrading to 0.9.8
   // must not silently change the schema of code that still compiles. These pin the bare objects
-  // to the 0.9 encodings, field-for-field identical to their `compat` counterparts above.
+  // to the 0.9.7 encodings, field-for-field identical to their `compat` counterparts above.
   {
     @nowarn("cat=deprecation")
     val bareMillis = {
@@ -265,13 +265,13 @@ class RowTypeSuite extends MagnolifySuite {
       RowType[JavaInstant]
     }
 
-    test("deprecated millis still produces the 0.9 DATETIME encoding") {
+    test("deprecated millis still produces the 0.9.7 DATETIME encoding") {
       assertEquals(instantField(bareMillis), Schema.FieldType.DATETIME)
     }
-    test("deprecated micros still produces the 0.9 raw INT64 encoding") {
+    test("deprecated micros still produces the 0.9.7 raw INT64 encoding") {
       assertEquals(instantField(bareMicros), Schema.FieldType.INT64)
     }
-    test("deprecated nanos still produces the 0.9 NanosInstant encoding") {
+    test("deprecated nanos still produces the 0.9.7 NanosInstant encoding") {
       assertEquals(
         instantField(bareNanos).getLogicalType.getIdentifier,
         new logicaltypes.NanosInstant().getIdentifier
