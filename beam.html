@@ -172,7 +172,7 @@ spotify/magnolify
 <ul style="display: none">
 <li class="md-nav__item md-version" id="project.version">
 <label class="md-nav__link" for="__version">
-<i class="md-icon" title="Version">label_outline</i> 0.9.7
+<i class="md-icon" title="Version">label_outline</i> 0.9.8
 </label>
 </li>
 </ul>
@@ -224,18 +224,109 @@ val schema = rowType.schema
 <p>Enum-like types map to the Beam logical <a href="https://beam.apache.org/documentation/programming-guide/#enumerationtype">Enum type</a>. See <a href="enums.html">EnumType</a> for more details. <code>UnsafeEnum[T]</code> instances are available from <code>import magnolify.beam.unsafe.*</code>.</p>
 <h2><a href="#time-and-dates" name="time-and-dates" class="anchor"><span class="anchor-link"></span></a>Time and dates</h2>
 <p>Java and joda <code>LocalDate</code> types are available via <code>import magnolify.beam.logical.date.*</code></p>
-<p>For date-time, instants, and durations, use <code>import magnolify.beam.logical.millis.*</code>, <code>import magnolify.beam.logical.micros.*</code> or <code>import magnolify.beam.logical.nanos.*</code> as appropriate for your use-case. Note that joda types have only millisecond resolution, so excess precision will be discarded when used with <code>micros</code> or <code>nanos</code>.</p>
-<p>Where possible, Beam logical types are used and joda types defer to these implementations:</p>
+<p>For date-time, instants, and durations, choose a <strong>grouping</strong> — which decides how <code>Instant</code> is encoded — and a <strong>precision</strong>:</p>
 <ul>
-  <li>Beam&rsquo;s <code>DATETIME</code> primitive type maps to the millisecond-precision java and joda <code>Instant</code>s and the joda <code>DateTime</code>.</li>
+  <li><code>import magnolify.beam.logical.timestamp.millis.*</code> (or <code>.micros</code>, <code>.nanos</code>) maps <code>Instant</code> to Beam&rsquo;s portable <code>Timestamp</code> logical type. This is what IcebergIO requires as of Beam 2.76.0.</li>
+  <li><code>import magnolify.beam.logical.compat.millis.*</code> (or <code>.micros</code>, <code>.nanos</code>) keeps the encodings magnolify produced through 0.9.7: the joda-backed <code>DATETIME</code> primitive at <code>millis</code>, a raw <code>INT64</code> of microseconds at <code>micros</code>, and the SDK-local <code>NanosInstant</code> logical type at <code>nanos</code>.</li>
+</ul>
+<p>The bare <code>magnolify.beam.logical.millis.*</code>/<code>.micros</code>/<code>.nanos</code> objects still exist and still produce exactly what they produced in 0.9.7. They are deprecated aliases for the matching <code>compat</code> object, so <strong>upgrading to 0.9.8 changes no schema until you change an import</strong> — you get a deprecation warning telling you to pick a grouping explicitly.</p>
+<p>Note that joda types have only millisecond resolution, so excess precision will be discarded when used with <code>micros</code> or <code>nanos</code>.</p>
+<p>Where possible, Beam logical types are used and joda types defer to the java.time implementations:</p>
+<ul>
+  <li>Beam&rsquo;s portable <code>Timestamp</code> logical type is used for java and joda <code>Instant</code> and the joda <code>DateTime</code> under <code>timestamp.*</code>, at the precision of the object you import: <code>Timestamp.MILLIS</code>, <code>Timestamp.MICROS</code> or <code>Timestamp.NANOS</code>.</li>
   <li>The <code>DateTime</code> logical type is used for millisecond-precision java and joda <code>LocalDateTime</code></li>
-  <li>The <code>NanosInstant</code> logical type is used for nanosecond-precision java and joda <code>Instant</code></li>
   <li>The <code>Time</code> logical type is used for nanosecond-precision java and joda <code>LocalTime</code></li>
   <li>The <code>NanosDuration</code> logical type is used for java and joda <code>Duration</code></li>
 </ul>
-<p>Beam&rsquo;s <code>MicrosInstant</code> should not be used as it throws exceptions when presented with greater-than-microsecond precision data.</p>
+<p><code>LocalTime</code>, <code>LocalDateTime</code> and <code>Duration</code> are encoded identically under <code>timestamp</code> and <code>compat</code> at a given precision — Beam offers no joda schema type for them, so there is nothing to differ about. Only <code>Instant</code>, joda <code>Instant</code> and joda <code>DateTime</code> differ between the two groupings.</p>
+<p><code>Timestamp</code> rejects instants carrying finer precision than it declares rather than rounding them, so <code>timestamp.millis</code> and <code>timestamp.micros</code> truncate on write. An <code>Instant</code> with nanosecond precision written via <code>timestamp.micros</code> reads back truncated to microseconds. Use <code>timestamp.nanos</code> to preserve it.</p>
+<p>Beam&rsquo;s <code>MicrosInstant</code> should not be used as it throws exceptions when presented with greater-than-microsecond precision data. <code>Timestamp.MICROS</code> is the safe equivalent.</p>
+<h3><a href="#choosing-an-encoding-which-beam-ios-accept-which" name="choosing-an-encoding-which-beam-ios-accept-which" class="anchor"><span class="anchor-link"></span></a>Choosing an encoding: which Beam IOs accept which</h3>
+<p><strong>Scope:</strong> this section is about <strong>Beam&rsquo;s own IOs consuming a <code>PCollection&lt;Row&gt;</code></strong> — that is, where the output of <code>RowType[T]</code> ends up. It says nothing about the IOs of frameworks built on Beam, which may share a name but not a code path. In Scio, for instance, only <code>IcebergIO</code>/<code>ManagedIO</code> take Beam <code>Row</code>s; its <code>BigQueryIO</code> and <code>AvroIO</code> route through magnolify&rsquo;s <code>bigquery</code> and <code>avro</code> modules, which target <code>TableRow</code> and <code>GenericRecord</code> directly, never a Beam <code>Schema</code>, and are unaffected by anything below.</p>
+<p>Beam&rsquo;s IOs do not agree on a <code>Timestamp</code> precision, and several do not handle the type at all, so the grouping and precision you import determine where you can write. Verified against Beam 2.76.0:</p>
+<table>
+  <thead>
+    <tr>
+      <th> </th>
+      <th><code>IcebergIO</code> </th>
+      <th><code>BigQueryIO</code> </th>
+      <th>Avro extension </th>
+      <th>managed JDBC </th>
+      <th>Kafka <code>JSON</code> </th>
+      <th>Kafka <code>AVRO</code> </th>
+      <th>Beam SQL </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>timestamp.millis</code> (precision 3) </td>
+      <td>✗ </td>
+      <td>✗ </td>
+      <td>✗ </td>
+      <td>✗ </td>
+      <td>✗ </td>
+      <td>✗ </td>
+      <td>✓ † </td>
+    </tr>
+    <tr>
+      <td><code>timestamp.micros</code> (precision 6) </td>
+      <td><strong>✓</strong> </td>
+      <td>✗ </td>
+      <td>✗ </td>
+      <td>✗ </td>
+      <td>✗ </td>
+      <td>✗ </td>
+      <td>✓ † </td>
+    </tr>
+    <tr>
+      <td><code>timestamp.nanos</code> (precision 9) </td>
+      <td>✗ </td>
+      <td><strong>✓</strong> </td>
+      <td><strong>✓</strong> </td>
+      <td>✗ </td>
+      <td>✗ </td>
+      <td><strong>✓</strong> </td>
+      <td>✓ † </td>
+    </tr>
+    <tr>
+      <td><code>compat.millis</code> (<code>DATETIME</code>) </td>
+      <td>✓ </td>
+      <td>✓ </td>
+      <td>✓ </td>
+      <td>✓ </td>
+      <td>✓ </td>
+      <td>✓ </td>
+      <td>✓ </td>
+    </tr>
+  </tbody>
+</table>
+<p>† accepted at any precision, but Beam SQL round-trips timestamps through milliseconds (<code>BeamCalcRel.java:463</code>), so anything finer is silently dropped.</p>
+<p>Where the rejections come from:</p>
+<ul>
+  <li><code>IcebergIO</code> requires precision 6 and throws <code>UnsupportedOperationException</code> otherwise (<code>IcebergUtils.java:227-234</code>).</li>
+  <li><code>BigQueryIO</code> and the Avro extension require precision 9 (<code>BigQueryUtils.java:591-596</code>, <code>BeamRowToStorageApiProto.java:252-260</code>, <code>AvroUtils.java:1227-1232</code>). Kafka with <code>AVRO</code> format goes through the same Avro check (<code>KafkaWriteSchemaTransformProvider.java:201</code>).</li>
+  <li>The managed JDBC sinks (<code>postgres</code>, <code>mysql</code>, <code>sqlserver</code>) have no <code>Timestamp</code> branch at all. Unknown logical types fall back to their base type (<code>JdbcUtil.java:336-338</code>), and <code>Timestamp</code>&rsquo;s base type is a <code>ROW</code>, which is not a writable JDBC type — so it throws <code>RuntimeException(&quot;ROW in schema is not supported while writing&quot;)</code>.</li>
+  <li>Kafka with <code>JSON</code> format fails <em>late</em>: <code>RowJson</code> recurses into the <code>ROW</code> base type, finds only <code>INT64</code>/<code>INT16</code> inside, and so passes schema validation — then throws <code>ClassCastException</code> per element when it tries to cast the <code>java.time.Instant</code> to a <code>Row</code> (<code>RowJson.java:176-180</code>, <code>:593</code>).</li>
+</ul>
+<p>How you would hit the JDBC and Kafka rows, since they are less obvious than Iceberg: Beam&rsquo;s schema transforms require a schema-bearing <code>PCollection&lt;Row&gt;</code>, and <code>RowCoder</code> is a <code>SchemaCoder</code>, so <code>pcoll.setCoder(RowCoder.of(rowType.schema))</code> is enough to make one. Any managed sink then accepts it.</p>
+<p>Two consequences worth stating plainly:</p>
+<p><strong>No <code>timestamp.*</code> precision reaches every sink, and some sinks accept none of them.</strong> <code>compat.millis</code> is the only <code>Instant</code> encoding every schema-aware Beam IO accepts, because <code>DATETIME</code> is a primitive they all understand. If one record type needs multiple destinations, use <code>compat.millis</code> or define per-destination <code>RowType</code>s.</p>
+<p><strong><code>compat.micros</code> and <code>compat.nanos</code> are not general escape hatches.</strong> <code>compat.micros</code> is a plain <code>INT64</code>, so it is structurally accepted nearly everywhere but lands as an integer column rather than a timestamp. <code>compat.nanos</code> is <code>NanosInstant</code>, whose base type is also a <code>ROW</code>, so it hits the same walls as <code>timestamp.*</code> — it is rejected by Iceberg (<code>IcebergUtils.java:236</code>) and was never writable there.</p>
+<p>The Avro column is about <code>beam-sdks-java-extensions-avro</code> converting a Beam <code>Schema</code> to an Avro <code>Schema</code>. If you want Avro output from a case class, use magnolify&rsquo;s <code>avro</code> module instead — it has no Beam dependency and none of these constraints.</p>
+<h3><a href="#reading" name="reading" class="anchor"><span class="anchor-link"></span></a>Reading</h3>
+<p>Reads are more forgiving than writes, in a way worth knowing about. A <code>Timestamp</code> field surfaces as a <code>java.time.Instant</code> at any precision, so a reader whose declared precision is <em>finer or coarser</em> than the data still succeeds — it simply returns whatever precision the writer stored. Reading an Iceberg <code>timestamptz</code> (micros) with <code>timestamp.millis</code> yields a full microsecond <code>Instant</code>, with no truncation and no error; truncation applies on write only.</p>
+<p>The one combination that fails loudly is a <code>compat.*</code> reader against <code>Timestamp</code>-encoded data, which throws <code>ClassCastException: java.time.Instant cannot be cast to org.joda.time.Instant</code>. That is the pairing contract below.</p>
+<p>Reading is also where the groupings are least interchangeable, because most IOs still <em>produce</em> <code>DATETIME</code>. Beam&rsquo;s <code>BigQueryIO</code> is the clearest case: it demands precision 9 on write, but on read it returns <code>DATETIME</code> for an ordinary <code>TIMESTAMP</code> column and only yields a <code>Timestamp</code> logical type for a <code>TIMESTAMP(12)</code> column, under <code>--picosecondTimestampMapping</code> (<code>BigQueryUtils.java:474-493</code>). So no single import round-trips it — write with <code>timestamp.nanos</code>, read with <code>compat.millis</code>.</p>
+<h3><a href="#the-compat-encodings" name="the-compat-encodings" class="anchor"><span class="anchor-link"></span></a>The <code>compat</code> encodings</h3>
+<p><code>compat.millis</code>, <code>compat.micros</code> and <code>compat.nanos</code> hold the <code>Instant</code> encodings magnolify produced through 0.9.7 — the joda-backed <code>DATETIME</code> primitive, a raw <code>INT64</code> of microseconds, and the <code>NanosInstant</code> logical type respectively. Non-instant mappings are identical to <code>timestamp.*</code>.</p>
+<p>The name is deliberately about compatibility rather than representation: those three share no encoding, only the fact that this is what 0.9.7 emitted. <code>compat</code> is also not a deprecated holding pen — <code>compat.millis</code> is the correct and often the <em>only</em> choice for the destinations listed above, and stays correct as long as those IOs emit and accept <code>DATETIME</code>.</p>
+<p>Use <code>compat.millis</code> when reading Rows that are still <code>DATETIME</code>-encoded — either because the connector hardcodes it (as of Beam 2.76.0 that includes jdbc, google-cloud-platform, clickhouse, delta, hcatalog, iceberg, singlestore and amazon-web-services2, plus core and the arrow, avro, sql and sql-datacatalog extensions), or because the pipeline pins Beam&rsquo;s <code>--updateCompatibilityVersion</code> below 2.76.0. <code>compat.millis</code> is the counterpart to that flag: pair them, or omit both. Setting the flag while using <code>timestamp.*</code> is the one combination that will not work.</p>
+<p>Beyond the connectors that name <code>DATETIME</code> explicitly, Beam&rsquo;s schema inference maps any joda <code>Instant</code> field to <code>DATETIME</code>, so a connector whose element type has joda fields produces it too — KafkaIO&rsquo;s <code>KafkaSourceDescriptor</code> is one.</p>
+<h3><a href="#iceberg" name="iceberg" class="anchor"><span class="anchor-link"></span></a>Iceberg</h3>
+<p>Beam 2.76.0 changed IcebergIO&rsquo;s <code>timestamptz</code> mapping from <code>DATETIME</code> to <code>Timestamp.MICROS</code> in order to stop truncating microseconds. Use <code>timestamp.micros</code> — it is the only <code>Timestamp</code> precision IcebergIO accepts on write, and what it produces on read. <code>timestamp.millis</code> and <code>timestamp.nanos</code> will fail schema conversion with <code>UnsupportedOperationException</code>. If the pipeline pins <code>--updateCompatibilityVersion</code> below 2.76.0, use <code>compat.millis</code> instead.</p>
+<p>Note the change was to the <strong>read</strong> path only; IcebergIO still accepts <code>DATETIME</code> on write (<code>IcebergUtils.java:77</code>), so <code>compat.millis</code> remains a valid way to write Iceberg — it just truncates to milliseconds, which is what prompted the Beam change in the first place.</p>
 <h2><a href="#sql-types" name="sql-types" class="anchor"><span class="anchor-link"></span></a>SQL types</h2>
-<p>SQL-compatible logical types are supported via <code>import magnolify.beam.logical.sql.*</code></p>
+<p><strong>Deprecated since 0.9.8.</strong> <code>magnolify.beam.logical.sql</code>&rsquo;s <code>DATE</code>, <code>TIME</code> and <code>DATETIME</code> members duplicate those in <code>logical.date</code> and the precision objects, and its <code>TIMESTAMP</code> member is Beam&rsquo;s <code>MicrosInstant</code>, which throws on sub-microsecond instants. Use <code>logical.date</code> plus one of <code>timestamp.{millis,micros,nanos}</code> or <code>compat.{millis,micros,nanos}</code> instead.</p>
 <h2><a href="#case-mapping" name="case-mapping" class="anchor"><span class="anchor-link"></span></a>Case mapping</h2>
 <p>To use a different field case format in target records, add an optional <code>CaseMapper</code> argument to <code>RowType</code>:</p>
 <pre class="prettyprint"><code class="language-scala">import magnolify.beam.*
@@ -256,7 +347,7 @@ Edit this page
 </div>
 <div class="print-only">
 <span class="md-source-file md-version">
-0.9.7
+0.9.8
 </span>
 </div>
 </article>
