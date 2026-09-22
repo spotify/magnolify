@@ -169,11 +169,8 @@ object AvroField {
     }
   }
 
-  private def getDoc(annotations: Seq[Any], name: String): String = {
-    val docs = annotations.collect { case d: doc => d.toString }
-    require(docs.size <= 1, s"More than one @doc annotation: $name")
-    docs.headOption.orNull
-  }
+  private def getDoc(annotations: Seq[Any], name: String): String =
+    magnolify.shared.doc.extract(annotations, name).orNull
 
   @implicitNotFound("Cannot derive AvroField for sealed trait")
   private sealed trait Dispatchable[T]
