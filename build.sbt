@@ -211,17 +211,21 @@ lazy val keepExistingHeader =
         .trim()
   )
 
+// whether scala 3 artifacts are published for this magnolify version
+def supportsScala3(version: String, scala3Introduced: String): Boolean = {
+  // abuse partialVersion to get major, minor
+  val (magMajor, magMinor) = CrossVersion.partialVersion(version).get
+  val (s3Major, s3Minor) = CrossVersion.partialVersion(scala3Introduced).get
+  magMajor >= s3Major && magMinor >= s3Minor
+}
+
 val commonSettings = Seq(
   // So far most projects do no support scala 3
   crossScalaVersions := Seq(scala213, scala212),
   // skip scala 3 publishing until ready
   publish / skip := {
-    lazy val magnolifySupportsScala3 = {
-      // abuse partialVersion to get major, minor
-      val (magMajor, magMinor) = CrossVersion.partialVersion(version.value).get
-      val (s3Major, s3Minor) = CrossVersion.partialVersion(tlVersionIntroduced.value("3")).get
-      magMajor >= s3Major && magMinor >= s3Minor
-    }
+    lazy val magnolifySupportsScala3 =
+      supportsScala3(version.value, tlVersionIntroduced.value("3"))
     lazy val moduleSupportsScala3 = scala3Projects
       .contains(moduleName.value.stripPrefix("magnolify-"))
     lazy val isScala3Build = scalaVersion.value == scala3
@@ -342,6 +346,20 @@ lazy val bom = project
       neo4j,
       tools
     ),
+    // the plugin lists every crossScalaVersion, drop scala 3 entries until they are published
+    bomDependenciesListing := {
+      val listing = bomDependenciesListing.value
+      if (supportsScala3(version.value, tlVersionIntroduced.value("3"))) {
+        listing
+      } else {
+        val published = (n: scala.xml.Node) => !(n \ "artifactId").text.endsWith("_3")
+        listing.copy(child = listing.child.map {
+          case deps: scala.xml.Elem if deps.label == "dependencies" =>
+            deps.copy(child = deps.child.filter(published))
+          case n => n
+        })
+      }
+    },
     // pom project. No ABI
     tlMimaPreviousVersions := Set.empty
   )
