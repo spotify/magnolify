@@ -158,6 +158,25 @@ private object Schema {
               s"found; written file schema had type $wf"
           )
         }
+        (wf.getLogicalTypeAnnotation, rf.getLogicalTypeAnnotation) match {
+          case (
+                w: LogicalTypeAnnotation.TimestampLogicalTypeAnnotation,
+                r: LogicalTypeAnnotation.TimestampLogicalTypeAnnotation
+              ) if w.getUnit != r.getUnit =>
+            throw new InvalidRecordException(
+              s"Writer and reader Timestamp schemas do not match for field `${reader.getName}`: " +
+                s"writer is `$w` but reader is `$r`"
+            )
+          case (
+                w: LogicalTypeAnnotation.TimeLogicalTypeAnnotation,
+                r: LogicalTypeAnnotation.TimeLogicalTypeAnnotation
+              ) if w.getUnit != r.getUnit =>
+            throw new InvalidRecordException(
+              s"Writer and reader Time schemas do not match for field `${reader.getName}`: " +
+                s"writer is `$w` but reader is `$r`"
+            )
+          case _ =>
+        }
       case _ =>
         throw new Exception(s"Unsupported type for $writer")
     }
