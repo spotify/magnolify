@@ -65,7 +65,7 @@ private object TimestampConverter {
     .toFormatter()
 
   // TIMESTAMP
-  // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#time_type
+  // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#timestamp_type
 
   // civil_date_part YYYY-[M]M-[D]D
   private val civilDatePartFormatter = dateFormatter

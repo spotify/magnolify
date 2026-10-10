@@ -113,7 +113,7 @@ private object Schema {
       writer.isPrimitive != reader.isPrimitive
     ) {
       throw new InvalidRecordException(
-        s"Writer schema `$writer` incompatible with reader schema `$reader``"
+        s"Writer schema `$writer` incompatible with reader schema `$reader`"
       )
     }
 
