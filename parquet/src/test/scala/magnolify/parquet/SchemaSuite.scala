@@ -231,6 +231,17 @@ class SchemaSuite extends MagnolifySuite {
   private val standardList =
     "required group items (LIST) { repeated group list { required int32 element; } }"
 
+  test("detectArrayEncoding: 2-level primitive arrays leave the encoding unchanged") {
+    val schema = MessageTypeParser.parseMessageType(
+      """message Record {
+        |  required group items (LIST) {
+        |    repeated int32 array (INTEGER(32,true));
+        |  }
+        |}""".stripMargin
+    )
+    assertEquals(Schema.detectArrayEncoding(schema), None)
+  }
+
   test("detectArrayEncoding: mixed sibling list structures are not inferred") {
     Seq(
       "required group old (LIST) { repeated int32 element; }",

@@ -73,6 +73,36 @@ class ListCompatibilitySuite extends MagnolifySuite {
   }
 
   test("2-level list encoding with primitive list type") {
+    implicit val typeclass = ParquetType[RecordWithListPrimitive](new MagnolifyParquetProperties {
+      override def writeArrayEncoding: ArrayEncoding = ThreeLevelArray
+    })
+
+    val schema = s"""
+                    |message RecordWith2LevelListPrimitive {
+                    |  required group $ListField (LIST) {
+                    |    repeated int32 array (INTEGER(32,true));
+                    |  }
+                    |}
+                    |""".stripMargin
+
+    roundtripParquet[RecordWithListPrimitive](
+      writeSchema = MessageTypeParser.parseMessageType(schema),
+      records = recordsWithListPrimitive,
+      writeFn = { case (record, rc) =>
+        rc.startMessage()
+        rc.startField(ListField, 0)
+        rc.startGroup()
+        rc.startField("array", 0)
+        record.listField.foreach(rc.addInteger)
+        rc.endField("array", 0)
+        rc.endGroup()
+        rc.endField(ListField, 0)
+        rc.endMessage()
+      }
+    )
+  }
+
+  test("2-level list encoding with nested list type") {
     implicit val typeclass = ParquetType[RecordWithListNested](new MagnolifyParquetProperties {
       override def writeArrayEncoding: ArrayEncoding = ThreeLevelArray
     })
