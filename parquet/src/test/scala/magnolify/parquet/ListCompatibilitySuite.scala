@@ -28,6 +28,7 @@ import org.apache.parquet.io.api.RecordConsumer
 import org.apache.parquet.schema.{MessageType, MessageTypeParser}
 
 import java.nio.file.{Files, Paths}
+import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success, Try}
 
@@ -338,6 +339,40 @@ class ListCompatibilitySuite extends MagnolifySuite {
       },
       readerConf = autoDetectConf
     )(typeClassList, typeClassArray)
+  }
+
+  test("auto-detection preserves inferred 3-level lists with an AvroCompat reader") {
+    val writerType = ParquetType[RecordWithListPrimitive](new MagnolifyParquetProperties {
+      override def writeArrayEncoding: ArrayEncoding = ThreeLevelList
+    })
+    @nowarn("cat=deprecation")
+    val readerType = {
+      import ParquetArray.AvroCompat.*
+      ParquetType[RecordWithListPrimitive]
+    }
+    assertEquals(readerType.properties.writeArrayEncoding, ThreeLevelArray)
+
+    val context = new InitContext(
+      new Configuration(autoDetectConf),
+      Map.empty[String, java.util.Set[String]].asJava,
+      writerType.schema
+    )
+    assertEquals(readerType.readSupport.init(context).getRequestedSchema, writerType.schema)
+    assertEquals(readerType.properties.writeArrayEncoding, ThreeLevelArray)
+
+    val out = new TestOutputFile
+    val writer = writerType.writeBuilder(out).build()
+    try recordsWithListPrimitive.foreach(writer.write)
+    finally writer.close()
+
+    val reader = ensureSerializable(readerType)
+      .readBuilder(new TestInputFile(out.getBytes))
+      .withConf(autoDetectConf)
+      .build()
+    try {
+      assertEquals(recordsWithListPrimitive.map(_ => reader.read()), recordsWithListPrimitive)
+      assertEquals(reader.read(), null)
+    } finally reader.close()
   }
 
   test("auto-detection updates the reader without mutating its typeclass or configuration") {

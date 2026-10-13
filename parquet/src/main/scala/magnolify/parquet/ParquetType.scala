@@ -93,7 +93,6 @@ sealed trait ParquetType[T] extends Serializable {
   def writeBuilder(file: OutputFile): WriteBuilder[T] = new WriteBuilder(file, writeSupport)
 
   private[parquet] def properties: MagnolifyParquetProperties
-  private[parquet] def updateProperties(newProps: MagnolifyParquetProperties): ParquetType[T]
 
   private[parquet] def write(c: RecordConsumer, v: T): Unit = ()
   private[parquet] def newConverter(): TypeConverter[T] = null
@@ -140,63 +139,69 @@ object ParquetType {
     props: MagnolifyParquetProperties
   )(implicit f: ParquetField[T], pa: ParquetArray): ParquetType[T] = f match {
     case r: ParquetField.Record[_] =>
-      new ParquetType[T] {
-        // Maintain backwards compat with old AvroCompat import by overriding arrayEncoding property to use
-        // 2-level encoding if import is detected.
-        private val propertiesWithAvroImportCompat = (pa, props.writeArrayEncoding) match {
-          case (ParquetArray.default, _)                                          => props
-          case (ParquetArray.AvroCompat.avroCompat, ArrayEncoding.ThreeLevelList) =>
-            throw new IllegalStateException(
-              "AvroCompat is imported, which sets a 2-level list encoding, but MagnolifyParquetProperties#arrayEncoding is set to 3-level list encoding. Remove either the AvroCompat import or the arrayEncoding override."
-            )
-          case (ParquetArray.AvroCompat.avroCompat, _) =>
-            new MagnolifyParquetProperties {
-              override def writeArrayEncoding: ArrayEncoding =
-                ArrayEncoding.ThreeLevelArray
-              override def writeAvroSchemaToMetadata: Boolean = props.writeAvroSchemaToMetadata
-            }
-        }
-
-        @transient override def schema: MessageType =
-          Schema.message(r.schema(cm, propertiesWithAvroImportCompat))
-
-        @transient override def avroSchema: AvroSchema = {
-          // `parquet.avro.schema` string should not contain the `element` wrapper schemas that
-          // `ArrayEncoding.ThreeLevelList` adds to native Parquet schema
-          val avroCompatSchema =
-            if (
-              propertiesWithAvroImportCompat.writeArrayEncoding == ArrayEncoding.ThreeLevelArray
-            ) {
-              schema
-            } else {
-              Schema.message(
-                r.schema(
-                  cm,
-                  new MagnolifyParquetProperties {
-                    override def writeArrayEncoding: ArrayEncoding = ArrayEncoding.ThreeLevelArray
-                  }
-                )
-              )
-            }
-
-          val s = new AvroSchemaConverter().convert(avroCompatSchema)
-          // add doc to avro schema
-          val fieldDocs = f.fieldDocs(cm)
-          SchemaUtil.deepCopy(s, f.typeDoc, fieldDocs.get)
-        }
-
-        override private[parquet] def properties: MagnolifyParquetProperties =
-          propertiesWithAvroImportCompat
-        override private[parquet] def updateProperties(
-          newProps: MagnolifyParquetProperties
-        ): ParquetType[T] = ParquetType[T](cm, newProps)(f, pa)
-        override def write(c: RecordConsumer, v: T): Unit =
-          r.write(c, v)(cm, propertiesWithAvroImportCompat)
-        override private[parquet] def newConverter(): TypeConverter[T] =
-          r.newConverter(propertiesWithAvroImportCompat)
+      // Maintain backwards compat with old AvroCompat import by overriding arrayEncoding property to use
+      // 2-level encoding if import is detected.
+      val propertiesWithAvroImportCompat = (pa, props.writeArrayEncoding) match {
+        case (ParquetArray.default, _)                                          => props
+        case (ParquetArray.AvroCompat.avroCompat, ArrayEncoding.ThreeLevelList) =>
+          throw new IllegalStateException(
+            "AvroCompat is imported, which sets a 2-level list encoding, but MagnolifyParquetProperties#arrayEncoding is set to 3-level list encoding. Remove either the AvroCompat import or the arrayEncoding override."
+          )
+        case (ParquetArray.AvroCompat.avroCompat, _) =>
+          new MagnolifyParquetProperties {
+            override def writeArrayEncoding: ArrayEncoding =
+              ArrayEncoding.ThreeLevelArray
+            override def writeAvroSchemaToMetadata: Boolean = props.writeAvroSchemaToMetadata
+          }
       }
+      new ParquetTypeImpl[T](r, cm, propertiesWithAvroImportCompat)
     case _ =>
       throw new IllegalArgumentException(s"ParquetType can only be created from Record. Got $f")
+  }
+
+  // Copy effective properties directly; AvroCompat only supplies defaults at construction.
+  private def apply[T](
+    original: ParquetType[T],
+    properties: MagnolifyParquetProperties
+  ): ParquetType[T] = original match {
+    case p: ParquetTypeImpl[T] => new ParquetTypeImpl[T](p.field, p.caseMapper, properties)
+  }
+
+  private final class ParquetTypeImpl[T](
+    val field: ParquetField.Record[T],
+    val caseMapper: CaseMapper,
+    override private[parquet] val properties: MagnolifyParquetProperties
+  ) extends ParquetType[T] {
+    @transient override def schema: MessageType =
+      Schema.message(field.schema(caseMapper, properties))
+
+    @transient override def avroSchema: AvroSchema = {
+      // `parquet.avro.schema` string should not contain the `element` wrapper schemas that
+      // `ArrayEncoding.ThreeLevelList` adds to native Parquet schema
+      val avroCompatSchema =
+        if (properties.writeArrayEncoding == ArrayEncoding.ThreeLevelArray) {
+          schema
+        } else {
+          Schema.message(
+            field.schema(
+              caseMapper,
+              new MagnolifyParquetProperties {
+                override def writeArrayEncoding: ArrayEncoding = ArrayEncoding.ThreeLevelArray
+              }
+            )
+          )
+        }
+
+      val s = new AvroSchemaConverter().convert(avroCompatSchema)
+      // add doc to avro schema
+      val fieldDocs = field.fieldDocs(caseMapper)
+      SchemaUtil.deepCopy(s, field.typeDoc, fieldDocs.get)
+    }
+
+    override def write(c: RecordConsumer, v: T): Unit =
+      field.write(c, v)(caseMapper, properties)
+    override private[parquet] def newConverter(): TypeConverter[T] =
+      field.newConverter(properties)
   }
 
   val ReadTypeKey = "parquet.type.read.type"
@@ -243,12 +248,15 @@ object ParquetType {
             Schema.detectArrayEncoding(writeSchema).foreach { encoding =>
               val currentProps = parquetType.properties
               if (encoding != currentProps.writeArrayEncoding) {
-                this.parquetType = parquetType.updateProperties(new MagnolifyParquetProperties {
-                  override def writeArrayEncoding: ArrayEncoding = encoding
+                this.parquetType = ParquetType(
+                  parquetType,
+                  new MagnolifyParquetProperties {
+                    override def writeArrayEncoding: ArrayEncoding = encoding
 
-                  override def writeAvroSchemaToMetadata: Boolean =
-                    currentProps.writeAvroSchemaToMetadata
-                })
+                    override def writeAvroSchemaToMetadata: Boolean =
+                      currentProps.writeAvroSchemaToMetadata
+                  }
+                )
               }
             }
 
