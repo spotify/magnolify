@@ -195,11 +195,8 @@ object ParquetField {
 
   implicit def apply[T]: ParquetField[T] = macro Magnolia.gen[T]
 
-  private def getDoc(annotations: Seq[Any], name: String): Option[String] = {
-    val docs = annotations.collect { case d: magnolify.shared.doc => d.toString }
-    require(docs.size <= 1, s"More than one @doc annotation: $name")
-    docs.headOption
-  }
+  private def getDoc(annotations: Seq[Any], name: String): Option[String] =
+    magnolify.shared.doc.extract(annotations, name)
 
   // ////////////////////////////////////////////////
 

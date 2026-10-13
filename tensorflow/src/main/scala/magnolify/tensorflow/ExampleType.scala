@@ -160,11 +160,10 @@ object ExampleField {
     }
   }
 
-  private def getDoc(annotations: Seq[Any], name: String): Option[Annotation] = {
-    val docs = annotations.collect { case d: doc => d.toString }
-    require(docs.size <= 1, s"More than one @doc annotation: $name")
-    docs.headOption.map(doc => Annotation.newBuilder().addTag(doc).build())
-  }
+  private def getDoc(annotations: Seq[Any], name: String): Option[Annotation] =
+    magnolify.shared.doc
+      .extract(annotations, name)
+      .map(d => Annotation.newBuilder().addTag(d).build())
 
   @implicitNotFound("Cannot derive ExampleField for sealed trait")
   private sealed trait Dispatchable[T]
