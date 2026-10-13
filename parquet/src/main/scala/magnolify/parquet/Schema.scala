@@ -95,12 +95,55 @@ private object Schema {
     builder.named(schema.getName)
   }
 
+  def detectArrayEncoding(schema: Type): Option[ArrayEncoding] = {
+    // Match parquet-avro's conservative inference: require at least one LIST field,
+    // and require every LIST field (including nested ones) to use the standard
+    // three-level list/element structure. None means no LIST fields were found.
+    def allListStructuresAreThreeLevel(t: Type): Option[Boolean] = {
+      if (t.isPrimitive) {
+        None
+      } else {
+        val group = t.asGroupType()
+        if (group.getLogicalTypeAnnotation == LogicalTypeAnnotation.listType()) {
+          if (group.isRepetition(Repetition.REPEATED) || group.getFieldCount != 1) {
+            Some(false)
+          } else {
+            val repeated = group.getType(0)
+            if (
+              repeated.isPrimitive || !repeated.isRepetition(Repetition.REPEATED) ||
+              repeated.getName != "list" || repeated.asGroupType().getFieldCount != 1
+            ) {
+              Some(false)
+            } else {
+              val element = repeated.asGroupType().getType(0)
+              Some(
+                !element.isRepetition(Repetition.REPEATED) && element.getName == "element" &&
+                  !allListStructuresAreThreeLevel(element).contains(false)
+              )
+            }
+          }
+        } else {
+          group.getFields.asScala.foldLeft(Option.empty[Boolean]) { (result, field) =>
+            if (result.contains(false)) {
+              result
+            } else {
+              allListStructuresAreThreeLevel(field).orElse(result)
+            }
+          }
+        }
+      }
+    }
+
+    if (allListStructuresAreThreeLevel(schema).contains(true)) {
+      Some(ArrayEncoding.ThreeLevelList)
+    } else {
+      None
+    }
+  }
+
   def checkCompatibility(writer: Type, reader: Type): Unit = {
     def listFields(gt: GroupType) =
       s"[${gt.getFields.asScala.map(f => s"${f.getName}: ${f.getRepetition}").mkString(",")}]"
-
-    def isRepeatedType(lta: LogicalTypeAnnotation): Boolean =
-      lta == LogicalTypeAnnotation.listType() || lta == LogicalTypeAnnotation.mapType()
 
     def isRepetitionBackwardCompatible(w: Type, r: Type) =
       (w.getRepetition, r.getRepetition) match {
@@ -125,27 +168,17 @@ private object Schema {
             val wf = wg.getType(rf.getName)
             checkCompatibility(wf, rf)
           } else {
-            // Check if parent is a grouped list type; the child elements must match exactly,
-            // otherwise reader and writer schema are using different list encodings
-            if (Option(rg.getLogicalTypeAnnotation).exists(isRepeatedType)) {
-              throw new InvalidRecordException(
-                s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema. " +
-                  s"Writer schema may be using a different list encoding; see https://spotify.github.io/magnolify/parquet.html#list-encodings."
-              )
-            } else if (
-              rf.getRepetition == Repetition.OPTIONAL ||
-              (rf.isPrimitive && rf.getRepetition == Repetition.REPEATED) ||
-              (!rf.isPrimitive && Option(rf.getLogicalTypeAnnotation).exists(isRepeatedType))
-            ) {
-              logger.warn(
-                s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema " +
-                  s"and will be evaluated as empty. Available fields are: ${listFields(wg)}"
-              )
-            } else {
-              throw new InvalidRecordException(
-                s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema. " +
-                  s"Available fields are: ${listFields(wg)}"
-              )
+            rf.getRepetition match {
+              case Repetition.OPTIONAL =>
+                logger.warn(
+                  s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema " +
+                    s"and will be evaluated as `Option.empty`. Available fields are: ${listFields(wg)}"
+                )
+              case _ =>
+                throw new InvalidRecordException(
+                  s"Requested field `${rf.getName}: ${rf.getRepetition}` is not present in written file schema. " +
+                    s"Available fields are: ${listFields(wg)}"
+                )
             }
           }
         }

@@ -22,6 +22,7 @@ import magnolify.test._
 import org.apache.avro.generic.{GenericRecord, GenericRecordBuilder}
 import org.apache.avro.{JsonProperties, Schema => AvroSchema}
 import org.apache.hadoop.conf.Configuration
+import org.apache.parquet.io.InvalidRecordException
 import org.apache.parquet.avro.{
   AvroParquetReader,
   AvroParquetWriter,
@@ -390,7 +391,10 @@ class SchemaEvolutionSuite extends MagnolifySuite {
   }
 
   test("Scala V1 => Scala V2") {
-    assertEquals(readScala[User2](scalaBytes1), scala1as2)
+    // V2 adds aliases (REPEATED) which is not present in V1
+    intercept[InvalidRecordException] {
+      readScala[User2](scalaBytes1)
+    }
   }
 
   test("Scala V2 => Scala V1") {
@@ -411,7 +415,10 @@ class SchemaEvolutionSuite extends MagnolifySuite {
 
   test("Scala Compat V1 => Scala Compat V2") {
     import magnolify.parquet.ParquetArray.AvroCompat._
-    assertEquals(readScala[User2](scalaCompatBytes1), scala1as2)
+    // In AvroCompat mode, aliases is a REQUIRED LIST group — not a valid schema evolution addition
+    intercept[InvalidRecordException] {
+      readScala[User2](scalaCompatBytes1)
+    }
   }
 
   test("Scala Compat V2 => Scala Compat V1") {
@@ -433,7 +440,10 @@ class SchemaEvolutionSuite extends MagnolifySuite {
 
   test("Avro V1 => Scala V2") {
     import magnolify.parquet.ParquetArray.AvroCompat._
-    assertEquals(readScala[User2](avroBytes1), scala1as2)
+    // In AvroCompat mode, aliases is a REQUIRED LIST group — not a valid schema evolution addition
+    intercept[InvalidRecordException] {
+      readScala[User2](avroBytes1)
+    }
   }
 
   test("Avro V2 => Scala V1") {

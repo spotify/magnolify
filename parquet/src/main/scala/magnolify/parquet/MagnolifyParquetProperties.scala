@@ -38,6 +38,9 @@ object MagnolifyParquetProperties {
   val ThreeLevelList: String = "three-level-list"
 
   val WriteAvroSchemaToMetadata: String = "magnolify.parquet.write-avro-schema"
+
+  val AutoDetectListEncoding: String = "parquet.type.read.auto-detect-list-encoding"
+  val AutoDetectListEncodingDefault: Boolean = true
 }
 
 sealed trait ArrayEncoding
