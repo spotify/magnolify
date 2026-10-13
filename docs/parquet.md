@@ -119,11 +119,14 @@ ParquetType[RecordWithList].schema
 
 ### Auto-detecting list encodings
 
-As of Magnolify 0.9.5, passing in the Hadoop configuration option `parquet.type.read.auto-detect-list-encoding: true` at read time will instruct `ParquetType` to automatically infer list encoding from the writer schema,
-obviating the need to specify an encoding manually.
+As of Magnolify 0.9.9, passing in the Hadoop configuration property `parquet.type.read.auto-detect-list-encoding: true` at read time will instruct `ParquetType` to infer standard 3-level list encoding from the writer schema when schema compatibility checking fails.
+Schemas with [mixed, older, or malformed LIST structures](https://github.com/apache/parquet-format/blob/master/LogicalTypes.md#backward-compatibility-rules) leave the reader encoding unchanged and still undergo compatibility checking.
+
+**This option defaults to `true`, so Magnolify will automatically infer list type unless `parquet.type.read.auto-detect-list-encoding` is set to `false`.**
 
 ```diff
 val pt = ParquetType[RecordWithList](
+-  // No longer needed with auto list inference
 -  new MagnolifyParquetProperties {
 -    override def writeArrayEncoding: ArrayEncoding = ArrayEncoding.ThreeLevelList
 -  }
@@ -131,19 +134,7 @@ val pt = ParquetType[RecordWithList](
 
 val reader = pt
   .readBuilder(...)
-+ .withConf(ParquetConfiguration.of("parquet.type.read.auto-detect-list-encoding" -> true)
   .build()
-```
-
-You can also set this property in a `core-site.xml` file in `src/main/resources/` to be automatically applied to every read in your project:
-
-```xml
-<configuration>
-  <property>
-    <name>parquet.type.read.auto-detect-list-encoding</name>
-    <value>true</value>
-  </property>
-</configuration>
 ```
 
 ### AvroCompat import

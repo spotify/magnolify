@@ -96,43 +96,49 @@ private object Schema {
   }
 
   def detectArrayEncoding(schema: Type): Option[ArrayEncoding] = {
-    val encodings = scala.collection.mutable.Set.empty[ArrayEncoding]
-
-    def visit(t: Type): Unit = t match {
-      case g: GroupType if g.getLogicalTypeAnnotation == LogicalTypeAnnotation.listType() =>
-        g.getFields.asScala.headOption match {
-          case Some(child) if child.getName == "list" =>
-            encodings += ArrayEncoding.ThreeLevelList
-          case Some(child) if child.getName == "array" =>
-            encodings += ArrayEncoding.ThreeLevelArray
-          case Some(_) =>
-            throw new InvalidRecordException(
-              s"Schema contained unsupported list encoding ```$t```;" +
-                s" child element of LIST annotation must be one of: [list, array]`"
-            )
-          case None =>
+    // Match parquet-avro's conservative inference: require at least one LIST field,
+    // and require every LIST field (including nested ones) to use the standard
+    // three-level list/element structure. None means no LIST fields were found.
+    def allListStructuresAreThreeLevel(t: Type): Option[Boolean] = {
+      if (t.isPrimitive) {
+        None
+      } else {
+        val group = t.asGroupType()
+        if (group.getLogicalTypeAnnotation == LogicalTypeAnnotation.listType()) {
+          if (group.isRepetition(Repetition.REPEATED) || group.getFieldCount != 1) {
+            Some(false)
+          } else {
+            val repeated = group.getType(0)
+            if (
+              repeated.isPrimitive || !repeated.isRepetition(Repetition.REPEATED) ||
+              repeated.getName != "list" || repeated.asGroupType().getFieldCount != 1
+            ) {
+              Some(false)
+            } else {
+              val element = repeated.asGroupType().getType(0)
+              Some(
+                !element.isRepetition(Repetition.REPEATED) && element.getName == "element" &&
+                  !allListStructuresAreThreeLevel(element).contains(false)
+              )
+            }
+          }
+        } else {
+          group.getFields.asScala.foldLeft(Option.empty[Boolean]) { (result, field) =>
+            if (result.contains(false)) {
+              result
+            } else {
+              allListStructuresAreThreeLevel(field).orElse(result)
+            }
+          }
         }
-        g.getFields.asScala.foreach(visit)
-      case g: GroupType =>
-        g.getFields.asScala.foreach(visit)
-      case t: PrimitiveType if t.getRepetition == Repetition.REPEATED =>
-        encodings += ArrayEncoding.Ungrouped
-      case _ =>
+      }
     }
 
-    schema match {
-      case g: GroupType => g.getFields.asScala.foreach(visit)
-      case _            =>
+    if (allListStructuresAreThreeLevel(schema).contains(true)) {
+      Some(ArrayEncoding.ThreeLevelList)
+    } else {
+      None
     }
-
-    if (encodings.size > 1) {
-      throw new InvalidRecordException(
-        s"Multiple list encodings detected in writer schema: ${encodings.mkString(", ")}. " +
-          "Cannot auto-detect list encoding."
-      )
-    }
-
-    encodings.headOption
   }
 
   def checkCompatibility(writer: Type, reader: Type): Unit = {

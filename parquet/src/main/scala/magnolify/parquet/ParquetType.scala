@@ -202,8 +202,6 @@ object ParquetType {
   val ReadTypeKey = "parquet.type.read.type"
   val WriteTypeKey = "parquet.type.write.type"
 
-  val AutoDetectListEncoding = "parquet.type.read.auto-detect-list-encoding"
-
   class ReadBuilder[T](file: InputFile, val readSupport: ReadSupport[T])
       extends ParquetReader.Builder[T](file) {
     override def getReadSupport: ReadSupport[T] = readSupport
@@ -238,7 +236,10 @@ object ParquetType {
           case Success(_) => typeclassSchema
           // Try to auto-infer list encoding if configuration option is set
           case Failure(_)
-              if context.getParquetConfiguration.getBoolean(AutoDetectListEncoding, false) =>
+              if context.getParquetConfiguration.getBoolean(
+                MagnolifyParquetProperties.AutoDetectListEncoding,
+                MagnolifyParquetProperties.AutoDetectListEncodingDefault
+              ) =>
             Schema.detectArrayEncoding(writeSchema).foreach { encoding =>
               val currentProps = parquetType.properties
               if (encoding != currentProps.writeArrayEncoding) {
