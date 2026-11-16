@@ -125,3 +125,19 @@ val toSnakeCase = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_UNDERSCORE
 val rowType = RowType[LowerCamel](CaseMapper(toSnakeCase))
 rowType.to(LowerCamel("John", "Doe")) // Row(first_name: John, last_name: Doe)
 ```
+
+## Field and record descriptions
+
+Beam schema fields support descriptions, and RowType exposes the top-level record description via RowType#description (class-level @doc on nested case classes is not stored in the parent Beam Schema). Annotate the case class and its fields with @doc (or a subclass of @doc) to populate them:
+
+```scala mdoc:compile-only
+import magnolify.beam.*
+import magnolify.shared.doc
+
+@doc("My record")
+case class Record(@doc("int field") i: Int, @doc("string field") s: String)
+
+val rowType = RowType[Record]
+rowType.description // Some("My record")
+rowType.schema.getField("i").getDescription // "int field"
+```

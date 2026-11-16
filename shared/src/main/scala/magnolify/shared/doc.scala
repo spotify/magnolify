@@ -17,7 +17,23 @@
 package magnolify.shared
 
 import scala.annotation.StaticAnnotation
+import scala.reflect.ClassTag
 
 class doc(doc: String) extends StaticAnnotation with Serializable {
   override def toString: String = doc
+}
+
+object doc {
+  private[magnolify] def getDoc(annotations: Seq[Any], name: String): Option[String] =
+    getDocAs[doc](annotations, name)
+
+  // `D` keeps each module's own annotation family apart, e.g. `magnolify.tensorflow.doc`
+  private[magnolify] def getDocAs[D](annotations: Seq[Any], name: String)(implicit
+    ct: ClassTag[D]
+  ): Option[String] = {
+    // `Option` guards against a `@doc` whose `toString` returns `null`
+    val docs = annotations.collect { case ct(d) => Option(d.toString) }
+    require(docs.size <= 1, s"More than one @doc annotation: $name")
+    docs.headOption.flatten
+  }
 }

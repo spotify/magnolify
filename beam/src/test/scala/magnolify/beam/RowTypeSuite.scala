@@ -23,6 +23,7 @@ import magnolify.cats.TestEq.*
 import magnolify.scalacheck.auto.*
 import magnolify.scalacheck.TestArbitrary.*
 import magnolify.shared.CaseMapper
+import magnolify.shared.doc
 import magnolify.test.ADT
 import magnolify.test.MagnolifySuite
 import magnolify.test.Simple.*
@@ -416,6 +417,107 @@ class RowTypeSuite extends MagnolifySuite {
     assertEquals(result.o, None)
     assertEquals(result.l, List.empty[Required])
   }
+
+  test("BeamDoc") {
+    val rt = ensureSerializable(RowType[BeamDoc])
+    assertEquals(rt.description, Some("Beam doc"))
+    assertEquals(rt.schema.getField("s").getDescription, "string")
+    assertEquals(rt.schema.getField("i").getDescription, "integers")
+    assertEquals(rt.schema.getField("plain").getDescription, "")
+    // rebuilt schema on a deserialized instance: `@transient` schemaCache starts empty
+    val v = BeamDoc("s", Integers(1, 2L), "plain")
+    val row = rt.to(v)
+    assert(!(row.getSchema eq rt.schema))
+    assertEquals(row.getSchema, rt.schema)
+    assertEquals(rt(row), v)
+  }
+
+  test("BeamNestedDoc") {
+    val rt = ensureSerializable(RowType[BeamNestedDoc])
+    assertEquals(rt.description, Some("Beam nested doc"))
+    val schema = rt.schema
+
+    assertEquals(schema.getField("d").getDescription, "nested")
+    assertEquals(schema.getField("d").getType.getRowSchema.getField("s").getDescription, "string")
+
+    assertEquals(schema.getField("od").getDescription, "optional nested")
+    assertEquals(
+      schema.getField("od").getType.getRowSchema.getField("i").getDescription,
+      "integers"
+    )
+
+    assertEquals(schema.getField("ld").getDescription, "list nested")
+    assertEquals(
+      schema
+        .getField("ld")
+        .getType
+        .getCollectionElementType
+        .getRowSchema
+        .getField("s")
+        .getDescription,
+      "string"
+    )
+
+    assertEquals(schema.getField("md").getDescription, "map nested")
+    assertEquals(
+      schema.getField("md").getType.getMapValueType.getRowSchema.getField("i").getDescription,
+      "integers"
+    )
+
+    val d = BeamDoc("s", Integers(1, 2L), "plain")
+    val v = BeamNestedDoc("s", d, Some(d), List(d), Map("k" -> d))
+    val row = rt.to(v)
+    assert(!(row.getSchema eq rt.schema))
+    assertEquals(row.getSchema, rt.schema)
+    assertEquals(rt(row), v)
+  }
+
+  test("BeamDocCaseMapper") {
+    val schema = RowType[BeamNestedDoc](CaseMapper(_.toUpperCase)).schema
+    assertEquals(schema.getField("S").getDescription, "string")
+    assertEquals(schema.getField("D").getDescription, "nested")
+    assertEquals(schema.getField("D").getType.getRowSchema.getField("I").getDescription, "integers")
+  }
+
+  test("BeamCustomDoc") {
+    val rt = ensureSerializable(RowType[BeamCustomDoc])
+    assertEquals(rt.description, Some("doc: Beam doc, version: 1"))
+    assertEquals(rt.schema.getField("s").getDescription, "doc: string, version: 2")
+    val v = BeamCustomDoc("s")
+    val row = rt.to(v)
+    assert(!(row.getSchema eq rt.schema))
+    assertEquals(row.getSchema, rt.schema)
+    assertEquals(rt(row), v)
+  }
+
+  test("BeamNullDoc") {
+    val rt = ensureSerializable(RowType[BeamNullDoc])
+    assertEquals(rt.description, None)
+    assertEquals(rt.schema.getField("i").getDescription, "")
+    val v = BeamNullDoc(Integers(1, 2L))
+    val row = rt.to(v)
+    assert(!(row.getSchema eq rt.schema))
+    assertEquals(row.getSchema, rt.schema)
+    assertEquals(rt(row), v)
+  }
+
+  test("NoDoc") {
+    assertEquals(RowType[Integers].description, None)
+  }
+
+  testFail(RowType[DoubleRecordDoc])(
+    "More than one @doc annotation: magnolify.beam.DoubleRecordDoc"
+  )
+  testFail(RowType[DoubleFieldDoc])(
+    "More than one @doc annotation: magnolify.beam.DoubleFieldDoc#i"
+  )
+  // duplicate @doc on a nested record fails fast even when only the parent is derived
+  testFail(RowType[NestedDoubleRecordDoc])(
+    "More than one @doc annotation: magnolify.beam.DoubleRecordDoc"
+  )
+  testFail(RowType[NullDocRecordDoc])(
+    "More than one @doc annotation: magnolify.beam.NullDocRecordDoc"
+  )
 }
 
 case class Empty()
@@ -466,3 +568,33 @@ case class Maps(
 )
 
 case class SealedTest(shape: ADT.Shape, point: ADT.Rect, enumColor: ADT.Color)
+
+@doc("Beam doc")
+case class BeamDoc(@doc("string") s: String, @doc("integers") i: Integers, plain: String)
+
+@doc("Beam nested doc")
+case class BeamNestedDoc(
+  @doc("string") s: String,
+  @doc("nested") d: BeamDoc,
+  @doc("optional nested") od: Option[BeamDoc],
+  @doc("list nested") ld: List[BeamDoc],
+  @doc("map nested") md: Map[String, BeamDoc]
+)
+
+class customDoc(doc: String, version: Int) extends doc(s"doc: $doc, version: $version")
+
+@customDoc("Beam doc", 1)
+case class BeamCustomDoc(@customDoc("string", 2) s: String)
+
+@doc("doc1")
+@doc("doc2")
+case class DoubleRecordDoc(i: Int)
+case class DoubleFieldDoc(@doc("doc1") @doc("doc2") i: Int)
+case class NestedDoubleRecordDoc(drd: DoubleRecordDoc)
+
+@doc(null)
+case class BeamNullDoc(@doc(null) i: Integers)
+
+@doc(null)
+@doc("doc")
+case class NullDocRecordDoc(i: Int)
