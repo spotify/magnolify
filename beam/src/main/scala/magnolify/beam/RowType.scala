@@ -18,6 +18,7 @@ package magnolify.beam
 
 import magnolia1.*
 import magnolify.shared.*
+import magnolify.shared.doc.getDoc
 import org.apache.beam.sdk.schemas.Schema
 import org.apache.beam.sdk.schemas.Schema.{Field, FieldType}
 import org.apache.beam.sdk.values.Row
@@ -34,6 +35,7 @@ import scala.jdk.CollectionConverters.*
 // https://beam.apache.org/documentation/programming-guide/#schema-definition
 sealed trait RowType[T] extends Converter[T, Row, Row] {
   def schema: Schema
+  def description: Option[String]
   def apply(r: Row): T = from(r)
   def apply(t: T): Row = to(t)
 }
@@ -48,6 +50,7 @@ object RowType {
         new RowType[T] {
           private val caseMapper: CaseMapper = cm
           override lazy val schema: Schema = mappedSchema
+          override val description: Option[String] = r.description
 
           override def from(v: Row): T = r.from(v)(caseMapper)
           override def to(v: T): Row = r.to(v)(caseMapper)
@@ -101,6 +104,7 @@ object RowField {
   sealed trait Record[T] extends Aux[T, Row, Row] {
     @transient private lazy val schemaCache: concurrent.Map[ju.UUID, Schema] =
       concurrent.TrieMap.empty
+    def description: Option[String]
     protected def buildSchema(cm: CaseMapper): Schema
     def schema(cm: CaseMapper): Schema = schemaCache.getOrElseUpdate(cm.uuid, buildSchema(cm))
   }
@@ -163,12 +167,20 @@ object RowField {
       new Record[T] {
         @transient @volatile private var cachedFieldIndices: (ju.UUID, Array[Int]) = _
 
+        // evaluated eagerly so duplicate @doc on nested records fail fast too
+        override val description: Option[String] =
+          getDoc(caseClass.annotations, caseClass.typeName.full)
+
         override def fieldType(cm: CaseMapper): FieldType = FieldType.row(schema(cm))
 
         override protected def buildSchema(cm: CaseMapper): Schema =
           caseClass.parameters
             .foldLeft(Schema.builder()) { case (s, p) =>
-              s.addField(cm.map(p.label), p.typeclass.fieldType(cm))
+              val f = Field.of(cm.map(p.label), p.typeclass.fieldType(cm))
+              s.addField(
+                getDoc(p.annotations, s"${caseClass.typeName.full}#${p.label}")
+                  .fold(f)(f.withDescription)
+              )
             }
             .build()
 

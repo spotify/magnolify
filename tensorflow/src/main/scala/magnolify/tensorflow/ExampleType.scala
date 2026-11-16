@@ -19,6 +19,7 @@ package magnolify.tensorflow
 import com.google.protobuf.ByteString
 import magnolia1.*
 import magnolify.shared.*
+import magnolify.shared.doc.getDocAs
 import magnolify.shims.FactoryCompat
 import org.tensorflow.metadata.v0.{Annotation, Feature as FeatureSchema, FeatureType, Schema}
 import org.tensorflow.proto.*
@@ -160,11 +161,8 @@ object ExampleField {
     }
   }
 
-  private def getDoc(annotations: Seq[Any], name: String): Option[Annotation] = {
-    val docs = annotations.collect { case d: doc => d.toString }
-    require(docs.size <= 1, s"More than one @doc annotation: $name")
-    docs.headOption.map(doc => Annotation.newBuilder().addTag(doc).build())
-  }
+  private def getDoc(annotations: Seq[Any], name: String): Option[Annotation] =
+    getDocAs[doc](annotations, name).map(d => Annotation.newBuilder().addTag(d).build())
 
   @implicitNotFound("Cannot derive ExampleField for sealed trait")
   private sealed trait Dispatchable[T]

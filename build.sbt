@@ -180,7 +180,10 @@ ThisBuild / mimaBinaryIssueFilters ++= Seq(
   ProblemFilters.exclude[MissingClassProblem]("magnolify.avro.ArrayIsBinaryNode"),
   ProblemFilters.exclude[MissingClassProblem]("magnolify.avro.ArrayIsBinaryNode$"),
   ProblemFilters.exclude[MissingClassProblem]("magnolify.avro.ArrayIsTextNode"),
-  ProblemFilters.exclude[MissingClassProblem]("magnolify.avro.ArrayIsTextNode$")
+  ProblemFilters.exclude[MissingClassProblem]("magnolify.avro.ArrayIsTextNode$"),
+  // sealed traits, so external implementations are impossible
+  ProblemFilters.exclude[ReversedMissingMethodProblem]("magnolify.beam.RowType.description"),
+  ProblemFilters.exclude[ReversedMissingMethodProblem]("magnolify.beam.RowField#Record.description")
 )
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.10.0")
 

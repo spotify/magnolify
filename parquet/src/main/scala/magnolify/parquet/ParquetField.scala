@@ -18,6 +18,7 @@ package magnolify.parquet
 
 import magnolia1.*
 import magnolify.shared.{Converter as _, *}
+import magnolify.shared.doc.getDoc
 import magnolify.shims.FactoryCompat
 
 import java.nio.{ByteBuffer, ByteOrder}
@@ -194,12 +195,6 @@ object ParquetField {
   def split[T: Dispatchable](sealedTrait: SealedTrait[Typeclass, T]): ParquetField[T] = ???
 
   implicit def apply[T]: ParquetField[T] = macro Magnolia.gen[T]
-
-  private def getDoc(annotations: Seq[Any], name: String): Option[String] = {
-    val docs = annotations.collect { case d: magnolify.shared.doc => d.toString }
-    require(docs.size <= 1, s"More than one @doc annotation: $name")
-    docs.headOption
-  }
 
   // ////////////////////////////////////////////////
 

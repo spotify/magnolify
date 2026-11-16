@@ -22,7 +22,7 @@ import magnolify.cats.auto._
 import magnolify.cats.TestEq._
 import magnolify.scalacheck.auto._
 import magnolify.scalacheck.TestArbitrary.{arbFloats => _, _}
-import magnolify.shared.CaseMapper
+import magnolify.shared.{doc => sharedDoc, CaseMapper}
 import magnolify.shared.TestEnumType._
 import magnolify.tensorflow._
 import magnolify.tensorflow.unsafe._
@@ -159,6 +159,19 @@ class ExampleTypeSuite extends MagnolifySuite {
     assertEquals(et.schema, expectedSchema)
   }
 
+  test("MixedAnnotations") {
+    val et = ExampleType[MixedAnnotations]
+    val schema = et.schema
+    assertEquals(schema.getAnnotation.getTagList.asScala.toList, List("tf record doc"))
+    val features = schema.getFeatureList.asScala.map(f => f.getName -> f).toMap
+    // @doc wins over a sibling @magnolify.shared.doc on the same field
+    assertEquals(features("b").getAnnotation.getTagList.asScala.toList, List("tf b doc"))
+    // @magnolify.shared.doc alone stays invisible to ExampleType
+    assert(!features("i").hasAnnotation)
+    // a null description yields no annotation rather than throwing
+    assert(!features("nullDoc").hasAnnotation)
+  }
+
   private def feature(name: String, t: FeatureType, doc: Option[String]): Feature = {
     val b = Feature.newBuilder()
     b.setName(name)
@@ -186,6 +199,15 @@ case class Unsafe(b: Byte, c: Char, s: Short, i: Int, d: Double, bool: Boolean, 
 
 @doc("this doc will be ignored")
 case class NestedWithAnnotations(@doc("other b doc") b: Boolean, @doc("other i doc") i: Int)
+
+@sharedDoc("shared record doc")
+@doc("tf record doc")
+case class MixedAnnotations(
+  @sharedDoc("shared b doc") @doc("tf b doc") b: Boolean,
+  @sharedDoc("shared only i doc") i: Int,
+  @doc(null) nullDoc: String
+)
+
 @doc("Example top level doc")
 case class WithAnnotations(
   noAnnotationB: Boolean,

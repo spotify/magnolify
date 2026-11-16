@@ -18,6 +18,7 @@ package magnolify.avro
 
 import magnolia1._
 import magnolify.shared.{doc => _, _}
+import magnolify.shared.doc.getDoc
 import magnolify.shims.FactoryCompat
 import org.apache.avro.generic.GenericData.EnumSymbol
 import org.apache.avro.generic._
@@ -128,14 +129,14 @@ object AvroField {
         override protected def buildSchema(cm: CaseMapper): Schema = Schema
           .createRecord(
             caseClass.typeName.short,
-            getDoc(caseClass.annotations, caseClass.typeName.full),
+            getDoc(caseClass.annotations, caseClass.typeName.full).orNull,
             caseClass.typeName.owner,
             false,
             caseClass.parameters.map { p =>
               new Schema.Field(
                 cm.map(p.label),
                 p.typeclass.schema(cm),
-                getDoc(p.annotations, s"${caseClass.typeName.full}#${p.label}"),
+                getDoc(p.annotations, s"${caseClass.typeName.full}#${p.label}").orNull,
                 p.default
                   .map(d => p.typeclass.makeDefault(d)(cm))
                   .getOrElse(p.typeclass.fallbackDefault)
@@ -167,12 +168,6 @@ object AvroField {
           }
       }
     }
-  }
-
-  private def getDoc(annotations: Seq[Any], name: String): String = {
-    val docs = annotations.collect { case d: doc => d.toString }
-    require(docs.size <= 1, s"More than one @doc annotation: $name")
-    docs.headOption.orNull
   }
 
   @implicitNotFound("Cannot derive AvroField for sealed trait")
@@ -251,7 +246,7 @@ object AvroField {
     // Some reader, i.e. `AvroParquetReader` reads enums as `Utf8`
     new Aux[T, AnyRef, EnumSymbol] {
       override protected def buildSchema(cm: CaseMapper): Schema = {
-        val doc = getDoc(et.annotations, s"Enum ${et.namespace}.${et.name}")
+        val doc = getDoc(et.annotations, s"Enum ${et.namespace}.${et.name}").orNull
         Schema.createEnum(et.name, doc, et.namespace, et.values.asJava)
       }
       // `JacksonUtils.toJson` expects `String` for `ENUM` defaults
@@ -385,7 +380,7 @@ object AvroField {
       override protected def buildSchema(cm: CaseMapper): Schema = {
         val n = ReflectionUtils.name[T]
         val ns = ReflectionUtils.namespace[T]
-        Schema.createFixed(n, getDoc(an.annotations, n), ns, size)
+        Schema.createFixed(n, getDoc(an.annotations, n).orNull, ns, size)
       }
 
       override def from(v: GenericFixed)(cm: CaseMapper): T = f(v.bytes())
